@@ -19,7 +19,7 @@ export const metadata: Metadata = {
     template: "%s | STREET MOBILE",
   },
   description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services. Find Apple, Samsung, Xiaomi, and premium accessories.",
-  keywords: ["Mobile shop in Vavuniya", "STREET MOBILE", "Buy phones Vavuniya", "Mobile repair Sri Lanka", "Apple products Sri Lanka", "Samsung Vavuniya", "Mobile accessories"],
+  keywords: ["street mobile.lk", "streetmobile.lk", "street mobile lk", "street mobile sri lanka", "Mobile shop in Vavuniya", "STREET MOBILE", "Buy phones Vavuniya", "Mobile repair Sri Lanka", "Apple products Sri Lanka", "Samsung Vavuniya", "Mobile accessories"],
   openGraph: {
     title: "STREET MOBILE - Premium Mobile Store in Vavuniya",
     description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services.",
@@ -32,6 +32,9 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "STREET MOBILE - Premium Mobile Store in Vavuniya",
     description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services.",
+  },
+  verification: {
+    google: "pRdm46lnUWo4UNNzDSKw-S-3p3LwidWihXA67FOGq6U",
   },
 };
 

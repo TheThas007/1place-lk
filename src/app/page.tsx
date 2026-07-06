@@ -23,6 +23,7 @@ export default async function HomePage() {
     "@context": "https://schema.org",
     "@type": "MobilePhoneStore",
     "name": "STREET MOBILE",
+    "alternateName": "streetmobile.lk",
     "image": "https://www.streetmobile.lk/logo.png",
     "@id": "https://www.streetmobile.lk",
     "url": "https://www.streetmobile.lk",
