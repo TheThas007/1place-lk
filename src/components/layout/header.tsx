@@ -51,17 +51,17 @@ export default function Header() {
       {/* Main Header */}
       <header
         className={cn(
-          "sticky top-0 z-50 transition-all duration-500",
+          "sticky top-0 z-50 transition-all duration-500 bg-black",
           isScrolled
-            ? "glass shadow-[0_1px_0_rgba(0,0,0,0.06)]"
-            : "bg-white"
+            ? "shadow-[0_1px_0_rgba(255,255,255,0.08)]"
+            : ""
         )}
       >
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-20 lg:h-24">
+          <div className="flex items-center justify-between h-28 lg:h-36">
             {/* Logo */}
             <Link href="/" className="flex items-center shrink-0 group">
-              <div className="relative w-72 h-18 lg:w-[420px] lg:h-[80px] flex items-center justify-start transition-transform group-hover:scale-105">
+              <div className="relative w-[360px] h-[96px] sm:w-[460px] sm:h-[100px] lg:w-[640px] lg:h-[130px] flex items-center justify-start transition-transform group-hover:scale-105">
                 {/* The actual logo image */}
                 <img 
                   src="/logo.png" 
@@ -87,10 +87,10 @@ export default function Header() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="text-sm text-muted hover:text-foreground transition-colors duration-200 relative group"
+                  className="text-sm text-white/70 hover:text-white transition-colors duration-200 relative group"
                 >
                   {link.label}
-                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-foreground transition-all duration-300 group-hover:w-full" />
+                  <span className="absolute -bottom-1 left-0 w-0 h-[1.5px] bg-white transition-all duration-300 group-hover:w-full" />
                 </Link>
               ))}
             </nav>
@@ -99,20 +99,20 @@ export default function Header() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setIsSearchOpen(!isSearchOpen)}
-                className="p-2 rounded-full hover:bg-card transition-colors"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors text-white"
                 aria-label="Search"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-5 h-5 text-white" />
               </button>
               <button
                 onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-                className="p-2 rounded-full hover:bg-card transition-colors lg:hidden"
+                className="p-2 rounded-full hover:bg-white/10 transition-colors lg:hidden text-white"
                 aria-label="Menu"
               >
                 {isMobileMenuOpen ? (
-                  <X className="w-5 h-5" />
+                  <X className="w-5 h-5 text-white" />
                 ) : (
-                  <Menu className="w-5 h-5" />
+                  <Menu className="w-5 h-5 text-white" />
                 )}
               </button>
             </div>
@@ -127,15 +127,15 @@ export default function Header() {
               animate={{ height: "auto", opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="overflow-hidden border-t border-border"
+              className="overflow-hidden border-t border-white/10"
             >
               <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3">
                 <div className="relative">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted" />
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
                   <input
                     type="text"
                     placeholder="Search products..."
-                    className="w-full pl-10 pr-4 py-2.5 bg-card rounded-xl text-sm outline-none focus:ring-2 focus:ring-foreground/10 transition-all"
+                    className="w-full pl-10 pr-4 py-2.5 bg-white/10 text-white placeholder:text-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-white/20 transition-all"
                     autoFocus
                   />
                 </div>

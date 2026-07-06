@@ -139,7 +139,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-4">
             <a
-              href="https://facebook.com/streetmobile"
+              href="https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/40 hover:text-white transition-colors"
@@ -150,7 +150,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="https://instagram.com/streetmobile"
+              href="https://www.instagram.com/streetmobile.lk?utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/40 hover:text-white transition-colors"
@@ -161,14 +161,14 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="https://tiktok.com/@streetmobile"
+              href="https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9"
               target="_blank"
               rel="noopener noreferrer"
               className="text-white/40 hover:text-white transition-colors"
               aria-label="TikTok"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M16.6 5.82s.51.5 0 0A4.278 4.278 0 015.9 5.82V4.8C5.9 3.81 6.71 3 7.7 3h.6v9.3a3.349 3.349 0 01-2.2 3.15 3.357 3.357 0 01-3.7-.93 3.36 3.36 0 014.07-5.22V6.9a5.76 5.76 0 00-1.07-.1 5.77 5.77 0 105.77 5.77V8.24a7.97 7.97 0 004.56 1.44V6.5a4.26 4.26 0 01-2.43-.68z" />
+                <path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 2.22-1.15 4.34-2.82 5.76-1.68 1.43-4.04 2.05-6.2 1.57-2.14-.49-3.95-1.93-4.9-3.85-.92-1.89-.98-4.2-.1-6.14.9-1.99 2.66-3.44 4.74-3.96 1.4-.33 2.88-.2 4.21.28v4.06c-1.57-.46-3.34-.1-4.62 1.05-1.28 1.15-1.74 3.12-.99 4.67.75 1.54 2.5 2.56 4.23 2.39 1.74-.16 3.19-1.39 3.73-3.03.11-.31.18-.63.19-.95.06-2.58.04-5.16.05-7.75.01-4.96.01-9.93.01-14.89h.01z" />
               </svg>
             </a>
           </div>

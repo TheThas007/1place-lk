@@ -20,8 +20,13 @@ import {
   Trash2,
   ChevronRight,
 } from "lucide-react";
-import { products, categories, reviews } from "@/lib/data";
 import { formatPrice } from "@/lib/utils";
+import { db } from "@/lib/firebase";
+import { collection, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
+import { Product, Category, Review, GalleryImage } from "@/lib/types";
+
+import ProductModal from "@/components/admin/ProductModal";
+import GalleryModal from "@/components/admin/GalleryModal";
 
 type Tab = "overview" | "products" | "categories" | "reviews" | "gallery";
 
@@ -30,14 +35,81 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [isAuthed, setIsAuthed] = useState(false);
 
+  const [productsList, setProductsList] = useState<Product[]>([]);
+  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
+  const [reviewsList, setReviewsList] = useState<Review[]>([]);
+  const [galleryList, setGalleryList] = useState<GalleryImage[]>([]);
+  const [loadingData, setLoadingData] = useState(true);
+
+  // Modal State
+  const [isProductModalOpen, setIsProductModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
+
   useEffect(() => {
     const auth = sessionStorage.getItem("admin_auth");
     if (!auth) {
       router.push("/admin/login");
     } else {
       setIsAuthed(true);
+      fetchData();
     }
   }, [router]);
+
+  const fetchData = async () => {
+    try {
+      const [pSnap, cSnap, rSnap, gSnap] = await Promise.all([
+        getDocs(collection(db, "products")),
+        getDocs(collection(db, "categories")),
+        getDocs(collection(db, "reviews")),
+        getDocs(collection(db, "gallery")),
+      ]);
+      setProductsList(pSnap.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
+      setCategoriesList(cSnap.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
+      setReviewsList(rSnap.docs.map(d => ({ ...d.data(), id: d.id } as Review)));
+      setGalleryList(gSnap.docs.map(d => ({ ...d.data(), id: d.id } as GalleryImage)));
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingData(false);
+    }
+  };
+
+  const handleDeleteProduct = async (id: string) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+      await deleteDoc(doc(db, "products", id));
+      setProductsList(productsList.filter(p => p.id !== id));
+    }
+  };
+
+  const handleEditProduct = (product: Product) => {
+    setEditingProduct(product);
+    setIsProductModalOpen(true);
+  };
+
+  const handleAddProduct = () => {
+    setEditingProduct(null);
+    setIsProductModalOpen(true);
+  };
+
+  const handleDeleteGalleryImage = async (id: string) => {
+    if (confirm("Are you sure you want to delete this gallery image?")) {
+      await deleteDoc(doc(db, "gallery", id));
+      setGalleryList(galleryList.filter(g => g.id !== id));
+    }
+  };
+
+  const handleEditGalleryImage = (image: GalleryImage) => {
+    setEditingGalleryImage(image);
+    setIsGalleryModalOpen(true);
+  };
+
+  const handleAddGalleryImage = () => {
+    setEditingGalleryImage(null);
+    setIsGalleryModalOpen(true);
+  };
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
@@ -63,21 +135,21 @@ export default function AdminDashboard() {
   const stats = [
     {
       label: "Total Products",
-      value: products.length.toString(),
+      value: productsList.length.toString(),
       icon: Package,
       change: "+3 this month",
       color: "bg-blue-500/10 text-blue-400",
     },
     {
       label: "Categories",
-      value: categories.length.toString(),
+      value: categoriesList.length.toString(),
       icon: FolderOpen,
       change: "10 active",
       color: "bg-emerald-500/10 text-emerald-400",
     },
     {
       label: "Reviews",
-      value: reviews.length.toString(),
+      value: reviewsList.length.toString(),
       icon: Star,
       change: "4.9 avg rating",
       color: "bg-amber-500/10 text-amber-400",
@@ -90,6 +162,14 @@ export default function AdminDashboard() {
       color: "bg-purple-500/10 text-purple-400",
     },
   ];
+
+  if (loadingData) {
+    return (
+      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 flex">
@@ -167,14 +247,43 @@ export default function AdminDashboard() {
         {/* Content */}
         <div className="p-8">
           {activeTab === "overview" && (
-            <OverviewTab stats={stats} />
+            <OverviewTab stats={stats} products={productsList} reviews={reviewsList} />
           )}
-          {activeTab === "products" && <ProductsTab />}
-          {activeTab === "categories" && <CategoriesTab />}
-          {activeTab === "reviews" && <ReviewsTab />}
-          {activeTab === "gallery" && <GalleryTab />}
+          {activeTab === "products" && (
+            <ProductsTab 
+              products={productsList} 
+              onDelete={handleDeleteProduct} 
+              onEdit={handleEditProduct}
+              onAdd={handleAddProduct}
+            />
+          )}
+          {activeTab === "categories" && <CategoriesTab categories={categoriesList} />}
+          {activeTab === "reviews" && <ReviewsTab reviews={reviewsList} />}
+          {activeTab === "gallery" && (
+            <GalleryTab 
+              images={galleryList} 
+              onAdd={handleAddGalleryImage} 
+              onEdit={handleEditGalleryImage} 
+              onDelete={handleDeleteGalleryImage} 
+            />
+          )}
         </div>
       </main>
+
+      {/* Modals */}
+      <ProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSave={fetchData}
+        categories={categoriesList}
+        initialData={editingProduct}
+      />
+      <GalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onSave={fetchData}
+        initialData={editingGalleryImage}
+      />
     </div>
   );
 }
@@ -182,6 +291,8 @@ export default function AdminDashboard() {
 /* ─── Overview Tab ─── */
 function OverviewTab({
   stats,
+  products,
+  reviews,
 }: {
   stats: {
     label: string;
@@ -190,6 +301,8 @@ function OverviewTab({
     change: string;
     color: string;
   }[];
+  products: Product[];
+  reviews: Review[];
 }) {
   return (
     <div className="space-y-8">
@@ -309,7 +422,17 @@ function OverviewTab({
 }
 
 /* ─── Products Tab ─── */
-function ProductsTab() {
+function ProductsTab({ 
+  products, 
+  onDelete, 
+  onEdit, 
+  onAdd 
+}: { 
+  products: Product[], 
+  onDelete: (id: string) => void,
+  onEdit: (product: Product) => void,
+  onAdd: () => void
+}) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -319,7 +442,10 @@ function ProductsTab() {
             {products.length} products in your store
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]">
+        <button 
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
+        >
           <Plus className="w-4 h-4" />
           Add Product
         </button>
@@ -391,10 +517,16 @@ function ProductsTab() {
                 </td>
                 <td className="px-6 py-4">
                   <div className="flex items-center justify-end gap-2">
-                    <button className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                    <button 
+                      onClick={() => onEdit(product)}
+                      className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                    >
                       <Edit className="w-4 h-4" />
                     </button>
-                    <button className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all">
+                    <button 
+                      onClick={() => onDelete(product.id)}
+                      className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                    >
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>
@@ -409,7 +541,7 @@ function ProductsTab() {
 }
 
 /* ─── Categories Tab ─── */
-function CategoriesTab() {
+function CategoriesTab({ categories }: { categories: Category[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -464,7 +596,7 @@ function CategoriesTab() {
 }
 
 /* ─── Reviews Tab ─── */
-function ReviewsTab() {
+function ReviewsTab({ reviews }: { reviews: Review[] }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -536,52 +668,67 @@ function ReviewsTab() {
 }
 
 /* ─── Gallery Tab ─── */
-function GalleryTab() {
-  const galleryImages = [
-    "https://images.unsplash.com/photo-1611186871348-b1ce696e52c9?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1556656793-08538906a9f8?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1491933382434-500287f9b54b?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1574887428131-01b34e405a76?q=80&w=800&auto=format&fit=crop",
-    "https://images.unsplash.com/photo-1512499617640-c74ae3a79d37?q=80&w=800&auto=format&fit=crop",
-  ];
-
+function GalleryTab({ 
+  images, 
+  onAdd, 
+  onEdit, 
+  onDelete 
+}: { 
+  images: GalleryImage[]; 
+  onAdd: () => void; 
+  onEdit: (image: GalleryImage) => void; 
+  onDelete: (id: string) => void; 
+}) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h3 className="text-lg font-semibold text-white">Gallery Images</h3>
           <p className="text-xs text-white/40 mt-0.5">
-            {galleryImages.length} images
+            {images.length} images
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]">
+        <button 
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
+        >
           <Plus className="w-4 h-4" />
           Upload Image
         </button>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        {galleryImages.map((src, idx) => (
+        {images.map((img) => (
           <div
-            key={idx}
+            key={img.id}
             className="group relative aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/5"
           >
             <img
-              src={src}
-              alt={`Gallery image ${idx + 1}`}
+              src={img.image_url}
+              alt={img.caption || `Gallery image`}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
             />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center">
               <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all">
-                  <Eye className="w-4 h-4" />
+                <button 
+                  onClick={() => onEdit(img)}
+                  className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all"
+                >
+                  <Edit className="w-4 h-4" />
                 </button>
-                <button className="p-2.5 rounded-xl bg-red-500/20 backdrop-blur-sm text-red-300 hover:bg-red-500/30 transition-all">
+                <button 
+                  onClick={() => onDelete(img.id)}
+                  className="p-2.5 rounded-xl bg-red-500/20 backdrop-blur-sm text-red-300 hover:bg-red-500/30 transition-all"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
             </div>
+            {img.category && (
+              <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded-lg text-[10px] font-medium text-white/90 uppercase tracking-wider">
+                {img.category}
+              </div>
+            )}
           </div>
         ))}
       </div>

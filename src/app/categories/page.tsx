@@ -1,8 +1,12 @@
 import Image from "next/image";
 import Link from "next/link";
-import { categories } from "@/lib/data";
+import { getCategories } from "@/lib/firestore-client";
 
-export default function CategoriesPage() {
+export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+
+export default async function CategoriesPage() {
+  const categories = await getCategories();
   return (
     <div className="bg-background min-h-screen">
       <div className="border-b border-border bg-card">

@@ -1,13 +1,12 @@
-"use client";
-
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { products } from "@/lib/data";
+import { getProducts } from "@/lib/firestore-client";
 
-export default function FeaturedProducts() {
-  const featuredProducts = products.filter((p) => p.featured).slice(0, 4);
+export default async function FeaturedProducts() {
+  const allProducts = await getProducts();
+  const featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
 
   return (
     <section className="py-20 lg:py-32 bg-background">

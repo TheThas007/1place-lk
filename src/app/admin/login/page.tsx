@@ -20,7 +20,7 @@ export default function AdminLoginPage() {
     // Simple auth check — hardcoded credentials
     await new Promise((resolve) => setTimeout(resolve, 800));
 
-    if (username === "admin" && password === "street2024") {
+    if (username.trim().toLowerCase() === "admin" && password.trim() === "street2024") {
       // Store auth in sessionStorage
       sessionStorage.setItem("admin_auth", "true");
       router.push("/admin/dashboard");

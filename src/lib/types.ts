@@ -12,6 +12,7 @@ export interface Product {
   stock_status: "in_stock" | "low_stock" | "out_of_stock";
   colors: string[];
   storage_options: string[];
+  storage_prices?: Record<string, number>;
   images: string[];
   featured: boolean;
   created_at: string;
@@ -25,6 +26,7 @@ export interface Category {
   image_url: string;
   sort_order: number;
   product_count?: number;
+  group?: "phones" | "accessories" | "other";
 }
 
 export interface Review {
