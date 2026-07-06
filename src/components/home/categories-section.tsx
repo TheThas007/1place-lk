@@ -25,18 +25,24 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
         {/* Logo circle */}
         <div className="w-20 h-20 rounded-2xl bg-card flex items-center justify-center
                         group-hover:bg-foreground/5 transition-colors duration-300 overflow-hidden p-2">
-          <img
-            src={cat.icon}
-            alt={`${cat.name} logo`}
-            className="w-14 h-14 object-contain opacity-90 group-hover:opacity-100
-                       group-hover:scale-110 transition-all duration-300"
-            onError={(e) => {
-              const img = e.currentTarget as HTMLImageElement;
-              img.style.display = "none";
-              const span = img.nextElementSibling as HTMLElement | null;
-              if (span) span.style.display = "flex";
-            }}
-          />
+          {cat.image_url || (cat.icon && cat.icon.startsWith("http")) ? (
+            <img
+              src={cat.image_url || cat.icon}
+              alt={`${cat.name} logo`}
+              className="w-14 h-14 object-contain opacity-90 group-hover:opacity-100
+                         group-hover:scale-110 transition-all duration-300"
+              onError={(e) => {
+                const img = e.currentTarget as HTMLImageElement;
+                img.style.display = "none";
+                const span = img.nextElementSibling as HTMLElement | null;
+                if (span) span.style.display = "flex";
+              }}
+            />
+          ) : (
+            <span className="text-3xl filter drop-shadow-md group-hover:scale-110 transition-all duration-300">
+              {cat.icon || "📱"}
+            </span>
+          )}
           <span
             className="w-9 h-9 rounded-full bg-foreground/10 text-foreground font-bold
                        text-xs items-center justify-center hidden"

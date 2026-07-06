@@ -10,7 +10,6 @@ const navItems = [
   { href: "/categories", icon: Grid3X3, label: "Categories" },
   { href: "/products", icon: Search, label: "Search" },
   { href: "/products?featured=true", icon: ShoppingBag, label: "Shop" },
-  { href: "/admin/login", icon: User, label: "Account" },
 ];
 
 export default function MobileNav() {
@@ -18,7 +17,7 @@ export default function MobileNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden glass border-t border-border safe-bottom">
-      <div className="grid grid-cols-5 items-center h-16">
+      <div className="grid grid-cols-4 items-center h-16">
         {navItems.map((item) => {
           const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href.split("?")[0]));
           return (

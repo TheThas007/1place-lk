@@ -103,20 +103,7 @@ export default function Header() {
 
             {/* ── Actions ── */}
             <div className="flex items-center gap-1">
-              {/* Search toggle */}
-              <button
-                onClick={() => setIsSearchOpen(!isSearchOpen)}
-                aria-label="Search"
-                className={cn(
-                  "p-2 rounded-lg transition-all duration-200",
-                  isSearchOpen
-                    ? "bg-white/15 text-white"
-                    : "text-white/60 hover:text-white hover:bg-white/10"
-                )}
-              >
-                <Search className="w-[18px] h-[18px]" />
-              </button>
-
+              {/* Search toggle removed per user request */}
               {/* Contact pill — desktop only */}
               <a
                 href="tel:+94774141118"
