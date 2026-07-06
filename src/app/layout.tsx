@@ -13,8 +13,26 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "STREET MOBILE - Premium Mobile Store in Vavuniya",
-  description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services.",
+  metadataBase: new URL("https://www.streetmobile.lk"),
+  title: {
+    default: "STREET MOBILE - Premium Mobile Store in Vavuniya",
+    template: "%s | STREET MOBILE",
+  },
+  description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services. Find Apple, Samsung, Xiaomi, and premium accessories.",
+  keywords: ["Mobile shop in Vavuniya", "STREET MOBILE", "Buy phones Vavuniya", "Mobile repair Sri Lanka", "Apple products Sri Lanka", "Samsung Vavuniya", "Mobile accessories"],
+  openGraph: {
+    title: "STREET MOBILE - Premium Mobile Store in Vavuniya",
+    description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services.",
+    url: "https://www.streetmobile.lk",
+    siteName: "STREET MOBILE",
+    locale: "en_LK",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "STREET MOBILE - Premium Mobile Store in Vavuniya",
+    description: "Your Trusted Mobile Store in Vavuniya. Latest Smartphones, Accessories & Professional Repair Services.",
+  },
 };
 
 export default function RootLayout({

@@ -19,8 +19,50 @@ export default async function HomePage() {
     getGalleryImages(),
   ]);
 
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "MobilePhoneStore",
+    "name": "STREET MOBILE",
+    "image": "https://www.streetmobile.lk/logo.png",
+    "@id": "https://www.streetmobile.lk",
+    "url": "https://www.streetmobile.lk",
+    "telephone": "+94774141118",
+    "priceRange": "$$",
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": "Vavuniya",
+      "addressLocality": "Vavuniya",
+      "addressRegion": "NP",
+      "postalCode": "43000",
+      "addressCountry": "LK"
+    },
+    "geo": {
+      "@type": "GeoCoordinates",
+      "latitude": 8.7514,
+      "longitude": 80.4971
+    },
+    "openingHoursSpecification": {
+      "@type": "OpeningHoursSpecification",
+      "dayOfWeek": [
+        "Monday",
+        "Tuesday",
+        "Wednesday",
+        "Thursday",
+        "Friday",
+        "Saturday",
+        "Sunday"
+      ],
+      "opens": "09:00",
+      "closes": "21:00"
+    }
+  };
+
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
       <HeroSection />
       <TrustIndicators />
       <FeaturedProducts />
