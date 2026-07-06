@@ -55,7 +55,7 @@ export default function Header() {
                 <img
                   src="/logo.png"
                   alt="STREET MOBILE Logo"
-                  className="w-[180px] sm:w-[220px] lg:w-[280px] h-auto object-contain origin-left transition-transform duration-300 group-hover:scale-105"
+                  className="w-[150px] sm:w-[180px] lg:w-[220px] h-auto object-contain origin-left transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                     const fb = document.getElementById("logo-fallback-header");
