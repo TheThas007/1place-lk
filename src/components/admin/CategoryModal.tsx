@@ -23,12 +23,15 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [iconFile, setIconFile] = useState<File | null>(null);
+  const [iconPreview, setIconPreview] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setFormData(initialData);
       setImagePreview(initialData.image_url || "");
+      setIconPreview(initialData.icon?.startsWith("http") ? initialData.icon : "");
     } else {
       setFormData({
         name: "",
@@ -39,8 +42,10 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         group: "phones",
       });
       setImagePreview("");
+      setIconPreview("");
     }
     setImageFile(null);
+    setIconFile(null);
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -51,6 +56,15 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
       setFormData({ ...formData, image_url: "" });
+    }
+  };
+
+  const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setIconFile(file);
+      setIconPreview(URL.createObjectURL(file));
+      setFormData({ ...formData, icon: "" });
     }
   };
 
@@ -66,11 +80,18 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
 
     try {
       let finalImageUrl = formData.image_url || "";
+      let finalIcon = formData.icon || "";
 
       if (imageFile) {
         const storageRef = ref(storage, `categories/${Date.now()}_${imageFile.name}`);
         const uploadResult = await uploadBytes(storageRef, imageFile);
         finalImageUrl = await getDownloadURL(uploadResult.ref);
+      }
+
+      if (iconFile) {
+        const iconStorageRef = ref(storage, `categories/icons/${Date.now()}_${iconFile.name}`);
+        const iconUploadResult = await uploadBytes(iconStorageRef, iconFile);
+        finalIcon = await getDownloadURL(iconUploadResult.ref);
       }
 
       if (!finalImageUrl) {
@@ -82,6 +103,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       const categoryData = {
         ...formData,
         image_url: finalImageUrl,
+        icon: finalIcon,
       };
 
       if (initialData && initialData.id) {
@@ -138,13 +160,44 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Icon Emoji</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Category Icon</label>
+              <div className="flex items-center gap-4 mb-3">
+                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                  {iconPreview ? (
+                    <img src={iconPreview} alt="Icon Preview" className="w-full h-full object-cover" />
+                  ) : formData.icon && !formData.icon.startsWith("http") ? (
+                    <span className="text-2xl">{formData.icon}</span>
+                  ) : (
+                    <ImageIcon className="w-5 h-5 text-white/20" />
+                  )}
+                </div>
+                <div className="flex-1">
+                  <input
+                    type="file"
+                    id="categoryIconUpload"
+                    accept="image/*"
+                    onChange={handleIconChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="categoryIconUpload"
+                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg cursor-pointer transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5" />
+                    Upload Icon
+                  </label>
+                </div>
+              </div>
               <input
                 type="text"
-                placeholder="📱"
+                placeholder="Or paste URL / Emoji (📱)"
                 value={formData.icon || ""}
-                onChange={(e) => setFormData({ ...formData, icon: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                onChange={(e) => {
+                  setFormData({ ...formData, icon: e.target.value });
+                  if (!iconFile && e.target.value.startsWith("http")) setIconPreview(e.target.value);
+                  else if (!iconFile) setIconPreview("");
+                }}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
               />
             </div>
             <div>
