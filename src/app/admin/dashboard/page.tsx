@@ -27,6 +27,7 @@ import { Product, Category, Review, GalleryImage } from "@/lib/types";
 
 import ProductModal from "@/components/admin/ProductModal";
 import GalleryModal from "@/components/admin/GalleryModal";
+import CategoryModal from "@/components/admin/CategoryModal";
 
 type Tab = "overview" | "products" | "categories" | "reviews" | "gallery";
 
@@ -44,6 +45,9 @@ export default function AdminDashboard() {
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
@@ -92,6 +96,23 @@ export default function AdminDashboard() {
   const handleAddProduct = () => {
     setEditingProduct(null);
     setIsProductModalOpen(true);
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (confirm("Are you sure you want to delete this category?")) {
+      await deleteDoc(doc(db, "categories", id));
+      setCategoriesList(categoriesList.filter(c => c.id !== id));
+    }
+  };
+
+  const handleEditCategory = (category: Category) => {
+    setEditingCategory(category);
+    setIsCategoryModalOpen(true);
+  };
+
+  const handleAddCategory = () => {
+    setEditingCategory(null);
+    setIsCategoryModalOpen(true);
   };
 
   const handleDeleteGalleryImage = async (id: string) => {
@@ -264,7 +285,14 @@ export default function AdminDashboard() {
               onAdd={handleAddProduct}
             />
           )}
-          {activeTab === "categories" && <CategoriesTab categories={categoriesList} />}
+          {activeTab === "categories" && (
+            <CategoriesTab 
+              categories={categoriesList} 
+              onAdd={handleAddCategory}
+              onEdit={handleEditCategory}
+              onDelete={handleDeleteCategory}
+            />
+          )}
           {activeTab === "reviews" && <ReviewsTab reviews={reviewsList} onDelete={handleDeleteReview} />}
           {activeTab === "gallery" && (
             <GalleryTab 
@@ -290,6 +318,12 @@ export default function AdminDashboard() {
         onClose={() => setIsGalleryModalOpen(false)}
         onSave={fetchData}
         initialData={editingGalleryImage}
+      />
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSave={fetchData}
+        initialData={editingCategory}
       />
     </div>
   );
@@ -548,7 +582,17 @@ function ProductsTab({
 }
 
 /* ─── Categories Tab ─── */
-function CategoriesTab({ categories }: { categories: Category[] }) {
+function CategoriesTab({ 
+  categories,
+  onAdd,
+  onEdit,
+  onDelete
+}: { 
+  categories: Category[],
+  onAdd: () => void,
+  onEdit: (category: Category) => void,
+  onDelete: (id: string) => void
+}) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -558,7 +602,10 @@ function CategoriesTab({ categories }: { categories: Category[] }) {
             {categories.length} categories
           </p>
         </div>
-        <button className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]">
+        <button 
+          onClick={onAdd}
+          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
+        >
           <Plus className="w-4 h-4" />
           Add Category
         </button>
@@ -572,25 +619,35 @@ function CategoriesTab({ categories }: { categories: Category[] }) {
           >
             <div className="flex items-center gap-4">
               <div className="w-14 h-14 rounded-xl bg-white/5 overflow-hidden shrink-0">
-                <img
-                  src={cat.image_url}
-                  alt={cat.name}
-                  className="w-full h-full object-cover"
-                />
+                {cat.image_url ? (
+                  <img
+                    src={cat.image_url}
+                    alt={cat.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-2xl">{cat.icon}</div>
+                )}
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white">
-                  {cat.name}
+                <div className="text-sm font-semibold text-white flex items-center gap-2">
+                  {cat.icon} {cat.name}
                 </div>
                 <div className="text-xs text-white/40 mt-0.5">
                   /{cat.slug} · Order: {cat.sort_order}
                 </div>
               </div>
               <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all">
+                <button 
+                  onClick={() => onEdit(cat)}
+                  className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all"
+                >
                   <Edit className="w-4 h-4" />
                 </button>
-                <button className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all">
+                <button 
+                  onClick={() => onDelete(cat.id!)}
+                  className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
