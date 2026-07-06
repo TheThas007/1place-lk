@@ -25,9 +25,9 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
         {/* Logo circle */}
         <div className="w-20 h-20 rounded-2xl bg-card flex items-center justify-center
                         group-hover:bg-foreground/5 transition-colors duration-300 overflow-hidden p-2">
-          {cat.image_url || (cat.icon && cat.icon.startsWith("http")) ? (
+          {cat.icon && cat.icon.startsWith("http") ? (
             <img
-              src={cat.image_url || cat.icon}
+              src={cat.icon}
               alt={`${cat.name} logo`}
               className="w-14 h-14 object-contain opacity-90 group-hover:opacity-100
                          group-hover:scale-110 transition-all duration-300"
