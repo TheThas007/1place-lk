@@ -91,11 +91,16 @@ export default function CategoriesClient({ categories }: { categories: Category[
               >
                 {/* Image */}
                 <div className="relative aspect-[4/3] overflow-hidden">
-                  <Image
+                  <img
                     src={category.image_url || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"}
                     alt={category.name}
-                    fill
-                    className="object-cover opacity-90 group-hover:opacity-100 group-hover:scale-108 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    className="w-full h-full object-cover opacity-90 group-hover:opacity-100 group-hover:scale-108 transition-all duration-600 ease-[cubic-bezier(0.16,1,0.3,1)]"
+                    onError={(e) => {
+                      const t = e.currentTarget as HTMLImageElement;
+                      if (t.src !== "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop") {
+                        t.src = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop";
+                      }
+                    }}
                   />
                   {/* Dark overlay */}
                   <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/20 to-transparent" />
