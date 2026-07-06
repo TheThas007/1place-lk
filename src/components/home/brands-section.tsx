@@ -81,39 +81,25 @@ function BrandCard3D({ brand, index }: { brand: Brand; index: number }) {
         {/* Shimmer top edge */}
         <div className="absolute top-0 left-4 right-4 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
 
-        {/* Logo */}
+        {/* Logo Only */}
         <div
-          className="relative w-14 h-14 flex items-center justify-center rounded-xl"
+          className="relative w-full h-16 flex items-center justify-center"
           style={{ transform: "translateZ(20px)" }}
         >
-          <div className="absolute inset-0 rounded-xl bg-white/5 group-hover:bg-white/10 transition-colors duration-300" />
           <img
             src={brand.logo}
             alt={`${brand.name} logo`}
-            className="w-9 h-9 object-contain relative z-10 opacity-60 group-hover:opacity-100 transition-opacity duration-300 filter group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
+            className="w-14 h-14 object-contain relative z-10 opacity-70 group-hover:opacity-100 transition-all duration-300 filter group-hover:drop-shadow-[0_0_12px_rgba(255,255,255,0.5)] group-hover:scale-110"
             onError={(e) => {
               const t = e.currentTarget as HTMLImageElement;
               if (brand.fallback && t.src !== brand.fallback) {
                 t.src = brand.fallback;
               } else {
                 t.style.display = "none";
-                const fb = t.nextElementSibling as HTMLElement | null;
-                if (fb) fb.style.display = "flex";
               }
             }}
           />
-          <span className="hidden w-9 h-9 rounded-full bg-white/10 text-white font-bold text-xs items-center justify-center">
-            {brand.name.slice(0, 2).toUpperCase()}
-          </span>
         </div>
-
-        {/* Name */}
-        <span
-          className="text-[11px] font-semibold text-white/40 group-hover:text-white/90 transition-colors duration-300 tracking-wide text-center relative z-10"
-          style={{ transform: "translateZ(10px)" }}
-        >
-          {brand.name}
-        </span>
       </motion.div>
     </motion.div>
   );
@@ -136,23 +122,20 @@ function MarqueeRow({ brands, reverse = false }: { brands: Brand[]; reverse?: bo
         {doubled.map((brand, i) => (
           <div
             key={`${brand.slug}-${i}`}
-            className="group flex flex-col items-center justify-center gap-2.5 w-[100px] h-[90px] rounded-2xl
+            className="group flex items-center justify-center w-[100px] h-[70px] rounded-2xl
                        bg-white/[0.03] border border-white/8 hover:bg-white/[0.07] hover:border-white/20
                        cursor-pointer transition-all duration-300 shrink-0"
           >
             <img
               src={brand.logo}
               alt={brand.name}
-              className="w-8 h-8 object-contain opacity-50 group-hover:opacity-100 transition-opacity duration-300 filter group-hover:drop-shadow-[0_0_6px_rgba(255,255,255,0.25)]"
+              className="w-10 h-10 object-contain opacity-50 group-hover:opacity-100 group-hover:scale-110 transition-all duration-300 filter group-hover:drop-shadow-[0_0_8px_rgba(255,255,255,0.3)]"
               onError={(e) => {
                 const t = e.currentTarget as HTMLImageElement;
                 if (brand.fallback && t.src !== brand.fallback) t.src = brand.fallback;
                 else { t.style.display = "none"; }
               }}
             />
-            <span className="text-[10px] font-semibold text-white/35 group-hover:text-white/80 transition-colors duration-300 tracking-wider">
-              {brand.name}
-            </span>
           </div>
         ))}
       </motion.div>
