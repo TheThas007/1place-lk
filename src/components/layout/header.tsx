@@ -47,7 +47,7 @@ export default function Header() {
         <div className="h-[2px] bg-gradient-to-r from-transparent via-white/20 to-transparent" />
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-[100px]">
+          <div className="flex items-center justify-between h-[120px]">
 
             {/* ── Logo ── */}
             <Link href="/" className="flex items-center shrink-0 group">
@@ -55,7 +55,7 @@ export default function Header() {
                 <img
                   src="/logo.png"
                   alt="STREET MOBILE Logo"
-                  className="h-24 lg:h-28 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
+                  className="h-28 lg:h-32 w-auto object-contain transition-transform duration-300 group-hover:scale-105"
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                     const fb = document.getElementById("logo-fallback-header");

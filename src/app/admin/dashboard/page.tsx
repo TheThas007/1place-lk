@@ -101,6 +101,13 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteReview = async (id: string) => {
+    if (confirm("Are you sure you want to delete this review?")) {
+      await deleteDoc(doc(db, "reviews", id));
+      setReviewsList(reviewsList.filter(r => r.id !== id));
+    }
+  };
+
   const handleEditGalleryImage = (image: GalleryImage) => {
     setEditingGalleryImage(image);
     setIsGalleryModalOpen(true);
@@ -258,7 +265,7 @@ export default function AdminDashboard() {
             />
           )}
           {activeTab === "categories" && <CategoriesTab categories={categoriesList} />}
-          {activeTab === "reviews" && <ReviewsTab reviews={reviewsList} />}
+          {activeTab === "reviews" && <ReviewsTab reviews={reviewsList} onDelete={handleDeleteReview} />}
           {activeTab === "gallery" && (
             <GalleryTab 
               images={galleryList} 
@@ -596,7 +603,7 @@ function CategoriesTab({ categories }: { categories: Category[] }) {
 }
 
 /* ─── Reviews Tab ─── */
-function ReviewsTab({ reviews }: { reviews: Review[] }) {
+function ReviewsTab({ reviews, onDelete }: { reviews: Review[], onDelete: (id: string) => void }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -652,7 +659,10 @@ function ReviewsTab({ reviews }: { reviews: Review[] }) {
                 >
                   {review.visible ? "Visible" : "Hidden"}
                 </span>
-                <button className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all">
+                <button 
+                  onClick={() => onDelete(review.id!)}
+                  className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
+                >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
