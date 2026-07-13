@@ -1,12 +1,20 @@
 "use client";
 
-import { useRef } from "react";
-import { motion, useMotionValue, useSpring, Variants } from "framer-motion";
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence, Variants } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
 
 import MagneticButton from "@/components/ui/magnetic-button";
+
+/* ─── Hero Slides ─── */
+const heroSlides = [
+  { src: "/hero-slide-1.png", alt: "Premium Mobile Store Interior" },
+  { src: "/hero-slide-2.png", alt: "Latest Smartphones Collection" },
+  { src: "/hero-slide-3.png", alt: "Mobile Accessories Display" },
+  { src: "/hero-slide-4.png", alt: "Premium Phone Experience" },
+];
 
 /* ─── Animation Variants ─── */
 const containerVar: Variants = {
@@ -40,17 +48,35 @@ const floatVar: Variants = {
 };
 
 export default function HeroSection() {
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+    }, 6000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
-      {/* ── Background with Ken Burns Effect ── */}
+      {/* ── Background Slideshow with Ken Burns + Crossfade ── */}
       <div className="absolute inset-0 z-0">
-        <motion.img 
-          src="/hero-shop.png" 
-          alt="Premium Mobile Store"
-          animate={{ scale: [1, 1.06, 1] }}
-          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
-          className="w-full h-full object-cover opacity-90 origin-center will-change-transform"
-        />
+        <AnimatePresence mode="sync">
+          <motion.img
+            key={currentSlide}
+            src={heroSlides[currentSlide].src}
+            alt={heroSlides[currentSlide].alt}
+            initial={{ opacity: 0, scale: 1.1 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              opacity: { duration: 1.5, ease: "easeInOut" },
+              scale: { duration: 8, ease: "linear" },
+            }}
+            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+          />
+        </AnimatePresence>
+
         {/* Left side blur and dark overlay for text readability */}
         <div 
           className="absolute inset-y-0 left-0 w-full lg:w-[65%] bg-gradient-to-r from-black/90 via-black/60 to-transparent backdrop-blur-md z-10"
@@ -59,6 +85,39 @@ export default function HeroSection() {
             WebkitMaskImage: 'linear-gradient(to right, black 60%, transparent 100%)'
           }}
         />
+
+        {/* Bottom gradient for slide indicators */}
+        <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent z-10" />
+      </div>
+
+      {/* ── Slide Indicators ── */}
+      <div className="absolute bottom-8 right-8 z-20 flex items-center gap-2">
+        {heroSlides.map((_, index) => (
+          <button
+            key={index}
+            onClick={() => setCurrentSlide(index)}
+            className="group relative p-1"
+            aria-label={`Go to slide ${index + 1}`}
+          >
+            <div
+              className={`h-[3px] rounded-full transition-all duration-500 ${
+                index === currentSlide
+                  ? "w-8 bg-white"
+                  : "w-4 bg-white/30 group-hover:bg-white/50"
+              }`}
+            />
+            {/* Active slide progress bar */}
+            {index === currentSlide && (
+              <motion.div
+                className="absolute top-1 left-1 h-[3px] rounded-full bg-white/50"
+                initial={{ width: 0 }}
+                animate={{ width: "2rem" }}
+                transition={{ duration: 6, ease: "linear" }}
+                key={`progress-${currentSlide}`}
+              />
+            )}
+          </button>
+        ))}
       </div>
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full pt-[100px] pb-16 lg:pt-[110px] lg:pb-24 flex justify-between items-center">
@@ -160,3 +219,4 @@ export default function HeroSection() {
     </section>
   );
 }
+
