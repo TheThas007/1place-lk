@@ -5,11 +5,12 @@ import { motion, AnimatePresence, Variants } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
+import { getHeroSlides } from "@/lib/firestore-client";
 
 import MagneticButton from "@/components/ui/magnetic-button";
 
-/* ─── Hero Slides ─── */
-const heroSlides = [
+/* ─── Default Fallback Hero Slides ─── */
+const defaultHeroSlides = [
   { src: "/hero-slide-1.png", alt: "Premium Mobile Store Interior" },
   { src: "/hero-slide-2.png", alt: "Latest Smartphones Collection" },
   { src: "/hero-slide-3.png", alt: "Mobile Accessories Display" },
@@ -48,14 +49,37 @@ const floatVar: Variants = {
 };
 
 export default function HeroSection() {
+  const [slides, setSlides] = useState<Array<{ src: string; alt: string }>>(defaultHeroSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
 
   useEffect(() => {
+    async function loadDynamicSlides() {
+      try {
+        const fetched = await getHeroSlides();
+        const activeSlides = fetched
+          .filter((s) => s.active !== false)
+          .map((s) => ({
+            src: s.image_url,
+            alt: s.alt || "Street Mobile Banner",
+          }));
+        if (activeSlides.length > 0) {
+          setSlides(activeSlides);
+          setCurrentSlide(0);
+        }
+      } catch (err) {
+        console.error("Failed to load hero slides from DB:", err);
+      }
+    }
+    loadDynamicSlides();
+  }, []);
+
+  useEffect(() => {
+    if (slides.length <= 1) return;
     const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % heroSlides.length);
+      setCurrentSlide((prev) => (prev + 1) % slides.length);
     }, 6000);
     return () => clearInterval(interval);
-  }, []);
+  }, [slides]);
 
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
@@ -65,19 +89,21 @@ export default function HeroSection() {
         <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#88E788]/10 blur-[130px] rounded-full pointer-events-none z-0" />
 
         <AnimatePresence mode="sync">
-          <motion.img
-            key={currentSlide}
-            src={heroSlides[currentSlide].src}
-            alt={heroSlides[currentSlide].alt}
-            initial={{ opacity: 0, scale: 1.08 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{
-              opacity: { duration: 1.5, ease: "easeInOut" },
-              scale: { duration: 8, ease: "linear" },
-            }}
-            className="absolute inset-0 w-full h-full object-cover object-center z-1 will-change-transform"
-          />
+          {slides[currentSlide] && (
+            <motion.img
+              key={currentSlide + slides[currentSlide].src}
+              src={slides[currentSlide].src}
+              alt={slides[currentSlide].alt}
+              initial={{ opacity: 0, scale: 1.08 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{
+                opacity: { duration: 1.5, ease: "easeInOut" },
+                scale: { duration: 8, ease: "linear" },
+              }}
+              className="absolute inset-0 w-full h-full object-cover object-center z-1 will-change-transform"
+            />
+          )}
         </AnimatePresence>
 
         {/* Left side blur and dark overlay for text readability */}
@@ -95,7 +121,7 @@ export default function HeroSection() {
 
       {/* ── Slide Indicators ── */}
       <div className="absolute bottom-8 right-8 z-20 flex items-center gap-2">
-        {heroSlides.map((_, index) => (
+        {slides.map((_, index) => (
           <button
             key={index}
             onClick={() => setCurrentSlide(index)}

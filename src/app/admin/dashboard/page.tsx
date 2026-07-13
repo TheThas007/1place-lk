@@ -22,14 +22,15 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, deleteDoc, doc, addDoc } from "firebase/firestore";
-import { Product, Category, Review, GalleryImage } from "@/lib/types";
+import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from "firebase/firestore";
+import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
 
 import ProductModal from "@/components/admin/ProductModal";
 import GalleryModal from "@/components/admin/GalleryModal";
 import CategoryModal from "@/components/admin/CategoryModal";
+import HeroModal from "@/components/admin/HeroModal";
 
-type Tab = "overview" | "products" | "categories" | "reviews" | "gallery";
+type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function AdminDashboard() {
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
   const [galleryList, setGalleryList] = useState<GalleryImage[]>([]);
+  const [heroList, setHeroList] = useState<HeroSlide[]>([]);
   const [loadingData, setLoadingData] = useState(true);
 
   // Modal State
@@ -51,6 +53,9 @@ export default function AdminDashboard() {
 
   const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
   const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
+
+  const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
+  const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
 
   useEffect(() => {
     const auth = sessionStorage.getItem("admin_auth");
@@ -64,16 +69,18 @@ export default function AdminDashboard() {
 
   const fetchData = async () => {
     try {
-      const [pSnap, cSnap, rSnap, gSnap] = await Promise.all([
+      const [pSnap, cSnap, rSnap, gSnap, hSnap] = await Promise.all([
         getDocs(collection(db, "products")),
         getDocs(collection(db, "categories")),
         getDocs(collection(db, "reviews")),
         getDocs(collection(db, "gallery")),
+        getDocs(collection(db, "hero_slides")),
       ]);
       setProductsList(pSnap.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
       setCategoriesList(cSnap.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
       setReviewsList(rSnap.docs.map(d => ({ ...d.data(), id: d.id } as Review)));
       setGalleryList(gSnap.docs.map(d => ({ ...d.data(), id: d.id } as GalleryImage)));
+      setHeroList(hSnap.docs.map(d => ({ ...d.data(), id: d.id } as HeroSlide)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
     } catch (e) {
       console.error(e);
     } finally {
@@ -139,6 +146,46 @@ export default function AdminDashboard() {
     setIsGalleryModalOpen(true);
   };
 
+  const handleAddHeroSlide = () => {
+    setEditingHeroSlide(null);
+    setIsHeroModalOpen(true);
+  };
+
+  const handleEditHeroSlide = (slide: HeroSlide) => {
+    setEditingHeroSlide(slide);
+    setIsHeroModalOpen(true);
+  };
+
+  const handleSaveHeroSlide = async (slideData: Partial<HeroSlide>) => {
+    if (editingHeroSlide?.id) {
+      await updateDoc(doc(db, "hero_slides", editingHeroSlide.id), slideData);
+    } else {
+      await addDoc(collection(db, "hero_slides"), slideData);
+    }
+    await fetchData();
+  };
+
+  const handleDeleteHeroSlide = async (id: string) => {
+    if (confirm("Are you sure you want to delete this hero slide?")) {
+      await deleteDoc(doc(db, "hero_slides", id));
+      await fetchData();
+    }
+  };
+
+  const handleInitDefaultHeroSlides = async () => {
+    if (!confirm("Load the 4 default Street Mobile 4K studio hero wallpapers into your database?")) return;
+    const defaults = [
+      { image_url: "/hero-slide-1.png", alt: "Flagship Phones Showcase", sort_order: 1, active: true },
+      { image_url: "/hero-slide-2.png", alt: "Luxury Showroom Interior", sort_order: 2, active: true },
+      { image_url: "/hero-slide-3.png", alt: "Titanium Camera Lens Detail", sort_order: 3, active: true },
+      { image_url: "/hero-slide-4.png", alt: "Minimalist Tech Ecosystem", sort_order: 4, active: true },
+    ];
+    for (const item of defaults) {
+      await addDoc(collection(db, "hero_slides"), item);
+    }
+    await fetchData();
+  };
+
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
     router.push("/admin/login");
@@ -158,6 +205,7 @@ export default function AdminDashboard() {
     { id: "categories" as Tab, label: "Categories", icon: FolderOpen },
     { id: "reviews" as Tab, label: "Reviews", icon: Star },
     { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
+    { id: "hero" as Tab, label: "Hero Banners", icon: ImageIcon },
   ];
 
   const stats = [
@@ -302,6 +350,15 @@ export default function AdminDashboard() {
               onDelete={handleDeleteGalleryImage} 
             />
           )}
+          {activeTab === "hero" && (
+            <HeroTab
+              slides={heroList}
+              onAdd={handleAddHeroSlide}
+              onEdit={handleEditHeroSlide}
+              onDelete={handleDeleteHeroSlide}
+              onInitDefaults={handleInitDefaultHeroSlides}
+            />
+          )}
         </div>
       </main>
 
@@ -318,6 +375,12 @@ export default function AdminDashboard() {
         onClose={() => setIsGalleryModalOpen(false)}
         onSave={fetchData}
         initialData={editingGalleryImage}
+      />
+      <HeroModal
+        isOpen={isHeroModalOpen}
+        onClose={() => setIsHeroModalOpen(false)}
+        onSave={handleSaveHeroSlide}
+        slide={editingHeroSlide}
       />
       <CategoryModal
         isOpen={isCategoryModalOpen}
@@ -799,6 +862,126 @@ function GalleryTab({
           </div>
         ))}
       </div>
+    </div>
+  );
+}
+
+function HeroTab({
+  slides,
+  onAdd,
+  onEdit,
+  onDelete,
+  onInitDefaults,
+}: {
+  slides: HeroSlide[];
+  onAdd: () => void;
+  onEdit: (slide: HeroSlide) => void;
+  onDelete: (id: string) => void;
+  onInitDefaults: () => void;
+}) {
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Homepage Hero Slideshow</h3>
+          <p className="text-xs text-white/40 mt-0.5">
+            Manage, reorder, or update your hero section background wallpapers ({slides.length} slides in database)
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          {slides.length === 0 && (
+            <button
+              onClick={onInitDefaults}
+              className="px-4 py-2.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-sm font-semibold hover:bg-emerald-500/30 transition-all active:scale-[0.98]"
+            >
+              + Load 4 Default Wallpapers to DB
+            </button>
+          )}
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Hero Slide
+          </button>
+        </div>
+      </div>
+
+      {slides.length === 0 ? (
+        <div className="p-12 text-center rounded-2xl bg-white/5 border border-white/5 space-y-3">
+          <p className="text-white/60 text-sm">
+            No custom hero slides currently stored in database. The homepage is displaying the 4 default 4K wallpapers.
+          </p>
+          <button
+            onClick={onInitDefaults}
+            className="px-5 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all"
+          >
+            Click here to import default wallpapers into Database to start editing
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
+          {slides.map((slide) => (
+            <div
+              key={slide.id}
+              className={`group relative rounded-2xl overflow-hidden border transition-all ${
+                slide.active !== false
+                  ? "bg-white/5 border-white/10 hover:border-white/20"
+                  : "bg-white/5 border-red-500/30 opacity-60"
+              }`}
+            >
+              <div className="aspect-[16/9] w-full overflow-hidden bg-slate-900 relative">
+                <img
+                  src={slide.image_url}
+                  alt={slide.alt || "Hero slide"}
+                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/hero-slide-1.png";
+                  }}
+                />
+                <div className="absolute top-3 left-3 flex items-center gap-2">
+                  <span className="px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-lg text-xs font-bold text-white">
+                    Order #{slide.sort_order}
+                  </span>
+                  <span
+                    className={`px-2.5 py-1 backdrop-blur-md rounded-lg text-xs font-semibold ${
+                      slide.active !== false
+                        ? "bg-emerald-500/80 text-white"
+                        : "bg-red-500/80 text-white"
+                    }`}
+                  >
+                    {slide.active !== false ? "Active" : "Inactive"}
+                  </span>
+                </div>
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
+                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => onEdit(slide)}
+                      className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all"
+                      title="Edit Slide"
+                    >
+                      <Edit className="w-4 h-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(slide.id)}
+                      className="p-2.5 rounded-xl bg-red-500/20 backdrop-blur-sm text-red-300 hover:bg-red-500/30 transition-all"
+                      title="Delete Slide"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+              <div className="p-4 flex items-center justify-between">
+                <p className="text-sm font-medium text-white truncate pr-2">
+                  {slide.alt || "Street Mobile Hero Banner"}
+                </p>
+                <span className="text-xs text-white/40 flex-shrink-0">ID: {slide.id.slice(0, 6)}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

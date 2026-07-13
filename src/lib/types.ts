@@ -58,6 +58,14 @@ export interface Banner {
   active: boolean;
 }
 
+export interface HeroSlide {
+  id: string;
+  image_url: string;
+  alt: string;
+  sort_order: number;
+  active: boolean;
+}
+
 export interface Order {
   id: string;
   product_name: string;
