@@ -1,15 +1,26 @@
 import { MapPin, Phone, Clock, Mail } from "lucide-react";
 import { siteSettings } from "@/lib/data";
+import * as motion from "framer-motion/client";
 
 export default function StoreLocation() {
   return (
-    <section className="py-20 lg:py-32 bg-card">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        <div className="bg-background rounded-3xl overflow-hidden shadow-sm border border-border">
+    <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
+      {/* Decorative gradient orb */}
+      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
+        <motion.div 
+          initial={{ opacity: 0, y: 40 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-100px" }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white/60 backdrop-blur-[24px] saturate-[180%] rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80"
+        >
           <div className="grid lg:grid-cols-2">
             
             {/* Map Area */}
-            <div className="h-[400px] lg:h-auto bg-muted relative">
+            <div className="h-[400px] lg:h-auto bg-gray-100 relative overflow-hidden">
+              <div className="absolute inset-0 bg-black/5 mix-blend-multiply z-10 pointer-events-none" />
               <iframe 
                 src={siteSettings.google_maps_embed}
                 width="100%" 
@@ -18,7 +29,7 @@ export default function StoreLocation() {
                 allowFullScreen={true} 
                 loading="lazy" 
                 referrerPolicy="no-referrer-when-downgrade"
-                className="absolute inset-0 grayscale contrast-125 opacity-90 hover:grayscale-0 transition-all duration-700"
+                className="absolute inset-0 grayscale contrast-125 opacity-90 hover:grayscale-0 transition-all duration-1000 z-0"
               />
             </div>
 
@@ -68,19 +79,20 @@ export default function StoreLocation() {
                 </div>
               </div>
 
-              <div className="mt-10 pt-10 border-t border-border">
+              <div className="mt-10 pt-10 border-t border-gray-100/80">
                 <a 
                   href={siteSettings.google_maps_link}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="inline-flex items-center justify-center w-full sm:w-auto bg-foreground text-background px-8 py-4 rounded-xl font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]"
+                  className="group inline-flex items-center justify-center w-full sm:w-auto bg-black text-white px-8 py-4 rounded-2xl font-bold shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.23)] hover:bg-black/90 transition-all duration-300 active:scale-[0.98]"
                 >
                   Get Directions
+                  <MapPin className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
                 </a>
               </div>
             </div>
           </div>
-        </div>
+        </motion.div>
       </div>
     </section>
   );

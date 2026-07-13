@@ -1,128 +1,160 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { useRef } from "react";
+import { motion, useMotionValue, useSpring, Variants } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
+
+import MagneticButton from "@/components/ui/magnetic-button";
+
+/* ─── Animation Variants ─── */
+const containerVar: Variants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
+  },
+};
+
+const itemVar: Variants = {
+  hidden: { opacity: 0, y: 30 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const floatVar: Variants = {
+  initial: { y: 0 },
+  animate: (i: number) => ({
+    y: [0, -15, 0],
+    transition: {
+      duration: 6,
+      repeat: Infinity,
+      ease: "easeInOut",
+      delay: i * 1.5,
+    },
+  }),
+};
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-[90vh] flex items-center justify-center overflow-hidden bg-background">
-      {/* Background abstract elements */}
-      <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-[20%] -right-[10%] w-[70%] h-[70%] rounded-full bg-foreground/5 blur-[120px]" />
-        <div className="absolute -bottom-[20%] -left-[10%] w-[60%] h-[60%] rounded-full bg-foreground/5 blur-[120px]" />
+    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+      {/* ── Background with Ken Burns Effect ── */}
+      <div className="absolute inset-0 z-0">
+        <motion.img 
+          src="/hero-shop.png" 
+          alt="Premium Mobile Store"
+          animate={{ scale: [1, 1.06, 1] }}
+          transition={{ duration: 35, repeat: Infinity, ease: "linear" }}
+          className="w-full h-full object-cover opacity-90 origin-center will-change-transform"
+        />
+        {/* Left side blur and dark overlay for text readability */}
+        <div 
+          className="absolute inset-y-0 left-0 w-full lg:w-[65%] bg-gradient-to-r from-black/90 via-black/60 to-transparent backdrop-blur-md z-10"
+          style={{
+            maskImage: 'linear-gradient(to right, black 60%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, black 60%, transparent 100%)'
+          }}
+        />
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full py-20 lg:py-32">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
-          
-          {/* Text Content */}
-          <div className="flex flex-col items-start text-left max-w-2xl">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 text-xs font-medium mb-6"
-            >
-              <span className="flex h-2 w-2 rounded-full bg-green-500" />
-              We Are Near You
-            </motion.div>
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full pt-[100px] pb-16 lg:pt-[110px] lg:pb-24 flex justify-between items-center">
+        
+        {/* ── Left Content (Text Reveal) ── */}
+        <motion.div 
+          variants={containerVar}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="max-w-2xl text-left"
+        >
+          <motion.div variants={itemVar}>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/15 transition-colors duration-300">
+              <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse" />
+              Your Trusted Store in Vavuniya
+            </div>
+          </motion.div>
 
-            <motion.h1 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-              className="text-5xl lg:text-7xl font-bold tracking-tight text-foreground mb-6 leading-[1.1]"
-            >
-              Premium Mobile <br className="hidden lg:block" />
-              <span className="text-muted-foreground">Experience.</span>
-            </motion.h1>
+          <motion.h1 variants={itemVar} className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1] drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
+            Premium Mobile <br className="hidden lg:block" />
+            <span className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Experience.</span>
+          </motion.h1>
 
-            <motion.p 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-              className="text-lg lg:text-xl text-muted-foreground mb-10 max-w-lg leading-relaxed"
-            >
-              Latest Smartphones. Best Prices. Professional Service.
-              Your trusted electronics store in Vavuniya.
-            </motion.p>
+          <motion.p variants={itemVar} className="text-lg lg:text-xl text-white/80 mb-10 max-w-xl leading-relaxed drop-shadow-md">
+            Latest Smartphones. Best Prices. Professional Service.
+            Everything you need for your digital life.
+          </motion.p>
 
-            <motion.div 
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, delay: 0.3, ease: [0.16, 1, 0.3, 1] }}
-              className="flex flex-col sm:flex-row items-center gap-4 w-full sm:w-auto"
-            >
-              <Link 
-                href="/products"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-foreground text-background px-8 py-4 rounded-xl font-medium hover:bg-foreground/90 transition-all active:scale-[0.98]"
-              >
-                Shop Now
-                <ArrowRight className="w-4 h-4" />
-              </Link>
-              
+          <motion.div variants={itemVar} className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto">
+            {/* Primary CTA with Animated Border & Magnetism */}
+            <MagneticButton className="w-full sm:w-auto">
+              <div className="animated-gradient-border group rounded-xl p-[1px]">
+                <Link 
+                  href="/products"
+                  className="relative z-10 w-full flex items-center justify-center gap-2 bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-black/80 transition-all duration-300 active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
+                >
+                  Shop Now
+                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                </Link>
+              </div>
+            </MagneticButton>
+            
+            {/* Secondary CTA */}
+            <MagneticButton className="w-full sm:w-auto">
               <a 
                 href={generateWhatsAppUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full sm:w-auto flex items-center justify-center gap-2 bg-background border border-border text-foreground px-8 py-4 rounded-xl font-medium hover:bg-foreground/5 transition-all active:scale-[0.98]"
+                className="group relative flex items-center justify-center gap-2 bg-black/40 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-xl font-bold transition-all duration-300 active:scale-[0.98] hover:bg-black/50 hover:border-white/30 shadow-2xl overflow-hidden"
               >
-                <MessageCircle className="w-4 h-4 text-green-500" />
-                Contact Us
+                <div className="absolute inset-0 bg-white/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
+                <MessageCircle className="w-4 h-4 text-green-400 relative z-10 transition-transform duration-300 group-hover:scale-110" />
+                <span className="relative z-10">Contact Us</span>
               </a>
-            </motion.div>
-          </div>
+            </MagneticButton>
+          </motion.div>
+        </motion.div>
 
-          {/* Image/Visual Area */}
+        {/* ── Right Content (Floating Glass Cards - Desktop Only) ── */}
+        <div className="hidden lg:block relative w-[400px] h-full pointer-events-none">
           <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 0.8, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-            className="relative lg:h-[600px] flex items-center justify-center"
+            custom={0}
+            variants={floatVar}
+            initial="initial"
+            animate="animate"
+            className="absolute top-[10%] right-0 pointer-events-auto"
           >
-            {/* MacBook Image/Video */}
-            <div className="relative z-10 w-full max-w-[500px] lg:max-w-[700px] rounded-2xl overflow-hidden shadow-2xl border border-border/50 group bg-black aspect-video flex items-center justify-center">
-              <video 
-                autoPlay 
-                loop 
-                muted 
-                playsInline
-                preload="auto"
-                className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              >
-                <source src="/video.mp4" type="video/mp4" />
-                Your browser does not support the video tag.
-              </video>
-              {/* Subtle gradient overlay to make it blend well with dark/light themes */}
-              <div className="absolute inset-0 bg-gradient-to-tr from-background/20 via-transparent to-transparent pointer-events-none" />
+            <div className="group flex items-center gap-4 bg-white/10 backdrop-blur-[20px] border border-white/20 p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/15 transition-all duration-500 hover:border-white/30">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-500">
+                <Star className="w-5 h-5 text-yellow-400 fill-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.5)]" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-lg drop-shadow-md">4.9/5 Rating</div>
+                <div className="text-white/60 text-sm">Google Reviews</div>
+              </div>
             </div>
-            
-            {/* Floating Elements behind the phone */}
-            <motion.div 
-              animate={{ y: [0, -20, 0] }}
-              transition={{ repeat: Infinity, duration: 6, ease: "easeInOut" }}
-              className="absolute -right-4 lg:-right-12 top-20 w-32 h-32 bg-white rounded-2xl shadow-xl border border-border/50 glass flex items-center justify-center z-20"
-            >
-              <div className="text-center">
-                <span className="block text-2xl font-bold">✓</span>
-                <span className="text-xs text-muted-foreground font-medium">Genuine</span>
-              </div>
-            </motion.div>
-
-            <motion.div 
-              animate={{ y: [0, 20, 0] }}
-              transition={{ repeat: Infinity, duration: 5, ease: "easeInOut", delay: 1 }}
-              className="absolute -left-4 lg:-left-12 bottom-32 w-36 h-36 bg-foreground text-white rounded-full shadow-2xl flex items-center justify-center z-20"
-            >
-              <div className="text-center">
-                <span className="block text-3xl font-bold">24h</span>
-                <span className="text-xs text-white/80 font-medium">Delivery</span>
-              </div>
-            </motion.div>
           </motion.div>
 
+          <motion.div
+            custom={1}
+            variants={floatVar}
+            initial="initial"
+            animate="animate"
+            className="absolute bottom-[20%] right-[10%] pointer-events-auto"
+          >
+            <div className="group flex items-center gap-4 bg-white/10 backdrop-blur-[20px] border border-white/20 p-5 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.3)] hover:bg-white/15 transition-all duration-500 hover:border-white/30">
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center border border-white/10 group-hover:scale-110 transition-transform duration-500">
+                <Users className="w-5 h-5 text-blue-400 drop-shadow-[0_0_8px_rgba(96,165,250,0.5)]" />
+              </div>
+              <div>
+                <div className="text-white font-bold text-lg drop-shadow-md">10K+ Happy</div>
+                <div className="text-white/60 text-sm">Customers Served</div>
+              </div>
+            </div>
+          </motion.div>
         </div>
       </div>
     </section>

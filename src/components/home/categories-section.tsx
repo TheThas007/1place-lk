@@ -17,14 +17,17 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
     >
       <Link
         href={`/categories/${cat.slug}`}
-        className="group flex flex-col items-center justify-center gap-3 p-4 sm:p-5
-                   bg-background rounded-2xl border border-border/60
-                   hover:border-foreground/25 hover:shadow-xl hover:shadow-foreground/5
-                   hover:-translate-y-1 transition-all duration-300"
+        className="group relative flex flex-col items-center justify-center gap-3 p-5 sm:p-6
+                   bg-white rounded-3xl border border-gray-100/80 shadow-[0_4px_20px_rgba(0,0,0,0.03)]
+                   hover:border-gray-200 hover:shadow-[0_8px_30px_rgba(0,0,0,0.08)]
+                   hover:-translate-y-1.5 transition-all duration-500 overflow-hidden"
       >
+        {/* Hover shine */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-700 pointer-events-none" />
+        
         {/* Logo circle */}
-        <div className="w-20 h-20 rounded-2xl bg-card flex items-center justify-center
-                        group-hover:bg-foreground/5 transition-colors duration-300 overflow-hidden p-2">
+        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl bg-gray-50 flex items-center justify-center
+                        group-hover:bg-white group-hover:shadow-sm transition-all duration-500 overflow-hidden p-3 border border-gray-100">
           {cat.icon && cat.icon.startsWith("http") ? (
             <img
               src={cat.icon}
@@ -85,21 +88,31 @@ export default function CategoriesSection({ categories }: { categories: Category
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex justify-center mb-10">
-          <div className="inline-flex items-center gap-1 p-1.5 rounded-2xl bg-foreground/5 border border-border/60">
-            {(["phones", "accessories"] as Tab[]).map((t) => (
-              <button
-                key={t}
-                onClick={() => setTab(t)}
-                className={`relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-all duration-300 capitalize
-                  ${tab === t
-                    ? "bg-foreground text-background shadow-md"
-                    : "text-muted-foreground hover:text-foreground"
-                  }`}
-              >
-                {t === "phones" ? "📱 Smartphones" : "🎧 Accessories"}
-              </button>
-            ))}
+        <div className="flex justify-center mb-12">
+          <div className="inline-flex items-center p-1 rounded-2xl bg-black/5 border border-black/5 backdrop-blur-sm relative">
+            {(["phones", "accessories"] as Tab[]).map((t) => {
+              const isActive = tab === t;
+              return (
+                <button
+                  key={t}
+                  onClick={() => setTab(t)}
+                  className={`relative px-6 py-2.5 rounded-xl text-sm font-semibold transition-colors duration-300 capitalize z-10
+                    ${isActive ? "text-white" : "text-gray-500 hover:text-black"}
+                  `}
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="category-tab-active"
+                      className="absolute inset-0 bg-black rounded-xl shadow-md -z-10"
+                      transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
+                    />
+                  )}
+                  <span className="relative z-10 flex items-center gap-2">
+                    {t === "phones" ? "📱 Smartphones" : "🎧 Accessories"}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </div>
 

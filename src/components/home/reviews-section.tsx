@@ -32,7 +32,7 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
               {reviews.map((review) => (
                 <div
                   key={`${groupIndex}-${review.id}`}
-                  className="w-[320px] lg:w-[400px] shrink-0 bg-card p-8 rounded-3xl border border-border/50 transition-all duration-300"
+                  className="w-[320px] lg:w-[400px] shrink-0 bg-white/50 backdrop-blur-md p-8 rounded-[32px] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500"
                 >
                   <div className="flex gap-1 mb-4">
                     {[...Array(review.rating)].map((_, i) => (

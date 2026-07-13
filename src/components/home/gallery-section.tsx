@@ -6,12 +6,12 @@ import { motion, useMotionValue, useSpring, useTransform, AnimatePresence } from
 import type { Variants } from "framer-motion";
 import { ArrowRight, Images, ZoomIn, Maximize2 } from "lucide-react";
 import { GalleryImage } from "@/lib/types";
+import AnimatedRays from "@/components/ui/animated-rays";
 
-/* ─── Category badge colours ─── */
 const CAT_STYLE: Record<string, string> = {
-  shop:      "from-blue-500 to-indigo-600",
-  repairs:   "from-amber-500 to-orange-600",
-  customers: "from-emerald-500 to-teal-600",
+  shop:      "from-gray-700 to-gray-900",
+  repairs:   "from-gray-700 to-gray-900",
+  customers: "from-gray-700 to-gray-900",
 };
 
 /* ─── 3D Tilt Image Card ─── */
@@ -179,14 +179,13 @@ export default function GallerySection({ images }: { images: GalleryImage[] }) {
   if (preview.length === 0) return null;
 
   return (
-    <section className="relative py-24 bg-[#060606] border-y border-white/6 overflow-hidden">
+    <section className="relative py-24 bg-black border-y border-white/5 overflow-hidden">
       {/* ── Ambient glows ── */}
+      <AnimatedRays />
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] rounded-full bg-violet-700/6 blur-[120px]" />
-        <div className="absolute bottom-1/4 -right-32 w-[500px] h-[500px] rounded-full bg-fuchsia-700/6 blur-[120px]" />
         {/* Grid */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)`,
@@ -205,17 +204,17 @@ export default function GallerySection({ images }: { images: GalleryImage[] }) {
           className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-14"
         >
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-xs font-bold tracking-widest uppercase text-white/50 mb-5">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-xs font-bold tracking-widest uppercase text-white/70 mb-5">
               <Images className="w-3.5 h-3.5" />
               Our Gallery
             </div>
             <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3">
               Inside{" "}
-              <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-fuchsia-400 to-pink-400">
+              <span className="text-white">
                 Street Mobile
               </span>
             </h2>
-            <p className="text-white/40 text-base max-w-md">
+            <p className="text-white/60 text-base max-w-md">
               A visual journey through our store, repair workshop, and happy customers.
             </p>
           </div>
@@ -223,7 +222,7 @@ export default function GallerySection({ images }: { images: GalleryImage[] }) {
           <Link
             href="/gallery"
             className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl
-                       bg-white/5 border border-white/10 text-white/70 text-sm font-semibold
+                       bg-white/10 border border-white/20 text-white text-sm font-semibold
                        hover:bg-white hover:text-black hover:border-white
                        transition-all duration-300 shrink-0"
           >
@@ -256,9 +255,9 @@ export default function GallerySection({ images }: { images: GalleryImage[] }) {
           <Link
             href="/gallery"
             className="group flex items-center gap-3 px-8 py-4 rounded-2xl
-                       bg-gradient-to-r from-violet-600 to-fuchsia-600
-                       text-white font-semibold text-sm shadow-xl shadow-violet-900/30
-                       hover:shadow-violet-900/50 hover:scale-[1.03]
+                       bg-white
+                       text-black font-semibold text-sm shadow-xl shadow-white/10
+                       hover:shadow-white/20 hover:scale-[1.03]
                        transition-all duration-300 active:scale-[0.97]"
           >
             <Images className="w-4 h-4" />
