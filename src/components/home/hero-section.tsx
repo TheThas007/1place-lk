@@ -60,29 +60,32 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
       {/* ── Background Slideshow with Ken Burns + Crossfade ── */}
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 bg-[#070709]">
+        {/* Ambient brand color backlight */}
+        <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#88E788]/10 blur-[130px] rounded-full pointer-events-none z-0" />
+
         <AnimatePresence mode="sync">
           <motion.img
             key={currentSlide}
             src={heroSlides[currentSlide].src}
             alt={heroSlides[currentSlide].alt}
-            initial={{ opacity: 0, scale: 1.1 }}
+            initial={{ opacity: 0, scale: 1.08 }}
             animate={{ opacity: 1, scale: 1 }}
             exit={{ opacity: 0 }}
             transition={{
               opacity: { duration: 1.5, ease: "easeInOut" },
               scale: { duration: 8, ease: "linear" },
             }}
-            className="absolute inset-0 w-full h-full object-cover will-change-transform"
+            className="absolute inset-0 w-full h-full object-cover object-center z-1 will-change-transform"
           />
         </AnimatePresence>
 
         {/* Left side blur and dark overlay for text readability */}
         <div 
-          className="absolute inset-y-0 left-0 w-full lg:w-[65%] bg-gradient-to-r from-black/90 via-black/60 to-transparent backdrop-blur-md z-10"
+          className="absolute inset-y-0 left-0 w-full lg:w-[68%] bg-gradient-to-r from-black via-black/80 to-transparent backdrop-blur-[6px] z-10"
           style={{
-            maskImage: 'linear-gradient(to right, black 60%, transparent 100%)',
-            WebkitMaskImage: 'linear-gradient(to right, black 60%, transparent 100%)'
+            maskImage: 'linear-gradient(to right, black 65%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, black 65%, transparent 100%)'
           }}
         />
 
