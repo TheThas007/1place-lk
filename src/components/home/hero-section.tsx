@@ -59,7 +59,7 @@ const charVariants: Variants = {
 
 const floatAnimation = {
   y: [-4, 4, -4],
-  transition: { duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 },
+  transition: { duration: 6, repeat: Infinity, ease: "easeInOut" as const, delay: 1 },
 };
 
 const headingContainerVariants: Variants = {
