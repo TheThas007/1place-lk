@@ -76,7 +76,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       setTimeout(onClose, 900);
     } catch (err: any) {
       console.error(err);
-      if (err?.code !== "auth/popup-closed-by-user") {
+      if (err?.code === "auth/unauthorized-domain") {
+        setError("Google sign-in failed: This domain is not authorized in your Firebase Console (Authentication > Settings > Authorized Domains). Please add this domain to the list.");
+      } else if (err?.code !== "auth/popup-closed-by-user") {
         setError("Google sign-in failed. Please try again.");
       }
     } finally {
