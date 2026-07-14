@@ -2,9 +2,12 @@
 
 import { useState, useRef, useEffect } from "react";
 import Link from "next/link";
-import { MessageCircle, ShieldCheck, Truck, ChevronRight, ChevronDown, Check } from "lucide-react";
+import { MessageCircle, ShieldCheck, Truck, ChevronRight, ChevronDown, Check, ShoppingBag } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
+import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-context";
+import { getColorCSS, isLightColor } from "@/lib/color-utils";
 
 // ── Types ──
 interface Product {
@@ -25,59 +28,62 @@ interface Product {
   featured: boolean;
 }
 
-// ── Color name → CSS color map ──
-const COLOR_MAP: Record<string, string> = {
-  black:        "#1a1a1a",
-  white:        "#f5f5f5",
-  silver:       "#c0c0c0",
-  gold:         "#d4af37",
-  blue:         "#3b82f6",
-  navy:         "#1e3a5f",
-  "midnight blue": "#1e3a5f",
-  "sierra blue": "#7fb3d3",
-  "alpine green": "#4a7c59",
-  green:        "#22c55e",
-  red:          "#ef4444",
-  pink:         "#ec4899",
-  "deep purple": "#7c3aed",
-  purple:       "#a855f7",
-  yellow:       "#eab308",
-  orange:       "#f97316",
-  "space gray":  "#6b7280",
-  "space grey":  "#6b7280",
-  titanium:     "#8b8682",
-  "desert titanium": "#c4a882",
-  "natural titanium": "#b5b0a8",
-  "black titanium": "#3d3d3d",
-  "graphite":   "#4b5563",
-  coral:        "#f08080",
-  mint:         "#3eb489",
-  lavender:     "#e6e6fa",
-  "starlight":  "#f2ede4",
-  "midnight":   "#1a1b2e",
-  "product red": "#c0392b",
-  "rose gold":  "#b76e79",
-};
-
-function getColorCSS(colorName: string): string {
-  const key = colorName.toLowerCase().trim();
-  if (COLOR_MAP[key]) return COLOR_MAP[key];
-  // Try CSS named color directly
-  return colorName;
-}
-
-function isLightColor(hex: string): boolean {
-  const c = hex.replace("#", "");
-  if (c.length !== 6) return true;
-  const r = parseInt(c.slice(0, 2), 16);
-  const g = parseInt(c.slice(2, 4), 16);
-  const b = parseInt(c.slice(4, 6), 16);
-  return (r * 0.299 + g * 0.587 + b * 0.114) > 160;
-}
-
 function generateOrderMessage(product: Product, storage: string, color: string, price: number) {
   const text = `Hello STREET MOBILE,\n\nI would like to order:\n\n*Product Name:* ${product.name}${storage ? `\n*Storage:* ${storage}` : ""}${color ? `\n*Color:* ${color}` : ""}\n*Price:* ${formatPrice(price)}\n\nPlease provide availability.`;
   return `https://wa.me/94774141118?text=${encodeURIComponent(text)}`;
+}
+
+function AddToBagDetailButton({ product, selectedStorage, selectedColor, displayPrice }: {
+  product: Product;
+  selectedStorage: string;
+  selectedColor: string;
+  displayPrice: number;
+}) {
+  const { addToCart } = useCart();
+  const { user } = useAuth();
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = () => {
+    if (!user) {
+      window.dispatchEvent(new Event("open-auth-modal"));
+      return;
+    }
+    
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      price: displayPrice,
+      image: product.images?.[0] ?? "",
+      quantity: 1,
+      storage: selectedStorage || undefined,
+      color: selectedColor || undefined,
+    });
+    setAdded(true);
+    setTimeout(() => setAdded(false), 1800);
+  };
+
+  return (
+    <button
+      onClick={handleAdd}
+      className={`w-full flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all active:scale-[0.98] ${
+        added
+          ? "bg-emerald-500 text-white"
+          : "bg-foreground text-background hover:bg-foreground/90"
+      }`}
+    >
+      {added ? (
+        <>
+          <Check className="w-5 h-5" />
+          Added to Bag!
+        </>
+      ) : (
+        <>
+          <ShoppingBag className="w-5 h-5" />
+          Add to Bag
+        </>
+      )}
+    </button>
+  );
 }
 
 export default function ProductDetailClient({ product }: { product: Product }) {
@@ -138,7 +144,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               <span className="inline-block px-3 py-1 rounded-full bg-foreground/5 text-xs font-medium text-muted-foreground mb-4">
                 {product.category_name}
               </span>
-              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight mb-4">{product.name}</h1>
+              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2">{product.name}</h1>
+              {product.code && (
+                <div className="text-xs font-mono text-muted-foreground bg-foreground/5 px-2 py-1 rounded w-fit mb-4">
+                  Code: {product.code}
+                </div>
+              )}
             </div>
 
             {/* Price */}
@@ -295,7 +306,13 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             )}
 
             {/* CTA Buttons */}
-            <div className="mt-auto space-y-4 pt-4">
+            <div className="mt-auto space-y-3 pt-4">
+              <AddToBagDetailButton
+                product={product}
+                selectedStorage={selectedStorage}
+                selectedColor={selectedColor}
+                displayPrice={displayPrice}
+              />
               <a
                 href={generateOrderMessage(product, selectedStorage, selectedColor, displayPrice)}
                 target="_blank"

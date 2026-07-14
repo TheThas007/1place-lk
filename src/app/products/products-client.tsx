@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category } from "@/lib/types";
+import AddToBagButton from "@/components/cart/AddToBagButton";
 
 /* ─── animation variants ─── */
 const containerVariants: Variants = {
@@ -476,6 +477,9 @@ export default function ProductsClient({
                               </span>
                             )}
                           </div>
+                          {product.stock_status !== "out_of_stock" && (
+                            <AddToBagButton product={product} size="sm" className="w-full mt-2" />
+                          )}
                         </div>
                       </Link>
                     </motion.div>

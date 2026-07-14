@@ -6,6 +6,7 @@ import { Product, Category } from "@/lib/types";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -19,7 +20,6 @@ const DEFAULT_SPEC_KEYS = [
   "Display", "Processor", "RAM", "Battery", "Camera", "OS", "Network",
 ];
 
-const PRESET_COLORS = ["Black", "White", "Blue", "Gold", "Silver", "Green", "Purple", "Red"];
 const PRESET_STORAGE = ["64GB", "128GB", "256GB", "512GB", "1TB"];
 
 export default function ProductModal({ isOpen, onClose, onSave, categories, initialData }: ProductModalProps) {
@@ -39,6 +39,7 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
     storage_options: [],
     storage_prices: {},
     warranty: "",
+    code: "",
   });
 
   // Specifications as editable rows
@@ -83,6 +84,7 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         storage_options: [],
         storage_prices: {},
         warranty: "",
+        code: "",
       });
       setImagePreviews([]);
       setImageLinksInput("");
@@ -107,9 +109,10 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
   const addColor = (color: string) => {
     const trimmed = color.trim();
     if (!trimmed) return;
+    const resolvedColor = normalizeColor(trimmed);
     const current = formData.colors || [];
-    if (!current.includes(trimmed)) {
-      setFormData({ ...formData, colors: [...current, trimmed] });
+    if (!current.includes(resolvedColor)) {
+      setFormData({ ...formData, colors: [...current, resolvedColor] });
     }
     setColorsInput("");
   };
@@ -298,6 +301,17 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
                   className="field-input text-white/50"
                 />
               </div>
+              <div>
+                <label className="field-label">Product Code *</label>
+                <input
+                  required
+                  type="text"
+                  value={formData.code || ""}
+                  onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                  className="field-input font-mono"
+                  placeholder="e.g. SM-S24-BLK"
+                />
+              </div>
 
               {/* Price */}
               <div>
@@ -456,32 +470,49 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
           {/* ── Colors ── */}
           <Section icon={<Palette className="w-4 h-4" />} title="Available Colors">
             {/* Preset colors */}
-            <div className="flex flex-wrap gap-2 mb-3">
-              {PRESET_COLORS.map((color) => (
-                <button
-                  key={color}
-                  type="button"
-                  onClick={() => addColor(color)}
-                  className={`px-3 py-1 rounded-full text-xs font-medium border transition-all ${
-                    (formData.colors || []).includes(color)
-                      ? "bg-violet-600 border-violet-600 text-white"
-                      : "bg-white/5 border-white/15 text-white/50 hover:border-violet-500/50 hover:text-white/80"
-                  }`}
-                >
-                  {color}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-2 mb-3 max-h-48 overflow-y-auto p-1.5 border border-white/5 rounded-xl bg-black/10">
+              {PRESET_COLORS.map((color) => {
+                const hex = getColorCSS(color);
+                return (
+                  <button
+                    key={color}
+                    type="button"
+                    onClick={() => addColor(color)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
+                      (formData.colors || []).includes(color)
+                        ? "bg-violet-600 border-violet-600 text-white"
+                        : "bg-white/5 border-white/15 text-white/60 hover:border-white/40 hover:text-white"
+                    }`}
+                  >
+                    <span 
+                      className="w-3 h-3 rounded-full border border-white/20 shrink-0" 
+                      style={{ backgroundColor: hex }}
+                    />
+                    {color}
+                  </button>
+                );
+              })}
             </div>
             {/* Selected chips */}
             <div className="flex flex-wrap gap-2 mb-3">
-              {(formData.colors || []).map((color) => (
-                <span key={color} className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-600/20 border border-violet-500/30 rounded-full text-xs font-medium text-violet-300">
-                  {color}
-                  <button type="button" onClick={() => removeColor(color)} className="hover:text-red-400 transition-colors">
-                    <X className="w-3 h-3" />
-                  </button>
-                </span>
-              ))}
+              {(formData.colors || []).map((color) => {
+                const hex = getColorCSS(color);
+                return (
+                  <span 
+                    key={color} 
+                    className="inline-flex items-center gap-1.5 px-3 py-1 bg-violet-600/20 border border-violet-500/30 rounded-full text-xs font-medium text-violet-300"
+                  >
+                    <span 
+                      className="w-2.5 h-2.5 rounded-full border border-white/10 shrink-0" 
+                      style={{ backgroundColor: hex }}
+                    />
+                    {color}
+                    <button type="button" onClick={() => removeColor(color)} className="hover:text-red-400 transition-colors">
+                      <X className="w-3 h-3" />
+                    </button>
+                  </span>
+                );
+              })}
             </div>
             {/* Custom input */}
             <div className="flex gap-2">

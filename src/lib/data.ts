@@ -6,9 +6,10 @@ export const siteSettings: SiteSettings = {
   phone: "+94 77 414 1118",
   whatsapp: "94774141118",
   address: "163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka",
-  google_maps_link: "https://maps.app.goo.gl/yQM2RthCsWQ7ius89",
+  email: "streetmobilevavuniya@gmail.com",
+  google_maps_link: "https://maps.app.goo.gl/dvxBpsvxR86bGqar9",
   google_maps_embed:
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3933.5!2d80.4967!3d9.3803!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOcKwMjInNDkuMSJOIDgwwrAyOSc0OC4xIkU!5e0!3m2!1sen!2slk!4v1",
+    "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed",
   logo_url: "/logo.svg",
   facebook: "https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr",
   instagram: "https://www.instagram.com/streetmobile.lk?utm_source=qr",

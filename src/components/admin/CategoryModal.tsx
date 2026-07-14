@@ -31,7 +31,11 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
     if (initialData) {
       setFormData(initialData);
       setImagePreview(initialData.image_url || "");
-      setIconPreview(initialData.icon?.startsWith("http") ? initialData.icon : "");
+      setIconPreview(
+        initialData.icon?.startsWith("http") || initialData.icon?.startsWith("data:")
+          ? initialData.icon
+          : ""
+      );
     } else {
       setFormData({
         name: "",
@@ -62,9 +66,18 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
   const handleIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > 1024 * 1024) {
+        alert("Icon image must be less than 1MB.");
+        return;
+      }
       setIconFile(file);
       setIconPreview(URL.createObjectURL(file));
-      setFormData({ ...formData, icon: "" });
+      
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setFormData(prev => ({ ...prev, icon: reader.result as string }));
+      };
+      reader.readAsDataURL(file);
     }
   };
 
@@ -86,12 +99,6 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         const storageRef = ref(storage, `categories/${Date.now()}_${imageFile.name}`);
         const uploadResult = await uploadBytes(storageRef, imageFile);
         finalImageUrl = await getDownloadURL(uploadResult.ref);
-      }
-
-      if (iconFile) {
-        const iconStorageRef = ref(storage, `categories/icons/${Date.now()}_${iconFile.name}`);
-        const iconUploadResult = await uploadBytes(iconStorageRef, iconFile);
-        finalIcon = await getDownloadURL(iconUploadResult.ref);
       }
 
       if (!finalImageUrl) {
@@ -165,7 +172,9 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
                 <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
                   {iconPreview ? (
                     <img src={iconPreview} alt="Icon Preview" className="w-full h-full object-cover" />
-                  ) : formData.icon && !formData.icon.startsWith("http") ? (
+                  ) : formData.icon && (formData.icon.startsWith("http") || formData.icon.startsWith("data:")) ? (
+                    <img src={formData.icon} alt="Icon Preview" className="w-full h-full object-contain p-1" />
+                  ) : formData.icon ? (
                     <span className="text-2xl">{formData.icon}</span>
                   ) : (
                     <ImageIcon className="w-5 h-5 text-white/20" />

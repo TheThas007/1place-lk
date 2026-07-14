@@ -45,6 +45,16 @@ export default function ContactPage() {
 
               <div className="flex gap-4">
                 <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
+                  <Mail className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="font-semibold mb-1">Email Address</h3>
+                  <p className="text-muted-foreground text-sm">{siteSettings.email}</p>
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <div className="w-12 h-12 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
                   <Clock className="w-5 h-5" />
                 </div>
                 <div>

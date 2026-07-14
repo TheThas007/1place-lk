@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, Variants } from "framer-motion";
+import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
@@ -48,9 +48,50 @@ const floatVar: Variants = {
   }),
 };
 
+const charVariants: Variants = {
+  hidden: { opacity: 0, y: 40 },
+  show: {
+    opacity: 1,
+    y: 0,
+    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
+  },
+};
+
+const floatAnimation = {
+  y: [-4, 4, -4],
+  transition: { duration: 6, repeat: Infinity, ease: "easeInOut", delay: 1 },
+};
+
+const headingContainerVariants: Variants = {
+  hidden: { opacity: 1 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.05,
+      delayChildren: 0.2,
+    },
+  },
+};
+
 export default function HeroSection() {
   const [slides, setSlides] = useState<Array<{ src: string; alt: string }>>(defaultHeroSlides);
   const [currentSlide, setCurrentSlide] = useState(0);
+
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    const { clientX, clientY } = e;
+    const target = e.currentTarget as HTMLElement;
+    const rect = target.getBoundingClientRect();
+    const x = clientX - rect.left - rect.width / 2;
+    const y = clientY - rect.top - rect.height / 2;
+    mouseX.set(x);
+    mouseY.set(y);
+  };
+
+  const parallaxX = useSpring(useTransform(mouseX, [-500, 500], [-15, 15]), { stiffness: 50, damping: 20 });
+  const parallaxY = useSpring(useTransform(mouseY, [-500, 500], [-15, 15]), { stiffness: 50, damping: 20 });
 
   useEffect(() => {
     async function loadDynamicSlides() {
@@ -82,7 +123,10 @@ export default function HeroSection() {
   }, [slides]);
 
   return (
-    <section className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black">
+    <section 
+      className="relative min-h-screen flex items-center justify-center overflow-hidden bg-black"
+      onMouseMove={handleMouseMove}
+    >
       {/* ── Background Slideshow with Ken Burns + Crossfade ── */}
       <div className="absolute inset-0 z-0 bg-[#070709]">
         {/* Ambient brand color backlight */}
@@ -160,34 +204,61 @@ export default function HeroSection() {
           className="max-w-2xl text-left"
         >
           <motion.div variants={itemVar}>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/15 transition-colors duration-300">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/10 transition-colors duration-300">
               <span className="flex h-2 w-2 rounded-full bg-green-400 animate-pulse" />
               Your Trusted Store in Vavuniya
             </div>
           </motion.div>
 
-          <motion.h1 variants={itemVar} className="text-5xl lg:text-7xl font-bold tracking-tight text-white mb-6 leading-[1.1] drop-shadow-[0_0_25px_rgba(255,255,255,0.4)]">
-            Premium Mobile <br className="hidden lg:block" />
-            <span className="text-white/90 drop-shadow-[0_0_15px_rgba(255,255,255,0.3)]">Experience.</span>
-          </motion.h1>
+          <motion.div style={{ x: parallaxX, y: parallaxY }} className="mb-6">
+            <motion.div animate={floatAnimation}>
+              <motion.h1 
+                className="font-[800] leading-[1.05] tracking-[-0.05em] text-left text-[clamp(29px,5vw,37px)] md:text-[clamp(35px,4vw,47px)] lg:text-[clamp(43px,4vw,59px)]"
+                style={{ fontFamily: "'SF Pro Display', 'Geist', 'Plus Jakarta Sans', sans-serif" }}
+                variants={headingContainerVariants}
+                initial="hidden"
+                animate="show"
+              >
+                <div className="text-white">
+                  {"Premium Mobile".split("").map((char, i) => (
+                    <motion.span key={`l1-${i}`} variants={charVariants} className="inline-block">
+                      {char === " " ? "\u00A0" : char}
+                    </motion.span>
+                  ))}
+                </div>
+                <div 
+                  className="bg-clip-text text-transparent mt-[2px]"
+                  style={{
+                    backgroundImage: "linear-gradient(180deg, rgba(200,200,200,0.55) 0%, rgba(140,140,140,0.18) 100%)",
+                    WebkitBackgroundClip: "text",
+                    WebkitTextFillColor: "transparent",
+                  }}
+                >
+                  {"Experience.".split("").map((char, i) => (
+                    <motion.span key={`l2-${i}`} variants={charVariants} className="inline-block">
+                      {char === " " ? "\u00A0" : char}
+                    </motion.span>
+                  ))}
+                </div>
+              </motion.h1>
+            </motion.div>
+          </motion.div>
 
-          <motion.p variants={itemVar} className="text-lg lg:text-xl text-white/80 mb-10 max-w-xl leading-relaxed drop-shadow-md">
+          <motion.p variants={itemVar} className="text-[#6B7280] font-[400] md:font-[500] text-[20px] md:text-[22px] leading-[1.8] mb-10 max-w-[620px]">
             Latest Smartphones. Best Prices. Professional Service.
             Everything you need for your digital life.
           </motion.p>
 
           <motion.div variants={itemVar} className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto">
-            {/* Primary CTA with Animated Border & Magnetism */}
+            {/* Primary CTA */}
             <MagneticButton className="w-full sm:w-auto">
-              <div className="animated-gradient-border group rounded-xl p-[1px]">
-                <Link 
-                  href="/products"
-                  className="relative z-10 w-full flex items-center justify-center gap-2 bg-black text-white px-8 py-4 rounded-xl font-bold hover:bg-black/80 transition-all duration-300 active:scale-[0.98] shadow-[0_0_20px_rgba(255,255,255,0.1)] group-hover:shadow-[0_0_30px_rgba(255,255,255,0.25)]"
-                >
-                  Shop Now
-                  <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-                </Link>
-              </div>
+              <Link 
+                href="/products"
+                className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98]"
+              >
+                Shop Now
+                <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+              </Link>
             </MagneticButton>
             
             {/* Secondary CTA */}
@@ -196,11 +267,10 @@ export default function HeroSection() {
                 href={generateWhatsAppUrl()}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="group relative flex items-center justify-center gap-2 bg-black/40 backdrop-blur-md border border-white/20 text-white px-8 py-4 rounded-xl font-bold transition-all duration-300 active:scale-[0.98] hover:bg-black/50 hover:border-white/30 shadow-2xl overflow-hidden"
+                className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98]"
               >
-                <div className="absolute inset-0 bg-white/5 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out" />
-                <MessageCircle className="w-4 h-4 text-green-400 relative z-10 transition-transform duration-300 group-hover:scale-110" />
-                <span className="relative z-10">Contact Us</span>
+                <MessageCircle className="w-5 h-5 text-white/70 transition-transform duration-300 group-hover:scale-110" />
+                Contact Us
               </a>
             </MagneticButton>
           </motion.div>

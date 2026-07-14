@@ -80,7 +80,10 @@ export default async function FeaturedProducts() {
                 </div>
                 
                 <div className="p-5 bg-white">
-                  <div className="text-[11px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">{product.category_name}</div>
+                  <div className="flex justify-between items-center text-[10px] font-medium text-muted-foreground mb-1.5 uppercase tracking-wider">
+                    <span>{product.category_name}</span>
+                    {product.code && <span className="font-mono bg-black/5 px-1.5 py-0.5 rounded text-[9px]">{product.code}</span>}
+                  </div>
                   <h3 className="font-semibold text-sm lg:text-base line-clamp-1 mb-2 group-hover:text-black transition-colors">
                     {product.name}
                   </h3>

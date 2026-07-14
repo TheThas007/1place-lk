@@ -15,6 +15,7 @@ export interface Product {
   storage_prices?: Record<string, number>;
   images: string[];
   featured: boolean;
+  code?: string;
   created_at: string;
 }
 
@@ -83,6 +84,7 @@ export interface SiteSettings {
   phone: string;
   whatsapp: string;
   address: string;
+  email: string;
   google_maps_link: string;
   google_maps_embed: string;
   logo_url: string;

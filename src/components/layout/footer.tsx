@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Phone, Mail, MapPin } from "lucide-react";
+import { siteSettings } from "@/lib/data";
 
 const footerLinks = {
   shop: [
@@ -57,12 +58,12 @@ export default function Footer() {
                 <Phone className="w-4 h-4" />
                 +94 77 414 1118
               </a>
-              <a
-                href="mailto:info@streetmobile.lk"
-                className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+              <a 
+                href={`mailto:${siteSettings.email}`}
+                className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
               >
                 <Mail className="w-4 h-4" />
-                info@streetmobile.lk
+                <span>{siteSettings.email}</span>
               </a>
               <p className="flex items-center gap-2 text-sm text-gray-600">
                 <MapPin className="w-4 h-4 shrink-0" />

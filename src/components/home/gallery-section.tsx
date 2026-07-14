@@ -7,6 +7,7 @@ import type { Variants } from "framer-motion";
 import { ArrowRight, Images, ZoomIn, Maximize2 } from "lucide-react";
 import { GalleryImage } from "@/lib/types";
 import AnimatedRays from "@/components/ui/animated-rays";
+import { CylinderCarousel } from "@/components/ui/cylinder-carousel";
 
 const CAT_STYLE: Record<string, string> = {
   shop:      "from-gray-700 to-gray-900",
@@ -231,17 +232,12 @@ export default function GallerySection({ images }: { images: GalleryImage[] }) {
           </Link>
         </motion.div>
 
-        {/* ── 3D Photo Grid ── */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 auto-rows-auto">
-          {preview.map((img, i) => (
-            <GalleryCard3D
-              key={img.id || i}
-              image={img}
-              index={i}
-              tall={i === 0 || i === 5}
-              onOpen={setLightbox}
-            />
-          ))}
+        {/* ── Cylinder Carousel ── */}
+        <div className="mt-8 mb-4 max-w-[100vw] overflow-hidden -mx-4 lg:mx-0">
+          <CylinderCarousel 
+            images={preview.map(img => img.image_url)} 
+            onImageClick={(index) => setLightbox(preview[index])}
+          />
         </div>
 
         {/* ── Bottom CTA ── */}

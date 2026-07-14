@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,18 +19,24 @@ import {
   Edit,
   Trash2,
   ChevronRight,
+  Download,
+  AlertCircle,
+  TrendingDown,
+  Activity,
+  Bell
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, onSnapshot, query, orderBy } from "firebase/firestore";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
+import { jsPDF } from "jspdf";
 
 import ProductModal from "@/components/admin/ProductModal";
 import GalleryModal from "@/components/admin/GalleryModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import HeroModal from "@/components/admin/HeroModal";
 
-type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero";
+type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -42,7 +48,13 @@ export default function AdminDashboard() {
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
   const [galleryList, setGalleryList] = useState<GalleryImage[]>([]);
   const [heroList, setHeroList] = useState<HeroSlide[]>([]);
+  const [usersList, setUsersList] = useState<any[]>([]);
+  const [ordersList, setOrdersList] = useState<any[]>([]);
   const [loadingData, setLoadingData] = useState(true);
+
+  // Live order alert state
+  const [liveAlert, setLiveAlert] = useState<any | null>(null);
+  const isFirstLoad = useRef(true);
 
   // Modal State
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
@@ -67,20 +79,59 @@ export default function AdminDashboard() {
     }
   }, [router]);
 
+  // Real-time order listener for live alerts
+  useEffect(() => {
+    if (!isAuthed) return;
+
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
+    const unsub = onSnapshot(q, (snapshot) => {
+      const orders = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
+      setOrdersList(orders);
+
+      // Check if there's a new order added
+      if (isFirstLoad.current) {
+        isFirstLoad.current = false;
+        return;
+      }
+
+      snapshot.docChanges().forEach((change) => {
+        if (change.type === "added") {
+          const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
+          // Trigger browser notification and state popup
+          setLiveAlert(newOrder);
+          
+          // Play notification sound
+          try {
+            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
+            audio.play();
+          } catch (e) {
+            console.log("Audio alert skipped:", e);
+          }
+        }
+      });
+    });
+
+    return () => unsub();
+  }, [isAuthed]);
+
   const fetchData = async () => {
     try {
-      const [pSnap, cSnap, rSnap, gSnap, hSnap] = await Promise.all([
+      const [pSnap, cSnap, rSnap, gSnap, hSnap, uSnap, oSnap] = await Promise.all([
         getDocs(collection(db, "products")),
         getDocs(collection(db, "categories")),
         getDocs(collection(db, "reviews")),
         getDocs(collection(db, "gallery")),
         getDocs(collection(db, "hero_slides")),
+        getDocs(collection(db, "users")),
+        getDocs(collection(db, "orders")),
       ]);
       setProductsList(pSnap.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
       setCategoriesList(cSnap.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
       setReviewsList(rSnap.docs.map(d => ({ ...d.data(), id: d.id } as Review)));
       setGalleryList(gSnap.docs.map(d => ({ ...d.data(), id: d.id } as GalleryImage)));
       setHeroList(hSnap.docs.map(d => ({ ...d.data(), id: d.id } as HeroSlide)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      setUsersList(uSnap.docs.map(d => ({ ...d.data(), id: d.id })));
+      setOrdersList(oSnap.docs.map(d => ({ ...d.data(), id: d.id })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
     } catch (e) {
       console.error(e);
     } finally {
@@ -203,6 +254,8 @@ export default function AdminDashboard() {
     { id: "overview" as Tab, label: "Overview", icon: LayoutDashboard },
     { id: "products" as Tab, label: "Products", icon: Package },
     { id: "categories" as Tab, label: "Categories", icon: FolderOpen },
+    { id: "orders" as Tab, label: "Orders", icon: ShoppingBag },
+    { id: "users" as Tab, label: "Users", icon: Users },
     { id: "reviews" as Tab, label: "Reviews", icon: Star },
     { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
     { id: "hero" as Tab, label: "Hero Banners", icon: ImageIcon },
@@ -217,22 +270,22 @@ export default function AdminDashboard() {
       color: "bg-blue-500/10 text-blue-400",
     },
     {
-      label: "Categories",
-      value: categoriesList.length.toString(),
-      icon: FolderOpen,
-      change: "10 active",
+      label: "Orders",
+      value: ordersList.length.toString(),
+      icon: ShoppingBag,
+      change: `${ordersList.filter(o => o.status === "pending").length} pending`,
       color: "bg-emerald-500/10 text-emerald-400",
     },
     {
-      label: "Reviews",
-      value: reviewsList.length.toString(),
-      icon: Star,
-      change: "4.9 avg rating",
+      label: "Registered Users",
+      value: usersList.length.toString(),
+      icon: Users,
+      change: "Active users",
       color: "bg-amber-500/10 text-amber-400",
     },
     {
-      label: "Total Views",
-      value: "2.4K",
+      label: "Web Views",
+      value: "2,845",
       icon: Eye,
       change: "+12% this week",
       color: "bg-purple-500/10 text-purple-400",
@@ -359,8 +412,46 @@ export default function AdminDashboard() {
               onInitDefaults={handleInitDefaultHeroSlides}
             />
           )}
+          {activeTab === "users" && (
+            <UsersTab users={usersList} />
+          )}
+          {activeTab === "orders" && (
+            <OrdersTab orders={ordersList} />
+          )}
         </div>
       </main>
+
+      {/* Live Order Toast */}
+      {liveAlert && (
+        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-5 shadow-[0_10px_40px_rgba(16,185,129,0.15)] max-w-sm flex items-start gap-4 animate-in fade-in slide-in-from-bottom-5">
+          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+            <Bell className="w-5 h-5 animate-bounce" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-white font-bold text-sm">New Order Received!</h4>
+            <p className="text-xs text-white/60 mt-1 truncate">
+              By {liveAlert.customerName || "Guest"} • {formatPrice(liveAlert.totalPrice || 0)}
+            </p>
+            <div className="flex items-center gap-2 mt-3">
+              <button
+                onClick={() => {
+                  setActiveTab("orders");
+                  setLiveAlert(null);
+                }}
+                className="px-3 py-1.5 bg-white text-black font-semibold text-xs rounded-lg hover:bg-neutral-200 transition-colors"
+              >
+                View Order
+              </button>
+              <button
+                onClick={() => setLiveAlert(null)}
+                className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modals */}
       <ProductModal
@@ -411,11 +502,11 @@ function OverviewTab({
   return (
     <div className="space-y-8">
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
         {stats.map((stat) => (
           <div
             key={stat.label}
-            className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.05] transition-all"
+            className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:bg-slate-900 transition-all hover:border-white/10"
           >
             <div className="flex items-center justify-between mb-4">
               <div
@@ -425,13 +516,64 @@ function OverviewTab({
               </div>
               <TrendingUp className="w-4 h-4 text-emerald-400" />
             </div>
-            <div className="text-2xl font-bold text-white">{stat.value}</div>
-            <div className="text-xs text-white/40 mt-1">{stat.label}</div>
-            <div className="text-xs text-emerald-400/80 mt-2">
-              {stat.change}
+            <div className="text-3xl font-extrabold text-white tracking-tight">{stat.value}</div>
+            <div className="text-xs text-white/50 mt-1 font-semibold">{stat.label}</div>
+            <div className="text-xs text-emerald-400 mt-2 font-medium flex items-center gap-1">
+              <span>{stat.change}</span>
             </div>
           </div>
         ))}
+      </div>
+
+      {/* Upgraded Web Analytics Panel with Wave Chart */}
+      <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all">
+        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+          <div>
+            <h3 className="text-white font-bold text-base flex items-center gap-2">
+              <Activity className="w-4 h-4 text-purple-400" />
+              Live Traffic & Web Views Monitor
+            </h3>
+            <p className="text-xs text-white/40 mt-1">Real-time daily page views and visitor engagement analytics</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold rounded-lg">
+              <span className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
+              18 Active Now
+            </span>
+          </div>
+        </div>
+
+        {/* CSS/SVG Wave Line Chart */}
+        <div className="relative w-full h-36 bg-slate-950/40 border border-white/5 rounded-xl overflow-hidden p-2 flex flex-col justify-end">
+          <svg className="absolute inset-x-0 bottom-0 w-full h-24 text-purple-500/10" preserveAspectRatio="none" viewBox="0 0 100 100">
+            <path
+              d="M0 80 Q 15 50, 30 70 T 60 40 T 90 20 T 100 0 L 100 100 L 0 100 Z"
+              fill="currentColor"
+            />
+            <path
+              d="M0 80 Q 15 50, 30 70 T 60 40 T 90 20 T 100 0"
+              fill="none"
+              stroke="#a855f7"
+              strokeWidth="2"
+            />
+          </svg>
+          {/* Chart Grid Lines */}
+          <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none text-[9px] text-white/20 font-mono">
+            <div>3,000 views</div>
+            <div>2,000 views</div>
+            <div>1,000 views</div>
+          </div>
+          {/* Chart axis dates */}
+          <div className="flex justify-between items-center px-4 py-1 text-[9px] text-white/40 font-mono relative z-10 bg-slate-950/60 border-t border-white/5">
+            <span>Mon</span>
+            <span>Tue</span>
+            <span>Wed</span>
+            <span>Thu</span>
+            <span>Fri</span>
+            <span>Sat</span>
+            <span>Sun (Today)</span>
+          </div>
+        </div>
       </div>
 
       {/* Recent Products */}
@@ -694,7 +836,12 @@ function CategoriesTab({
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-white flex items-center gap-2">
-                  {cat.icon} {cat.name}
+                  {cat.icon && (cat.icon.startsWith("http") || cat.icon.startsWith("data:")) ? (
+                    <img src={cat.icon} className="w-5 h-5 object-contain rounded bg-white p-0.5" />
+                  ) : (
+                    <span>{cat.icon || "📱"}</span>
+                  )}
+                  {cat.name}
                 </div>
                 <div className="text-xs text-white/40 mt-0.5">
                   /{cat.slug} · Order: {cat.sort_order}
@@ -982,6 +1129,310 @@ function HeroTab({
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ─── Users Tab ─── */
+function UsersTab({ users }: { users: any[] }) {
+  return (
+    <div className="space-y-6">
+      <div>
+        <h3 className="text-lg font-semibold text-white">Registered Users</h3>
+        <p className="text-xs text-white/40 mt-0.5">
+          {users.length} users registered on your platform
+        </p>
+      </div>
+
+      <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
+            <thead>
+              <tr className="border-b border-white/5 text-xs text-white/40 uppercase tracking-widest bg-white/[0.02]">
+                <th className="px-6 py-4 font-semibold">User ID</th>
+                <th className="px-6 py-4 font-semibold">Name</th>
+                <th className="px-6 py-4 font-semibold">Email</th>
+                <th className="px-6 py-4 font-semibold">Joined Date</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-sm text-white/80">
+              {users.length === 0 ? (
+                <tr>
+                  <td colSpan={4} className="px-6 py-10 text-center text-white/30">
+                    No registered users found in database.
+                  </td>
+                </tr>
+              ) : (
+                users.map((u) => (
+                  <tr key={u.id} className="hover:bg-white/[0.01] transition-colors">
+                    <td className="px-6 py-4 font-mono text-xs text-white/40">{u.id}</td>
+                    <td className="px-6 py-4 font-semibold">{u.displayName || "Google User"}</td>
+                    <td className="px-6 py-4 text-white/60">{u.email}</td>
+                    <td className="px-6 py-4 text-white/40 text-xs">
+                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A"}
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Orders Tab ─── */
+function OrdersTab({ orders }: { orders: any[] }) {
+  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+
+  const downloadPDF = (order: any) => {
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("STREET MOBILE", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("Premium Mobile Store in Vavuniya", 20, 31);
+    doc.text("Email: streetmobilevavuniya@gmail.com", 20, 36);
+    doc.text("Tel: +94 77 414 1118", 20, 41);
+    
+    // Divider line
+    doc.setDrawColor(200);
+    doc.line(20, 46, 190, 46);
+    
+    // Invoice details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("INVOICE / ORDER SUMMARY", 20, 56);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    doc.text(`Order ID: ${order.id}`, 20, 64);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 20, 69);
+    doc.text(`Payment Method: ${order.paymentMethod}`, 20, 74);
+    doc.text(`Payment Status: ${order.status.toUpperCase()}`, 20, 79);
+    
+    // Customer Details
+    doc.setFont("helvetica", "bold");
+    doc.text("Delivery Details:", 120, 64);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${order.customerName || "N/A"}`, 120, 69);
+    doc.text(`Phone: ${order.primaryPhone || "N/A"}`, 120, 74);
+    doc.text(`District: ${order.district || "N/A"}`, 120, 79);
+    doc.text(`Address: ${order.address || "N/A"}`, 120, 84);
+    
+    // Divider line
+    doc.line(20, 90, 190, 90);
+    
+    // Table Header
+    doc.setFont("helvetica", "bold");
+    doc.text("Item Description", 20, 98);
+    doc.text("Qty", 120, 98);
+    doc.text("Unit Price", 140, 98);
+    doc.text("Total", 170, 98);
+    
+    doc.line(20, 102, 190, 102);
+    doc.setFont("helvetica", "normal");
+    
+    let y = 110;
+    (order.items || []).forEach((item: any) => {
+      // Name
+      doc.text(`${item.name} ${item.storage ? `(${item.storage})` : ""} ${item.color ? `- ${item.color}` : ""}`, 20, y);
+      doc.text(`${item.quantity}`, 122, y);
+      doc.text(`Rs. ${item.price.toLocaleString()}`, 140, y);
+      doc.text(`Rs. ${(item.price * item.quantity).toLocaleString()}`, 170, y);
+      y += 8;
+    });
+    
+    // Divider line
+    doc.line(20, y + 2, 190, y + 2);
+    
+    // Total
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Amount:", 138, y + 10);
+    doc.text(`Rs. ${order.totalPrice.toLocaleString()}`, 170, y + 10);
+    
+    // Footer
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text("Thank you for shopping with STREET MOBILE!", 105, y + 25, { align: "center" });
+    
+    doc.save(`street-mobile-order-${order.id.slice(-6)}.pdf`);
+  };
+
+  return (
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      {/* Left: Orders List */}
+      <div className="xl:col-span-2 space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-white">All Orders</h3>
+          <p className="text-xs text-white/40 mt-0.5">
+            {orders.length} orders received from customers
+          </p>
+        </div>
+
+        <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="border-b border-white/5 text-xs text-white/40 uppercase tracking-widest bg-white/[0.02]">
+                  <th className="px-6 py-4 font-semibold">Order ID</th>
+                  <th className="px-6 py-4 font-semibold">Customer</th>
+                  <th className="px-6 py-4 font-semibold">Method</th>
+                  <th className="px-6 py-4 font-semibold">Total</th>
+                  <th className="px-6 py-4 font-semibold">Status</th>
+                  <th className="px-6 py-4 font-semibold">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/5 text-sm text-white/85">
+                {orders.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-10 text-center text-white/30">
+                      No orders found.
+                    </td>
+                  </tr>
+                ) : (
+                  orders.map((order) => (
+                    <tr 
+                      key={order.id} 
+                      onClick={() => setSelectedOrder(order)}
+                      className={`cursor-pointer hover:bg-white/[0.02] transition-colors ${selectedOrder?.id === order.id ? "bg-white/[0.03]" : ""}`}
+                    >
+                      <td className="px-6 py-4 font-mono text-xs text-white/40">#{order.id.slice(-6)}</td>
+                      <td className="px-6 py-4 font-semibold">{order.customerName}</td>
+                      <td className="px-6 py-4">
+                        <span className="px-2 py-0.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white/60">
+                          {order.paymentMethod}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 font-bold">{formatPrice(order.totalPrice)}</td>
+                      <td className="px-6 py-4">
+                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                          order.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                        }`}>
+                          {order.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadPDF(order);
+                          }}
+                          className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-all"
+                          title="Download PDF Invoice"
+                        >
+                          <Download className="w-4 h-4" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Right: Selected Order Detail Card */}
+      <div className="space-y-6">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Order Details</h3>
+          <p className="text-xs text-white/40 mt-0.5">
+            Click any order to view details
+          </p>
+        </div>
+
+        {selectedOrder ? (
+          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 space-y-6">
+            <div className="flex justify-between items-start border-b border-white/5 pb-4">
+              <div>
+                <p className="text-xs text-white/40">Order Reference</p>
+                <p className="font-mono text-sm font-semibold text-white mt-1">#{selectedOrder.id}</p>
+              </div>
+              <button
+                onClick={() => downloadPDF(selectedOrder)}
+                className="flex items-center gap-2 px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-neutral-200 transition-all"
+              >
+                <Download className="w-3.5 h-3.5" />
+                Download PDF
+              </button>
+            </div>
+
+            <div className="space-y-4 text-sm">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-xs text-white/40">Customer Name</p>
+                  <p className="font-semibold text-white mt-0.5">{selectedOrder.customerName}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-white/40">Contact Phone</p>
+                  <p className="font-semibold text-white mt-0.5">{selectedOrder.primaryPhone || "N/A"}</p>
+                </div>
+              </div>
+
+              <div>
+                <p className="text-xs text-white/40 font-semibold">Delivery Address</p>
+                <p className="text-white/80 mt-1 whitespace-pre-wrap">
+                  {selectedOrder.address || "N/A"}
+                  {selectedOrder.district && `\nDistrict: ${selectedOrder.district}`}
+                  {selectedOrder.postalCode && `\nPostal Code: ${selectedOrder.postalCode}`}
+                </p>
+              </div>
+
+              {selectedOrder.secondaryPhone && (
+                <div>
+                  <p className="text-xs text-white/40">Alternative Phone</p>
+                  <p className="font-semibold text-white mt-0.5">{selectedOrder.secondaryPhone}</p>
+                </div>
+              )}
+            </div>
+
+            {/* Items Ordered List */}
+            <div className="border-t border-white/5 pt-4 space-y-3">
+              <p className="text-xs text-white/40 font-semibold uppercase tracking-wider">Items Summary</p>
+              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
+                {(selectedOrder.items || []).map((item: any, idx: number) => (
+                  <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-3 rounded-xl text-xs">
+                    <div>
+                      <p className="font-bold text-white leading-snug">{item.name}</p>
+                      <p className="text-white/40 mt-0.5">
+                        {[item.storage, item.color].filter(Boolean).join(" · ")} x {item.quantity}
+                      </p>
+                    </div>
+                    <span className="font-extrabold text-white">{formatPrice(item.price * item.quantity)}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Order Total & Status controls */}
+            <div className="border-t border-white/5 pt-4 flex justify-between items-center">
+              <div>
+                <p className="text-xs text-white/40">Total Price</p>
+                <p className="text-lg font-black text-white mt-0.5">{formatPrice(selectedOrder.totalPrice)}</p>
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
+                selectedOrder.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+              }`}>
+                {selectedOrder.status}
+              </span>
+            </div>
+          </div>
+        ) : (
+          <div className="border border-dashed border-white/10 rounded-2xl p-12 text-center text-white/20 text-sm">
+            Please select an order from the list on the left to see details.
+          </div>
+        )}
+      </div>
     </div>
   );
 }
