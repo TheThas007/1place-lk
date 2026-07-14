@@ -26,6 +26,7 @@ interface Product {
   storage_prices?: Record<string, number>;
   images: string[];
   featured: boolean;
+  code?: string;
 }
 
 function generateOrderMessage(product: Product, storage: string, color: string, price: number) {
