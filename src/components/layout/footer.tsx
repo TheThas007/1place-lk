@@ -27,7 +27,7 @@ const footerLinks = {
 
 export default function Footer() {
   return (
-    <footer className="bg-white border-t border-gray-200 text-black pb-24 lg:pb-0">
+    <footer className="bg-black border-t border-zinc-800 text-white pb-24 lg:pb-0">
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-16 pb-12">
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
@@ -42,30 +42,30 @@ export default function Footer() {
                 <img 
                   src="/logo.png" 
                   alt="STREET MOBILE Logo" 
-                  className="absolute inset-0 w-full h-full object-contain object-left z-10"
+                  className="absolute inset-0 w-full h-full object-contain object-left z-10 brightness-0 invert"
                 />
               </div>
             </Link>
-            <p className="text-gray-500 text-sm leading-relaxed mb-6 max-w-xs">
+            <p className="text-zinc-400 text-sm leading-relaxed mb-6 max-w-xs">
               Your trusted mobile store in Vavuniya. Latest smartphones,
               accessories, and professional repair services.
             </p>
             <div className="space-y-2">
               <a
                 href="tel:+94774141118"
-                className="flex items-center gap-2 text-sm text-gray-600 hover:text-black transition-colors"
+                className="flex items-center gap-2 text-sm text-zinc-300 hover:text-white transition-colors"
               >
                 <Phone className="w-4 h-4" />
                 +94 77 414 1118
               </a>
               <a 
                 href={`mailto:${siteSettings.email}`}
-                className="flex items-center gap-3 text-muted-foreground hover:text-foreground transition-colors group"
+                className="flex items-center gap-3 text-zinc-300 hover:text-white transition-colors group"
               >
                 <Mail className="w-4 h-4" />
                 <span>{siteSettings.email}</span>
               </a>
-              <p className="flex items-center gap-2 text-sm text-gray-600">
+              <p className="flex items-center gap-2 text-sm text-zinc-300">
                 <MapPin className="w-4 h-4 shrink-0" />
                 163, Kandaswamy Kovil Road, Vavuniya
               </p>
@@ -74,7 +74,7 @@ export default function Footer() {
 
           {/* Shop Links */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">
               Shop
             </h3>
             <ul className="space-y-2.5">
@@ -82,7 +82,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-black transition-colors"
+                    className="text-sm text-zinc-300 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -93,7 +93,7 @@ export default function Footer() {
 
           {/* Services Links */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">
               Services
             </h3>
             <ul className="space-y-2.5">
@@ -101,7 +101,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-black transition-colors"
+                    className="text-sm text-zinc-300 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -112,7 +112,7 @@ export default function Footer() {
 
           {/* Company Links */}
           <div>
-            <h3 className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-4">
+            <h3 className="text-xs font-semibold uppercase tracking-wider text-zinc-500 mb-4">
               Company
             </h3>
             <ul className="space-y-2.5">
@@ -120,7 +120,7 @@ export default function Footer() {
                 <li key={link.label}>
                   <Link
                     href={link.href}
-                    className="text-sm text-gray-600 hover:text-black transition-colors"
+                    className="text-sm text-zinc-300 hover:text-white transition-colors"
                   >
                     {link.label}
                   </Link>
@@ -132,9 +132,9 @@ export default function Footer() {
       </div>
 
       {/* Bottom Bar */}
-      <div className="border-t border-gray-200">
+      <div className="border-t border-zinc-800">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 flex flex-col lg:flex-row items-center justify-between gap-4">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-zinc-400">
             © {new Date().getFullYear()} STREET MOBILE (Pvt) Ltd. All rights
             reserved.
           </p>
@@ -143,7 +143,7 @@ export default function Footer() {
               href="https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-black transition-colors"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="Facebook"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -154,7 +154,7 @@ export default function Footer() {
               href="https://www.instagram.com/streetmobile.lk?utm_source=qr"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-black transition-colors"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="Instagram"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
@@ -165,7 +165,7 @@ export default function Footer() {
               href="https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-gray-400 hover:text-black transition-colors"
+              className="text-zinc-400 hover:text-white transition-colors"
               aria-label="TikTok"
             >
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">

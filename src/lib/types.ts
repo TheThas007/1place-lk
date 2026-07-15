@@ -67,6 +67,22 @@ export interface HeroSlide {
   active: boolean;
 }
 
+export interface ProductBanner {
+  id: string;
+  tag: string;
+  title: string;
+  title_highlight: string;
+  subtitle: string;
+  description: string;
+  cta_text: string;
+  cta_link: string;
+  gradient: string;
+  accent_color: string;
+  float_image: string;
+  sort_order: number;
+  active: boolean;
+}
+
 export interface Order {
   id: string;
   product_name: string;

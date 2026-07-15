@@ -77,7 +77,9 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     } catch (err: any) {
       console.error(err);
       if (err?.code === "auth/unauthorized-domain") {
-        setError("Google sign-in failed: This domain is not authorized in your Firebase Console (Authentication > Settings > Authorized Domains). Please add this domain to the list.");
+        setError("Google sign-in failed: This domain is not authorized in your Firebase Console. Please add it to Authorized Domains.");
+      } else if (err?.code === "auth/popup-blocked") {
+        setError("Sign-in popup was blocked by your browser. Please allow popups for this site and try again.");
       } else if (err?.code !== "auth/popup-closed-by-user") {
         setError("Google sign-in failed. Please try again.");
       }

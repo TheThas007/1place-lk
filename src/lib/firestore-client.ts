@@ -1,6 +1,19 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Product, Category, Review, Banner, SiteSettings, GalleryImage, HeroSlide } from "./types";
+import { Product, Category, Review, Banner, SiteSettings, GalleryImage, HeroSlide, ProductBanner } from "./types";
+
+export async function getProductBanners(): Promise<ProductBanner[]> {
+  try {
+    const q = query(collection(db, "product_banners"));
+    const snapshot = await getDocs(q);
+    const banners = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ProductBanner));
+    return banners.filter(b => b.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  } catch (e) {
+    console.error("Error fetching product banners:", e);
+    return [];
+  }
+}
+
 
 export async function getProducts(): Promise<Product[]> {
   const q = query(collection(db, "products"));
