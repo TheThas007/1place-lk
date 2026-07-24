@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -24,11 +25,13 @@ import {
   AlertCircle,
   TrendingDown,
   Activity,
-  Bell
+  Bell,
+  Heart,
+  Truck
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, setDoc, onSnapshot, query, orderBy, getDoc } from "firebase/firestore";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
 import { jsPDF } from "jspdf";
 
@@ -37,12 +40,20 @@ import GalleryModal from "@/components/admin/GalleryModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import HeroModal from "@/components/admin/HeroModal";
 
-type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders";
+type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders" | "settings";
 
-export default function AdminDashboard() {
+function AdminDashboardContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab") as Tab | null;
   const [activeTab, setActiveTab] = useState<Tab>("overview");
   const [isAuthed, setIsAuthed] = useState(false);
+
+  useEffect(() => {
+    if (tabParam && ["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings"].includes(tabParam)) {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const [productsList, setProductsList] = useState<Product[]>([]);
   const [categoriesList, setCategoriesList] = useState<Category[]>([]);
@@ -51,6 +62,7 @@ export default function AdminDashboard() {
   const [heroList, setHeroList] = useState<HeroSlide[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [ordersList, setOrdersList] = useState<any[]>([]);
+  const [uiSettings, setUiSettings] = useState<any>({});
   const [loadingData, setLoadingData] = useState(true);
 
   // Live order alert state
@@ -104,7 +116,10 @@ export default function AdminDashboard() {
           // Play notification sound
           try {
             const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-            audio.play();
+            const promise = audio.play();
+            if (promise !== undefined) {
+              promise.catch(() => {});
+            }
           } catch (e) {
             console.log("Audio alert skipped:", e);
           }
@@ -133,10 +148,26 @@ export default function AdminDashboard() {
       setHeroList(hSnap.docs.map(d => ({ ...d.data(), id: d.id } as HeroSlide)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
       setUsersList(uSnap.docs.map(d => ({ ...d.data(), id: d.id })));
       setOrdersList(oSnap.docs.map(d => ({ ...d.data(), id: d.id })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      
+      const uiSnap = await getDoc(doc(db, "settings", "ui"));
+      if (uiSnap.exists()) {
+        setUiSettings(uiSnap.data());
+      }
     } catch (e) {
       console.error(e);
     } finally {
       setLoadingData(false);
+    }
+  };
+
+  const handleUpdateUiSettings = async (newSettings: any) => {
+    try {
+      await setDoc(doc(db, "settings", "ui"), newSettings, { merge: true });
+      setUiSettings(newSettings);
+      alert("Settings updated successfully!");
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      alert("Failed to update settings.");
     }
   };
 
@@ -196,6 +227,28 @@ export default function AdminDashboard() {
   const handleAddGalleryImage = () => {
     setEditingGalleryImage(null);
     setIsGalleryModalOpen(true);
+  };
+
+  const handleUpdateOrderStatus = async (id: string, status: string) => {
+    try {
+      await updateDoc(doc(db, "orders", id), { status });
+      setOrdersList(ordersList.map(o => o.id === id ? { ...o, status } : o));
+    } catch (e) {
+      console.error(e);
+      alert("Failed to update order status");
+    }
+  };
+
+  const handleDeleteOrder = async (id: string) => {
+    if (confirm("Are you sure you want to delete this order?")) {
+      try {
+        await deleteDoc(doc(db, "orders", id));
+        setOrdersList(ordersList.filter(o => o.id !== id));
+      } catch (e) {
+        console.error(e);
+        alert("Failed to delete order");
+      }
+    }
   };
 
   const handleAddHeroSlide = () => {
@@ -302,80 +355,23 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-900 border-r border-white/5 flex flex-col">
-        {/* Brand */}
-        <div className="p-6 border-b border-white/5">
-          <h1 className="text-lg font-bold text-white tracking-tight">
-            STREET MOBILE
-          </h1>
-          <p className="text-xs text-white/40 mt-0.5">Admin Dashboard</p>
-        </div>
-
-        {/* Nav */}
-        <nav className="flex-1 p-4 space-y-1">
-          {sidebarItems.map((item) => (
+    <div className="flex flex-col h-full w-full">
+      {/* ─── Removed Sidebar & Topbar (now in layout.tsx) ─── */}
+      <div className="pb-8">
+        {/* Legacy Tab Navigation for those not yet moved to separate routes */}
+        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
+          {["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings"].map((tab) => (
             <button
-              key={item.id}
-              onClick={() => setActiveTab(item.id)}
-              className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-                activeTab === item.id
-                  ? "bg-white/10 text-white"
-                  : "text-white/50 hover:text-white/80 hover:bg-white/5"
+              key={tab}
+              onClick={() => setActiveTab(tab as Tab)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
+                activeTab === tab ? "bg-white text-black" : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
               }`}
             >
-              <item.icon className="w-4 h-4" />
-              {item.label}
+              {tab.charAt(0).toUpperCase() + tab.slice(1)}
             </button>
           ))}
-        </nav>
-
-        {/* Bottom */}
-        <div className="p-4 border-t border-white/5 space-y-1">
-          <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-white/50 hover:text-white/80 hover:bg-white/5 transition-all">
-            <Settings className="w-4 h-4" />
-            Settings
-          </button>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/5 transition-all"
-          >
-            <LogOut className="w-4 h-4" />
-            Logout
-          </button>
         </div>
-      </aside>
-
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Top Bar */}
-        <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-8 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white capitalize">
-              {activeTab}
-            </h2>
-            <p className="text-xs text-white/40 mt-0.5">
-              Manage your store content
-            </p>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:text-white hover:bg-white/10 transition-all"
-            >
-              <Eye className="w-4 h-4" />
-              View Site
-            </Link>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-              A
-            </div>
-          </div>
-        </div>
-
-        {/* Content */}
-        <div className="p-8">
           {activeTab === "overview" && (
             <OverviewTab stats={stats} products={productsList} reviews={reviewsList} />
           )}
@@ -417,42 +413,21 @@ export default function AdminDashboard() {
             <UsersTab users={usersList} />
           )}
           {activeTab === "orders" && (
-            <OrdersTab orders={ordersList} />
+            <OrdersTab 
+              orders={ordersList} 
+              onUpdateStatus={handleUpdateOrderStatus} 
+              onDeleteOrder={handleDeleteOrder} 
+            />
+          )}
+          {activeTab === "settings" && (
+            <SettingsTab 
+              settings={uiSettings}
+              onSave={handleUpdateUiSettings}
+            />
           )}
         </div>
-      </main>
 
-      {/* Live Order Toast */}
-      {liveAlert && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-5 shadow-[0_10px_40px_rgba(16,185,129,0.15)] max-w-sm flex items-start gap-4 animate-in fade-in slide-in-from-bottom-5">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
-            <Bell className="w-5 h-5 animate-bounce" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h4 className="text-white font-bold text-sm">New Order Received!</h4>
-            <p className="text-xs text-white/60 mt-1 truncate">
-              By {liveAlert.customerName || "Guest"} • {formatPrice(liveAlert.totalPrice || 0)}
-            </p>
-            <div className="flex items-center gap-2 mt-3">
-              <button
-                onClick={() => {
-                  setActiveTab("orders");
-                  setLiveAlert(null);
-                }}
-                className="px-3 py-1.5 bg-white text-black font-semibold text-xs rounded-lg hover:bg-neutral-200 transition-colors"
-              >
-                View Order
-              </button>
-              <button
-                onClick={() => setLiveAlert(null)}
-                className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+
 
       {/* Modals */}
       <ProductModal
@@ -1269,9 +1244,6 @@ function UsersTab({ users }: { users: any[] }) {
                     <td className="px-6 py-4 font-mono text-xs text-white/40">{u.id}</td>
                     <td className="px-6 py-4 font-semibold">{u.displayName || "Google User"}</td>
                     <td className="px-6 py-4 text-white/60">{u.email}</td>
-                    <td className="px-6 py-4 text-white/40 text-xs">
-                      {u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A"}
-                    </td>
                   </tr>
                 ))
               )}
@@ -1284,8 +1256,53 @@ function UsersTab({ users }: { users: any[] }) {
 }
 
 /* ─── Orders Tab ─── */
-function OrdersTab({ orders }: { orders: any[] }) {
+function OrdersTab({ 
+  orders, 
+  onUpdateStatus, 
+  onDeleteOrder 
+}: { 
+  orders: any[], 
+  onUpdateStatus: (id: string, status: string) => void,
+  onDeleteOrder: (id: string) => void
+}) {
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
+  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+
+  const handleSendCustomerEmail = async (order: any, statusType: "packing" | "on_the_way" | "delivered_thankyou") => {
+    setSendingEmail(order.id);
+    try {
+      const res = await fetch("/api/send-customer-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          orderId: order.id,
+          customerName: order.customerName,
+          email: order.email || "streetmobilevavuniya@gmail.com",
+          statusType: statusType,
+          address: order.address,
+          district: order.district,
+          items: order.items,
+          totalPrice: order.totalPrice
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        const msgMap = {
+          packing: "📦 'Your Parcel is Packing' email sent to customer!",
+          on_the_way: "🚚 'Your Order is On The Way' email sent to customer!",
+          delivered_thankyou: "❤️ Heartfelt Thank You & Welcome message sent to customer!"
+        };
+        alert(msgMap[statusType]);
+      } else {
+        alert("Failed to send email: " + (data.error || "Unknown error"));
+      }
+    } catch (e: any) {
+      console.error(e);
+      alert("Error sending email.");
+    } finally {
+      setSendingEmail(null);
+    }
+  };
 
   const downloadPDF = (order: any) => {
     const doc = new jsPDF();
@@ -1417,7 +1434,10 @@ function OrdersTab({ orders }: { orders: any[] }) {
                       <td className="px-6 py-4 font-bold">{formatPrice(order.totalPrice)}</td>
                       <td className="px-6 py-4">
                         <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          order.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
+                          order.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : 
+                          order.status === "processing" ? "bg-blue-500/10 text-blue-400" :
+                          order.status === "completed" ? "bg-green-500/10 text-green-400" :
+                          "bg-amber-500/10 text-amber-400"
                         }`}>
                           {order.status}
                         </span>
@@ -1448,7 +1468,7 @@ function OrdersTab({ orders }: { orders: any[] }) {
         <div>
           <h3 className="text-lg font-semibold text-white">Order Details</h3>
           <p className="text-xs text-white/40 mt-0.5">
-            Click any order to view details
+            {selectedOrder ? `Managing Order #${selectedOrder.id.slice(-6)}` : "Select an order to view"}
           </p>
         </div>
 
@@ -1515,17 +1535,87 @@ function OrdersTab({ orders }: { orders: any[] }) {
               </div>
             </div>
 
+            {/* Customer Email Notification Actions */}
+            <div className="border-t border-white/10 pt-4 space-y-2.5">
+              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Send Email Notification to Customer</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button
+                  onClick={() => handleSendCustomerEmail(selectedOrder, "packing")}
+                  disabled={sendingEmail === selectedOrder.id}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Package className="w-3.5 h-3.5" />
+                  <span>1. Your Parcel Packing</span>
+                </button>
+
+                <button
+                  onClick={() => handleSendCustomerEmail(selectedOrder, "on_the_way")}
+                  disabled={sendingEmail === selectedOrder.id}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Truck className="w-3.5 h-3.5" />
+                  <span>2. Order On The Way</span>
+                </button>
+
+                <button
+                  onClick={() => handleSendCustomerEmail(selectedOrder, "delivered_thankyou")}
+                  disabled={sendingEmail === selectedOrder.id}
+                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
+                >
+                  <Heart className="w-3.5 h-3.5 text-rose-400" />
+                  <span>3. Thank You Message</span>
+                </button>
+              </div>
+            </div>
+
             {/* Order Total & Status controls */}
-            <div className="border-t border-white/5 pt-4 flex justify-between items-center">
+            <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <div>
                 <p className="text-xs text-white/40">Total Price</p>
                 <p className="text-lg font-black text-white mt-0.5">{formatPrice(selectedOrder.totalPrice)}</p>
               </div>
-              <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider ${
-                selectedOrder.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : "bg-amber-500/10 text-amber-400"
-              }`}>
-                {selectedOrder.status}
-              </span>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                  selectedOrder.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : 
+                  selectedOrder.status === "processing" ? "bg-blue-500/10 text-blue-400" :
+                  selectedOrder.status === "completed" ? "bg-green-500/10 text-green-400" :
+                  "bg-amber-500/10 text-amber-400"
+                }`}>
+                  {selectedOrder.status}
+                </span>
+
+                {selectedOrder.status !== "processing" && selectedOrder.status !== "completed" && (
+                  <button 
+                    onClick={() => {
+                      onUpdateStatus(selectedOrder.id, "processing");
+                      setSelectedOrder({ ...selectedOrder, status: "processing" });
+                    }}
+                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Process
+                  </button>
+                )}
+                {selectedOrder.status === "processing" && (
+                  <button 
+                    onClick={() => {
+                      onUpdateStatus(selectedOrder.id, "completed");
+                      setSelectedOrder({ ...selectedOrder, status: "completed" });
+                    }}
+                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors"
+                  >
+                    Complete
+                  </button>
+                )}
+                <button 
+                  onClick={() => {
+                    onDeleteOrder(selectedOrder.id);
+                    setSelectedOrder(null);
+                  }}
+                  className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-lg transition-colors"
+                >
+                  Delete
+                </button>
+              </div>
             </div>
           </div>
         ) : (
@@ -1535,5 +1625,129 @@ function OrdersTab({ orders }: { orders: any[] }) {
         )}
       </div>
     </div>
+  );
+}
+
+/* ─── Settings Tab ─── */
+function SettingsTab({
+  settings,
+  onSave,
+}: {
+  settings: any;
+  onSave: (newSettings: any) => void;
+}) {
+  const [localSettings, setLocalSettings] = useState<any>(settings || {});
+  
+  // Make sure it updates if the parent state loads after mount
+  useEffect(() => {
+    if (settings) {
+      setLocalSettings(settings);
+    }
+  }, [settings]);
+
+  return (
+    <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6">
+      <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
+        <Settings className="w-5 h-5 text-blue-400" />
+        UI & Store Options
+      </h3>
+      
+      <div className="space-y-6 max-w-xl">
+        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
+          <div>
+            <h4 className="text-white font-medium text-sm">Inside Street Mobile Snow Effect</h4>
+            <p className="text-xs text-white/50 mt-1">Enable a realistic 50k+ particle snow effect on the gallery section background.</p>
+          </div>
+          
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input 
+              type="checkbox" 
+              className="sr-only peer" 
+              checked={localSettings.snowEffectEnabled || false}
+              onChange={(e) => setLocalSettings({...localSettings, snowEffectEnabled: e.target.checked})}
+            />
+            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
+          </label>
+        </div>
+
+        {/* Delivery Charge Settings */}
+        <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
+          <div>
+            <h4 className="text-white font-medium text-sm">Delivery Charge & Estimate Settings</h4>
+            <p className="text-xs text-white/50 mt-0.5">Configure delivery charge and estimated delivery days for customers at checkout.</p>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-3">
+            <label className="flex items-center gap-2.5 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
+              <input
+                type="radio"
+                name="deliveryType"
+                checked={localSettings.isFreeDelivery !== false}
+                onChange={() => setLocalSettings({...localSettings, isFreeDelivery: true, deliveryFee: 0})}
+                className="text-blue-500"
+              />
+              <div>
+                <span className="text-xs font-bold text-white block">Free Delivery</span>
+                <span className="text-[10px] text-emerald-400 font-semibold">Rs. 0 (Free)</span>
+              </div>
+            </label>
+
+            <label className="flex items-center gap-2.5 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
+              <input
+                type="radio"
+                name="deliveryType"
+                checked={localSettings.isFreeDelivery === false}
+                onChange={() => setLocalSettings({...localSettings, isFreeDelivery: false})}
+                className="text-blue-500"
+              />
+              <div>
+                <span className="text-xs font-bold text-white block">Custom Charge</span>
+                <span className="text-[10px] text-white/40">Fixed fee</span>
+              </div>
+            </label>
+          </div>
+
+          {localSettings.isFreeDelivery === false && (
+            <div>
+              <label className="text-xs text-white/60 font-semibold block mb-1">Custom Delivery Fee (LKR)</label>
+              <input
+                type="number"
+                min={0}
+                value={localSettings.deliveryFee || 350}
+                onChange={(e) => setLocalSettings({...localSettings, deliveryFee: Number(e.target.value)})}
+                placeholder="e.g. 350"
+                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-blue-500"
+              />
+            </div>
+          )}
+
+          <div>
+            <label className="text-xs text-white/60 font-semibold block mb-1">Estimated Delivery Days</label>
+            <input
+              type="text"
+              value={localSettings.deliveryEstimate || "3 - 7 Business Days"}
+              onChange={(e) => setLocalSettings({...localSettings, deliveryEstimate: e.target.value})}
+              placeholder="e.g. 3 - 7 Business Days"
+              className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-blue-500"
+            />
+          </div>
+        </div>
+
+        <button
+          onClick={() => onSave(localSettings)}
+          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]"
+        >
+          Save Settings
+        </button>
+      </div>
+    </div>
+  );
+}
+
+export default function AdminDashboard() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white font-bold">Loading Dashboard...</div>}>
+      <AdminDashboardContent />
+    </Suspense>
   );
 }

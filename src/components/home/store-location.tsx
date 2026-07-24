@@ -35,9 +35,16 @@ export default function StoreLocation() {
 
             {/* Info Area */}
             <div className="p-8 lg:p-16 flex flex-col justify-center">
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 text-xs font-medium mb-6 w-fit">
-                <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
-                Store Location
+              <div className="flex items-center justify-between gap-4 mb-6">
+                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 text-xs font-semibold w-fit">
+                  <span className="flex h-2 w-2 rounded-full bg-green-500 animate-pulse" />
+                  Store Location
+                </div>
+                <img 
+                  src="/logo.png" 
+                  alt="STREET MOBILE Logo" 
+                  className="h-10 lg:h-14 w-auto object-contain shrink-0"
+                />
               </div>
               
               <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-8">

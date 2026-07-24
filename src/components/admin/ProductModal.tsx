@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Upload, Loader2, Plus, Trash2, Tag, HardDrive, Palette, ShieldCheck, Cpu } from "lucide-react";
-import { Product, Category } from "@/lib/types";
+import { X, Upload, Loader2, Plus, Trash2, Tag, HardDrive, Palette, ShieldCheck, Cpu, ShoppingCart } from "lucide-react";
+import { Product, Category, ProductOrderSettings, DEFAULT_ORDER_SETTINGS } from "@/lib/types";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
+import OrderOptionsSection from "@/components/admin/tabs/OrderOptionsSection";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -54,6 +55,7 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
   const [colorsInput, setColorsInput] = useState("");
   const [storageInput, setStorageInput] = useState("");
 
+  const [orderSettings, setOrderSettings] = useState<ProductOrderSettings>(DEFAULT_ORDER_SETTINGS);
   const [isLoading, setIsLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -62,6 +64,17 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
       setFormData(initialData);
       setImagePreviews(initialData.images?.slice(0, 4) || []);
       setImageLinksInput(initialData.images?.join(",\n") || "");
+      // Restore orderSettings from saved product
+      setOrderSettings({ ...DEFAULT_ORDER_SETTINGS, ...(initialData.orderSettings || {}) });
+      // Also restore allow_ flags as overrides if orderSettings not present
+      if (!initialData.orderSettings) {
+        setOrderSettings(prev => ({
+          ...prev,
+          codEnabled: initialData.allow_cod !== false,
+          cardEnabled: initialData.allow_card !== false,
+          whatsappEnabled: initialData.allow_whatsapp !== false,
+        }));
+      }
 
       // Populate spec rows from existing object
       const rows = Object.entries(initialData.specifications || {}).map(([key, value]) => ({ key, value }));
@@ -86,6 +99,7 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         warranty: "",
         code: "",
       });
+      setOrderSettings(DEFAULT_ORDER_SETTINGS);
       setImagePreviews([]);
       setImageLinksInput("");
       setSpecRows([{ key: "", value: "" }]);
@@ -191,6 +205,11 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         storage_options: formData.storage_options || [],
         storage_prices: formData.storage_prices || {},
         warranty: formData.warranty || "",
+        // Sync legacy allow_ flags with orderSettings
+        allow_cod: orderSettings.codEnabled,
+        allow_card: orderSettings.cardEnabled,
+        allow_whatsapp: orderSettings.whatsappEnabled,
+        orderSettings: orderSettings,
         updated_at: new Date().toISOString(),
       };
 
@@ -592,6 +611,14 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
               <Plus className="w-3.5 h-3.5" />
               Add Specification Row
             </button>
+          </Section>
+
+          {/* ── Order, Payment & Delivery Options ── */}
+          <Section icon={<ShoppingCart className="w-4 h-4" />} title="Order, Payment & Delivery Options">
+            <OrderOptionsSection
+              settings={orderSettings}
+              onChange={setOrderSettings}
+            />
           </Section>
 
           {/* ── Warranty ── */}

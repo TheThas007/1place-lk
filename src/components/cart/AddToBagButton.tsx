@@ -36,6 +36,9 @@ export default function AddToBagButton({ product, className = "", size = "md" }:
       quantity: 1,
       storage: product.storage_options?.[0],
       color: product.colors?.[0],
+      allow_cod: product.allow_cod,
+      allow_card: product.allow_card,
+      allow_whatsapp: product.allow_whatsapp,
     });
     setAdded(true);
     setTimeout(() => setAdded(false), 1800);

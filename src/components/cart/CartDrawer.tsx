@@ -286,7 +286,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 <div className="space-y-4 h-full flex flex-col">
                   {cart.length === 0 ? (
                     <div className="flex flex-col items-center justify-center my-auto text-center py-20">
-                      <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-5">
+                      <div className="w-20 h-20 rounded-3xl bg-white/5 border border-white/10 flex items-center justify-center mb-5 shadow-2xl">
                         <Package className="w-9 h-9 text-white/20" />
                       </div>
                       <h3 className="text-white font-semibold text-lg mb-2">Your bag is empty</h3>
@@ -296,7 +296,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       <Link
                         href="/products"
                         onClick={handleClose}
-                        className="px-6 py-3 bg-white text-black font-semibold text-sm rounded-2xl hover:bg-white/90 transition-all"
+                        className="px-6 py-3 bg-white text-black font-semibold text-sm rounded-2xl hover:bg-white/90 transition-all shadow-lg"
                       >
                         Start Shopping
                       </Link>
@@ -310,10 +310,10 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           initial={{ opacity: 0, y: 16 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: 60 }}
-                          className="flex gap-4 p-4 bg-white/[0.03] border border-white/[0.07] rounded-2xl"
+                          className="flex gap-4 p-4 bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/[0.1] hover:border-white/20 rounded-2xl transition-all shadow-lg"
                         >
                           {/* Image */}
-                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/5">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/5 border border-white/10">
                             <img
                               src={item.image}
                               alt={item.name}
@@ -336,15 +336,17 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             </p>
                           </div>
 
-                          {/* Controls */}
-                          <div className="flex flex-col items-end gap-2 shrink-0">
+                          {/* Controls & Remove option */}
+                          <div className="flex flex-col items-end justify-between shrink-0">
                             <button
                               onClick={() => removeFromCart(item.productId)}
-                              className="p-1.5 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 transition-all"
+                              className="p-1.5 rounded-lg text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all flex items-center gap-1 text-[11px] font-semibold"
+                              title="Remove Product"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
+                              <span>Remove</span>
                             </button>
-                            <div className="flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-1 py-1">
+                            <div className="flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-1 py-1 mt-2">
                               <button
                                 onClick={() => updateQuantity(item.productId, item.quantity - 1)}
                                 className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all"
@@ -370,64 +372,143 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               )}
 
               {/* STEP 2: CHECKOUT OPTIONS */}
-              {step === "checkout-options" && (
-                <div className="space-y-6 pt-2">
-                  <div className="p-5 rounded-2xl bg-white/[0.03] border border-white/[0.08] flex items-center justify-between">
-                    <div>
-                      <p className="text-xs text-white/40 uppercase tracking-widest font-semibold">Total Order Amount</p>
-                      <p className="text-2xl font-black text-white mt-1">{formatPrice(total)}</p>
+              {step === "checkout-options" && (() => {
+                // Read order settings from first cart item (or fall back to legacy allow_ flags)
+                const firstItemSettings = (cart[0] as any)?.orderSettings;
+                const isCodAllowed = firstItemSettings
+                  ? cart.every(item => (item as any)?.orderSettings?.codEnabled !== false)
+                  : cart.every(item => item.allow_cod !== false);
+                const isCardAllowed = firstItemSettings
+                  ? cart.every(item => (item as any)?.orderSettings?.cardEnabled !== false)
+                  : cart.every(item => item.allow_card !== false);
+                const isWhatsappAllowed = firstItemSettings
+                  ? cart.every(item => (item as any)?.orderSettings?.whatsappEnabled !== false)
+                  : cart.every(item => item.allow_whatsapp !== false);
+
+                // Compute delivery info from first item's settings
+                const os = firstItemSettings;
+                const isFreeDelivery = !os || os.freeDeliveryEnabled !== false;
+                const deliveryFee = os && !os.freeDeliveryEnabled ? (os.flatDeliveryFee || 0) : 0;
+                const codFee = os && isCodAllowed ? (os.codFee || 0) : 0;
+                const minDays = os ? (os.estimatedDeliveryMinDays || 3) : 3;
+                const maxDays = os ? (os.estimatedDeliveryMaxDays || 7) : 7;
+                const grandTotal = total + deliveryFee;
+
+                return (
+                  <div className="space-y-6 pt-2">
+                    <div className="p-5 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/15 backdrop-blur-xl shadow-xl flex flex-col gap-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">Order Summary</p>
+                          <p className="text-3xl font-black text-white tracking-tight mt-1">{formatPrice(grandTotal)}</p>
+                          {deliveryFee > 0 && (
+                            <p className="text-[10px] text-white/30 mt-0.5">
+                              Subtotal {formatPrice(total)} + Delivery {formatPrice(deliveryFee)}
+                            </p>
+                          )}
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 shadow-lg">
+                          <ShoppingBag className="w-6 h-6 text-white" />
+                        </div>
+                      </div>
+
+                      <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5 text-xs">
+                        <div className="flex items-center justify-between font-semibold">
+                          <span className={`flex items-center gap-1.5 ${isFreeDelivery ? "text-emerald-400" : "text-white/60"}`}>
+                            <CheckCircle2 className="w-3.5 h-3.5" /> Delivery Charge
+                          </span>
+                          {isFreeDelivery ? (
+                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-black text-[10px]">FREE DELIVERY</span>
+                          ) : (
+                            <span className="text-white font-bold">{formatPrice(deliveryFee)}</span>
+                          )}
+                        </div>
+                        <div className="flex items-center justify-between text-amber-300 font-medium">
+                          <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> Est. Delivery</span>
+                          <span className="font-bold text-white">{minDays} – {maxDays} Working Days</span>
+                        </div>
+                        {codFee > 0 && (
+                          <div className="flex items-center justify-between text-blue-300 font-medium">
+                            <span className="flex items-center gap-1.5">💵 COD Fee</span>
+                            <span className="font-bold text-white">{formatPrice(codFee)}</span>
+                          </div>
+                        )}
+                      </div>
                     </div>
-                    <ShoppingBag className="w-8 h-8 text-white/10 shrink-0" />
+
+                    <div className="space-y-3.5">
+                      {/* Cash on Delivery Option */}
+                      {isCodAllowed && (
+                        <button
+                          onClick={() => setStep("cod-form")}
+                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-900/60 to-blue-950/20 border border-blue-500/30 hover:border-blue-400/80 hover:bg-blue-500/10 transition-all duration-300 group text-left shadow-lg shadow-blue-500/5 hover:shadow-blue-500/20"
+                        >
+                          <div className="absolute top-0 right-0 px-3 py-1 bg-blue-500/20 border-b border-l border-blue-500/30 text-blue-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
+                            Pay on Delivery
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0 group-hover:scale-110 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 shadow-md">
+                              <Truck className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-base group-hover:text-blue-300 transition-colors">Cash on Delivery (COD)</p>
+                              <p className="text-xs text-white/50 mt-0.5">Pay with cash when your parcel arrives</p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* Card Payment Option */}
+                      {isCardAllowed && (
+                        <button
+                          onClick={() => setStep("card-form")}
+                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-purple-950/20 border border-purple-500/30 hover:border-purple-400/80 hover:bg-purple-500/10 transition-all duration-300 group text-left shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20"
+                        >
+                          <div className="absolute top-0 right-0 px-3 py-1 bg-purple-500/20 border-b border-l border-purple-500/30 text-purple-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
+                            Instant & Secure
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300 shadow-md">
+                              <CreditCard className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">Credit / Debit Card</p>
+                              <p className="text-xs text-white/50 mt-0.5">Visa, MasterCard, Amex encrypted payment</p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+
+                      {/* WhatsApp Option */}
+                      {isWhatsappAllowed && (
+                        <button
+                          onClick={handleWhatsAppCheckout}
+                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-emerald-950/20 border border-emerald-500/30 hover:border-emerald-400/80 hover:bg-emerald-500/10 transition-all duration-300 group text-left shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/20"
+                        >
+                          <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500/20 border-b border-l border-emerald-500/30 text-emerald-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
+                            Direct Chat
+                          </div>
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-md">
+                              <MessageCircle className="w-6 h-6" />
+                            </div>
+                            <div>
+                              <p className="font-bold text-white text-base group-hover:text-emerald-300 transition-colors">Order via WhatsApp</p>
+                              <p className="text-xs text-white/50 mt-0.5">Instant live chat with store representative</p>
+                            </div>
+                          </div>
+                        </button>
+                      )}
+
+                      {!isCodAllowed && (
+                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
+                          <span>ℹ️ Cash on Delivery is disabled for high-value items in your bag. Please select Card Payment or WhatsApp Order.</span>
+                        </div>
+                      )}
+                    </div>
                   </div>
-
-                  <div className="space-y-3">
-                    <button
-                      onClick={handleWhatsAppCheckout}
-                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 hover:border-emerald-500/50 hover:bg-emerald-500/20 transition-all duration-300 group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-emerald-500/20">
-                          <MessageCircle className="w-6 h-6" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-bold text-white">Order via WhatsApp</p>
-                          <p className="text-xs text-white/40 mt-0.5">Quick confirmation & chat</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setStep("cod-form")}
-                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-blue-500/10 border border-blue-500/20 hover:border-blue-500/50 hover:bg-blue-500/20 transition-all duration-300 group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-blue-500/20">
-                          <Truck className="w-6 h-6" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-bold text-white">Cash on Delivery (COD)</p>
-                          <p className="text-xs text-white/40 mt-0.5">Pay when you receive items</p>
-                        </div>
-                      </div>
-                    </button>
-
-                    <button
-                      onClick={() => setStep("card-form")}
-                      className="w-full flex items-center justify-between p-5 rounded-2xl bg-purple-500/10 border border-purple-500/20 hover:border-purple-500/50 hover:bg-purple-500/20 transition-all duration-300 group"
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-500 flex items-center justify-center text-white shrink-0 shadow-lg shadow-purple-500/20">
-                          <CreditCard className="w-6 h-6" />
-                        </div>
-                        <div className="text-left">
-                          <p className="font-bold text-white">Card Payment</p>
-                          <p className="text-xs text-white/40 mt-0.5">Instant online payment</p>
-                        </div>
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* STEP 3: COD FORM */}
               {step === "cod-form" && (

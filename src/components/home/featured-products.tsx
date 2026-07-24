@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ShoppingCart } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { getProducts } from "@/lib/firestore-client";
+import { products as fallbackProducts } from "@/lib/data";
 import * as motion from "framer-motion/client";
 
 const containerVariants = {
@@ -22,8 +23,21 @@ const cardVariants = {
 };
 
 export default async function FeaturedProducts() {
-  const allProducts = await getProducts();
-  const featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
+  let allProducts: typeof fallbackProducts = [];
+  try {
+    allProducts = await getProducts();
+  } catch (err) {
+    console.error("Failed to fetch products from Firestore:", err);
+  }
+
+  if (!allProducts || allProducts.length === 0) {
+    allProducts = fallbackProducts;
+  }
+
+  let featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
+  if (featuredProducts.length === 0) {
+    featuredProducts = allProducts.slice(0, 4);
+  }
 
   return (
     <section className="py-20 lg:py-32 bg-background relative overflow-hidden">

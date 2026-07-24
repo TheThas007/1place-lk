@@ -1,0 +1,61 @@
+rules_version = '2';
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ── Helper functions ─────────────────────────────────────────────
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isImage() {
+      return request.resource.contentType.matches('image/.*');
+    }
+
+    function isUnder10MB() {
+      return request.resource.size < 10 * 1024 * 1024;
+    }
+
+    // ── Product Images ───────────────────────────────────────────────
+    // Admin uploads product images. Anyone can read.
+    match /products/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Gallery Images ───────────────────────────────────────────────
+    match /gallery/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Category Images ──────────────────────────────────────────────
+    match /categories/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Hero Slide Images ────────────────────────────────────────────
+    match /hero_slides/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Banner Images ────────────────────────────────────────────────
+    match /banners/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Review Photos ────────────────────────────────────────────────
+    match /reviews/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated() && isImage() && isUnder10MB();
+    }
+
+    // ── Deny everything else ─────────────────────────────────────────
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

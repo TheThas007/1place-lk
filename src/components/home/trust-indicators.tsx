@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useCallback } from "react";
 import {
   motion,
   useMotionValue,
   useSpring,
-  useTransform,
   useInView,
   Variants,
   AnimatePresence,
@@ -59,7 +58,7 @@ const containerVar: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.12, delayChildren: 0.2 },
+    transition: { staggerChildren: 0.15, delayChildren: 0.2 },
   },
 };
 
@@ -77,7 +76,7 @@ const cardVar: Variants = {
 function FloatingParticle({ delay, x, size }: { delay: number; x: string; size: number }) {
   return (
     <motion.div
-      className="absolute rounded-full bg-[#88E788]/10"
+      className="absolute rounded-full bg-gray-300/30"
       style={{
         width: size,
         height: size,
@@ -99,7 +98,7 @@ function FloatingParticle({ delay, x, size }: { delay: number; x: string; size: 
   );
 }
 
-/* ─── Premium 3D Tilt Card ─── */
+/* ─── Premium 3D Tilt Card (White Theme) ─── */
 function FeatureCard({
   feature,
   index,
@@ -155,68 +154,52 @@ function FeatureCard({
         whileHover={{ y: -12, scale: 1.02 }}
         transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         className="group relative h-full flex flex-col items-center text-center p-8 lg:p-10 rounded-[24px] cursor-pointer overflow-hidden
-          bg-white/70 backdrop-blur-[24px]
-          border border-white/80
-          shadow-[0_4px_24px_rgba(0,0,0,0.03),0_1px_2px_rgba(0,0,0,0.04),inset_0_1px_0_rgba(255,255,255,0.8)]
-          hover:shadow-[0_20px_60px_rgba(136,231,136,0.12),0_8px_24px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.9)]"
+          bg-white
+          border border-black
+          shadow-[0_4px_20px_rgba(0,0,0,0.06)]
+          hover:border-black hover:shadow-[0_16px_40px_rgba(0,0,0,0.15)]
+          transition-all duration-500"
       >
         {/* ── Top Accent Line (expands on hover) ── */}
         <div className="absolute top-0 left-0 right-0 h-[2px] overflow-hidden rounded-t-[24px]">
           <motion.div
-            className="h-full bg-gradient-to-r from-[#88E788]/60 via-[#88E788] to-[#88E788]/60"
+            className="h-full bg-gradient-to-r from-gray-300 via-gray-900 to-gray-300"
             initial={{ scaleX: 0, originX: 0 }}
             animate={isHovered ? { scaleX: 1 } : { scaleX: 0 }}
             transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
           />
         </div>
 
-        {/* ── Premium inner highlight ── */}
-        <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/40 via-transparent to-transparent pointer-events-none" />
-
-        {/* ── Shimmer sweep (every ~8s) ── */}
+        {/* ── Shimmer sweep ── */}
         <div className="absolute inset-0 rounded-[24px] overflow-hidden pointer-events-none">
           <motion.div
-            className="absolute inset-y-0 w-[60%] bg-gradient-to-r from-transparent via-white/50 to-transparent skew-x-[-15deg]"
+            className="absolute inset-y-0 w-[60%] bg-gradient-to-r from-transparent via-gray-100/70 to-transparent skew-x-[-15deg]"
             animate={{ x: ["-100%", "300%"] }}
             transition={{
-              duration: 1.5,
+              duration: 1.8,
               repeat: Infinity,
-              repeatDelay: 8,
+              repeatDelay: 7,
               ease: "easeInOut",
-              delay: index * 2,
+              delay: index * 1.5,
             }}
           />
         </div>
 
-        {/* ── Green glow underneath on hover ── */}
-        <motion.div
-          className="absolute -bottom-6 left-1/2 -translate-x-1/2 w-[80%] h-24 rounded-full pointer-events-none"
-          style={{ background: "radial-gradient(ellipse, rgba(136,231,136,0.25) 0%, transparent 70%)" }}
-          animate={isHovered ? { opacity: 1, scale: 1 } : { opacity: 0, scale: 0.8 }}
-          transition={{ duration: 0.4 }}
-        />
-
         {/* ── Icon Container ── */}
         <motion.div
           className="relative w-16 h-16 rounded-full flex items-center justify-center mb-7 border transition-all duration-500
-            bg-white border-gray-100 shadow-[0_2px_12px_rgba(0,0,0,0.04)]
-            group-hover:bg-[#88E788]/10 group-hover:border-[#88E788]/30 group-hover:shadow-[0_4px_20px_rgba(136,231,136,0.2)]"
+            bg-gray-50 border-gray-200 shadow-sm
+            group-hover:bg-gray-900 group-hover:border-gray-900 group-hover:shadow-md"
           animate={isHovered ? { rotate: 6, scale: 1.1 } : { rotate: 0, scale: 1 }}
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
-          {/* Icon glow */}
-          <motion.div
-            className="absolute inset-0 rounded-full bg-[#88E788]/20 blur-lg pointer-events-none"
-            animate={isHovered ? { opacity: 1, scale: 1.4 } : { opacity: 0, scale: 1 }}
-            transition={{ duration: 0.4 }}
-          />
-          <feature.icon className="w-7 h-7 text-[#111827] relative z-10 transition-colors duration-500 group-hover:text-[#111827]" />
+          <feature.icon className="w-7 h-7 text-gray-900 relative z-10 transition-colors duration-500 group-hover:text-white" />
         </motion.div>
 
         {/* ── Animated Divider Line ── */}
-        <div className="w-10 h-[2px] bg-gray-200/80 mb-6 rounded-full overflow-hidden">
+        <div className="w-10 h-[2px] bg-gray-200 mb-6 rounded-full overflow-hidden">
           <motion.div
-            className="h-full bg-[#88E788]"
+            className="h-full bg-gray-900"
             initial={{ width: 0 }}
             whileInView={{ width: "100%" }}
             viewport={{ once: true }}
@@ -229,15 +212,15 @@ function FeatureCard({
         </div>
 
         {/* ── Typography ── */}
-        <h3 className="font-bold text-[1.15rem] mb-3 text-[#111827] tracking-tight leading-tight transition-colors duration-400 group-hover:text-[#2d8a2d]">
+        <h3 className="font-bold text-[1.2rem] mb-3 text-gray-900 tracking-tight leading-tight transition-colors duration-300">
           {feature.title}
         </h3>
-        <p className="text-sm text-gray-500 leading-relaxed font-medium mb-6 group-hover:text-gray-600 transition-colors duration-300">
+        <p className="text-sm text-gray-600 leading-relaxed font-normal mb-6 group-hover:text-gray-900 transition-colors duration-300">
           {feature.description}
         </p>
 
         {/* ── CTA Arrow ── */}
-        <div className="mt-auto flex items-center gap-1.5 text-xs font-semibold text-gray-400 group-hover:text-[#88E788] transition-colors duration-300">
+        <div className="mt-auto flex items-center gap-2 text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors duration-300">
           <span>Learn more</span>
           <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 group-hover:translate-x-1" />
         </div>
@@ -255,66 +238,19 @@ export default function TrustIndicators() {
   return (
     <section
       ref={sectionRef}
-      className="relative py-28 lg:py-36 overflow-hidden bg-white"
+      className="relative py-28 lg:py-36 overflow-hidden bg-white text-gray-900"
     >
       {/* ══════════════════════════════════════════════════
           BACKGROUND LAYERS
       ══════════════════════════════════════════════════ */}
       <div className="absolute inset-0 pointer-events-none">
-        {/* Mesh gradient background */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(136,231,136,0.06),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_60%_50%_at_80%_100%,rgba(136,231,136,0.04),transparent_60%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_70%_60%_at_20%_80%,rgba(136,231,136,0.03),transparent_50%)]" />
-
-        {/* Subtle noise texture */}
-        <div
-          className="absolute inset-0 opacity-[0.018] mix-blend-multiply"
-          style={{
-            backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
-          }}
-        />
-
-        {/* Floating radial green glows that slowly drift */}
-        <motion.div
-          className="absolute w-[500px] h-[500px] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(136,231,136,0.06) 0%, transparent 70%)",
-            top: "10%",
-            left: "20%",
-          }}
-          animate={{
-            x: [0, 60, 0],
-            y: [0, -40, 0],
-          }}
-          transition={{ duration: 20, repeat: Infinity, ease: "easeInOut" }}
-        />
-        <motion.div
-          className="absolute w-[400px] h-[400px] rounded-full"
-          style={{
-            background: "radial-gradient(circle, rgba(136,231,136,0.05) 0%, transparent 70%)",
-            bottom: "5%",
-            right: "10%",
-          }}
-          animate={{
-            x: [0, -50, 0],
-            y: [0, 30, 0],
-          }}
-          transition={{ duration: 25, repeat: Infinity, ease: "easeInOut" }}
-        />
-
-        {/* Radial spotlight behind cards area */}
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[500px] bg-[radial-gradient(ellipse,rgba(136,231,136,0.035)_0%,transparent_60%)] pointer-events-none" />
-
-        {/* Floating particles */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-20%,rgba(0,0,0,0.02),transparent_60%)]" />
         <FloatingParticle delay={0} x="10%" size={4} />
         <FloatingParticle delay={3} x="25%" size={3} />
         <FloatingParticle delay={6} x="45%" size={5} />
         <FloatingParticle delay={2} x="65%" size={3} />
         <FloatingParticle delay={5} x="80%" size={4} />
         <FloatingParticle delay={8} x="90%" size={3} />
-
-        {/* Soft vignette */}
-        <div className="absolute inset-0 shadow-[inset_0_0_120px_rgba(0,0,0,0.015)]" />
       </div>
 
       {/* ══════════════════════════════════════════════════
@@ -328,14 +264,14 @@ export default function TrustIndicators() {
           animate={isInView ? "show" : "hidden"}
           className="text-center mb-16 lg:mb-20"
         >
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#88E788]/8 border border-[#88E788]/15 text-xs font-semibold text-[#2d8a2d] tracking-wide uppercase mb-5">
-            <span className="w-1.5 h-1.5 rounded-full bg-[#88E788] animate-pulse" />
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-900 tracking-wide uppercase mb-5 shadow-sm">
+            <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Why Choose Us
           </div>
-          <h2 className="text-3xl lg:text-[2.75rem] font-bold text-[#111827] tracking-tight leading-tight mb-4">
+          <h2 className="text-3xl lg:text-[2.75rem] font-bold text-gray-900 tracking-tight leading-tight mb-4">
             Services You Can Trust
           </h2>
-          <p className="text-gray-500 text-base lg:text-lg max-w-xl mx-auto leading-relaxed">
+          <p className="text-gray-600 text-base lg:text-lg max-w-xl mx-auto leading-relaxed font-normal">
             Premium quality, professional service, and total peace of mind — every time.
           </p>
         </motion.div>
@@ -376,7 +312,7 @@ export default function TrustIndicators() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setSelectedFeature(null)}
-              className="absolute inset-0 bg-black/50 backdrop-blur-md"
+              className="absolute inset-0 bg-black/40 backdrop-blur-sm"
             />
 
             {/* Modal Content */}
@@ -385,35 +321,31 @@ export default function TrustIndicators() {
               animate={{ scale: 1, opacity: 1, y: 0 }}
               exit={{ scale: 0.92, opacity: 0, y: 30 }}
               transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className="relative w-full max-w-md bg-white rounded-[28px] p-8 lg:p-10 shadow-[0_25px_80px_rgba(0,0,0,0.15)] overflow-hidden"
+              className="relative w-full max-w-md bg-white border border-gray-200 rounded-[28px] p-8 lg:p-10 shadow-2xl overflow-hidden text-gray-900"
             >
-              {/* Decorative Background Blob */}
-              <div className="absolute top-0 right-0 w-72 h-72 bg-[#88E788]/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2 pointer-events-none" />
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-[#88E788]/4 rounded-full blur-3xl translate-y-1/2 -translate-x-1/3 pointer-events-none" />
-
               <button
                 onClick={() => setSelectedFeature(null)}
-                className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition-all z-10"
+                className="absolute top-5 right-5 w-9 h-9 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-900 transition-all z-10"
               >
                 <X className="w-4 h-4" />
               </button>
 
               <div className="relative z-10">
-                <div className="w-16 h-16 rounded-full bg-[#88E788]/10 border border-[#88E788]/20 shadow-[0_4px_20px_rgba(136,231,136,0.15)] flex items-center justify-center mb-6">
-                  <selectedFeature.icon className="w-7 h-7 text-[#2d8a2d]" />
+                <div className="w-16 h-16 rounded-full bg-gray-100 border border-gray-200 flex items-center justify-center mb-6">
+                  <selectedFeature.icon className="w-7 h-7 text-gray-900" />
                 </div>
 
-                <h3 className="text-2xl font-black text-[#111827] tracking-tight mb-4 leading-tight">
+                <h3 className="text-2xl font-black text-gray-900 tracking-tight mb-4 leading-tight">
                   {selectedFeature.title}
                 </h3>
 
-                <p className="text-gray-600 leading-relaxed text-[15px]">
+                <p className="text-gray-600 leading-relaxed text-[15px] font-normal">
                   {selectedFeature.details}
                 </p>
 
                 <button
                   onClick={() => setSelectedFeature(null)}
-                  className="mt-8 w-full py-4 rounded-2xl bg-[#111827] text-white font-bold hover:bg-black transition-colors shadow-lg shadow-black/10 active:scale-[0.98]"
+                  className="mt-8 w-full py-4 rounded-2xl bg-gray-900 text-white font-bold hover:bg-black transition-colors shadow-md active:scale-[0.98]"
                 >
                   Got it
                 </button>

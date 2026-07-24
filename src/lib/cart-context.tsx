@@ -20,6 +20,9 @@ export interface CartItem {
   quantity: number;
   color?: string;
   storage?: string;
+  allow_cod?: boolean;
+  allow_card?: boolean;
+  allow_whatsapp?: boolean;
 }
 
 interface CartContextType {

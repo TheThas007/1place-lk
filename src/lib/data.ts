@@ -3,8 +3,8 @@ import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings 
 // ===== Site Settings =====
 export const siteSettings: SiteSettings = {
   store_name: "STREET MOBILE",
-  phone: "+94 77 414 1118",
-  whatsapp: "94774141118",
+  phone: "024 222 8118 / 075 454 1118",
+  whatsapp: "94754541118",
   address: "163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka",
   email: "streetmobilevavuniya@gmail.com",
   google_maps_link: "https://maps.app.goo.gl/dvxBpsvxR86bGqar9",

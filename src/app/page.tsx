@@ -6,17 +6,18 @@ import ReviewsSection from "@/components/home/reviews-section";
 import GallerySection from "@/components/home/gallery-section";
 import StoreLocation from "@/components/home/store-location";
 
-import { getCategories, getReviews, getGalleryImages } from "@/lib/firestore-client";
+import { getCategories, getReviews, getGalleryImages, getUiSettings } from "@/lib/firestore-client";
 import { GalleryImage } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export default async function HomePage() {
-  const [categories, reviews, galleryImages] = await Promise.all([
+  const [categories, reviews, galleryImages, uiSettings] = await Promise.all([
     getCategories(),
     getReviews(),
     getGalleryImages(),
+    getUiSettings(),
   ]);
 
   const jsonLd = {
@@ -68,7 +69,7 @@ export default async function HomePage() {
       <TrustIndicators />
       <FeaturedProducts />
       <CategoriesSection categories={categories} />
-      <GallerySection images={galleryImages as GalleryImage[]} />
+      <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
       <ReviewsSection reviews={reviews} />
       <StoreLocation />
     </>

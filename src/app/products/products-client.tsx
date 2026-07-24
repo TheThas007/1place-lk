@@ -3,7 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import type { Variants } from "framer-motion";
 import Link from "next/link";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, useInView, useMotionValue, useSpring } from "framer-motion";
 import {
   Search,
   SlidersHorizontal,

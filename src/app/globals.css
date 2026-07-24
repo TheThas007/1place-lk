@@ -2,6 +2,27 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* Hide public site layout elements when in admin panel */
+body:has([data-admin-root]) header,
+body:has([data-admin-root]) footer,
+body:has([data-admin-root]) nav.safe-bottom,
+body:has([data-admin-root]) .whatsapp-fab {
+  display: none !important;
+}
+
+main:has([data-admin-root]),
+body:has([data-admin-root]) main {
+  padding-top: 0 !important;
+  margin-top: 0 !important;
+  background-color: #000000 !important;
+}
+
+/* Scroll lock — safe CSS-only approach (avoids React 19 Fiber headCacheNode error) */
+html.menu-open,
+html.lightbox-open {
+  overflow: hidden !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

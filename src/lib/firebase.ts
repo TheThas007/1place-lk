@@ -1,5 +1,5 @@
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getFirestore } from "firebase/firestore";
+import { initializeFirestore, getFirestore, setLogLevel } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
@@ -16,8 +16,13 @@ const firebaseConfig = {
 // Initialize Firebase only if it hasn't been initialized already
 const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 
-// Export Firestore, Storage and Auth instances
-export const db = getFirestore(app);
+// Suppress verbose SDK connection warning logs
+setLogLevel("silent");
+
+// Export Firestore with robust fallback transport
+export const db = initializeFirestore(app, {
+  experimentalAutoDetectLongPolling: true,
+});
 export const storage = getStorage(app);
 export const auth = getAuth(app);
 

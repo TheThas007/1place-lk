@@ -43,8 +43,14 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
+    if (isMobileMenuOpen) {
+      document.documentElement.classList.add("menu-open");
+    } else {
+      document.documentElement.classList.remove("menu-open");
+    }
+    return () => {
+      document.documentElement.classList.remove("menu-open");
+    };
   }, [isMobileMenuOpen]);
 
   const initials = user?.displayName
@@ -58,10 +64,10 @@ export default function Header() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.1 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-shadow duration-500",
+          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-all duration-500",
           isScrolled
-            ? "border-white/10 shadow-[0_4px_40px_rgba(0,0,0,0.6)]"
-            : "border-white/[0.06]"
+            ? "border-white/30 shadow-[0_4px_40px_rgba(0,0,0,0.8)]"
+            : "border-white/20"
         )}
       >
         {/* Shimmer accent line */}
@@ -163,12 +169,16 @@ export default function Header() {
                 aria-label="Open cart"
               >
                 <ShoppingBag className="w-5 h-5" />
-                {itemCount > 0 && (
+                {itemCount === 0 ? (
+                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-gray-700/90 text-white text-[10px] font-black rounded-full leading-none animate-pulse border border-white/30">
+                    0
+                  </span>
+                ) : (
                   <motion.span
                     key={itemCount}
-                    initial={{ scale: 0 }}
+                    initial={{ scale: 0.5 }}
                     animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-white text-black text-[10px] font-black rounded-full leading-none"
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full leading-none shadow-md shadow-red-600/50"
                   >
                     {itemCount > 99 ? "99+" : itemCount}
                   </motion.span>
@@ -301,7 +311,11 @@ export default function Header() {
                     className="flex items-center justify-between w-full px-4 py-3.5 rounded-xl text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.04] transition-all"
                   >
                     <span className="flex items-center gap-3"><ShoppingBag className="w-4 h-4" />My Bag</span>
-                    {itemCount > 0 && <span className="px-2 py-0.5 bg-white text-black text-xs font-black rounded-full">{itemCount}</span>}
+                    {itemCount === 0 ? (
+                      <span className="px-2 py-0.5 bg-gray-700/90 text-white text-xs font-black rounded-full animate-pulse border border-white/30">0</span>
+                    ) : (
+                      <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-black rounded-full">{itemCount}</span>
+                    )}
                   </button>
                   <button
                     onClick={() => { setIsMobileMenuOpen(false); user ? setUserMenuOpen(true) : setAuthOpen(true); }}

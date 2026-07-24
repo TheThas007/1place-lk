@@ -1,6 +1,7 @@
 import { db } from "./firebase";
-import { collection, getDocs, doc, getDoc, query, where, orderBy, limit, addDoc, updateDoc, deleteDoc } from "firebase/firestore";
-import { Product, Category, Review, Banner, SiteSettings, GalleryImage, HeroSlide, ProductBanner } from "./types";
+import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
+import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings } from "./types";
+import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, siteSettings } from "./data";
 
 export async function getProductBanners(): Promise<ProductBanner[]> {
   try {
@@ -9,34 +10,56 @@ export async function getProductBanners(): Promise<ProductBanner[]> {
     const banners = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as ProductBanner));
     return banners.filter(b => b.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   } catch (e) {
-    console.error("Error fetching product banners:", e);
+    console.warn("Offline/Error fetching product banners:", e);
     return [];
   }
 }
 
-
 export async function getProducts(): Promise<Product[]> {
-  const q = query(collection(db, "products"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+  try {
+    const q = query(collection(db, "products"));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Product));
+    if (docs.length > 0) return docs;
+  } catch (e) {
+    console.warn("Offline/Error fetching products, returning fallbacks:", e);
+  }
+  return fallbackProducts;
 }
 
 export async function getCategories(): Promise<Category[]> {
-  const q = query(collection(db, "categories"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+  try {
+    const q = query(collection(db, "categories"));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
+    if (docs.length > 0) return docs;
+  } catch (e) {
+    console.warn("Offline/Error fetching categories, returning fallbacks:", e);
+  }
+  return fallbackCategories;
 }
 
 export async function getReviews(): Promise<Review[]> {
-  const q = query(collection(db, "reviews"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Review));
+  try {
+    const q = query(collection(db, "reviews"));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Review));
+    if (docs.length > 0) return docs;
+  } catch (e) {
+    console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
+  }
+  return fallbackReviews;
 }
 
 export async function getBanners(): Promise<Banner[]> {
-  const q = query(collection(db, "banners"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Banner));
+  try {
+    const q = query(collection(db, "banners"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Banner));
+  } catch (e) {
+    console.warn("Offline/Error fetching banners:", e);
+    return [];
+  }
 }
 
 export async function getHeroSlides(): Promise<HeroSlide[]> {
@@ -46,30 +69,55 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
     const slides = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as HeroSlide));
     return slides.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   } catch (e) {
-    console.error("Error fetching hero slides:", e);
+    console.warn("Offline/Error fetching hero slides:", e);
     return [];
   }
 }
 
 export async function getGalleryImages(): Promise<any[]> {
-  const q = query(collection(db, "gallery"));
-  const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  try {
+    const q = query(collection(db, "gallery"));
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
+  } catch (e) {
+    console.warn("Offline/Error fetching gallery images:", e);
+    return [];
+  }
 }
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
-  const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data() as Product;
+  try {
+    const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+  } catch (e) {
+    console.warn("Offline/Error fetching product by slug:", e);
+  }
+  return fallbackProducts.find(p => p.slug === slug) || null;
 }
 
 export async function getCategoryBySlug(slug: string): Promise<Category | null> {
-  const q = query(collection(db, "categories"), where("slug", "==", slug), limit(1));
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data() as Category;
+  try {
+    const q = query(collection(db, "categories"), where("slug", "==", slug), limit(1));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) return snapshot.docs[0].data() as Category;
+  } catch (e) {
+    console.warn("Offline/Error fetching category by slug:", e);
+  }
+  return fallbackCategories.find(c => c.slug === slug) || null;
 }
 
-// We haven't migrated siteSettings to Firestore yet, so we will still export the local one for now.
 export { siteSettings } from "./data";
+
+export async function getUiSettings(): Promise<UiSettings> {
+  try {
+    const docRef = doc(db, "settings", "ui");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return docSnap.data() as UiSettings;
+    }
+  } catch (e) {
+    console.warn("Offline/Error fetching UI settings:", e);
+  }
+  return {};
+}

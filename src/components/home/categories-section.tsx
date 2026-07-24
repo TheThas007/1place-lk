@@ -17,11 +17,9 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
     >
       <Link
         href={`/categories/${cat.slug}`}
-        className="group flex flex-col items-center justify-center gap-2 p-1 transition-all duration-300"
+        className="group relative flex flex-col items-center justify-center p-5 sm:p-6 rounded-2xl border border-neutral-200 bg-white shadow-sm hover:border-black hover:shadow-md hover:-translate-y-1 transition-all duration-300 gap-3 text-center h-full"
       >
-        {/* Perfect thin circular border outline, white background */}
-        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-full border border-neutral-200/80 bg-white flex items-center justify-center
-                        group-hover:border-neutral-400 group-hover:scale-105 transition-all duration-500 overflow-hidden p-5 sm:p-6">
+        <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center">
           {(() => {
             const hasIconImg = cat.icon && (cat.icon.startsWith("http") || cat.icon.startsWith("data:"));
             const hasImageUrl = cat.image_url && cat.image_url.startsWith("http");
@@ -32,8 +30,7 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
                 <img
                   src={imgSrc}
                   alt={`${cat.name} logo`}
-                  className="w-10 h-10 sm:w-12 sm:h-12 object-contain opacity-90 group-hover:opacity-100
-                             group-hover:scale-115 transition-all duration-300"
+                  className="w-full h-full object-contain opacity-90 group-hover:opacity-100 group-hover:scale-105 transition-all duration-300"
                   onError={(e) => {
                     const img = e.currentTarget as HTMLImageElement;
                     img.style.display = "none";
@@ -45,23 +42,20 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
             }
 
             return (
-              <span className="text-2xl filter drop-shadow-sm group-hover:scale-115 transition-all duration-300">
+              <span className="text-3xl filter drop-shadow-sm group-hover:scale-110 transition-all duration-300">
                 {cat.icon || "📱"}
               </span>
             );
           })()}
           <span
-            className="w-9 h-9 rounded-full bg-neutral-100 text-neutral-800 font-bold
-                       text-xs items-center justify-center hidden"
+            className="w-10 h-10 rounded-xl bg-neutral-100 text-neutral-800 font-bold text-xs items-center justify-center hidden"
             aria-hidden="true"
           >
             {cat.name.slice(0, 2).toUpperCase()}
           </span>
         </div>
 
-        <span className="text-xs sm:text-sm font-semibold text-muted-foreground
-                         group-hover:text-foreground transition-colors duration-300
-                         text-center leading-tight">
+        <span className="text-xs sm:text-sm font-semibold text-neutral-800 group-hover:text-black transition-colors duration-300 leading-tight">
           {cat.name}
         </span>
       </Link>

@@ -33,16 +33,16 @@ export default function Footer() {
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-12">
           {/* Brand */}
           <div className="col-span-2 lg:col-span-2">
-            <Link href="/" className="inline-block mb-6 group cursor-pointer">
-              <div className="relative w-64 h-16 lg:w-80 lg:h-20 flex items-center justify-start transition-transform group-hover:scale-105">
+            <Link href="/" className="inline-block mb-8 group cursor-pointer w-full">
+              <div className="relative w-full max-w-[550px] h-32 sm:h-40 lg:h-48 flex items-center justify-start transition-transform duration-300 group-hover:scale-[1.02]">
                 {/* Fallback text if image fails to load */}
-                <span className="font-bold text-xl tracking-tight absolute z-0 hidden" id="logo-fallback-footer">
+                <span className="font-extrabold text-3xl lg:text-4xl tracking-tight absolute z-0 hidden" id="logo-fallback-footer">
                   STREET MOBILE
                 </span>
                 <img 
                   src="/logo.png" 
                   alt="STREET MOBILE Logo" 
-                  className="absolute inset-0 w-full h-full object-contain object-left z-10 brightness-0 invert"
+                  className="w-full h-full object-contain object-left z-10 brightness-0 invert"
                 />
               </div>
             </Link>
