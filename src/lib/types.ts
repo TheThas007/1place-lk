@@ -160,6 +160,7 @@ export interface Category {
   image_url: string;
   sort_order: number;
   product_count?: number;
+  description?: string;
   group?: "phones" | "accessories" | "other";
 }
 

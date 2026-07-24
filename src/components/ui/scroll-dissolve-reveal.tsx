@@ -257,7 +257,7 @@ const Scene = ({ images, scrollYProgress }: SceneProps) => {
       uTexture: { value: textures[0] },
       uResolution: { value: new THREE.Vector2(size.width, size.height) },
       uImageResolution: {
-        value: new THREE.Vector2(textures[0].image.width, textures[0].image.height),
+        value: new THREE.Vector2((textures[0] as any)?.image?.width || 1, (textures[0] as any)?.image?.height || 1),
       },
       uDissolve: { value: 0.0 },
       uCenter: { value: new THREE.Vector2(0.5, 0.5) },
@@ -275,8 +275,8 @@ const Scene = ({ images, scrollYProgress }: SceneProps) => {
       uResolution: { value: new THREE.Vector2(size.width, size.height) },
       uImageResolution: {
         value: new THREE.Vector2(
-          (textures[1] || textures[0]).image.width,
-          (textures[1] || textures[0]).image.height
+          ((textures[1] || textures[0]) as any)?.image?.width || 1,
+          ((textures[1] || textures[0]) as any)?.image?.height || 1
         ),
       },
       uDissolve: { value: 0.0 },
@@ -300,13 +300,13 @@ const Scene = ({ images, scrollYProgress }: SceneProps) => {
     const localProgress = scaledProgress - currentIndex;
 
     if (material1Ref.current && material2Ref.current) {
-      const tex1 = textures[currentIndex];
-      const tex2 = textures[currentIndex + 1] || tex1;
+      const tex1 = textures[currentIndex] as any;
+      const tex2 = (textures[currentIndex + 1] || tex1) as any;
 
       material1Ref.current.uniforms.uTime.value = timeInSeconds;
       material1Ref.current.uniforms.uResolution.value.set(size.width, size.height);
       material1Ref.current.uniforms.uTexture.value = tex1;
-      material1Ref.current.uniforms.uImageResolution.value.set(tex1.image.width, tex1.image.height);
+      material1Ref.current.uniforms.uImageResolution.value.set(tex1?.image?.width || 1, tex1?.image?.height || 1);
       material1Ref.current.uniforms.uDissolve.value = localProgress;
       
       const grayscaleProgress = Math.min(1.0, localProgress / 0.4);
@@ -317,7 +317,7 @@ const Scene = ({ images, scrollYProgress }: SceneProps) => {
       material2Ref.current.uniforms.uTime.value = timeInSeconds;
       material2Ref.current.uniforms.uResolution.value.set(size.width, size.height);
       material2Ref.current.uniforms.uTexture.value = tex2;
-      material2Ref.current.uniforms.uImageResolution.value.set(tex2.image.width, tex2.image.height);
+      material2Ref.current.uniforms.uImageResolution.value.set(tex2?.image?.width || 1, tex2?.image?.height || 1);
 
       const acceleratedProgress = Math.min(1.0, localProgress * 1.1);
       material2Ref.current.uniforms.uEdgeIntensity.value = 0.6 * (1.0 - acceleratedProgress);

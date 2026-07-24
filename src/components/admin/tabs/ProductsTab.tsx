@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
-import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star, ChevronRight } from "lucide-react";
 
 /* ─── Products Tab ─── */
 function ProductsTab({ 
