@@ -18,16 +18,21 @@ export function AnimatedRays({
     const [mounted, setMounted] = useState(false);
 
     useEffect(() => {
-        setMounted(true);
         const checkDark = () => document.documentElement.classList.contains("dark");
-        setIsDark(checkDark());
+        const timer = setTimeout(() => {
+            setMounted(true);
+            setIsDark(checkDark());
+        }, 0);
 
         const observer = new MutationObserver(() => setIsDark(checkDark()));
         observer.observe(document.documentElement, {
             attributes: true,
             attributeFilter: ["class"],
         });
-        return () => observer.disconnect();
+        return () => {
+            clearTimeout(timer);
+            observer.disconnect();
+        };
     }, []);
 
     if (!mounted) return null;

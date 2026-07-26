@@ -8,7 +8,7 @@ function SnowParticles({ count = 50000 }: { count?: number }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   // Generate particles
-  const [positions, speeds] = useMemo(() => {
+  const [[positions, speeds]] = React.useState(() => {
     const positions = new Float32Array(count * 3);
     const speeds = new Float32Array(count);
     
@@ -22,8 +22,8 @@ function SnowParticles({ count = 50000 }: { count?: number }) {
       speeds[i] = 0.1 + Math.random() * 0.5;
     }
     
-    return [positions, speeds];
-  }, [count]);
+    return [positions, speeds] as const;
+  });
 
   useFrame((state, delta) => {
     if (!pointsRef.current) return;

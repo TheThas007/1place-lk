@@ -25,29 +25,26 @@ function OverviewTab({
     <div className="space-y-8">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        {stats.map((stat) => {
-          const IconComponent = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:bg-slate-900 transition-all hover:border-white/10"
-            >
-              <div className="flex items-center justify-between mb-4">
-                <div
-                  className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}
-                >
-                  <IconComponent className="w-5 h-5" />
-                </div>
-                <TrendingUp className="w-4 h-4 text-emerald-400" />
+        {stats.map((stat) => (
+          <div
+            key={stat.label}
+            className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:bg-slate-900 transition-all hover:border-white/10"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div
+                className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}
+              >
+                <stat.icon className="w-5 h-5" />
               </div>
-              <div className="text-3xl font-extrabold text-white tracking-tight">{stat.value}</div>
-              <div className="text-xs text-white/50 mt-1 font-semibold">{stat.label}</div>
-              <div className="text-xs text-emerald-400 mt-2 font-medium flex items-center gap-1">
-                <span>{stat.change}</span>
-              </div>
+              <TrendingUp className="w-4 h-4 text-emerald-400" />
             </div>
-          );
-        })}
+            <div className="text-3xl font-extrabold text-white tracking-tight">{stat.value}</div>
+            <div className="text-xs text-white/50 mt-1 font-semibold">{stat.label}</div>
+            <div className="text-xs text-emerald-400 mt-2 font-medium flex items-center gap-1">
+              <span>{stat.change}</span>
+            </div>
+          </div>
+        ))}
       </div>
 
       {/* Upgraded Web Analytics Panel with Wave Chart */}

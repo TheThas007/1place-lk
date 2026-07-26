@@ -1,132 +1,3 @@
-// ── Delivery Zone ────────────────────────────────────
-export interface DeliveryZone {
-  id: string;
-  name: string;            // e.g. "Vavuniya", "Colombo"
-  deliveryFee: number;
-  minimumOrderAmount: number;
-  estimatedDeliveryTime: string; // e.g. "1-2 business days"
-  codEnabled: boolean;
-  expressDeliveryEnabled: boolean;
-  isActive: boolean;
-}
-
-// ── Product Order / Payment / Delivery Settings ───────
-export interface ProductOrderSettings {
-  // ─ Cash on Delivery ─
-  codEnabled: boolean;
-  codFee: number;
-  codMinimumAmount: number | null;
-  codMaximumAmount: number | null;
-  codAvailableAreas: string[];       // district names
-  codInstructions: string;
-  codConfirmationRequired: boolean;
-
-  // ─ Card Payment ─
-  cardEnabled: boolean;
-  cardMethods: string[];             // ["visa","mastercard","amex","bank","gateway"]
-  paymentGatewayName: string;
-  cardInstructions: string;
-  cardProcessingFee: number;
-  paymentRedirectUrl: string;
-  cardConfirmationRequired: boolean;
-
-  // ─ WhatsApp Order ─
-  whatsappEnabled: boolean;
-  whatsappNumber: string;
-  whatsappTemplate: string;
-  includeProductName: boolean;
-  includeProductPrice: boolean;
-  includeProductSku: boolean;
-  includeVariation: boolean;
-  includeQuantity: boolean;
-  includeCustomerDetails: boolean;
-  includeDeliveryAddress: boolean;
-  includeProductUrl: boolean;
-
-  // ─ Delivery ─
-  deliveryType: "delivery" | "pickup" | "delivery_and_pickup" | "no_delivery" | "digital";
-  freeDeliveryEnabled: boolean;
-  flatDeliveryFee: number;
-  estimatedDeliveryMinDays: number;
-  estimatedDeliveryMaxDays: number;
-  sameDayDeliveryEnabled: boolean;
-  sameDayDeliveryFee: number;
-  expressDeliveryEnabled: boolean;
-  expressDeliveryFee: number;
-  deliveryInstructions: string;
-  restrictedDeliveryAreas: string[];
-
-  // ─ Delivery Zones ─
-  deliveryZones: DeliveryZone[];
-
-  // ─ Store Pickup ─
-  pickupEnabled: boolean;
-  pickupLocationName: string;
-  pickupAddress: string;
-  pickupMapUrl: string;
-  pickupAvailableDays: string[];
-  pickupStartTime: string;
-  pickupEndTime: string;
-  pickupInstructions: string;
-  pickupContactNumber: string;
-  pickupPreparationTime: string;
-}
-
-export const DEFAULT_ORDER_SETTINGS: ProductOrderSettings = {
-  codEnabled: true,
-  codFee: 0,
-  codMinimumAmount: null,
-  codMaximumAmount: null,
-  codAvailableAreas: [],
-  codInstructions: "",
-  codConfirmationRequired: false,
-
-  cardEnabled: true,
-  cardMethods: ["visa", "mastercard"],
-  paymentGatewayName: "",
-  cardInstructions: "",
-  cardProcessingFee: 0,
-  paymentRedirectUrl: "",
-  cardConfirmationRequired: false,
-
-  whatsappEnabled: true,
-  whatsappNumber: "+94754541118",
-  whatsappTemplate: "Hello, I would like to order this product.\n\nProduct: {{productName}}\nPrice: {{productPrice}}\nVariation: {{variation}}\nQuantity: {{quantity}}\nProduct Link: {{productUrl}}",
-  includeProductName: true,
-  includeProductPrice: true,
-  includeProductSku: false,
-  includeVariation: true,
-  includeQuantity: true,
-  includeCustomerDetails: false,
-  includeDeliveryAddress: false,
-  includeProductUrl: true,
-
-  deliveryType: "delivery",
-  freeDeliveryEnabled: true,
-  flatDeliveryFee: 0,
-  estimatedDeliveryMinDays: 3,
-  estimatedDeliveryMaxDays: 7,
-  sameDayDeliveryEnabled: false,
-  sameDayDeliveryFee: 0,
-  expressDeliveryEnabled: false,
-  expressDeliveryFee: 0,
-  deliveryInstructions: "",
-  restrictedDeliveryAreas: [],
-
-  deliveryZones: [],
-
-  pickupEnabled: false,
-  pickupLocationName: "STREET MOBILE",
-  pickupAddress: "163, Kandaswamy Kovil Road, Vavuniya Town",
-  pickupMapUrl: "",
-  pickupAvailableDays: ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-  pickupStartTime: "09:00",
-  pickupEndTime: "18:00",
-  pickupInstructions: "",
-  pickupContactNumber: "+94754541118",
-  pickupPreparationTime: "30 minutes",
-};
-
 export interface Product {
   id: string;
   name: string;
@@ -148,7 +19,6 @@ export interface Product {
   allow_cod?: boolean;
   allow_card?: boolean;
   allow_whatsapp?: boolean;
-  orderSettings?: ProductOrderSettings;
   created_at: string;
 }
 
@@ -159,8 +29,8 @@ export interface Category {
   icon: string;
   image_url: string;
   sort_order: number;
-  product_count?: number;
   description?: string;
+  product_count?: number;
   group?: "phones" | "accessories" | "other";
 }
 

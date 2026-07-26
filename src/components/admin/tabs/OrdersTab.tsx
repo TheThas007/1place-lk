@@ -4,6 +4,7 @@ import React, { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
 import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star, Download } from "lucide-react";
+import { jsPDF } from "jspdf";
 
 /* ─── Orders Tab ─── */
 function OrdersTab({ 
@@ -18,16 +19,86 @@ function OrdersTab({
   const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
 
   const downloadPDF = (order: any) => {
-    const printWindow = window.open("", "_blank");
-    if (!printWindow) return;
-    const items = (order.items || []).map((item: any) =>
-      `<tr><td style="padding:8px;border-bottom:1px solid #eee">${item.name}${item.storage ? ` (${item.storage})` : ""}${item.color ? ` - ${item.color}` : ""}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:center">${item.quantity}</td><td style="padding:8px;border-bottom:1px solid #eee;text-align:right">Rs. ${(item.price * item.quantity).toLocaleString()}</td></tr>`
-    ).join("");
-    printWindow.document.write(`<!DOCTYPE html><html><head><title>Invoice #${order.id}</title><style>body{font-family:Arial,sans-serif;padding:40px;color:#111}h1{font-size:22px;margin-bottom:4px}table{width:100%;border-collapse:collapse;margin-top:20px}th{background:#f4f4f4;padding:10px;text-align:left}@media print{button{display:none}}</style></head><body><h1>STREET MOBILE</h1><p style="color:#666;margin:0">Premium Mobile Store in Vavuniya | Tel: +94 77 414 1118</p><hr style="margin:20px 0"/><h2 style="font-size:14px">INVOICE / ORDER SUMMARY</h2><p><strong>Order ID:</strong> ${order.id}<br/><strong>Date:</strong> ${new Date(order.createdAt || Date.now()).toLocaleString()}<br/><strong>Payment:</strong> ${order.paymentMethod}<br/><strong>Status:</strong> ${order.status}</p><h3>Customer Details</h3><p><strong>Name:</strong> ${order.customerName}<br/><strong>Phone:</strong> ${order.primaryPhone || "N/A"}<br/><strong>Address:</strong> ${order.address || "N/A"}, ${order.district || ""}</p><table><thead><tr><th>Item</th><th>Qty</th><th>Price</th></tr></thead><tbody>${items}</tbody></table><p style="text-align:right;font-size:18px;font-weight:bold;margin-top:20px">Total: Rs. ${(order.totalPrice || 0).toLocaleString()}</p><p style="margin-top:40px;color:#666;font-size:12px">Thank you for shopping with Street Mobile! For support: streetmobilevavuniya@gmail.com</p><button onclick="window.print()" style="margin-top:20px;padding:10px 24px;background:#000;color:#fff;border:none;cursor:pointer;font-size:14px">Print / Save as PDF</button></body></html>`);
-    printWindow.document.close();
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("STREET MOBILE", 20, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text("Premium Mobile Store in Vavuniya", 20, 31);
+    doc.text("Email: streetmobilevavuniya@gmail.com", 20, 36);
+    doc.text("Tel: +94 77 414 1118", 20, 41);
+    
+    // Divider line
+    doc.setDrawColor(200);
+    doc.line(20, 46, 190, 46);
+    
+    // Invoice details
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(0);
+    doc.text("INVOICE / ORDER SUMMARY", 20, 56);
+    
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(10);
+    doc.setTextColor(80);
+    doc.text(`Order ID: ${order.id}`, 20, 64);
+    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 20, 69);
+    doc.text(`Payment Method: ${order.paymentMethod}`, 20, 74);
+    doc.text(`Payment Status: ${order.status.toUpperCase()}`, 20, 79);
+    
+    // Customer Details
+    doc.setFont("helvetica", "bold");
+    doc.text("Delivery Details:", 120, 64);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${order.customerName || "N/A"}`, 120, 69);
+    doc.text(`Phone: ${order.primaryPhone || "N/A"}`, 120, 74);
+    doc.text(`District: ${order.district || "N/A"}`, 120, 79);
+    doc.text(`Address: ${order.address || "N/A"}`, 120, 84);
+    
+    // Divider line
+    doc.line(20, 90, 190, 90);
+    
+    // Table Header
+    doc.setFont("helvetica", "bold");
+    doc.text("Item Description", 20, 98);
+    doc.text("Qty", 120, 98);
+    doc.text("Unit Price", 140, 98);
+    doc.text("Total", 170, 98);
+    
+    doc.line(20, 102, 190, 102);
+    doc.setFont("helvetica", "normal");
+    
+    let y = 110;
+    (order.items || []).forEach((item: any) => {
+      // Name
+      doc.text(`${item.name} ${item.storage ? `(${item.storage})` : ""} ${item.color ? `- ${item.color}` : ""}`, 20, y);
+      doc.text(`${item.quantity}`, 122, y);
+      doc.text(`Rs. ${item.price.toLocaleString()}`, 140, y);
+      doc.text(`Rs. ${(item.price * item.quantity).toLocaleString()}`, 170, y);
+      y += 8;
+    });
+    
+    // Divider line
+    doc.line(20, y + 2, 190, y + 2);
+    
+    // Total
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Amount:", 138, y + 10);
+    doc.text(`Rs. ${order.totalPrice.toLocaleString()}`, 170, y + 10);
+    
+    // Footer
+    doc.setFont("helvetica", "italic");
+    doc.setFontSize(9);
+    doc.setTextColor(120);
+    doc.text("Thank you for shopping with STREET MOBILE!", 105, y + 25, { align: "center" });
+    
+    doc.save(`street-mobile-order-${order.id.slice(-6)}.pdf`);
   };
-
-
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">

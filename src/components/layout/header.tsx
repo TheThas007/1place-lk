@@ -43,14 +43,8 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    if (isMobileMenuOpen) {
-      document.documentElement.classList.add("menu-open");
-    } else {
-      document.documentElement.classList.remove("menu-open");
-    }
-    return () => {
-      document.documentElement.classList.remove("menu-open");
-    };
+    document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
+    return () => { document.body.style.overflow = ""; };
   }, [isMobileMenuOpen]);
 
   const initials = user?.displayName

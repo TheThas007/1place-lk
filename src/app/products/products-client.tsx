@@ -125,7 +125,7 @@ export default function ProductsClient({
       const matchesBrand =
         selectedBrand === "All" ||
         product.name.toLowerCase().includes(selectedBrand.toLowerCase()) ||
-        (product.category_name || "").toLowerCase().includes(selectedBrand.toLowerCase());
+        (product.category_name ? product.category_name.toLowerCase().includes(selectedBrand.toLowerCase()) : false);
       const min = minPrice ? parseInt(minPrice) : 0;
       const max = maxPrice ? parseInt(maxPrice) : Infinity;
       const matchesPrice = product.price >= min && product.price <= max;

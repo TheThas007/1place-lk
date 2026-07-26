@@ -17,12 +17,6 @@ body:has([data-admin-root]) main {
   background-color: #000000 !important;
 }
 
-/* Scroll lock — safe CSS-only approach (avoids React 19 Fiber headCacheNode error) */
-html.menu-open,
-html.lightbox-open {
-  overflow: hidden !important;
-}
-
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

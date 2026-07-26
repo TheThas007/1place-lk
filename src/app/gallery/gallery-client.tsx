@@ -45,11 +45,11 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
 
   const openLightbox = (idx: number) => {
     setLightboxIdx(idx);
-    document.documentElement.classList.add("lightbox-open");
+    document.body.style.overflow = "hidden";
   };
   const closeLightbox = useCallback(() => {
     setLightboxIdx(null);
-    document.documentElement.classList.remove("lightbox-open");
+    document.body.style.overflow = "";
   }, []);
   const prevImg = useCallback(() => setLightboxIdx((i) => (i !== null ? (i - 1 + filtered.length) % filtered.length : 0)), [filtered.length]);
   const nextImg = useCallback(() => setLightboxIdx((i) => (i !== null ? (i + 1) % filtered.length : 0)), [filtered.length]);

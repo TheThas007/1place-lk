@@ -1,13 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Upload, Loader2, Plus, Trash2, Tag, HardDrive, Palette, ShieldCheck, Cpu, ShoppingCart } from "lucide-react";
-import { Product, Category, ProductOrderSettings, DEFAULT_ORDER_SETTINGS } from "@/lib/types";
+import { X, Upload, Loader2, Plus, Trash2, Tag, HardDrive, Palette, ShieldCheck, Cpu } from "lucide-react";
+import { Product, Category } from "@/lib/types";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
-import OrderOptionsSection from "@/components/admin/tabs/OrderOptionsSection";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -55,7 +54,6 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
   const [colorsInput, setColorsInput] = useState("");
   const [storageInput, setStorageInput] = useState("");
 
-  const [orderSettings, setOrderSettings] = useState<ProductOrderSettings>(DEFAULT_ORDER_SETTINGS);
   const [isLoading, setIsLoading] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
 
@@ -64,17 +62,6 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
       setFormData(initialData);
       setImagePreviews(initialData.images?.slice(0, 4) || []);
       setImageLinksInput(initialData.images?.join(",\n") || "");
-      // Restore orderSettings from saved product
-      setOrderSettings({ ...DEFAULT_ORDER_SETTINGS, ...(initialData.orderSettings || {}) });
-      // Also restore allow_ flags as overrides if orderSettings not present
-      if (!initialData.orderSettings) {
-        setOrderSettings(prev => ({
-          ...prev,
-          codEnabled: initialData.allow_cod !== false,
-          cardEnabled: initialData.allow_card !== false,
-          whatsappEnabled: initialData.allow_whatsapp !== false,
-        }));
-      }
 
       // Populate spec rows from existing object
       const rows = Object.entries(initialData.specifications || {}).map(([key, value]) => ({ key, value }));
@@ -99,7 +86,6 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         warranty: "",
         code: "",
       });
-      setOrderSettings(DEFAULT_ORDER_SETTINGS);
       setImagePreviews([]);
       setImageLinksInput("");
       setSpecRows([{ key: "", value: "" }]);
@@ -205,11 +191,6 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         storage_options: formData.storage_options || [],
         storage_prices: formData.storage_prices || {},
         warranty: formData.warranty || "",
-        // Sync legacy allow_ flags with orderSettings
-        allow_cod: orderSettings.codEnabled,
-        allow_card: orderSettings.cardEnabled,
-        allow_whatsapp: orderSettings.whatsappEnabled,
-        orderSettings: orderSettings,
         updated_at: new Date().toISOString(),
       };
 
@@ -422,6 +403,52 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
               </div>
               <span className="text-sm text-white/60 group-hover:text-white/90 transition-colors select-none">Featured Product</span>
             </label>
+
+            {/* Allowed Payment Methods */}
+            <div className="mt-6 pt-5 border-t border-white/10">
+              <label className="field-label mb-2 block font-semibold">Allowed Payment Methods *</label>
+              <p className="text-xs text-white/40 mb-3">Enable or disable payment options for this specific product at checkout:</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <label className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.allow_cod !== false}
+                    onChange={(e) => setFormData({ ...formData, allow_cod: e.target.checked })}
+                    className="w-4 h-4 rounded border-white/20 text-blue-600 focus:ring-blue-500 bg-white/10 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-white block">Cash on Delivery</span>
+                    <span className="text-[10px] text-white/40">Pay upon delivery</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.allow_card !== false}
+                    onChange={(e) => setFormData({ ...formData, allow_card: e.target.checked })}
+                    className="w-4 h-4 rounded border-white/20 text-purple-600 focus:ring-purple-500 bg-white/10 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-white block">Card Payment</span>
+                    <span className="text-[10px] text-white/40">Visa / Mastercard</span>
+                  </div>
+                </label>
+
+                <label className="flex items-center gap-3 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
+                  <input
+                    type="checkbox"
+                    checked={formData.allow_whatsapp !== false}
+                    onChange={(e) => setFormData({ ...formData, allow_whatsapp: e.target.checked })}
+                    className="w-4 h-4 rounded border-white/20 text-emerald-600 focus:ring-emerald-500 bg-white/10 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-white block">WhatsApp Order</span>
+                    <span className="text-[10px] text-white/40">Direct chat order</span>
+                  </div>
+                </label>
+              </div>
+            </div>
           </Section>
 
           {/* ── Storage Options ── */}
@@ -611,14 +638,6 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
               <Plus className="w-3.5 h-3.5" />
               Add Specification Row
             </button>
-          </Section>
-
-          {/* ── Order, Payment & Delivery Options ── */}
-          <Section icon={<ShoppingCart className="w-4 h-4" />} title="Order, Payment & Delivery Options">
-            <OrderOptionsSection
-              settings={orderSettings}
-              onChange={setOrderSettings}
-            />
           </Section>
 
           {/* ── Warranty ── */}

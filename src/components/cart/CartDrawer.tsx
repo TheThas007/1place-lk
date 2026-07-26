@@ -373,26 +373,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
               {/* STEP 2: CHECKOUT OPTIONS */}
               {step === "checkout-options" && (() => {
-                // Read order settings from first cart item (or fall back to legacy allow_ flags)
-                const firstItemSettings = (cart[0] as any)?.orderSettings;
-                const isCodAllowed = firstItemSettings
-                  ? cart.every(item => (item as any)?.orderSettings?.codEnabled !== false)
-                  : cart.every(item => item.allow_cod !== false);
-                const isCardAllowed = firstItemSettings
-                  ? cart.every(item => (item as any)?.orderSettings?.cardEnabled !== false)
-                  : cart.every(item => item.allow_card !== false);
-                const isWhatsappAllowed = firstItemSettings
-                  ? cart.every(item => (item as any)?.orderSettings?.whatsappEnabled !== false)
-                  : cart.every(item => item.allow_whatsapp !== false);
-
-                // Compute delivery info from first item's settings
-                const os = firstItemSettings;
-                const isFreeDelivery = !os || os.freeDeliveryEnabled !== false;
-                const deliveryFee = os && !os.freeDeliveryEnabled ? (os.flatDeliveryFee || 0) : 0;
-                const codFee = os && isCodAllowed ? (os.codFee || 0) : 0;
-                const minDays = os ? (os.estimatedDeliveryMinDays || 3) : 3;
-                const maxDays = os ? (os.estimatedDeliveryMaxDays || 7) : 7;
-                const grandTotal = total + deliveryFee;
+                const isCodAllowed = cart.every(item => item.allow_cod !== false);
+                const isCardAllowed = cart.every(item => item.allow_card !== false);
+                const isWhatsappAllowed = cart.every(item => item.allow_whatsapp !== false);
 
                 return (
                   <div className="space-y-6 pt-2">
@@ -400,12 +383,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">Order Summary</p>
-                          <p className="text-3xl font-black text-white tracking-tight mt-1">{formatPrice(grandTotal)}</p>
-                          {deliveryFee > 0 && (
-                            <p className="text-[10px] text-white/30 mt-0.5">
-                              Subtotal {formatPrice(total)} + Delivery {formatPrice(deliveryFee)}
-                            </p>
-                          )}
+                          <p className="text-3xl font-black text-white tracking-tight mt-1">{formatPrice(total)}</p>
                         </div>
                         <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 shadow-lg">
                           <ShoppingBag className="w-6 h-6 text-white" />
@@ -413,26 +391,14 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </div>
 
                       <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5 text-xs">
-                        <div className="flex items-center justify-between font-semibold">
-                          <span className={`flex items-center gap-1.5 ${isFreeDelivery ? "text-emerald-400" : "text-white/60"}`}>
-                            <CheckCircle2 className="w-3.5 h-3.5" /> Delivery Charge
-                          </span>
-                          {isFreeDelivery ? (
-                            <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-black text-[10px]">FREE DELIVERY</span>
-                          ) : (
-                            <span className="text-white font-bold">{formatPrice(deliveryFee)}</span>
-                          )}
+                        <div className="flex items-center justify-between text-emerald-400 font-semibold">
+                          <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Delivery Charge</span>
+                          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-black text-[10px]">FREE DELIVERY</span>
                         </div>
                         <div className="flex items-center justify-between text-amber-300 font-medium">
-                          <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> Est. Delivery</span>
-                          <span className="font-bold text-white">{minDays} – {maxDays} Working Days</span>
+                          <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> Estimated Delivery</span>
+                          <span className="font-bold text-white">3 – 7 Working Days</span>
                         </div>
-                        {codFee > 0 && (
-                          <div className="flex items-center justify-between text-blue-300 font-medium">
-                            <span className="flex items-center gap-1.5">💵 COD Fee</span>
-                            <span className="font-bold text-white">{formatPrice(codFee)}</span>
-                          </div>
-                        )}
                       </div>
                     </div>
 
