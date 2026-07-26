@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 import Header from "@/components/layout/header";
@@ -12,6 +12,19 @@ import { CartProvider } from "@/lib/cart-context";
 const inter = Inter({
   variable: "--font-inter",
   subsets: ["latin"],
+});
+
+const outfit = Outfit({
+  variable: "--font-outfit",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800", "900"],
+});
+
+const playfair = Playfair_Display({
+  variable: "--font-playfair",
+  subsets: ["latin"],
+  weight: ["400", "600", "700", "800", "900"],
+  style: ["normal", "italic"],
 });
 
 export const metadata: Metadata = {
@@ -46,8 +59,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} h-full antialiased`}>
-      <body className="min-h-full flex flex-col">
+    <html lang="en" className={`${inter.variable} ${outfit.variable} ${playfair.variable} h-full antialiased`}>
+      <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>
           <CartProvider>
             <Header />

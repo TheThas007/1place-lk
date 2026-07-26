@@ -36,43 +36,47 @@ function GalleryCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20 }}
+      initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.5, delay: index * 0.05 }}
-      className={`relative group w-full h-full rounded-2xl overflow-hidden cursor-pointer bg-neutral-900 border border-white/10 hover:border-white/30 transition-all duration-500 shadow-xl ${
-        isFeatured ? "sm:col-span-2 md:row-span-2 aspect-[4/3] sm:aspect-[16/10] md:aspect-auto h-full min-h-[300px]" : "aspect-[4/3] min-h-[190px]"
+      transition={{ duration: 0.6, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] as const }}
+      className={`relative group w-full h-full rounded-[28px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(255,255,255,0.1)] hover:-translate-y-1.5 ${
+        isFeatured ? "sm:col-span-2 md:row-span-2 aspect-[4/3] sm:aspect-[16/10] md:aspect-auto h-full min-h-[320px]" : "aspect-[4/3] min-h-[200px]"
       }`}
       onClick={() => onOpen(image)}
     >
       <div className="relative w-full h-full overflow-hidden">
+        {/* Main image with smooth luxury zoom */}
         <img
           src={image.image_url}
           alt={formattedCaption || "Gallery"}
-          className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+          className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
         />
 
-        {/* Overlay gradient */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent opacity-60 group-hover:opacity-90 transition-opacity duration-300" />
+        {/* Ambient Gradient Overlays */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10 opacity-70 group-hover:opacity-85 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
         {/* Category badge */}
         {image.category && (
-          <div className="absolute top-3.5 left-3.5 px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider text-white bg-black/60 border border-white/20 backdrop-blur-md shadow-md">
+          <div className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white bg-black/50 border border-white/20 backdrop-blur-md shadow-lg group-hover:border-white/40 group-hover:bg-black/70 transition-all">
             {image.category}
           </div>
         )}
 
-        {/* Zoom icon */}
-        <div className="absolute top-3.5 right-3.5 w-9 h-9 rounded-xl bg-white/20 backdrop-blur-md border border-white/20 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-90 group-hover:scale-100 shadow-md">
+        {/* Floating Zoom icon with blur */}
+        <div className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 shadow-xl">
           <Maximize2 className="w-4 h-4 text-white" />
         </div>
 
-        {/* Caption */}
+        {/* Glassmorphic Caption Banner */}
         {formattedCaption && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-1 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300">
-            <p className="text-white text-sm font-semibold leading-snug drop-shadow-md line-clamp-2">
-              {formattedCaption}
-            </p>
+          <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
+            <div className="p-3 rounded-2xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-2xl">
+              <p className="text-white text-xs sm:text-sm font-medium leading-snug drop-shadow line-clamp-2">
+                {formattedCaption}
+              </p>
+            </div>
           </div>
         )}
       </div>

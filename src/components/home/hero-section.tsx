@@ -155,23 +155,19 @@ export default function HeroSection() {
           </div>
 
           <div className="mb-6">
-            <h1 
-              className="font-extrabold leading-[1.05] tracking-tight text-left text-3xl sm:text-4xl md:text-5xl lg:text-6xl"
-              style={{ fontFamily: "'SF Pro Display', 'Geist', 'Inter', 'Plus Jakarta Sans', sans-serif" }}
-            >
-              <div className="text-white">
+            <h1 className="leading-[1.02] tracking-tight text-left">
+              <span 
+                className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tight drop-shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
+                style={{ fontFamily: "var(--font-outfit), sans-serif" }}
+              >
                 Premium Mobile
-              </div>
-              <div 
-                className="bg-clip-text text-transparent mt-1"
-                style={{
-                  backgroundImage: "linear-gradient(180deg, rgba(240,240,240,0.75) 0%, rgba(150,150,150,0.25) 100%)",
-                  WebkitBackgroundClip: "text",
-                  WebkitTextFillColor: "transparent",
-                }}
+              </span>
+              <span 
+                className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-serif italic mt-2 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent drop-shadow-md"
+                style={{ fontFamily: "var(--font-playfair), serif" }}
               >
                 Experience.
-              </div>
+              </span>
             </h1>
           </div>
 
