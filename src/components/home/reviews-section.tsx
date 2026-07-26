@@ -32,16 +32,16 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
               {reviews.map((review) => (
                 <div
                   key={`${groupIndex}-${review.id}`}
-                  className="w-[320px] lg:w-[400px] shrink-0 bg-white/50 backdrop-blur-md p-8 rounded-[32px] border border-white/60 shadow-[0_8px_30px_rgb(0,0,0,0.04)] hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] hover:-translate-y-2 transition-all duration-500"
+                  className="w-[320px] lg:w-[400px] shrink-0 bg-slate-900/90 backdrop-blur-xl p-8 rounded-[32px] border border-white/10 shadow-[0_10px_30px_rgba(0,0,0,0.4)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.7)] hover:border-white/20 hover:-translate-y-2 transition-all duration-500"
                 >
                   <div className="flex gap-1 mb-4">
                     {[...Array(review.rating)].map((_, i) => (
-                      <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                      <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
                     ))}
                   </div>
-                  <p className="text-sm leading-relaxed mb-6 italic">"{review.text}"</p>
+                  <p className="text-sm text-slate-200 leading-relaxed mb-6 italic">"{review.text}"</p>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-500 flex items-center justify-center shadow-inner">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-inner">
                       {review.author_photo ? (
                         <img src={review.author_photo} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
                       ) : (
@@ -49,8 +49,8 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                       )}
                     </div>
                     <div>
-                      <div className="font-semibold text-sm">{review.author_name}</div>
-                      <div className="text-xs text-muted-foreground">{new Date(review.review_date).toLocaleDateString()}</div>
+                      <div className="font-semibold text-sm text-white">{review.author_name}</div>
+                      <div className="text-xs text-white/50">{new Date(review.review_date).toLocaleDateString()}</div>
                     </div>
                   </div>
                 </div>
