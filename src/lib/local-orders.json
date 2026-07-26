@@ -1,0 +1,51 @@
+[
+  {
+    "id": "SM-7821A",
+    "userId": "guest",
+    "customerName": "Kamal Perera",
+    "primaryPhone": "0774141118",
+    "secondaryPhone": "0712345678",
+    "district": "Vavuniya",
+    "address": "No 45, Station Road, Vavuniya",
+    "postalCode": "43000",
+    "paymentMethod": "COD",
+    "status": "pending",
+    "totalPrice": 285000,
+    "createdAt": "2026-07-26T12:51:47.824Z",
+    "items": [
+      {
+        "productId": "1",
+        "name": "iPhone 15 Pro Max",
+        "price": 285000,
+        "quantity": 1,
+        "storage": "256GB",
+        "color": "Natural Titanium",
+        "image": "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=500&auto=format&fit=crop&q=60"
+      }
+    ]
+  },
+  {
+    "id": "SM-4912B",
+    "userId": "guest",
+    "customerName": "Sivakumar N.",
+    "primaryPhone": "0768901234",
+    "district": "Jaffna",
+    "address": "Hospital Road, Jaffna",
+    "postalCode": "40000",
+    "paymentMethod": "Card",
+    "status": "paid",
+    "totalPrice": 165000,
+    "createdAt": "2026-07-25T16:51:47.824Z",
+    "items": [
+      {
+        "productId": "2",
+        "name": "Samsung Galaxy S24 Ultra",
+        "price": 165000,
+        "quantity": 1,
+        "storage": "512GB",
+        "color": "Titanium Black",
+        "image": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=500&auto=format&fit=crop&q=60"
+      }
+    ]
+  }
+]

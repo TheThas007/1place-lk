@@ -332,7 +332,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         </div>
 
         {/* Specifications */}
-        <div className="mt-16 lg:mt-24">
+        <div className="mt-16 lg:mt-24 pb-20 lg:pb-0">
           <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
             <div className="lg:col-span-2">
               <h2 className="text-2xl font-bold tracking-tight mb-6">Product Overview</h2>
@@ -363,6 +363,29 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               </div>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* ── Sticky Mobile Bottom Action Bar ── */}
+      <div className="fixed bottom-14 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 shadow-2xl">
+        <div className="flex items-center gap-2 max-w-md mx-auto">
+          <div className="flex-1">
+            <AddToBagDetailButton
+              product={product}
+              selectedStorage={selectedStorage}
+              selectedColor={selectedColor}
+              displayPrice={displayPrice}
+            />
+          </div>
+          <a
+            href={generateOrderMessage(product, selectedStorage, selectedColor, displayPrice)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center justify-center p-3 rounded-xl bg-[#25D366] text-white font-bold hover:bg-[#20bd5a] transition-all shrink-0 active:scale-95"
+            title="Order via WhatsApp"
+          >
+            <MessageCircle className="w-6 h-6" />
+          </a>
         </div>
       </div>
     </div>

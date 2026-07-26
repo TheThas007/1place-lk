@@ -103,36 +103,46 @@ function AdminDashboardContent() {
   useEffect(() => {
     if (!isAuthed) return;
 
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      const orders = snapshot.docs.map(d => ({ ...d.data(), id: d.id }));
-      setOrdersList(orders);
+    const colRef = collection(db, "orders");
+    const unsub = onSnapshot(
+      colRef,
+      (snapshot) => {
+        const orders = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+        orders.sort(
+          (a: any, b: any) =>
+            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+        );
+        setOrdersList(orders);
 
-      // Check if there's a new order added
-      if (isFirstLoad.current) {
-        isFirstLoad.current = false;
-        return;
-      }
-
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
-          // Trigger browser notification and state popup
-          setLiveAlert(newOrder);
-          
-          // Play notification sound
-          try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-            const promise = audio.play();
-            if (promise !== undefined) {
-              promise.catch(() => {});
-            }
-          } catch (e) {
-            console.log("Audio alert skipped:", e);
-          }
+        // Check if there's a new order added
+        if (isFirstLoad.current) {
+          isFirstLoad.current = false;
+          return;
         }
-      });
-    });
+
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
+            // Trigger browser notification and state popup
+            setLiveAlert(newOrder);
+
+            // Play notification sound
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
+              const promise = audio.play();
+              if (promise !== undefined) {
+                promise.catch(() => {});
+              }
+            } catch (e) {
+              console.log("Audio alert skipped:", e);
+            }
+          }
+        });
+      },
+      (error) => {
+        console.warn("Realtime orders snapshot warning:", error);
+      }
+    );
 
     return () => unsub();
   }, [isAuthed]);
@@ -169,9 +179,60 @@ function AdminDashboardContent() {
       setReviewsList(fetchedReviews.length > 0 ? fetchedReviews : fallbackReviews);
       setGalleryList(gDocs as GalleryImage[]);
       setHeroList((hDocs as HeroSlide[]).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-      setBannersList(bDocs as OfferBanner[]);
+      const defaultBanners: OfferBanner[] = [
+        {
+          id: "default-shop-1",
+          internalName: "Mega Sale 2026",
+          headline: "PREMIUM SMARTPHONES & ACCESSORIES",
+          highlightText: "UP TO 35% OFF",
+          description: "Exclusive deals on Apple, Samsung, Xiaomi & Original Accessories in Vavuniya.",
+          badgeText: "HOT DEAL",
+          primaryCtaText: "Explore Offers",
+          primaryCtaUrl: "/products",
+          desktopImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop",
+          mobileImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=800&auto=format&fit=crop",
+          placement: "shop_top",
+          status: "active",
+        },
+        {
+          id: "default-shop-2",
+          internalName: "Express Repair Promo",
+          headline: "EXPRESS MOBILE REPAIR SERVICE",
+          highlightText: "SAME-DAY REPAIR",
+          description: "Screen replacement, battery upgrades & hardware fixes with genuine warranty.",
+          badgeText: "QUICK SERVICE",
+          primaryCtaText: "Book Repair",
+          primaryCtaUrl: "/contact",
+          desktopImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=1600&auto=format&fit=crop",
+          mobileImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=800&auto=format&fit=crop",
+          placement: "shop_top",
+          status: "active",
+        },
+      ];
+
+      setBannersList(bDocs.length > 0 ? (bDocs as OfferBanner[]) : defaultBanners);
       setUsersList(uDocs);
-      setOrdersList((oDocs as any[]).sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+
+      let apiOrders: any[] = [];
+      try {
+        const apiRes = await fetch("/api/orders");
+        const apiData = await apiRes.json();
+        if (Array.isArray(apiData?.orders)) {
+          apiOrders = apiData.orders;
+        }
+      } catch (e) {
+        console.warn("Failed to fetch API orders:", e);
+      }
+
+      const orderMap = new Map<string, any>();
+      [...apiOrders, ...(oDocs as any[])].forEach((o) => {
+        if (o && o.id) orderMap.set(o.id, o);
+      });
+      const combinedOrders = Array.from(orderMap.values());
+      combinedOrders.sort(
+        (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+      );
+      setOrdersList(combinedOrders);
 
       try {
         const uiSnap = await getDoc(doc(db, "settings", "ui"));
@@ -258,23 +319,29 @@ function AdminDashboardContent() {
   };
 
   const handleUpdateOrderStatus = async (id: string, status: string) => {
+    setOrdersList(ordersList.map(o => o.id === id ? { ...o, status } : o));
+    fetch("/api/orders", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id, status })
+    }).catch((e) => console.warn("API status update warning:", e));
+
     try {
       await updateDoc(doc(db, "orders", id), { status });
-      setOrdersList(ordersList.map(o => o.id === id ? { ...o, status } : o));
     } catch (e) {
-      console.error(e);
-      alert("Failed to update order status");
+      console.warn("Firestore status update warning:", e);
     }
   };
 
   const handleDeleteOrder = async (id: string) => {
     if (confirm("Are you sure you want to delete this order?")) {
+      setOrdersList(ordersList.filter(o => o.id !== id));
+      fetch(`/api/orders?id=${id}`, { method: "DELETE" }).catch((e) => console.warn("API delete warning:", e));
+
       try {
         await deleteDoc(doc(db, "orders", id));
-        setOrdersList(ordersList.filter(o => o.id !== id));
       } catch (e) {
-        console.error(e);
-        alert("Failed to delete order");
+        console.warn("Firestore delete warning:", e);
       }
     }
   };
@@ -316,19 +383,26 @@ function AdminDashboardContent() {
   };
 
   const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
-    if (editingBanner?.id) {
-      await updateDoc(doc(db, "offer_banners", editingBanner.id), {
-        ...bannerData,
-        updated_at: new Date().toISOString(),
-      });
-    } else {
-      await addDoc(collection(db, "offer_banners"), {
-        ...bannerData,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString(),
-      });
+    try {
+      const sanitized = JSON.parse(JSON.stringify(bannerData));
+      if (editingBanner?.id && !editingBanner.id.startsWith("default-")) {
+        await updateDoc(doc(db, "offer_banners", editingBanner.id), {
+          ...sanitized,
+          updated_at: new Date().toISOString(),
+        });
+      } else {
+        await addDoc(collection(db, "offer_banners"), {
+          ...sanitized,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        });
+      }
+      await fetchData();
+    } catch (err: any) {
+      console.error("Save banner error:", err);
+      alert(`Failed to save offer banner: ${err?.message || "Please try uploading a smaller image URL"}`);
+      throw err;
     }
-    await fetchData();
   };
 
   const handleDeleteBanner = async (id: string) => {

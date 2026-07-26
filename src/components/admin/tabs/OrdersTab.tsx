@@ -139,7 +139,7 @@ function OrdersTab({
                       className={`cursor-pointer hover:bg-white/[0.02] transition-colors ${selectedOrder?.id === order.id ? "bg-white/[0.03]" : ""}`}
                     >
                       <td className="px-6 py-4 font-mono text-xs text-white/40">#{order.id.slice(-6)}</td>
-                      <td className="px-6 py-4 font-semibold">{order.customerName}</td>
+                      <td className="px-6 py-4 font-semibold">{order.customerName || order.primaryPhone || "Guest Customer"}</td>
                       <td className="px-6 py-4">
                         <span className="px-2 py-0.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white/60">
                           {order.paymentMethod}
@@ -206,7 +206,7 @@ function OrdersTab({
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-xs text-white/40">Customer Name</p>
-                  <p className="font-semibold text-white mt-0.5">{selectedOrder.customerName}</p>
+                  <p className="font-semibold text-white mt-0.5">{selectedOrder.customerName || selectedOrder.primaryPhone || "Guest Customer"}</p>
                 </div>
                 <div>
                   <p className="text-xs text-white/40">Contact Phone</p>

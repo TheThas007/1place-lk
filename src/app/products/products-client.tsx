@@ -20,8 +20,9 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
-import { Product, Category } from "@/lib/types";
+import { Product, Category, OfferBanner } from "@/lib/types";
 import AddToBagButton from "@/components/cart/AddToBagButton";
+import ShopBannerSlider from "@/components/products/ShopBannerSlider";
 
 /* ─── animation variants ─── */
 const containerVariants: Variants = {
@@ -81,9 +82,11 @@ function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: str
 export default function ProductsClient({
   initialProducts,
   categories,
+  offerBanners = [],
 }: {
   initialProducts: Product[];
   categories: Category[];
+  offerBanners?: OfferBanner[];
 }) {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
@@ -326,7 +329,10 @@ export default function ProductsClient({
       {/* ═══════════════════════════════════════════
           PRODUCTS CONTENT
       ═══════════════════════════════════════════ */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6">
+        {/* Offer Banner Slider */}
+        <ShopBannerSlider banners={offerBanners} />
+
         <div className="flex flex-col lg:flex-row gap-8">
 
           {/* ── Desktop Sidebar ── */}
@@ -361,20 +367,73 @@ export default function ProductsClient({
             </button>
           </div>
 
-          {/* ── Mobile Filters Panel ── */}
+          {/* ── Mobile Filters Slide-Up Bottom Sheet ── */}
           <AnimatePresence>
             {showMobileFilters && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: "auto" }}
-                exit={{ opacity: 0, height: 0 }}
-                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="lg:hidden overflow-hidden"
-              >
-                <div className="bg-white border border-gray-100 rounded-3xl p-6 mb-4 shadow-[0_2px_16px_rgba(0,0,0,0.05)]">
-                  <FilterSidebar />
-                </div>
-              </motion.div>
+              <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+                {/* Backdrop */}
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  onClick={() => setShowMobileFilters(false)}
+                  className="absolute inset-0 bg-black/60 backdrop-blur-xs"
+                />
+
+                {/* Bottom Sheet Modal */}
+                <motion.div
+                  initial={{ y: "100%" }}
+                  animate={{ y: 0 }}
+                  exit={{ y: "100%" }}
+                  transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                  className="relative bg-white rounded-t-3xl border-t border-gray-100 max-h-[85vh] flex flex-col z-10 shadow-2xl overflow-hidden"
+                >
+                  {/* Top Drag Handle & Header */}
+                  <div className="pt-3 pb-4 px-6 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-20">
+                    <div className="flex items-center gap-2">
+                      <SlidersHorizontal className="w-4 h-4 text-gray-700" />
+                      <h3 className="font-bold text-base text-gray-900">Filter Products</h3>
+                      {hasActiveFilters && (
+                        <span className="px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-bold">
+                          {selectedCategories.length + (minPrice ? 1 : 0) + (maxPrice ? 1 : 0)}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                      {hasActiveFilters && (
+                        <button
+                          onClick={clearFilters}
+                          className="text-xs font-semibold text-red-500 hover:text-red-600"
+                        >
+                          Clear All
+                        </button>
+                      )}
+                      <button
+                        onClick={() => setShowMobileFilters(false)}
+                        className="p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Scrollable Filter Content */}
+                  <div className="p-6 overflow-y-auto flex-1 custom-scrollbar">
+                    <FilterSidebar />
+                  </div>
+
+                  {/* Sticky Apply Button at Bottom */}
+                  <div className="p-4 bg-white border-t border-gray-100 sticky bottom-0 z-20">
+                    <button
+                      onClick={() => setShowMobileFilters(false)}
+                      className="w-full py-3.5 bg-black text-white rounded-2xl font-bold text-sm hover:bg-gray-900 active:scale-[0.99] transition-all shadow-lg"
+                    >
+                      Apply Filters ({filteredProducts.length} Results)
+                    </button>
+                  </div>
+                </motion.div>
+              </div>
             )}
           </AnimatePresence>
 

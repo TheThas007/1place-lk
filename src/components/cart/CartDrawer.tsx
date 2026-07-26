@@ -95,28 +95,50 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
       const orderData = {
         userId: user?.uid || "guest",
-        customerName: codName,
-        address: codAddress,
-        district: codDistrict,
-        primaryPhone: codPhone1,
-        secondaryPhone: codPhone2 || "", // fallback to empty string
-        postalCode: codPostal,
+        customerName: codName || user?.displayName || "COD Customer",
+        address: codAddress || "",
+        district: codDistrict || "Vavuniya",
+        primaryPhone: codPhone1 || "",
+        secondaryPhone: codPhone2 || "",
+        postalCode: codPostal || "",
         items: sanitizedItems,
         totalPrice: total,
         paymentMethod: "COD",
         status: "pending",
         createdAt: new Date().toISOString()
       };
-      
-      const docRef = await addDoc(collection(db, "orders"), orderData);
-      setOrderId(docRef.id);
-      
+
+      let finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderData)
+        });
+        const data = await res.json();
+        if (data.orderId) finalOrderId = data.orderId;
+      } catch (e) {
+        console.warn("API order save warning:", e);
+      }
+
+      setOrderId(finalOrderId);
+
+      try {
+        const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+        if (!stored.includes(finalOrderId)) {
+          localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
+        }
+      } catch (e) {
+        console.warn("Could not save order to local storage", e);
+      }
+
       // Trigger order alert email
       fetch("/api/order-alert", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          orderId: docRef.id,
+          orderId: finalOrderId,
           customerName: orderData.customerName,
           paymentMethod: orderData.paymentMethod,
           totalPrice: orderData.totalPrice,
@@ -162,26 +184,48 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         const orderData = {
           userId: user?.uid || "guest",
-          customerName: cardName,
+          customerName: cardName || codName || user?.displayName || "Card Customer",
           items: sanitizedItems,
           totalPrice: total,
           paymentMethod: "Card",
           status: "paid",
           createdAt: new Date().toISOString(),
-          district: "Card Payment",
-          address: "Digital Delivery",
-          primaryPhone: "N/A"
+          district: codDistrict || "Vavuniya",
+          address: codAddress || "Direct Card Payment",
+          primaryPhone: codPhone1 || "N/A"
         };
         
-        const docRef = await addDoc(collection(db, "orders"), orderData);
-        setOrderId(docRef.id);
+        let finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
+
+        try {
+          const res = await fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderData)
+          });
+          const data = await res.json();
+          if (data.orderId) finalOrderId = data.orderId;
+        } catch (e) {
+          console.warn("API card order save warning:", e);
+        }
+
+        setOrderId(finalOrderId);
+
+        try {
+          const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+          if (!stored.includes(finalOrderId)) {
+            localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
+          }
+        } catch (e) {
+          console.warn("Could not save order to local storage", e);
+        }
 
         // Trigger order alert email
         fetch("/api/order-alert", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            orderId: docRef.id,
+            orderId: finalOrderId,
             customerName: orderData.customerName,
             paymentMethod: orderData.paymentMethod,
             totalPrice: orderData.totalPrice,

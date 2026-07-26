@@ -96,6 +96,7 @@ export default function BannersTab({
         >
           <option value="all">All Placements</option>
           <option value="homepage_hero">Homepage Hero Slider</option>
+          <option value="shop_top">Shop / Products Page Top</option>
           <option value="homepage_after_categories">Homepage After Categories</option>
           <option value="homepage_above_bestsellers">Homepage Above Best Sellers</option>
           <option value="announcement_bar">Global Announcement Bar</option>

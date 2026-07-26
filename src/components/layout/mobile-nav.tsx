@@ -5,21 +5,28 @@ import { usePathname } from "next/navigation";
 import { Home, Grid3X3, Search, ShoppingBag, Heart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import { motion } from "framer-motion";
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { wishlist } = useWishlist();
 
-  // Hide bottom nav on admin routes
-  if (pathname.startsWith("/admin")) return null;
+  // Hide bottom nav on admin and checkout routes
+  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) return null;
+
+  const handleHomeClick = () => {
+    document.cookie = "sm_home_pref=true; path=/; max-age=86400";
+  };
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 safe-bottom">
-      <div className="grid grid-cols-4 items-center h-14 sm:h-16 px-2">
+      <div className="grid grid-cols-5 items-center h-14 sm:h-16 px-1">
         {/* Home */}
         <Link
           href="/"
+          onClick={handleHomeClick}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
             pathname === "/" ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
@@ -36,17 +43,17 @@ export default function MobileNav() {
           )}
         </Link>
 
-        {/* Categories */}
+        {/* Shop / Products */}
         <Link
-          href="/categories"
+          href="/products"
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/categories") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            pathname.startsWith("/products") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
           )}
         >
-          <Grid3X3 className={cn("w-5 h-5 transition-transform", pathname.startsWith("/categories") && "scale-110 text-white")} />
-          <span>Categories</span>
-          {pathname.startsWith("/categories") && (
+          <Grid3X3 className={cn("w-5 h-5 transition-transform", pathname.startsWith("/products") && "scale-110 text-white")} />
+          <span>Shop</span>
+          {pathname.startsWith("/products") && (
             <motion.div
               layoutId="bottomNavIndicator"
               className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
@@ -58,30 +65,30 @@ export default function MobileNav() {
         {/* Search */}
         <button
           onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1"
+          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 cursor-pointer"
         >
           <Search className="w-5 h-5" />
           <span>Search</span>
         </button>
 
-        {/* Products / Shop */}
+        {/* Wishlist */}
         <Link
-          href="/products"
+          href="/wishlist"
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/products") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            pathname.startsWith("/wishlist") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
           )}
         >
           <div className="relative">
-            <ShoppingBag className={cn("w-5 h-5 transition-transform", pathname.startsWith("/products") && "scale-110 text-white")} />
-            {itemCount > 0 && (
+            <Heart className={cn("w-5 h-5 transition-transform", pathname.startsWith("/wishlist") && "scale-110 text-white")} />
+            {wishlist.length > 0 && (
               <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
-                {itemCount > 99 ? "99+" : itemCount}
+                {wishlist.length}
               </span>
             )}
           </div>
-          <span>Shop</span>
-          {pathname.startsWith("/products") && (
+          <span>Wishlist</span>
+          {pathname.startsWith("/wishlist") && (
             <motion.div
               layoutId="bottomNavIndicator"
               className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
@@ -89,6 +96,22 @@ export default function MobileNav() {
             />
           )}
         </Link>
+
+        {/* Cart */}
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("open-cart-drawer"))}
+          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 relative cursor-pointer"
+        >
+          <div className="relative">
+            <ShoppingBag className="w-5 h-5" />
+            {itemCount > 0 && (
+              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+                {itemCount > 99 ? "99+" : itemCount}
+              </span>
+            )}
+          </div>
+          <span>Cart</span>
+        </button>
       </div>
     </nav>
   );

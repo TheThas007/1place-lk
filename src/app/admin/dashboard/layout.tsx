@@ -61,25 +61,31 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   useEffect(() => {
     if (!isAuthed) return;
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(q, (snapshot) => {
-      if (isFirstLoad.current) {
-        isFirstLoad.current = false;
-        return;
-      }
-      snapshot.docChanges().forEach((change) => {
-        if (change.type === "added") {
-          const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
-          setLiveAlert(newOrder);
-          try {
-            const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-            const promise = audio.play();
-            if (promise !== undefined) {
-              promise.catch(() => {});
-            }
-          } catch (e) {}
+    const unsub = onSnapshot(
+      q,
+      (snapshot) => {
+        if (isFirstLoad.current) {
+          isFirstLoad.current = false;
+          return;
         }
-      });
-    });
+        snapshot.docChanges().forEach((change) => {
+          if (change.type === "added") {
+            const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
+            setLiveAlert(newOrder);
+            try {
+              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
+              const promise = audio.play();
+              if (promise !== undefined) {
+                promise.catch(() => {});
+              }
+            } catch (e) {}
+          }
+        });
+      },
+      (error) => {
+        console.warn("Orders listener permission/network warning:", error);
+      }
+    );
     return () => unsub();
   }, [isAuthed]);
 

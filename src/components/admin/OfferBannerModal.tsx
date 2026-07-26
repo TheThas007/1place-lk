@@ -122,6 +122,39 @@ export default function OfferBannerModal({
     }
   };
 
+  const compressAndSetImage = (file: File, field: "desktopImage" | "mobileImage") => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement("canvas");
+        let width = img.width;
+        let height = img.height;
+        const maxDim = 1200;
+
+        if (width > maxDim || height > maxDim) {
+          if (width > height) {
+            height = Math.round((height * maxDim) / width);
+            width = maxDim;
+          } else {
+            width = Math.round((width * maxDim) / height);
+            height = maxDim;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext("2d");
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        const compressed = canvas.toDataURL("image/jpeg", 0.75);
+        setFormData((prev) => ({ ...prev, [field]: compressed }));
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -296,7 +329,7 @@ export default function OfferBannerModal({
                         placeholder="e.g. Shop Now"
                         value={formData.primaryCtaText || ""}
                         onChange={(e) => setFormData({ ...formData, primaryCtaText: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                       />
                     </div>
                     <div>
@@ -306,8 +339,28 @@ export default function OfferBannerModal({
                         placeholder="e.g. /products?category=iphone"
                         value={formData.primaryCtaUrl || ""}
                         onChange={(e) => setFormData({ ...formData, primaryCtaUrl: e.target.value })}
-                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                       />
+                      {/* Quick Link Selector Chips */}
+                      <div className="flex flex-wrap gap-1.5 mt-2">
+                        <span className="text-[10px] text-white/40 self-center mr-1">Quick Links:</span>
+                        {[
+                          { label: "Products", url: "/products" },
+                          { label: "Categories", url: "/categories" },
+                          { label: "Gallery", url: "/gallery" },
+                          { label: "Reviews", url: "/reviews" },
+                          { label: "Contact", url: "/contact" },
+                        ].map((chip) => (
+                          <button
+                            key={chip.url}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, primaryCtaUrl: chip.url })}
+                            className="px-2 py-0.5 rounded bg-white/10 hover:bg-amber-400 hover:text-black text-[10px] text-white/80 transition-colors"
+                          >
+                            {chip.label}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -316,24 +369,52 @@ export default function OfferBannerModal({
               {activeTab === "media" && (
                 <div className="space-y-4">
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1">Desktop Image URL *</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-medium text-white/70">Desktop Image *</label>
+                      <label className="cursor-pointer text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold">
+                        <ImageIcon className="w-3.5 h-3.5" /> Upload File
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) compressAndSetImage(file, "desktopImage");
+                          }}
+                        />
+                      </label>
+                    </div>
                     <input
                       type="text"
-                      placeholder="https://... or /banner.jpg (1920x760 recommended)"
+                      placeholder="https://... or paste image URL (1920x760 recommended)"
                       value={formData.desktopImage || ""}
                       onChange={(e) => setFormData({ ...formData, desktopImage: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1">Mobile Image URL (Optional)</label>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-xs font-medium text-white/70">Mobile Image (Optional)</label>
+                      <label className="cursor-pointer text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold">
+                        <ImageIcon className="w-3.5 h-3.5" /> Upload File
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) compressAndSetImage(file, "mobileImage");
+                          }}
+                        />
+                      </label>
+                    </div>
                     <input
                       type="text"
-                      placeholder="https://... or /banner-mobile.jpg (1080x1350 recommended)"
+                      placeholder="https://... or paste mobile image URL (1080x1350 recommended)"
                       value={formData.mobileImage || ""}
                       onChange={(e) => setFormData({ ...formData, mobileImage: e.target.value })}
-                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                     />
                   </div>
 

@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone, MapPin, ChevronRight, ShoppingBag, User, LogOut, Search } from "lucide-react";
+import { Menu, X, Phone, MapPin, ChevronRight, ShoppingBag, User, LogOut, Search, Heart, Package } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import AuthModal from "@/components/auth/AuthModal";
 import CartDrawer from "@/components/cart/CartDrawer";
 
@@ -15,6 +16,7 @@ const navLinks = [
   { href: "/", label: "Home" },
   { href: "/products", label: "Products" },
   { href: "/categories", label: "Categories" },
+  { href: "/orders", label: "My Orders" },
   { href: "/gallery", label: "Gallery" },
   { href: "/reviews", label: "Reviews" },
   { href: "/contact", label: "Contact" },
@@ -29,6 +31,12 @@ export default function Header() {
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const { itemCount } = useCart();
+  const { wishlist } = useWishlist();
+
+  const handleHomeClick = () => {
+    // Set cookie to remember user choice for 24 hours
+    document.cookie = "sm_home_pref=true; path=/; max-age=86400";
+  };
 
   useEffect(() => {
     const handleScroll = () => setIsScrolled(window.scrollY > 20);
@@ -40,6 +48,12 @@ export default function Header() {
     const handleOpenAuth = () => setAuthOpen(true);
     window.addEventListener("open-auth-modal", handleOpenAuth);
     return () => window.removeEventListener("open-auth-modal", handleOpenAuth);
+  }, []);
+
+  useEffect(() => {
+    const handleOpenCart = () => setCartOpen(true);
+    window.addEventListener("open-cart-drawer", handleOpenCart);
+    return () => window.removeEventListener("open-cart-drawer", handleOpenCart);
   }, []);
 
   useEffect(() => {
@@ -74,10 +88,13 @@ export default function Header() {
         </div>
 
         <div className="max-w-7xl mx-auto px-4 lg:px-6">
-          <div className="flex items-center justify-between h-[100px] lg:h-[110px]">
+          <div className={cn(
+            "flex items-center justify-between transition-all duration-300",
+            isScrolled ? "h-16 lg:h-16" : "h-[100px] lg:h-[110px]"
+          )}>
 
             {/* Logo */}
-            <Link href="/" className="flex items-center shrink-0 group">
+            <Link href="/" onClick={handleHomeClick} className="flex items-center shrink-0 group">
               <motion.div
                 className="relative flex items-center"
                 whileHover={{ scale: 1.04 }}
@@ -87,7 +104,12 @@ export default function Header() {
                 <img
                   src="/logo.png"
                   alt="STREET MOBILE Logo"
-                  className="w-[130px] sm:w-[160px] lg:w-[200px] h-auto object-contain"
+                  className={cn(
+                    "h-auto object-contain transition-all duration-300",
+                    isScrolled
+                      ? "w-[100px] sm:w-[120px] lg:w-[140px]"
+                      : "w-[130px] sm:w-[160px] lg:w-[200px]"
+                  )}
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
                     const fb = document.getElementById("logo-fallback-header");
@@ -117,6 +139,9 @@ export default function Header() {
                   >
                     <Link
                       href={link.href}
+                      onClick={() => {
+                        if (link.href === "/") handleHomeClick();
+                      }}
                       className={cn(
                         "relative px-4 py-2 rounded-lg text-[13px] font-medium transition-all duration-300 group",
                         isActive ? "text-white" : "text-white/50 hover:text-white"
@@ -164,6 +189,25 @@ export default function Header() {
               >
                 <Search className="w-5 h-5" />
               </button>
+
+              {/* Wishlist button */}
+              <Link
+                href="/wishlist"
+                className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                aria-label="Open wishlist"
+              >
+                <Heart className="w-5 h-5" />
+                {wishlist.length > 0 && (
+                  <motion.span
+                    key={wishlist.length}
+                    initial={{ scale: 0.5 }}
+                    animate={{ scale: 1 }}
+                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full leading-none shadow-md shadow-red-600/50"
+                  >
+                    {wishlist.length}
+                  </motion.span>
+                )}
+              </Link>
 
               {/* Bag icon */}
               <button
@@ -220,6 +264,14 @@ export default function Header() {
                           <p className="text-white text-sm font-semibold truncate">{user.displayName || "User"}</p>
                           <p className="text-white/40 text-xs truncate">{user.email}</p>
                         </div>
+                        <Link
+                          href="/orders"
+                          onClick={() => setUserMenuOpen(false)}
+                          className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/[0.04] border-b border-white/10 transition-all"
+                        >
+                          <Package className="w-4 h-4 text-emerald-400" />
+                          My Orders
+                        </Link>
                         <button
                           onClick={async () => { await signOut(); setUserMenuOpen(false); }}
                           className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/60 hover:text-white hover:bg-white/[0.04] transition-all"
@@ -295,7 +347,10 @@ export default function Header() {
                     <motion.div key={link.href} initial={{ opacity: 0, x: 30 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.1 + index * 0.05, duration: 0.35 }}>
                       <Link
                         href={link.href}
-                        onClick={() => setIsMobileMenuOpen(false)}
+                        onClick={() => {
+                          setIsMobileMenuOpen(false);
+                          if (link.href === "/") handleHomeClick();
+                        }}
                         className={cn(
                           "flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all mb-1 group",
                           isActive ? "bg-white/[0.08] text-white border border-white/[0.08]" : "text-white/50 hover:text-white hover:bg-white/[0.04]"

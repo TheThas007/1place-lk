@@ -1,0 +1,447 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import Link from "next/link";
+import {
+  Package,
+  Clock,
+  Truck,
+  CheckCircle2,
+  XCircle,
+  Search,
+  MessageCircle,
+  ArrowLeft,
+  Calendar,
+  MapPin,
+  CreditCard,
+  ShoppingBag,
+  ChevronRight
+} from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { formatPrice } from "@/lib/utils";
+
+interface OrderItem {
+  productId: string;
+  name: string;
+  price: number;
+  image: string;
+  quantity: number;
+  storage?: string;
+  color?: string;
+}
+
+interface Order {
+  id: string;
+  userId?: string;
+  customerName: string;
+  address: string;
+  district: string;
+  primaryPhone: string;
+  secondaryPhone?: string;
+  items: OrderItem[];
+  totalPrice: number;
+  paymentMethod: "COD" | "Card" | string;
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled" | string;
+  createdAt: string;
+}
+
+// Function to calculate Estimated Delivery Date range
+function getDeliveryEstimate(createdAtStr: string, status: string) {
+  const created = new Date(createdAtStr);
+
+  if (status === "delivered") {
+    return {
+      label: "Delivered",
+      color: "text-emerald-500 bg-emerald-50 border-emerald-200",
+      dateText: `Delivered on ${created.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
+      step: 4
+    };
+  }
+
+  if (status === "cancelled") {
+    return {
+      label: "Cancelled",
+      color: "text-red-500 bg-red-50 border-red-200",
+      dateText: "Order Cancelled",
+      step: 0
+    };
+  }
+
+  // Calculate 2-3 business days from order date
+  const minDate = new Date(created);
+  minDate.setDate(minDate.getDate() + 2);
+
+  const maxDate = new Date(created);
+  maxDate.setDate(maxDate.getDate() + 4);
+
+  const minFormatted = minDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  const maxFormatted = maxDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+
+  if (status === "shipped") {
+    return {
+      label: "Out for Delivery",
+      color: "text-blue-600 bg-blue-50 border-blue-200",
+      dateText: `Expected Today or Tomorrow (${minFormatted})`,
+      step: 3
+    };
+  }
+
+  if (status === "processing") {
+    return {
+      label: "Packed & Ready",
+      color: "text-purple-600 bg-purple-50 border-purple-200",
+      dateText: `Expected Delivery: ${minFormatted} – ${maxFormatted}`,
+      step: 2
+    };
+  }
+
+  // Default: Pending
+  return {
+    label: "Order Placed",
+    color: "text-amber-600 bg-amber-50 border-amber-200",
+    dateText: `Estimated Delivery: ${minFormatted} – ${maxFormatted}`,
+    step: 1
+  };
+}
+
+export default function OrderHistoryPage() {
+  const { user } = useAuth();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [phoneSearch, setPhoneSearch] = useState("");
+  const [searchTriggered, setSearchTriggered] = useState(false);
+
+  useEffect(() => {
+    async function fetchUserOrders() {
+      setLoading(true);
+      const fetchedMap = new Map<string, Order>();
+
+      // 1. Fetch from server API store
+      try {
+        const url = user ? `/api/orders?userId=${user.uid}` : "/api/orders";
+        const res = await fetch(url);
+        const data = await res.json();
+        if (Array.isArray(data?.orders)) {
+          data.orders.forEach((o: Order) => {
+            if (o && o.id) fetchedMap.set(o.id, o);
+          });
+        }
+      } catch (e) {
+        console.warn("API orders fetch warning:", e);
+      }
+
+      // 2. Fetch orders from localStorage (recent orders placed in this browser)
+      try {
+        const storedIds: string[] = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+        if (Array.isArray(storedIds) && storedIds.length > 0) {
+          const promises = storedIds.slice(0, 15).map((id) => getDoc(doc(db, "orders", id)).catch(() => null));
+          const docSnaps = await Promise.all(promises);
+          docSnaps.forEach((d) => {
+            if (d && d.exists()) {
+              fetchedMap.set(d.id, { ...d.data(), id: d.id } as Order);
+            }
+          });
+        }
+      } catch (e) {
+        console.warn("Local storage order read error:", e);
+      }
+
+      // 3. Fetch logged-in user orders if authenticated
+      if (user) {
+        try {
+          const q = query(
+            collection(db, "orders"),
+            where("userId", "==", user.uid)
+          );
+          const snap = await getDocs(q);
+          snap.docs.forEach((d) => {
+            fetchedMap.set(d.id, { ...d.data(), id: d.id } as Order);
+          });
+        } catch (err: any) {
+          if (err?.code !== "permission-denied") {
+            console.warn("User orders query error:", err);
+          }
+        }
+      }
+
+      const list = Array.from(fetchedMap.values());
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setOrders(list);
+      setLoading(false);
+    }
+
+    fetchUserOrders();
+  }, [user]);
+
+  const handlePhoneSearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const searchTerm = phoneSearch.trim();
+    if (!searchTerm) return;
+    setLoading(true);
+    setSearchTriggered(true);
+
+    try {
+      const fetchedMap = new Map<string, Order>();
+
+      // 1. Check API endpoint by phone or order ID
+      try {
+        const res = await fetch(`/api/orders?phone=${encodeURIComponent(searchTerm)}`);
+        const data = await res.json();
+        if (Array.isArray(data?.orders)) {
+          data.orders.forEach((o: Order) => fetchedMap.set(o.id, o));
+        }
+
+        const res2 = await fetch(`/api/orders?id=${encodeURIComponent(searchTerm)}`);
+        const data2 = await res2.json();
+        if (Array.isArray(data2?.orders)) {
+          data2.orders.forEach((o: Order) => fetchedMap.set(o.id, o));
+        }
+      } catch (e) {
+        console.warn("API phone search warning:", e);
+      }
+
+      // 2. Check if user searched by direct Order ID in Firestore
+      try {
+        const directDoc = await getDoc(doc(db, "orders", searchTerm));
+        if (directDoc.exists()) {
+          fetchedMap.set(directDoc.id, { ...directDoc.data(), id: directDoc.id } as Order);
+        }
+      } catch (e) {
+        // Ignored
+      }
+
+      // 3. Check phone number query in Firestore
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("primaryPhone", "==", searchTerm)
+        );
+        const snap = await getDocs(q);
+        snap.docs.forEach((d) => {
+          fetchedMap.set(d.id, { ...d.data(), id: d.id } as Order);
+        });
+      } catch (err: any) {
+        if (err?.code !== "permission-denied") {
+          console.warn("Phone order lookup error:", err);
+        }
+      }
+
+      const list = Array.from(fetchedMap.values());
+      list.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      setOrders(list);
+    } catch (err) {
+      console.warn("Order lookup error:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="bg-gray-50 min-h-screen pt-24 pb-20">
+      <div className="max-w-4xl mx-auto px-4 lg:px-6">
+        
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+          <div>
+            <Link
+              href="/products"
+              className="inline-flex items-center gap-1.5 text-xs text-gray-400 hover:text-black mb-2 transition-colors"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Continue Shopping
+            </Link>
+            <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
+              <Package className="w-8 h-8 text-black" /> My Order History
+            </h1>
+            <p className="text-sm text-gray-400 mt-1">
+              Track live order statuses and estimated delivery dates
+            </p>
+          </div>
+
+          {/* Quick WhatsApp Support */}
+          <a
+            href="https://wa.me/94774141118?text=Hello%20STREET%20MOBILE,%20I%20have%20a%20question%20about%20my%20order."
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-bold hover:bg-[#20bd5a] transition-all shadow-md shrink-0"
+          >
+            <MessageCircle className="w-4 h-4" /> Order Help
+          </a>
+        </div>
+
+        {/* Track Order Search Box (Always visible for all users) */}
+        <div className="bg-white border border-gray-100 rounded-3xl p-6 mb-8 shadow-sm">
+          <h3 className="font-bold text-base text-gray-900 mb-1">Track Order by Phone Number or Order ID</h3>
+          <p className="text-xs text-gray-400 mb-4">
+            Type your phone number or Order ID below to view your order status and live delivery date estimates.
+          </p>
+          <form onSubmit={handlePhoneSearch} className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Enter Phone Number (e.g. 0774141118) or Order ID"
+                value={phoneSearch}
+                onChange={(e) => setPhoneSearch(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black transition-all"
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              className="px-6 py-3 bg-black text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shrink-0 active:scale-95"
+            >
+              Track Order
+            </button>
+          </form>
+        </div>
+
+        {/* Order List */}
+        {loading ? (
+          <div className="space-y-4">
+            {[1, 2].map((i) => (
+              <div key={i} className="h-44 bg-white border border-gray-100 rounded-3xl animate-pulse" />
+            ))}
+          </div>
+        ) : orders.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-16 bg-white rounded-3xl border border-gray-100 text-center p-8 shadow-sm">
+            <ShoppingBag className="w-12 h-12 text-gray-300 mb-3" />
+            <h3 className="text-lg font-bold text-gray-900 mb-1">No orders found</h3>
+            <p className="text-sm text-gray-400 max-w-sm mb-6">
+              {searchTriggered
+                ? "No matching orders found for this phone number."
+                : "You haven't placed any orders yet. Explore our mobile store to get started!"}
+            </p>
+            <Link
+              href="/products"
+              className="px-6 py-3 bg-black text-white rounded-xl font-bold text-sm hover:bg-gray-800 transition-all shadow-md"
+            >
+              Explore Products
+            </Link>
+          </div>
+        ) : (
+          <div className="space-y-6">
+            {orders.map((order) => {
+              const estimate = getDeliveryEstimate(order.createdAt, order.status);
+              const orderDate = new Date(order.createdAt).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+                hour: "2-digit",
+                minute: "2-digit"
+              });
+
+              return (
+                <div
+                  key={order.id}
+                  className="bg-white border border-gray-100 rounded-3xl p-6 shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                >
+                  {/* Top Bar: ID, Date, Delivery Badge */}
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-gray-100 pb-4 mb-5">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono text-xs font-bold text-gray-400">Order #{order.id.slice(-8).toUpperCase()}</span>
+                        <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${estimate.color}`}>
+                          {estimate.label}
+                        </span>
+                      </div>
+                      <div className="text-xs text-gray-400 mt-1 flex items-center gap-1">
+                        <Clock className="w-3.5 h-3.5 text-gray-400" />
+                        Placed on {orderDate}
+                      </div>
+                    </div>
+
+                    {/* Delivery Date Display Banner */}
+                    <div className="px-4 py-2 rounded-2xl bg-gradient-to-r from-emerald-50 to-teal-50 border border-emerald-100 flex items-center gap-2">
+                      <Truck className="w-4 h-4 text-emerald-600 shrink-0" />
+                      <div className="text-xs">
+                        <span className="text-emerald-800 font-bold block">{estimate.dateText}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Status Progress Stepper */}
+                  {order.status !== "cancelled" && (
+                    <div className="mb-6 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                      <div className="flex items-center justify-between relative">
+                        {/* Progress Bar Line */}
+                        <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 -translate-y-1/2 z-0" />
+                        <div
+                          className="absolute top-1/2 left-0 h-1 bg-black -translate-y-1/2 z-0 transition-all duration-500"
+                          style={{
+                            width: `${Math.min(100, (estimate.step / 4) * 100)}%`
+                          }}
+                        />
+
+                        {/* Step Dots */}
+                        {[
+                          { title: "Placed", step: 1 },
+                          { title: "Packed", step: 2 },
+                          { title: "Shipped", step: 3 },
+                          { title: "Delivered", step: 4 },
+                        ].map((s) => (
+                          <div key={s.step} className="relative z-10 flex flex-col items-center">
+                            <div
+                              className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
+                                estimate.step >= s.step
+                                  ? "bg-black text-white"
+                                  : "bg-white border-2 border-gray-300 text-gray-400"
+                              }`}
+                            >
+                              {estimate.step >= s.step ? "✓" : s.step}
+                            </div>
+                            <span className="text-[10px] font-semibold text-gray-500 mt-1">{s.title}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Purchased Items List */}
+                  <div className="space-y-3 mb-5">
+                    {order.items?.map((item, idx) => (
+                      <div key={idx} className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+                        <div className="w-14 h-14 bg-gray-50 rounded-xl p-1 shrink-0 overflow-hidden border border-gray-100 flex items-center justify-center">
+                          <img src={item.image} alt={item.name} className="w-full h-full object-contain mix-blend-multiply" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <h4 className="font-semibold text-sm text-gray-900 truncate">{item.name}</h4>
+                          <p className="text-xs text-gray-400">
+                            Qty: {item.quantity} {item.storage ? `• ${item.storage}` : ""} {item.color ? `• ${item.color}` : ""}
+                          </p>
+                        </div>
+                        <div className="font-bold text-sm text-gray-900 text-right">
+                          {formatPrice(item.price * item.quantity)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Summary & Customer Details Footer */}
+                  <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-gray-50/50 -mx-6 -mb-6 p-6 rounded-b-3xl">
+                    <div className="text-xs text-gray-500 space-y-1">
+                      <p className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-gray-400" />
+                        <span className="font-medium text-gray-800">{order.customerName}</span> — {order.address}, {order.district}
+                      </p>
+                      <p className="flex items-center gap-1.5">
+                        <CreditCard className="w-3.5 h-3.5 text-gray-400" />
+                        Payment: <span className="font-semibold text-gray-800">{order.paymentMethod}</span>
+                      </p>
+                    </div>
+
+                    <div className="text-right self-end sm:self-auto">
+                      <span className="text-xs text-gray-400 block">Total Amount</span>
+                      <span className="text-lg font-black text-gray-900">{formatPrice(order.totalPrice)}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}

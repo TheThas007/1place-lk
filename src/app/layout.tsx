@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 import Header from "@/components/layout/header";
@@ -10,24 +9,7 @@ import { AuthProvider } from "@/lib/auth-context";
 import { CartProvider } from "@/lib/cart-context";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import SearchOverlay from "@/components/ui/SearchOverlay";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const outfit = Outfit({
-  variable: "--font-outfit",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800", "900"],
-});
-
-const playfair = Playfair_Display({
-  variable: "--font-playfair",
-  subsets: ["latin"],
-  weight: ["400", "600", "700", "800", "900"],
-  style: ["normal", "italic"],
-});
+import { WishlistProvider } from "@/lib/wishlist-context";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.streetmobile.lk"),
@@ -64,22 +46,29 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${inter.variable} ${outfit.variable} ${playfair.variable} h-full antialiased`}>
+    <html lang="en" className="h-full antialiased">
+      <head>
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+      </head>
       <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>
           <CartProvider>
-            <ToastProvider>
-              <AnnouncementBar />
-              <Header />
-              <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">
-                {children}
-              </main>
-              <Footer />
-              <MobileNav />
-              <WhatsAppFab />
-              <SearchOverlay />
-              <CampaignPopup />
-            </ToastProvider>
+            <WishlistProvider>
+              <ToastProvider>
+                <AnnouncementBar />
+                <Header />
+                <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">
+                  {children}
+                </main>
+                <Footer />
+                <MobileNav />
+                <WhatsAppFab />
+                <SearchOverlay />
+                <CampaignPopup />
+              </ToastProvider>
+            </WishlistProvider>
           </CartProvider>
         </AuthProvider>
       </body>
