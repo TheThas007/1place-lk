@@ -15,16 +15,30 @@ const CAT_STYLE: Record<string, string> = {
   customers: "from-gray-700 to-gray-900",
 };
 
+/* ─── Premium Bento Layout Spans ─── */
+function getCardLayoutClass(index: number): string {
+  switch (index) {
+    case 0:
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 md:row-span-2 min-h-[340px] sm:min-h-[460px]";
+    case 3:
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[220px] sm:min-h-[250px]";
+    case 6:
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[220px] sm:min-h-[250px]";
+    default:
+      return "col-span-1 min-h-[220px] sm:min-h-[240px]";
+  }
+}
+
 /* ─── Clean Bento Image Card ─── */
 function GalleryCard({
   image,
   index,
-  isFeatured = false,
+  cardClass = "",
   onOpen,
 }: {
   image: GalleryImage;
   index: number;
-  isFeatured?: boolean;
+  cardClass?: string;
   onOpen: (img: GalleryImage) => void;
 }) {
   // Clean duplicate text in captions if present
@@ -39,10 +53,8 @@ function GalleryCard({
       initial={{ opacity: 0, y: 24 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: index * 0.06, ease: [0.16, 1, 0.3, 1] as const }}
-      className={`relative group w-full h-full rounded-[28px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_30px_rgba(255,255,255,0.1)] hover:-translate-y-1.5 ${
-        isFeatured ? "sm:col-span-2 md:row-span-2 aspect-[4/3] sm:aspect-[16/10] md:aspect-auto h-full min-h-[320px]" : "aspect-[4/3] min-h-[200px]"
-      }`}
+      transition={{ duration: 0.6, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] as const }}
+      className={`relative group w-full h-full rounded-[28px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_35px_rgba(255,255,255,0.12)] hover:-translate-y-1.5 ${cardClass}`}
       onClick={() => onOpen(image)}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -54,25 +66,25 @@ function GalleryCard({
         />
 
         {/* Ambient Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-black/10 opacity-70 group-hover:opacity-85 transition-opacity duration-500" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 opacity-75 group-hover:opacity-90 transition-opacity duration-500" />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
 
         {/* Category badge */}
         {image.category && (
-          <div className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white bg-black/50 border border-white/20 backdrop-blur-md shadow-lg group-hover:border-white/40 group-hover:bg-black/70 transition-all">
+          <div className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white bg-black/60 border border-white/20 backdrop-blur-md shadow-lg group-hover:border-white/40 group-hover:bg-black/80 transition-all z-10">
             {image.category}
           </div>
         )}
 
         {/* Floating Zoom icon with blur */}
-        <div className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 shadow-xl">
+        <div className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 shadow-xl z-10">
           <Maximize2 className="w-4 h-4 text-white" />
         </div>
 
         {/* Glassmorphic Caption Banner */}
         {formattedCaption && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500">
-            <div className="p-3 rounded-2xl bg-slate-950/75 backdrop-blur-md border border-white/10 shadow-2xl">
+          <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 z-10">
+            <div className="p-3 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-2xl">
               <p className="text-white text-xs sm:text-sm font-medium leading-snug drop-shadow line-clamp-2">
                 {formattedCaption}
               </p>
@@ -195,7 +207,7 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
               key={img.id || index} 
               image={img} 
               index={index}
-              isFeatured={index === 0}
+              cardClass={getCardLayoutClass(index)}
               onOpen={(image) => setLightbox(image)}
             />
           ))}
