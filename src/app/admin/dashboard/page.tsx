@@ -32,7 +32,7 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, setDoc, onSnapshot, query, orderBy, getDoc } from "firebase/firestore";
-import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
+import { Product, Category, Review, GalleryImage, HeroSlide, OfferBanner, BannerStatus } from "@/lib/types";
 import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
@@ -40,8 +40,10 @@ import ProductModal from "@/components/admin/ProductModal";
 import GalleryModal from "@/components/admin/GalleryModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import HeroModal from "@/components/admin/HeroModal";
+import OfferBannerModal from "@/components/admin/OfferBannerModal";
+import BannersTab from "@/components/admin/tabs/BannersTab";
 
-type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders" | "settings";
+type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders" | "settings" | "banners";
 
 function AdminDashboardContent() {
   const router = useRouter();
@@ -51,7 +53,7 @@ function AdminDashboardContent() {
   const [isAuthed, setIsAuthed] = useState(false);
 
   useEffect(() => {
-    if (tabParam && ["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings"].includes(tabParam)) {
+    if (tabParam && ["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings", "banners"].includes(tabParam)) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -61,6 +63,7 @@ function AdminDashboardContent() {
   const [reviewsList, setReviewsList] = useState<Review[]>([]);
   const [galleryList, setGalleryList] = useState<GalleryImage[]>([]);
   const [heroList, setHeroList] = useState<HeroSlide[]>([]);
+  const [bannersList, setBannersList] = useState<OfferBanner[]>([]);
   const [usersList, setUsersList] = useState<any[]>([]);
   const [ordersList, setOrdersList] = useState<any[]>([]);
   const [uiSettings, setUiSettings] = useState<any>({});
@@ -82,6 +85,9 @@ function AdminDashboardContent() {
 
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
+
+  const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
+  const [editingBanner, setEditingBanner] = useState<OfferBanner | null>(null);
 
   useEffect(() => {
     const auth = sessionStorage.getItem("admin_auth");
@@ -143,7 +149,7 @@ function AdminDashboardContent() {
         }
       };
 
-      const [pDocs, cDocs, rDocs, gDocs, hDocs, uDocs, oDocs] = await Promise.all([
+      const [pDocs, cDocs, rDocs, gDocs, hDocs, uDocs, oDocs, bDocs] = await Promise.all([
         getDocsSafe("products"),
         getDocsSafe("categories"),
         getDocsSafe("reviews"),
@@ -151,6 +157,7 @@ function AdminDashboardContent() {
         getDocsSafe("hero_slides"),
         getDocsSafe("users"),
         getDocsSafe("orders"),
+        getDocsSafe("offer_banners"),
       ]);
 
       const fetchedProducts = pDocs as Product[];
@@ -162,6 +169,7 @@ function AdminDashboardContent() {
       setReviewsList(fetchedReviews.length > 0 ? fetchedReviews : fallbackReviews);
       setGalleryList(gDocs as GalleryImage[]);
       setHeroList((hDocs as HeroSlide[]).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      setBannersList(bDocs as OfferBanner[]);
       setUsersList(uDocs);
       setOrdersList((oDocs as any[]).sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
 
@@ -295,6 +303,58 @@ function AdminDashboardContent() {
       await deleteDoc(doc(db, "hero_slides", id));
       await fetchData();
     }
+  };
+
+  const handleAddBanner = () => {
+    setEditingBanner(null);
+    setIsBannerModalOpen(true);
+  };
+
+  const handleEditBanner = (banner: OfferBanner) => {
+    setEditingBanner(banner);
+    setIsBannerModalOpen(true);
+  };
+
+  const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
+    if (editingBanner?.id) {
+      await updateDoc(doc(db, "offer_banners", editingBanner.id), {
+        ...bannerData,
+        updated_at: new Date().toISOString(),
+      });
+    } else {
+      await addDoc(collection(db, "offer_banners"), {
+        ...bannerData,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      });
+    }
+    await fetchData();
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (confirm("Are you sure you want to delete this offer banner?")) {
+      await deleteDoc(doc(db, "offer_banners", id));
+      await fetchData();
+    }
+  };
+
+  const handleDuplicateBanner = async (banner: OfferBanner) => {
+    const { id, ...data } = banner;
+    await addDoc(collection(db, "offer_banners"), {
+      ...data,
+      internalName: `${banner.internalName} (Copy)`,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    });
+    await fetchData();
+  };
+
+  const handleToggleBannerStatus = async (id: string, newStatus: BannerStatus) => {
+    await updateDoc(doc(db, "offer_banners", id), {
+      status: newStatus,
+      updated_at: new Date().toISOString(),
+    });
+    await fetchData();
   };
 
   const handleInitDefaultHeroSlides = async () => {
@@ -439,6 +499,16 @@ function AdminDashboardContent() {
               onDeleteOrder={handleDeleteOrder} 
             />
           )}
+          {activeTab === "banners" && (
+            <BannersTab
+              banners={bannersList}
+              onAdd={handleAddBanner}
+              onEdit={handleEditBanner}
+              onDelete={handleDeleteBanner}
+              onDuplicate={handleDuplicateBanner}
+              onToggleStatus={handleToggleBannerStatus}
+            />
+          )}
           {activeTab === "settings" && (
             <SettingsTab 
               settings={uiSettings}
@@ -450,6 +520,12 @@ function AdminDashboardContent() {
 
 
       {/* Modals */}
+      <OfferBannerModal
+        isOpen={isBannerModalOpen}
+        onClose={() => setIsBannerModalOpen(false)}
+        onSave={handleSaveBanner}
+        initialData={editingBanner}
+      />
       <ProductModal
         isOpen={isProductModalOpen}
         onClose={() => setIsProductModalOpen(false)}

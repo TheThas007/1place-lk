@@ -5,6 +5,7 @@ import CategoriesSection from "@/components/home/categories-section";
 import ReviewsSection from "@/components/home/reviews-section";
 import GallerySection from "@/components/home/gallery-section";
 import StoreLocation from "@/components/home/store-location";
+import CampaignPlacement from "@/components/ui/CampaignPlacement";
 
 import { getCategories, getReviews, getGalleryImages, getUiSettings } from "@/lib/firestore-client";
 import { GalleryImage } from "@/lib/types";
@@ -69,6 +70,9 @@ export default async function HomePage() {
       <TrustIndicators />
       <FeaturedProducts />
       <CategoriesSection categories={categories} />
+      <div className="max-w-7xl mx-auto px-4 lg:px-6">
+        <CampaignPlacement placement="homepage_after_categories" />
+      </div>
       <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
       <ReviewsSection reviews={reviews} />
       <StoreLocation />

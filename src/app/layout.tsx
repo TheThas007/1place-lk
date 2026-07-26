@@ -55,6 +55,9 @@ export const metadata: Metadata = {
   },
 };
 
+import AnnouncementBar from "@/components/ui/AnnouncementBar";
+import CampaignPopup from "@/components/ui/CampaignPopup";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -66,6 +69,7 @@ export default function RootLayout({
         <AuthProvider>
           <CartProvider>
             <ToastProvider>
+              <AnnouncementBar />
               <Header />
               <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">
                 {children}
@@ -74,6 +78,7 @@ export default function RootLayout({
               <MobileNav />
               <WhatsAppFab />
               <SearchOverlay />
+              <CampaignPopup />
             </ToastProvider>
           </CartProvider>
         </AuthProvider>

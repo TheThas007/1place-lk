@@ -1,6 +1,6 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
-import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings } from "./types";
+import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner } from "./types";
 import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, siteSettings } from "./data";
 
 export async function getProductBanners(): Promise<ProductBanner[]> {
@@ -58,6 +58,29 @@ export async function getBanners(): Promise<Banner[]> {
     return snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Banner));
   } catch (e) {
     console.warn("Offline/Error fetching banners:", e);
+    return [];
+  }
+}
+
+export async function getOfferBanners(placement?: string): Promise<OfferBanner[]> {
+  try {
+    const q = query(collection(db, "offer_banners"));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OfferBanner));
+    const now = new Date();
+    
+    return docs.filter(b => {
+      if (b.status === "archived" || b.status === "draft" || b.status === "paused") return false;
+      if (placement && b.placement !== placement) return false;
+      
+      // Schedule check
+      if (b.startAt && new Date(b.startAt) > now) return false;
+      if (!b.noExpiry && b.endAt && new Date(b.endAt) < now) return false;
+      
+      return true;
+    }).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  } catch (e) {
+    console.warn("Offline/Error fetching offer banners:", e);
     return [];
   }
 }

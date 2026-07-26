@@ -87,6 +87,77 @@ export interface ProductBanner {
   active: boolean;
 }
 
+export type BannerStatus = "draft" | "scheduled" | "active" | "paused" | "expired" | "archived";
+export type BannerPlacement = 
+  | "homepage_hero"
+  | "homepage_below_header"
+  | "homepage_after_categories"
+  | "homepage_above_bestsellers"
+  | "homepage_above_new_arrivals"
+  | "homepage_before_testimonials"
+  | "shop_top"
+  | "category_top"
+  | "product_page"
+  | "cart_page"
+  | "checkout_notice"
+  | "announcement_bar"
+  | "popup_campaign";
+
+export interface OfferBanner {
+  id: string;
+  internalName: string;
+  headline: string;
+  highlightText?: string;
+  description?: string;
+  promoLabel?: string;
+  badgeText?: string;
+  couponCode?: string;
+  termsText?: string;
+  
+  primaryCtaText?: string;
+  primaryCtaUrl?: string;
+  secondaryCtaText?: string;
+  secondaryCtaUrl?: string;
+  linkType?: "internal" | "product" | "category" | "brand" | "offer" | "custom" | "whatsapp";
+  openInNewTab?: boolean;
+  
+  desktopImage?: string;
+  tabletImage?: string;
+  mobileImage?: string;
+  videoUrl?: string;
+  posterImage?: string;
+  altText?: string;
+  overlayOpacity?: number;
+  
+  textAlign?: "left" | "center" | "right";
+  contentPosition?: "top_left" | "center_left" | "bottom_left" | "center" | "top_right" | "center_right" | "bottom_right";
+  textColor?: string;
+  stylePreset?: "premium_dark" | "clean_light" | "product_focus" | "flash_sale" | "festival_offer" | "minimal_promo" | "new_arrival";
+  backgroundColor?: string;
+  overlayColor?: string;
+  
+  placement: BannerPlacement;
+  sort_order?: number;
+  status: BannerStatus;
+  
+  startAt?: string;
+  endAt?: string;
+  publishImmediately?: boolean;
+  noExpiry?: boolean;
+  
+  targetDevice?: "all" | "desktop" | "mobile" | "tablet";
+  targetAudience?: "all" | "logged_in" | "guest";
+  
+  countdownEnabled?: boolean;
+  countdownEndAt?: string;
+  countdownLabel?: string;
+  countdownExpiredMsg?: string;
+  
+  created_at?: string;
+  updated_at?: string;
+}
+
+
 export interface Order {
   id: string;
   product_name: string;

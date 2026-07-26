@@ -15,7 +15,8 @@ import {
   Bell,
   Wrench,
   Truck,
-  DollarSign
+  DollarSign,
+  Sparkles
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -32,6 +33,8 @@ const SIDEBAR_ITEMS = [
   { id: "suppliers", label: "Suppliers", icon: Truck, href: "/admin/dashboard/suppliers" },
   { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard/cashflow" },
 
+  // Marketing & Media
+  { id: "banners", label: "Offer Banners", icon: Sparkles, href: "/admin/dashboard/banners" },
   { id: "gallery", label: "Gallery", icon: ImageIcon, href: "/admin/dashboard/gallery" },
   { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard/reviews" },
   { id: "hero", label: "Hero Slides", icon: ImageIcon, href: "/admin/dashboard/hero" },

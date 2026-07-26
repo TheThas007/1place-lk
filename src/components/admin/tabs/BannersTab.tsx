@@ -1,0 +1,203 @@
+"use client";
+
+import React, { useState } from "react";
+import { OfferBanner, BannerStatus, BannerPlacement } from "@/lib/types";
+import { Sparkles, Plus, Search, Edit, Trash2, Copy, Eye, Tag, Calendar, Monitor, Smartphone, Layers, CheckCircle2, PauseCircle, Clock, Archive } from "lucide-react";
+
+interface BannersTabProps {
+  banners: OfferBanner[];
+  onAdd: () => void;
+  onEdit: (banner: OfferBanner) => void;
+  onDelete: (id: string) => void;
+  onDuplicate: (banner: OfferBanner) => void;
+  onToggleStatus: (id: string, newStatus: BannerStatus) => void;
+}
+
+export default function BannersTab({
+  banners,
+  onAdd,
+  onEdit,
+  onDelete,
+  onDuplicate,
+  onToggleStatus,
+}: BannersTabProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedPlacement, setSelectedPlacement] = useState<string>("all");
+  const [selectedStatus, setSelectedStatus] = useState<string>("all");
+
+  const filteredBanners = banners.filter((b) => {
+    const q = searchQuery.toLowerCase();
+    const matchesSearch =
+      b.internalName?.toLowerCase().includes(q) ||
+      b.headline?.toLowerCase().includes(q) ||
+      (b.couponCode && b.couponCode.toLowerCase().includes(q));
+
+    const matchesPlacement = selectedPlacement === "all" || b.placement === selectedPlacement;
+    const matchesStatus = selectedStatus === "all" || b.status === selectedStatus;
+
+    return matchesSearch && matchesPlacement && matchesStatus;
+  });
+
+  const getStatusBadge = (status: BannerStatus) => {
+    switch (status) {
+      case "active":
+        return <span className="px-2.5 py-1 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-bold flex items-center gap-1"><CheckCircle2 className="w-3 h-3" /> Active</span>;
+      case "scheduled":
+        return <span className="px-2.5 py-1 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[10px] font-bold flex items-center gap-1"><Clock className="w-3 h-3" /> Scheduled</span>;
+      case "paused":
+        return <span className="px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20 text-[10px] font-bold flex items-center gap-1"><PauseCircle className="w-3 h-3" /> Paused</span>;
+      case "draft":
+        return <span className="px-2.5 py-1 rounded-full bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 text-[10px] font-bold">Draft</span>;
+      case "expired":
+        return <span className="px-2.5 py-1 rounded-full bg-red-500/10 text-red-400 border border-red-500/20 text-[10px] font-bold">Expired</span>;
+      default:
+        return <span className="px-2.5 py-1 rounded-full bg-zinc-500/10 text-zinc-400 border border-zinc-500/20 text-[10px] font-bold"><Archive className="w-3 h-3" /> Archived</span>;
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Top Header & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-xl font-bold text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-amber-400" /> Offer Banner Manager
+          </h3>
+          <p className="text-xs text-white/50 mt-0.5">
+            Manage all marketing banners, hero sliders, announcement bars, and popups
+          </p>
+        </div>
+
+        <button
+          onClick={onAdd}
+          className="px-5 py-2.5 rounded-xl bg-amber-400 text-black text-xs font-bold flex items-center gap-2 hover:bg-amber-300 transition-all shadow-lg active:scale-95 shrink-0"
+        >
+          <Plus className="w-4 h-4" /> Create Offer Banner
+        </button>
+      </div>
+
+      {/* Filter Bar */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <input
+            type="text"
+            placeholder="Search by title, coupon..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none"
+          />
+        </div>
+
+        <select
+          value={selectedPlacement}
+          onChange={(e) => setSelectedPlacement(e.target.value)}
+          className="px-3.5 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+        >
+          <option value="all">All Placements</option>
+          <option value="homepage_hero">Homepage Hero Slider</option>
+          <option value="homepage_after_categories">Homepage After Categories</option>
+          <option value="homepage_above_bestsellers">Homepage Above Best Sellers</option>
+          <option value="announcement_bar">Global Announcement Bar</option>
+          <option value="popup_campaign">Promotional Popup</option>
+        </select>
+
+        <select
+          value={selectedStatus}
+          onChange={(e) => setSelectedStatus(e.target.value)}
+          className="px-3.5 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+        >
+          <option value="all">All Statuses</option>
+          <option value="active">Active</option>
+          <option value="draft">Draft</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="paused">Paused</option>
+          <option value="expired">Expired</option>
+        </select>
+      </div>
+
+      {/* Banner Cards Grid */}
+      {filteredBanners.length === 0 ? (
+        <div className="p-12 text-center bg-zinc-900/40 rounded-2xl border border-white/5">
+          <p className="text-sm text-white/50">No offer banners found matching filters.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {filteredBanners.map((banner) => (
+            <div
+              key={banner.id}
+              className="bg-zinc-900/70 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all flex flex-col group"
+            >
+              {/* Media Preview Box */}
+              <div className="relative aspect-[16/9] bg-zinc-950 overflow-hidden">
+                {banner.desktopImage ? (
+                  <img
+                    src={banner.desktopImage}
+                    alt={banner.internalName}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-white/30 text-xs">
+                    No image
+                  </div>
+                )}
+                <div className="absolute top-3 left-3">{getStatusBadge(banner.status)}</div>
+                <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/60 backdrop-blur-md text-[10px] text-white/80 font-mono">
+                  {banner.placement}
+                </div>
+              </div>
+
+              {/* Card Body */}
+              <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
+                <div>
+                  <h4 className="text-sm font-bold text-white truncate">{banner.internalName}</h4>
+                  <p className="text-xs text-amber-400 font-medium mt-0.5 truncate">{banner.headline}</p>
+                  {banner.couponCode && (
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80">
+                      <Tag className="w-3 h-3 text-amber-400" /> {banner.couponCode}
+                    </div>
+                  )}
+                </div>
+
+                {/* Actions */}
+                <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => onEdit(banner)}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+                      title="Edit"
+                    >
+                      <Edit className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onDuplicate(banner)}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+                      title="Duplicate"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      onClick={() => onToggleStatus(banner.id, banner.status === "active" ? "paused" : "active")}
+                      className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-colors"
+                      title={banner.status === "active" ? "Pause" : "Activate"}
+                    >
+                      {banner.status === "active" ? <PauseCircle className="w-3.5 h-3.5 text-amber-400" /> : <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />}
+                    </button>
+                  </div>
+
+                  <button
+                    onClick={() => onDelete(banner.id)}
+                    className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                    title="Delete"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
