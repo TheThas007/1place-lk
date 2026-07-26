@@ -13,14 +13,11 @@ import {
   LogOut,
   Eye,
   Bell,
-  Wrench,
-  Truck,
-  DollarSign,
-  Sparkles
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query, orderBy } from "firebase/firestore";
+import { collection, getDocs } from "firebase/firestore";
+
 
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
@@ -28,13 +25,8 @@ const SIDEBAR_ITEMS = [
   { id: "categories", label: "Categories", icon: FolderOpen, href: "/admin/dashboard/categories" },
   { id: "orders", label: "Orders", icon: Package, href: "/admin/dashboard/orders" },
   
-  // Phase 1 New Modules
-  { id: "repairs", label: "Repair Center", icon: Wrench, href: "/admin/dashboard/repairs" },
-  { id: "suppliers", label: "Suppliers", icon: Truck, href: "/admin/dashboard/suppliers" },
-  { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard/cashflow" },
-
   // Marketing & Media
-  { id: "banners", label: "Offer Banners", icon: Sparkles, href: "/admin/dashboard/banners" },
+  { id: "banners", label: "Offer Banners", icon: ImageIcon, href: "/admin/dashboard/banners" },
   { id: "gallery", label: "Gallery", icon: ImageIcon, href: "/admin/dashboard/gallery" },
   { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard/reviews" },
   { id: "hero", label: "Hero Slides", icon: ImageIcon, href: "/admin/dashboard/hero" },
@@ -47,7 +39,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   
   // Live order alert state
   const [liveAlert, setLiveAlert] = useState<any | null>(null);
-  const isFirstLoad = useRef(true);
+  const lastOrderId = useRef<string | null>(null);
 
   useEffect(() => {
     const auth = sessionStorage.getItem("admin_auth");
@@ -60,34 +52,44 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     if (!isAuthed) return;
-    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub = onSnapshot(
-      q,
-      (snapshot) => {
-        if (isFirstLoad.current) {
-          isFirstLoad.current = false;
-          return;
-        }
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
-            setLiveAlert(newOrder);
+
+    const fetchLatestOrder = async () => {
+      try {
+        const snapshot = await getDocs(collection(db, "orders"));
+        const sorted = snapshot.docs
+          .map(d => ({ ...d.data(), id: d.id }))
+          .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+          
+        if (sorted.length) {
+          const doc = sorted[0];
+          
+          if (lastOrderId.current && lastOrderId.current !== doc.id) {
+            setLiveAlert({ ...doc });
             try {
               const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
               const promise = audio.play();
-              if (promise !== undefined) {
-                promise.catch(() => {});
-              }
+              if (promise !== undefined) promise.catch(() => {});
             } catch (e) {}
           }
-        });
-      },
-      (error) => {
-        console.warn("Orders listener permission/network warning:", error);
+          lastOrderId.current = doc.id;
+        }
+      } catch (error) {
+        console.error("Error fetching latest order:", error);
       }
-    );
-    return () => unsub();
+    };
+
+    fetchLatestOrder();
+    const interval = setInterval(fetchLatestOrder, 30000);
+    return () => clearInterval(interval);
   }, [isAuthed]);
+
+// Auto-dismiss live order alerts after 5 seconds
+useEffect(() => {
+  if (liveAlert) {
+    const timer = setTimeout(() => setLiveAlert(null), 5000);
+    return () => clearTimeout(timer);
+  }
+}, [liveAlert]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
@@ -204,7 +206,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                 View Order
               </Link>
               <button
-                onClick={() => setLiveAlert(null)}
+                onClick={() => { setSelectedUser(u); fetchOrders(u.id); }}
                 className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
               >
                 Dismiss

@@ -156,7 +156,7 @@ function OrdersTab({
                           {order.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4">
+                      <td className="px-6 py-4 flex items-center">
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -166,6 +166,16 @@ function OrdersTab({
                           title="Download PDF Invoice"
                         >
                           <Download className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            downloadCustomer(order);
+                          }}
+                          className="ml-2 p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-all"
+                          title="Download Customer Info"
+                        >
+                          <User className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -189,6 +199,19 @@ function OrdersTab({
         {selectedOrder ? (
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 space-y-6">
             <div className="flex justify-between items-start border-b border-white/5 pb-4">
+            {/* Helper to download single customer data */}
+            <script>{`
+              const downloadCustomer = (order) => {
+                const csv = `Name,Phone,Address\n${order.customerName || ''},${order.primaryPhone || ''},${order.address || ''}`;
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `customer-${order.id.slice(-6)}.csv`;
+                a.click();
+                URL.revokeObjectURL(url);
+              }`;
+            </script>
               <div>
                 <p className="text-xs text-white/40">Order Reference</p>
                 <p className="font-mono text-sm font-semibold text-white mt-1">#{selectedOrder.id}</p>
