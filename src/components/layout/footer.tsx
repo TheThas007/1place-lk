@@ -37,8 +37,8 @@ export default function Footer() {
           
           {/* Brand Info */}
           <div className="sm:col-span-2 lg:col-span-2 space-y-4">
-            <Link href="/" className="inline-block group cursor-pointer mb-1">
-              <div className="relative h-20 sm:h-24 lg:h-28 max-w-[340px] sm:max-w-[400px] flex items-center justify-start transition-transform duration-300 group-hover:scale-[1.02]">
+            <Link href="/" className="inline-block group cursor-pointer mb-2">
+              <div className="relative h-28 sm:h-36 lg:h-44 max-w-[480px] lg:max-w-[580px] flex items-center justify-start transition-transform duration-300 group-hover:scale-[1.02]">
                 <img 
                   src="/logo.png" 
                   alt="STREET MOBILE Logo" 
