@@ -33,6 +33,7 @@ import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, setDoc, onSnapshot, query, orderBy, getDoc } from "firebase/firestore";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
+import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
 import ProductModal from "@/components/admin/ProductModal";
@@ -132,29 +133,48 @@ function AdminDashboardContent() {
 
   const fetchData = async () => {
     try {
-      const [pSnap, cSnap, rSnap, gSnap, hSnap, uSnap, oSnap] = await Promise.all([
-        getDocs(collection(db, "products")),
-        getDocs(collection(db, "categories")),
-        getDocs(collection(db, "reviews")),
-        getDocs(collection(db, "gallery")),
-        getDocs(collection(db, "hero_slides")),
-        getDocs(collection(db, "users")),
-        getDocs(collection(db, "orders")),
+      const getDocsSafe = async (colName: string) => {
+        try {
+          const snap = await getDocs(collection(db, colName));
+          return snap.docs.map(d => ({ ...d.data(), id: d.id }));
+        } catch (err) {
+          console.warn(`Failed to fetch ${colName} collection:`, err);
+          return [];
+        }
+      };
+
+      const [pDocs, cDocs, rDocs, gDocs, hDocs, uDocs, oDocs] = await Promise.all([
+        getDocsSafe("products"),
+        getDocsSafe("categories"),
+        getDocsSafe("reviews"),
+        getDocsSafe("gallery"),
+        getDocsSafe("hero_slides"),
+        getDocsSafe("users"),
+        getDocsSafe("orders"),
       ]);
-      setProductsList(pSnap.docs.map(d => ({ ...d.data(), id: d.id } as Product)));
-      setCategoriesList(cSnap.docs.map(d => ({ ...d.data(), id: d.id } as Category)));
-      setReviewsList(rSnap.docs.map(d => ({ ...d.data(), id: d.id } as Review)));
-      setGalleryList(gSnap.docs.map(d => ({ ...d.data(), id: d.id } as GalleryImage)));
-      setHeroList(hSnap.docs.map(d => ({ ...d.data(), id: d.id } as HeroSlide)).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-      setUsersList(uSnap.docs.map(d => ({ ...d.data(), id: d.id })));
-      setOrdersList(oSnap.docs.map(d => ({ ...d.data(), id: d.id })).sort((a: any, b: any) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      
-      const uiSnap = await getDoc(doc(db, "settings", "ui"));
-      if (uiSnap.exists()) {
-        setUiSettings(uiSnap.data());
+
+      const fetchedProducts = pDocs as Product[];
+      const fetchedCategories = cDocs as Category[];
+      const fetchedReviews = rDocs as Review[];
+
+      setProductsList(fetchedProducts.length > 0 ? fetchedProducts : fallbackProducts);
+      setCategoriesList(fetchedCategories.length > 0 ? fetchedCategories : fallbackCategories);
+      setReviewsList(fetchedReviews.length > 0 ? fetchedReviews : fallbackReviews);
+      setGalleryList(gDocs as GalleryImage[]);
+      setHeroList((hDocs as HeroSlide[]).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+      setUsersList(uDocs);
+      setOrdersList((oDocs as any[]).sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()));
+
+      try {
+        const uiSnap = await getDoc(doc(db, "settings", "ui"));
+        if (uiSnap.exists()) {
+          setUiSettings(uiSnap.data());
+        }
+      } catch (err) {
+        console.warn("Failed to fetch UI settings:", err);
       }
     } catch (e) {
-      console.error(e);
+      console.error("fetchData error:", e);
     } finally {
       setLoadingData(false);
     }

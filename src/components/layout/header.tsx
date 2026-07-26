@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Menu, X, Phone, MapPin, ChevronRight, ShoppingBag, User, LogOut } from "lucide-react";
+import { Menu, X, Phone, MapPin, ChevronRight, ShoppingBag, User, LogOut, Search } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
@@ -155,6 +155,15 @@ export default function Header() {
                   transition={{ duration: 3, repeat: Infinity, repeatDelay: 2, ease: "easeInOut" }}
                 />
               </motion.a>
+
+              {/* Search button */}
+              <button
+                onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
+                className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                aria-label="Search site"
+              >
+                <Search className="w-5 h-5" />
+              </button>
 
               {/* Bag icon */}
               <button

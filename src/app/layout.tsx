@@ -8,6 +8,8 @@ import MobileNav from "@/components/layout/mobile-nav";
 import WhatsAppFab from "@/components/layout/whatsapp-fab";
 import { AuthProvider } from "@/lib/auth-context";
 import { CartProvider } from "@/lib/cart-context";
+import { ToastProvider } from "@/components/ui/ToastProvider";
+import SearchOverlay from "@/components/ui/SearchOverlay";
 
 const inter = Inter({
   variable: "--font-inter",
@@ -63,13 +65,16 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col font-sans">
         <AuthProvider>
           <CartProvider>
-            <Header />
-            <main className="flex-1 pt-[100px] lg:pt-[110px]">
-              {children}
-            </main>
-            <Footer />
-            <MobileNav />
-            <WhatsAppFab />
+            <ToastProvider>
+              <Header />
+              <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">
+                {children}
+              </main>
+              <Footer />
+              <MobileNav />
+              <WhatsAppFab />
+              <SearchOverlay />
+            </ToastProvider>
           </CartProvider>
         </AuthProvider>
       </body>

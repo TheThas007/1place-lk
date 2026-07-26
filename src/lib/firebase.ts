@@ -19,10 +19,16 @@ const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
 // Suppress verbose SDK connection warning logs
 setLogLevel("silent");
 
-// Export Firestore with robust fallback transport
-export const db = initializeFirestore(app, {
-  experimentalAutoDetectLongPolling: true,
-});
+let firestoreDb: ReturnType<typeof getFirestore>;
+try {
+  firestoreDb = initializeFirestore(app, {
+    experimentalAutoDetectLongPolling: true,
+  });
+} catch {
+  firestoreDb = getFirestore(app);
+}
+
+export const db = firestoreDb;
 export const storage = getStorage(app);
 export const auth = getAuth(app);
 
