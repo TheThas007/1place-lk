@@ -1,10 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { ArrowRight, Images, Maximize2 } from "lucide-react";
+import { ArrowRight, Images, Maximize2, X, ChevronLeft, ChevronRight } from "lucide-react";
 import { GalleryImage, UiSettings } from "@/lib/types";
 import AnimatedRays from "@/components/ui/animated-rays";
 import SnowEffect from "@/components/ui/snow-effect";
@@ -19,13 +19,13 @@ const CAT_STYLE: Record<string, string> = {
 function getCardLayoutClass(index: number): string {
   switch (index) {
     case 0:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 md:row-span-2 min-h-[240px] sm:min-h-[320px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 md:row-span-2 aspect-[4/3] sm:aspect-auto min-h-[250px] sm:min-h-[340px]";
     case 3:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[140px] sm:min-h-[155px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 aspect-[16/9] sm:aspect-auto min-h-[150px] sm:min-h-[165px]";
     case 6:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[140px] sm:min-h-[155px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 aspect-[16/9] sm:aspect-auto min-h-[150px] sm:min-h-[165px]";
     default:
-      return "col-span-1 min-h-[140px] sm:min-h-[155px]";
+      return "col-span-1 aspect-[4/3] sm:aspect-auto min-h-[150px] sm:min-h-[165px]";
   }
 }
 
@@ -39,7 +39,7 @@ function GalleryCard({
   image: GalleryImage;
   index: number;
   cardClass?: string;
-  onOpen: (img: GalleryImage) => void;
+  onOpen: () => void;
 }) {
   // Clean duplicate text in captions if present
   const formattedCaption = image.caption
@@ -54,8 +54,8 @@ function GalleryCard({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
       transition={{ duration: 0.5, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] as const }}
-      className={`relative group w-full h-full rounded-[22px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-500 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.8),0_0_25px_rgba(255,255,255,0.1)] hover:-translate-y-1 ${cardClass}`}
-      onClick={() => onOpen(image)}
+      className={`relative group w-full h-full rounded-[22px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-500 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.8),0_0_25px_rgba(255,255,255,0.12)] hover:-translate-y-1 ${cardClass}`}
+      onClick={onOpen}
     >
       <div className="relative w-full h-full overflow-hidden">
         {/* Main image with smooth luxury zoom */}
@@ -95,34 +95,121 @@ function GalleryCard({
   );
 }
 
-/* ─── Lightbox ─── */
-function Lightbox({ image, onClose }: { image: GalleryImage; onClose: () => void }) {
+/* ─── Ultra-Premium Interactive Lightbox ─── */
+function Lightbox({
+  images,
+  currentIndex,
+  onClose,
+  onSelect,
+}: {
+  images: GalleryImage[];
+  currentIndex: number;
+  onClose: () => void;
+  onSelect: (index: number) => void;
+}) {
+  const currentImage = images[currentIndex];
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onSelect((currentIndex - 1 + images.length) % images.length);
+      if (e.key === "ArrowRight") onSelect((currentIndex + 1) % images.length);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [currentIndex, images.length, onClose, onSelect]);
+
+  if (!currentImage) return null;
+
+  const formattedCaption = currentImage.caption
+    ? currentImage.caption
+        .replace(/Happy Customercustomers/gi, "Happy Customer")
+        .replace(/Customercustomers/gi, "Customer")
+    : null;
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      className="fixed inset-0 z-[60] flex items-center justify-center p-4"
+      className="fixed inset-0 z-[100] flex flex-col items-center justify-between p-4 sm:p-6 bg-black/95 backdrop-blur-2xl select-none"
     >
-      <motion.div
-        className="absolute inset-0 bg-black/90 backdrop-blur-xl"
-        onClick={onClose}
-      />
-      <motion.img
-        initial={{ opacity: 0, scale: 0.88, y: 24 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        exit={{ opacity: 0, scale: 0.88, y: 24 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] }}
-        src={image.image_url}
-        alt={image.caption || "Gallery"}
-        className="relative z-10 max-h-[85vh] max-w-[90vw] object-contain rounded-2xl shadow-2xl"
-      />
-      <button
-        onClick={onClose}
-        className="absolute top-4 right-4 z-20 w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all"
-      >
-        ✕
-      </button>
+      {/* Background click to close */}
+      <div className="absolute inset-0 z-0" onClick={onClose} />
+
+      {/* Top Header Bar */}
+      <div className="relative z-10 w-full max-w-6xl flex items-center justify-between py-2">
+        <div className="flex items-center gap-3">
+          <div className="px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-bold tracking-wider text-white backdrop-blur-md">
+            {currentImage.category ? currentImage.category.toUpperCase() : "GALLERY"}
+          </div>
+          <span className="text-xs text-white/60 font-mono">
+            {currentIndex + 1} / {images.length}
+          </span>
+        </div>
+
+        <button
+          onClick={onClose}
+          className="w-10 h-10 rounded-full bg-white/10 hover:bg-white/20 border border-white/20 flex items-center justify-center text-white transition-all hover:scale-105 active:scale-95 shadow-lg"
+          aria-label="Close modal"
+        >
+          <X className="w-5 h-5" />
+        </button>
+      </div>
+
+      {/* Main Image View with Nav Arrows */}
+      <div className="relative z-10 w-full max-w-5xl flex-1 flex items-center justify-center my-3 overflow-hidden">
+        {/* Prev Button */}
+        {images.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect((currentIndex - 1 + images.length) % images.length);
+            }}
+            className="absolute left-2 sm:left-4 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 shadow-xl"
+            aria-label="Previous photo"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+        )}
+
+        {/* Animated Image */}
+        <AnimatePresence mode="wait">
+          <motion.img
+            key={currentImage.id || currentIndex}
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+            src={currentImage.image_url}
+            alt={formattedCaption || "Street Mobile Gallery"}
+            className="max-h-[75vh] max-w-full object-contain rounded-2xl border border-white/10 shadow-[0_25px_60px_rgba(0,0,0,0.9)]"
+          />
+        </AnimatePresence>
+
+        {/* Next Button */}
+        {images.length > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onSelect((currentIndex + 1) % images.length);
+            }}
+            className="absolute right-2 sm:right-4 z-20 w-11 h-11 rounded-full bg-white/10 hover:bg-white/25 border border-white/20 backdrop-blur-md flex items-center justify-center text-white transition-all hover:scale-110 active:scale-95 shadow-xl"
+            aria-label="Next photo"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        )}
+      </div>
+
+      {/* Bottom Caption Bar */}
+      {formattedCaption && (
+        <div className="relative z-10 w-full max-w-2xl px-5 py-3 rounded-2xl bg-white/10 border border-white/15 backdrop-blur-xl text-center shadow-2xl">
+          <p className="text-white text-xs sm:text-sm font-medium tracking-wide">
+            {formattedCaption}
+          </p>
+        </div>
+      )}
     </motion.div>
   );
 }
@@ -135,7 +222,7 @@ const headVar: Variants = {
 
 /* ─── Main Section ─── */
 export default function GallerySection({ images, uiSettings }: { images: GalleryImage[], uiSettings?: UiSettings }) {
-  const [lightbox, setLightbox] = useState<GalleryImage | null>(null);
+  const [selectedIndex, setSelectedIndex] = useState<number | null>(null);
 
   // Show max 8 images in preview grid
   const preview = images.slice(0, 8);
@@ -207,7 +294,7 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
               image={img} 
               index={index}
               cardClass={getCardLayoutClass(index)}
-              onOpen={(image) => setLightbox(image)}
+              onOpen={() => setSelectedIndex(index)}
             />
           ))}
         </div>
@@ -235,10 +322,15 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
         </motion.div>
       </div>
 
-      {/* ── Lightbox ── */}
+      {/* ── Lightbox Modal ── */}
       <AnimatePresence>
-        {lightbox && (
-          <Lightbox image={lightbox} onClose={() => setLightbox(null)} />
+        {selectedIndex !== null && (
+          <Lightbox 
+            images={preview} 
+            currentIndex={selectedIndex} 
+            onClose={() => setSelectedIndex(null)}
+            onSelect={(newIdx) => setSelectedIndex(newIdx)}
+          />
         )}
       </AnimatePresence>
     </section>
