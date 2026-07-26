@@ -15,17 +15,17 @@ const CAT_STYLE: Record<string, string> = {
   customers: "from-gray-700 to-gray-900",
 };
 
-/* ─── Premium Bento Layout Spans ─── */
+/* ─── Compact Bento Layout Spans ─── */
 function getCardLayoutClass(index: number): string {
   switch (index) {
     case 0:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 md:row-span-2 min-h-[340px] sm:min-h-[460px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 md:row-span-2 min-h-[240px] sm:min-h-[320px]";
     case 3:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[220px] sm:min-h-[250px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[140px] sm:min-h-[155px]";
     case 6:
-      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[220px] sm:min-h-[250px]";
+      return "sm:col-span-2 md:col-span-2 lg:col-span-2 min-h-[140px] sm:min-h-[155px]";
     default:
-      return "col-span-1 min-h-[220px] sm:min-h-[240px]";
+      return "col-span-1 min-h-[140px] sm:min-h-[155px]";
   }
 }
 
@@ -50,11 +50,11 @@ function GalleryCard({
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 24 }}
+      initial={{ opacity: 0, y: 18 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      transition={{ duration: 0.6, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] as const }}
-      className={`relative group w-full h-full rounded-[28px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-700 shadow-[0_10px_30px_rgba(0,0,0,0.5)] hover:shadow-[0_20px_50px_rgba(0,0,0,0.8),0_0_35px_rgba(255,255,255,0.12)] hover:-translate-y-1.5 ${cardClass}`}
+      transition={{ duration: 0.5, delay: index * 0.04, ease: [0.16, 1, 0.3, 1] as const }}
+      className={`relative group w-full h-full rounded-[22px] overflow-hidden cursor-pointer bg-slate-950 border border-white/10 hover:border-white/40 transition-all duration-500 shadow-[0_8px_24px_rgba(0,0,0,0.5)] hover:shadow-[0_15px_35px_rgba(0,0,0,0.8),0_0_25px_rgba(255,255,255,0.1)] hover:-translate-y-1 ${cardClass}`}
       onClick={() => onOpen(image)}
     >
       <div className="relative w-full h-full overflow-hidden">
@@ -62,30 +62,29 @@ function GalleryCard({
         <img
           src={image.image_url}
           alt={formattedCaption || "Gallery"}
-          className="w-full h-full object-cover transition-transform duration-1000 ease-out group-hover:scale-110"
+          className="w-full h-full object-cover transition-transform duration-700 ease-out group-hover:scale-105"
         />
 
         {/* Ambient Gradient Overlays */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 opacity-75 group-hover:opacity-90 transition-opacity duration-500" />
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10 opacity-70 group-hover:opacity-85 transition-opacity duration-300" />
 
         {/* Category badge */}
         {image.category && (
-          <div className="absolute top-4 left-4 px-3.5 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-widest text-white bg-black/60 border border-white/20 backdrop-blur-md shadow-lg group-hover:border-white/40 group-hover:bg-black/80 transition-all z-10">
+          <div className="absolute top-3 left-3 px-2.5 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest text-white bg-black/60 border border-white/20 backdrop-blur-md shadow-md z-10">
             {image.category}
           </div>
         )}
 
         {/* Floating Zoom icon with blur */}
-        <div className="absolute top-4 right-4 w-10 h-10 rounded-2xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 shadow-xl z-10">
-          <Maximize2 className="w-4 h-4 text-white" />
+        <div className="absolute top-3 right-3 w-8 h-8 rounded-xl bg-white/15 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100 shadow-lg z-10">
+          <Maximize2 className="w-3.5 h-3.5 text-white" />
         </div>
 
         {/* Glassmorphic Caption Banner */}
         {formattedCaption && (
-          <div className="absolute bottom-0 left-0 right-0 p-4 translate-y-2 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-500 z-10">
-            <div className="p-3 rounded-2xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-2xl">
-              <p className="text-white text-xs sm:text-sm font-medium leading-snug drop-shadow line-clamp-2">
+          <div className="absolute bottom-0 left-0 right-0 p-3 translate-y-1 opacity-90 group-hover:opacity-100 group-hover:translate-y-0 transition-all duration-300 z-10">
+            <div className="p-2.5 rounded-xl bg-slate-950/80 backdrop-blur-md border border-white/10 shadow-xl">
+              <p className="text-white text-xs font-medium leading-snug drop-shadow line-clamp-1">
                 {formattedCaption}
               </p>
             </div>
@@ -144,7 +143,7 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
   if (preview.length === 0) return null;
 
   return (
-    <section className="relative py-24 bg-black border-y border-white/5 overflow-hidden">
+    <section className="relative py-14 bg-black border-y border-white/5 overflow-hidden">
       {/* ── Ambient glows ── */}
       <AnimatedRays />
       
@@ -154,7 +153,7 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
       <div className="absolute inset-0 pointer-events-none">
         {/* Grid */}
         <div
-          className="absolute inset-0 opacity-[0.05]"
+          className="absolute inset-0 opacity-[0.04]"
           style={{
             backgroundImage: `linear-gradient(rgba(255,255,255,0.8) 1px, transparent 1px),
                               linear-gradient(90deg, rgba(255,255,255,0.8) 1px, transparent 1px)`,
@@ -163,45 +162,45 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
         />
       </div>
 
-      <div className="relative max-w-7xl mx-auto px-4 lg:px-6">
+      <div className="relative max-w-6xl mx-auto px-4 lg:px-6">
         {/* ── Header ── */}
         <motion.div
           variants={headVar}
           initial="hidden"
           whileInView="show"
-          viewport={{ once: true, margin: "-80px" }}
-          className="flex flex-col md:flex-row items-start md:items-end justify-between gap-6 mb-14"
+          viewport={{ once: true, margin: "-60px" }}
+          className="flex flex-col md:flex-row items-start md:items-end justify-between gap-4 mb-8"
         >
           <div>
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/10 border border-white/20 text-xs font-bold tracking-widest uppercase text-white/70 mb-5">
-              <Images className="w-3.5 h-3.5" />
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-[10px] font-bold tracking-widest uppercase text-white/70 mb-3">
+              <Images className="w-3 h-3" />
               Our Gallery
             </div>
-            <h2 className="text-3xl md:text-5xl font-black text-white tracking-tight leading-tight mb-3">
+            <h2 className="text-2xl md:text-4xl font-black text-white tracking-tight leading-tight mb-2">
               Inside{" "}
               <span className="text-white">
                 Street Mobile
               </span>
             </h2>
-            <p className="text-white/60 text-base max-w-md">
+            <p className="text-white/60 text-sm max-w-md">
               A visual journey through our store, repair workshop, and happy customers.
             </p>
           </div>
 
           <Link
             href="/gallery"
-            className="group inline-flex items-center gap-2.5 px-6 py-3 rounded-2xl
-                       bg-white/10 border border-white/20 text-white text-sm font-semibold
+            className="group inline-flex items-center gap-2 px-5 py-2.5 rounded-xl
+                       bg-white/10 border border-white/20 text-white text-xs font-semibold
                        hover:bg-white hover:text-black hover:border-white
                        transition-all duration-300 shrink-0"
           >
             View All Photos
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
           </Link>
         </motion.div>
 
         {/* ── Stylish Bento Gallery Grid ── */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-5 mt-8 mb-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3.5 lg:gap-4 mt-6 mb-2">
           {preview.map((img, index) => (
             <GalleryCard 
               key={img.id || index} 
@@ -215,23 +214,23 @@ export default function GallerySection({ images, uiSettings }: { images: Gallery
 
         {/* ── Bottom CTA ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ delay: 0.3, duration: 0.5 }}
-          className="mt-12 flex justify-center"
+          transition={{ delay: 0.2, duration: 0.4 }}
+          className="mt-8 flex justify-center"
         >
           <Link
             href="/gallery"
-            className="group flex items-center gap-3 px-8 py-4 rounded-2xl
+            className="group flex items-center gap-2.5 px-6 py-3 rounded-xl
                        bg-white
-                       text-black font-semibold text-sm shadow-xl shadow-white/10
-                       hover:shadow-white/20 hover:scale-[1.03]
-                       transition-all duration-300 active:scale-[0.97]"
+                       text-black font-semibold text-xs shadow-lg shadow-white/10
+                       hover:shadow-white/20 hover:scale-[1.02]
+                       transition-all duration-300 active:scale-[0.98]"
           >
-            <Images className="w-4 h-4" />
+            <Images className="w-3.5 h-3.5" />
             Explore Full Gallery
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
           </Link>
         </motion.div>
       </div>
