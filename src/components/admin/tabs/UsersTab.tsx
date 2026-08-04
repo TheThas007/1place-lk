@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
-import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star, Download } from "lucide-react";
 
 /* ─── Users Tab ─── */
 import { db } from "@/lib/firebase";
@@ -11,6 +11,28 @@ import { collection, query, where, getDocs } from "firebase/firestore";
 function UsersTab({ users }: { users: any[] }) {
   const [selectedUser, setSelectedUser] = useState<any | null>(null);
   const [userOrders, setUserOrders] = useState<any[]>([]);
+
+  const exportUsersCSV = () => {
+    if (!users || users.length === 0) {
+      alert("No user data to export.");
+      return;
+    }
+    const headers = ["User ID", "Name", "Email", "Joined Date"];
+    const rows = users.map((u) => [
+      `"${u.id || ""}"`,
+      `"${(u.displayName || "Google User").replace(/"/g, '""')}"`,
+      `"${(u.email || "").replace(/"/g, '""')}"`,
+      `"${u.createdAt ? new Date(u.createdAt).toLocaleDateString() : "N/A"}"`,
+    ]);
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `street_mobile_users_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
 
   const fetchOrders = async (userId: string) => {
     try {
@@ -31,11 +53,20 @@ function UsersTab({ users }: { users: any[] }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-white">Registered Users</h3>
-        <p className="text-xs text-white/40 mt-0.5">
-          {users.length} users registered on your platform
-        </p>
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h3 className="text-lg font-semibold text-white">Registered Users</h3>
+          <p className="text-xs text-white/40 mt-0.5">
+            {users.length} users registered on your platform
+          </p>
+        </div>
+        <button
+          onClick={exportUsersCSV}
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-lg shadow-blue-500/20 transition-all active:scale-[0.98] w-fit"
+        >
+          <Download className="w-4 h-4" />
+          Download Users Data (CSV)
+        </button>
       </div>
 
       <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">

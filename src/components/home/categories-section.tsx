@@ -22,7 +22,7 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
         <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center">
           {(() => {
             const hasIconImg = cat.icon && (cat.icon.startsWith("http") || cat.icon.startsWith("data:"));
-            const hasImageUrl = cat.image_url && cat.image_url.startsWith("http");
+            const hasImageUrl = cat.image_url && (cat.image_url.startsWith("http") || cat.image_url.startsWith("data:"));
             const imgSrc = hasIconImg ? cat.icon : (hasImageUrl ? cat.image_url : null);
 
             if (imgSrc) {

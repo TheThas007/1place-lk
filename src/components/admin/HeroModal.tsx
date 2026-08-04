@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Image as ImageIcon, Check } from "lucide-react";
+import { X, Image as ImageIcon, Check, Upload, Sparkles, Sliders, Layers } from "lucide-react";
 import { HeroSlide } from "@/lib/types";
+import { uploadImageWithFallback } from "@/lib/upload-utils";
 
 interface HeroModalProps {
   isOpen: boolean;
@@ -12,7 +13,7 @@ interface HeroModalProps {
 }
 
 const presets = [
-  { url: "/hero-slide-1.png", label: "Flagship Phones Showcase" },
+  { url: "/hero-slide-1.png", label: "Flagship Showcase (4K Ultra)" },
   { url: "/hero-slide-2.png", label: "Luxury Showroom Interior" },
   { url: "/hero-slide-3.png", label: "Titanium Camera Lens Detail" },
   { url: "/hero-slide-4.png", label: "Minimalist Tech Ecosystem" },
@@ -23,179 +24,261 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [alt, setAlt] = useState("");
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [active, setActive] = useState(true);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (slide) {
       setImageUrl(slide.image_url || "");
+      setImagePreview(slide.image_url || "");
       setAlt(slide.alt || "");
       setSortOrder(slide.sort_order ?? 1);
       setActive(slide.active ?? true);
     } else {
       setImageUrl("");
+      setImagePreview("");
       setAlt("");
       setSortOrder(1);
       setActive(true);
     }
+    setImageFile(null);
   }, [slide, isOpen]);
 
   if (!isOpen) return null;
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      const previewUrl = URL.createObjectURL(file);
+      setImagePreview(previewUrl);
+      setImageUrl("");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!imageUrl.trim()) return alert("Please enter an image URL or select a preset");
+    let finalUrl = imageUrl.trim();
+
+    if (imageFile) {
+      setSaving(true);
+      try {
+        finalUrl = await uploadImageWithFallback(imageFile, "hero_slides");
+      } catch (err) {
+        console.error("Hero image upload error:", err);
+      }
+    }
+
+    if (!finalUrl && !imagePreview) {
+      alert("Please upload an image, select a preset, or paste an image URL.");
+      return;
+    }
 
     setSaving(true);
     try {
       await onSave({
-        image_url: imageUrl.trim(),
+        image_url: finalUrl || imagePreview,
         alt: alt.trim() || "Street Mobile Hero Banner",
         sort_order: Number(sortOrder) || 1,
         active,
       });
       onClose();
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      alert("Failed to save hero slide.");
+      alert(`Failed to save hero slide: ${err?.message || "Please check connection"}`);
     } finally {
       setSaving(false);
     }
   };
 
+  const currentPreviewSrc = imageFile ? imagePreview : (imageUrl || imagePreview);
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full overflow-hidden shadow-2xl border border-gray-100 animate-in fade-in zoom-in-95 duration-200">
-        {/* Header */}
-        <div className="px-6 py-4 border-b border-gray-100 flex items-center justify-between bg-gray-50/50">
-          <h3 className="font-bold text-lg text-gray-900 flex items-center gap-2">
-            <ImageIcon className="w-5 h-5 text-[#88E788]" />
-            {slide ? "Edit Hero Slide" : "Add New Hero Slide"}
-          </h3>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-in fade-in duration-200">
+      <div className="bg-slate-900 border border-white/10 rounded-2xl max-w-xl w-full overflow-hidden shadow-2xl shadow-black/80 flex flex-col max-h-[92vh]">
+        {/* Top Header */}
+        <div className="px-6 py-4 border-b border-white/10 flex items-center justify-between bg-slate-900/90 backdrop-blur sticky top-0 z-10">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
+              <Sparkles className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-lg text-white">
+                {slide ? "Edit Hero Slide" : "Add New Hero Wallpaper"}
+              </h3>
+              <p className="text-xs text-white/40">Customize homepage hero slideshow banner</p>
+            </div>
+          </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg hover:bg-gray-200 text-gray-500 transition-colors"
+            className="p-2 rounded-xl hover:bg-white/10 text-white/60 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-5">
-          {/* Quick Presets */}
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-6 space-y-6 overflow-y-auto custom-scrollbar">
+          {/* Quick 4K Presets */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-gray-500 mb-2">
-              Select Preset Wallpaper or Paste Custom URL below
+            <label className="block text-xs font-semibold uppercase tracking-wider text-white/50 mb-2.5 flex items-center gap-1.5">
+              <Layers className="w-3.5 h-3.5 text-blue-400" />
+              Presets Wallpapers
             </label>
-            <div className="grid grid-cols-2 gap-2 mb-3">
-              {presets.map((p) => (
-                <button
-                  key={p.url}
-                  type="button"
-                  onClick={() => {
-                    setImageUrl(p.url);
-                    if (!alt) setAlt(p.label);
-                  }}
-                  className={`flex items-center gap-2 text-xs text-left p-2 rounded-xl border transition-all ${
-                    imageUrl === p.url
-                      ? "border-black bg-black text-white font-semibold shadow-sm"
-                      : "border-gray-200 bg-gray-50 hover:bg-gray-100 text-gray-700"
-                  }`}
-                >
-                  <span className="w-2 h-2 rounded-full bg-[#88E788] flex-shrink-0" />
-                  <span className="truncate">{p.label}</span>
-                  {imageUrl === p.url && <Check className="w-3.5 h-3.5 ml-auto text-[#88E788]" />}
-                </button>
-              ))}
+            <div className="grid grid-cols-2 gap-2">
+              {presets.map((p) => {
+                const isSelected = !imageFile && imageUrl === p.url;
+                return (
+                  <button
+                    key={p.url}
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setImageUrl(p.url);
+                      setImagePreview(p.url);
+                      if (!alt) setAlt(p.label);
+                    }}
+                    className={`flex items-center gap-2.5 text-xs text-left p-2.5 rounded-xl border transition-all ${
+                      isSelected
+                        ? "border-emerald-500 bg-emerald-500/10 text-emerald-300 font-semibold shadow-lg shadow-emerald-500/10"
+                        : "border-white/10 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white"
+                    }`}
+                  >
+                    <span className={`w-2 h-2 rounded-full flex-shrink-0 ${isSelected ? "bg-emerald-400 animate-pulse" : "bg-white/30"}`} />
+                    <span className="truncate">{p.label}</span>
+                    {isSelected && <Check className="w-4 h-4 ml-auto text-emerald-400 shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
-          {/* Image URL */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Image URL <span className="text-red-500">*</span>
+          {/* Upload or Custom URL */}
+          <div className="space-y-3">
+            <label className="block text-xs font-semibold uppercase tracking-wider text-white/50">
+              Upload Image File or Paste URL
             </label>
-            <input
-              type="text"
-              required
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="e.g. /hero-slide-1.png or https://..."
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-            />
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <input
+                type="file"
+                id="heroFileUpload"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="hidden"
+              />
+              <label
+                htmlFor="heroFileUpload"
+                className="flex items-center justify-center gap-2 px-4 py-2.5 bg-white/10 hover:bg-white/15 border border-white/10 text-white text-xs font-semibold rounded-xl cursor-pointer transition-colors shrink-0"
+              >
+                <Upload className="w-4 h-4 text-emerald-400" />
+                Upload File from PC
+              </label>
+
+              <input
+                type="text"
+                value={imageUrl}
+                onChange={(e) => {
+                  setImageFile(null);
+                  setImageUrl(e.target.value);
+                  setImagePreview(e.target.value);
+                }}
+                placeholder="Or paste image URL (https://...)"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-xs font-mono"
+              />
+            </div>
           </div>
 
-          {/* Image Preview */}
-          {imageUrl && (
-            <div className="relative h-36 w-full rounded-xl overflow-hidden bg-gray-900 border border-gray-200 shadow-inner flex items-center justify-center">
-              <img
-                src={imageUrl}
-                alt="Preview"
-                className="w-full h-full object-cover object-center"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/hero-slide-1.png";
-                }}
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                <span className="text-white text-xs font-medium">Live Preview</span>
+          {/* Live Wallpaper Card Preview */}
+          {currentPreviewSrc && (
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-white/50 mb-2">
+                Live Banner Preview
+              </label>
+              <div className="relative aspect-[16/8] w-full rounded-2xl overflow-hidden bg-slate-950 border border-white/15 shadow-2xl group">
+                <img
+                  src={currentPreviewSrc}
+                  alt="Slide preview"
+                  className="w-full h-full object-cover object-center"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/hero-slide-1.png";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-950/30 to-transparent" />
+                <div className="absolute bottom-3 left-4 right-4 flex items-center justify-between z-10">
+                  <div className="bg-black/60 backdrop-blur-md px-3 py-1.5 rounded-lg border border-white/10">
+                    <span className="text-white text-xs font-semibold tracking-wide">
+                      {alt || "Street Mobile Hero Wallpaper"}
+                    </span>
+                  </div>
+                  <span className="px-2.5 py-1 bg-emerald-500/80 text-white text-[10px] font-bold uppercase rounded-md backdrop-blur-md">
+                    Order #{sortOrder}
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Alt / Title */}
+          {/* Title & Alt Text */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
-              Slide Title / Alt Text
+            <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">
+              Slide Title / Description Text *
             </label>
             <input
               type="text"
+              required
               value={alt}
               onChange={(e) => setAlt(e.target.value)}
-              placeholder="e.g. Premium Mobile Store Interior"
-              className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
+              placeholder="e.g. Flagship Smartphones & Accessories Collection"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/30 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm"
             />
           </div>
 
-          {/* Sort Order & Active */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Sort Order & Active Switcher */}
+          <div className="grid grid-cols-2 gap-4 pt-1">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Sort Order (1, 2, 3...)
+              <label className="block text-xs font-semibold uppercase tracking-wider text-white/70 mb-1.5">
+                Display Order Number
               </label>
-              <input
-                type="number"
-                min="1"
-                value={sortOrder}
-                onChange={(e) => setSortOrder(parseInt(e.target.value) || 1)}
-                className="w-full px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-black focus:border-transparent text-sm"
-              />
+              <div className="relative">
+                <Sliders className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <input
+                  type="number"
+                  min="1"
+                  value={sortOrder}
+                  onChange={(e) => setSortOrder(parseInt(e.target.value) || 1)}
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 text-sm font-semibold"
+                />
+              </div>
             </div>
+
             <div className="flex flex-col justify-end">
-              <label className="flex items-center gap-3 cursor-pointer p-2.5 rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">
+              <label className="flex items-center justify-between cursor-pointer p-2.5 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors">
+                <span className="text-xs font-semibold text-white/90">Active on Homepage</span>
                 <input
                   type="checkbox"
                   checked={active}
                   onChange={(e) => setActive(e.target.checked)}
-                  className="w-4 h-4 text-black rounded focus:ring-black"
+                  className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
                 />
-                <span className="text-sm font-medium text-gray-800">Active Slide</span>
               </label>
             </div>
           </div>
 
-          {/* Buttons */}
-          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+          {/* Footer Actions */}
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-white/10">
             <button
               type="button"
               onClick={onClose}
               disabled={saving}
-              className="px-5 py-2.5 rounded-xl border border-gray-200 text-gray-700 font-medium hover:bg-gray-50 text-sm transition-colors"
+              className="px-5 py-2.5 rounded-xl border border-white/10 text-white/70 font-medium hover:bg-white/10 text-xs transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-black text-white font-medium hover:bg-gray-800 text-sm transition-colors flex items-center gap-2 shadow-md shadow-black/10"
+              className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs transition-all flex items-center gap-2 shadow-lg shadow-emerald-500/20 active:scale-[0.98]"
             >
               {saving ? "Saving..." : slide ? "Update Slide" : "Add Slide"}
             </button>
