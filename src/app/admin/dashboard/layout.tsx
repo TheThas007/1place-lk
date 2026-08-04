@@ -206,7 +206,7 @@ useEffect(() => {
                 View Order
               </Link>
               <button
-                onClick={() => { setSelectedUser(u); fetchOrders(u.id); }}
+                onClick={() => setLiveAlert(null)}
                 className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
               >
                 Dismiss

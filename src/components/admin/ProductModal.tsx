@@ -7,6 +7,7 @@ import { db, storage } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
+import { uploadImageWithFallback } from "@/lib/upload-utils";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -172,13 +173,9 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
       let imageUrls = parsedLinks;
 
       if (imageFiles.length > 0) {
-        const uploadPromises = imageFiles.map(async (file) => {
-          const storageRef = ref(storage, `products/${Date.now()}_${file.name}`);
-          const uploadResult = await uploadBytes(storageRef, file);
-          return await getDownloadURL(uploadResult.ref);
-        });
+        const uploadPromises = imageFiles.map((file) => uploadImageWithFallback(file, "products"));
         const uploadedUrls = await Promise.all(uploadPromises);
-        imageUrls = [...uploadedUrls, ...parsedLinks].slice(0, 4);
+        imageUrls = [...uploadedUrls.filter(Boolean), ...parsedLinks].slice(0, 4);
       } else {
         imageUrls = imageUrls.slice(0, 4);
       }
@@ -207,9 +204,9 @@ export default function ProductModal({ isOpen, onClose, onSave, categories, init
         onClose();
         setSaveSuccess(false);
       }, 600);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error saving product:", error);
-      alert("Failed to save product. Check console and Firebase Storage rules.");
+      alert(`Failed to save product: ${error?.message || "Please check your network or Firebase configuration."}`);
     } finally {
       setIsLoading(false);
     }

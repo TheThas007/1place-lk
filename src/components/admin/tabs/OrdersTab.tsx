@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category, Review, GalleryImage, HeroSlide } from "@/lib/types";
-import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star, Download } from "lucide-react";
+import { Activity, TrendingUp, TrendingDown, Eye, Plus, Search, Edit, Trash2, Package, FolderOpen, Image as ImageIcon, Star, Download, User } from "lucide-react";
 import { jsPDF } from "jspdf";
 
 /* ─── Orders Tab ─── */
@@ -99,6 +99,21 @@ function OrdersTab({
     
     doc.save(`street-mobile-order-${order.id.slice(-6)}.pdf`);
   };
+
+  const downloadCustomer = (order: any) => {
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.text("Customer Info", 20, 25);
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Name: ${order.customerName || "N/A"}`, 20, 35);
+    doc.text(`Phone: ${order.primaryPhone || "N/A"}`, 20, 45);
+    doc.text(`Email: ${order.email || "N/A"}`, 20, 55);
+    doc.text(`Address: ${order.address || "N/A"}`, 20, 65);
+    doc.save(`customer-${order.id.slice(-6)}.pdf`);
+  };
+
 
   return (
     <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
@@ -199,19 +214,6 @@ function OrdersTab({
         {selectedOrder ? (
           <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 space-y-6">
             <div className="flex justify-between items-start border-b border-white/5 pb-4">
-            {/* Helper to download single customer data */}
-            <script>{`
-              const downloadCustomer = (order) => {
-                const csv = `Name,Phone,Address\n${order.customerName || ''},${order.primaryPhone || ''},${order.address || ''}`;
-                const blob = new Blob([csv], { type: 'text/csv' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `customer-${order.id.slice(-6)}.csv`;
-                a.click();
-                URL.revokeObjectURL(url);
-              }`;
-            </script>
               <div>
                 <p className="text-xs text-white/40">Order Reference</p>
                 <p className="font-mono text-sm font-semibold text-white mt-1">#{selectedOrder.id}</p>

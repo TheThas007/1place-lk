@@ -4,6 +4,7 @@ import { GalleryImage } from "@/lib/types";
 import { db, storage } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { uploadImageWithFallback } from "@/lib/upload-utils";
 
 interface GalleryModalProps {
   isOpen: boolean;
@@ -60,9 +61,7 @@ export default function GalleryModal({ isOpen, onClose, onSave, initialData }: G
 
       // Upload image if a new one is selected
       if (imageFile) {
-        const storageRef = ref(storage, `gallery/${Date.now()}_${imageFile.name}`);
-        const uploadResult = await uploadBytes(storageRef, imageFile);
-        finalImageUrl = await getDownloadURL(uploadResult.ref);
+        finalImageUrl = await uploadImageWithFallback(imageFile, "gallery");
       }
 
       if (!finalImageUrl) {

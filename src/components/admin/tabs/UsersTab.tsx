@@ -17,7 +17,7 @@ function UsersTab({ users }: { users: any[] }) {
       const snap = await getDocs(collection(db, "orders"));
       const filtered = snap.docs
         .map(d => ({ ...d.data(), id: d.id }))
-        .filter(order => order.userId === userId);
+        .filter((order: any) => order.userId === userId);
       setUserOrders(filtered);
     } catch (e) {
       console.error("Failed to fetch orders for user", e);
