@@ -49,18 +49,19 @@ interface Order {
 
 // Function to calculate Estimated Delivery Date range
 function getDeliveryEstimate(createdAtStr: string, status: string) {
-  const created = new Date(createdAtStr);
+  const created = new Date(createdAtStr || Date.now());
+  const st = (status || "").toLowerCase();
 
-  if (status === "delivered") {
+  if (st === "delivered" || st === "completed") {
     return {
-      label: "Delivered",
-      color: "text-emerald-500 bg-emerald-50 border-emerald-200",
+      label: "Delivered & Completed",
+      color: "text-emerald-600 bg-emerald-50 border-emerald-200",
       dateText: `Delivered on ${created.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" })}`,
       step: 4
     };
   }
 
-  if (status === "cancelled") {
+  if (st === "cancelled") {
     return {
       label: "Cancelled",
       color: "text-red-500 bg-red-50 border-red-200",
@@ -79,7 +80,7 @@ function getDeliveryEstimate(createdAtStr: string, status: string) {
   const minFormatted = minDate.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
   const maxFormatted = maxDate.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
 
-  if (status === "shipped") {
+  if (st === "shipped") {
     return {
       label: "Out for Delivery",
       color: "text-blue-600 bg-blue-50 border-blue-200",
@@ -88,11 +89,20 @@ function getDeliveryEstimate(createdAtStr: string, status: string) {
     };
   }
 
-  if (status === "processing") {
+  if (st === "packed") {
     return {
-      label: "Packed & Ready",
+      label: "Packing Completed",
+      color: "text-amber-600 bg-amber-50 border-amber-200",
+      dateText: `Handover to Courier (${minFormatted})`,
+      step: 2
+    };
+  }
+
+  if (st === "processing") {
+    return {
+      label: "Processing Order",
       color: "text-purple-600 bg-purple-50 border-purple-200",
-      dateText: `Expected Delivery: ${minFormatted} – ${maxFormatted}`,
+      dateText: `Preparing items: ${minFormatted} – ${maxFormatted}`,
       step: 2
     };
   }
@@ -395,6 +405,30 @@ export default function OrderHistoryPage() {
                           </div>
                         ))}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Thank You Banner for Completed Orders */}
+                  {(order.status === "completed" || order.status === "delivered") && (
+                    <div className="mb-6 p-5 rounded-2xl bg-black text-white flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg border border-gray-800 animate-in fade-in">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-emerald-500 text-black flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+                          ✓
+                        </div>
+                        <div>
+                          <p className="font-black text-sm text-white">Thank you for your order on StreetMobile.lk!</p>
+                          <p className="text-xs text-gray-300 mt-0.5 font-medium">Your package has been successfully packed, shipped & delivered.</p>
+                        </div>
+                      </div>
+
+                      <a
+                        href="https://wa.me/94774141118?text=Hi!%20I'd%20like%20to%20join%20the%20Street%20Mobile%20VIP%20WhatsApp%20Channel!"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 shrink-0 active:scale-95"
+                      >
+                        <MessageCircle className="w-4 h-4" /> Join Our WhatsApp Channel
+                      </a>
                     </div>
                   )}
 

@@ -3,12 +3,18 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, MessageCircle, Star, Users } from "lucide-react";
+import dynamic from "next/dynamic";
+import { ArrowRight, MessageCircle } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
 import { getHeroSlides } from "@/lib/firestore-client";
-import { ScrollDissolveReveal } from "@/components/ui/scroll-dissolve-reveal";
-
+import WebGLGuard from "@/components/ui/WebGLGuard";
 import MagneticButton from "@/components/ui/magnetic-button";
+
+// Dynamic import of 3D Canvas component to prevent SSR issues
+const DynamicScrollDissolveReveal = dynamic(
+  () => import("@/components/ui/scroll-dissolve-reveal").then((mod) => mod.ScrollDissolveReveal),
+  { ssr: false }
+);
 
 /* ─── Default Fallback Hero Slides ─── */
 const defaultHeroSlides = [
@@ -19,14 +25,6 @@ const defaultHeroSlides = [
 ];
 
 /* ─── Animation Variants ─── */
-const containerVar: Variants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.15, delayChildren: 0.1 },
-  },
-};
-
 const itemVar: Variants = {
   hidden: { opacity: 0, y: 30 },
   show: {
@@ -36,43 +34,87 @@ const itemVar: Variants = {
   },
 };
 
-const floatVar: Variants = {
-  initial: { y: 0 },
-  animate: (i: number) => ({
-    y: [0, -15, 0],
-    transition: {
-      duration: 6,
-      repeat: Infinity,
-      ease: "easeInOut",
-      delay: i * 1.5,
-    },
-  }),
-};
+/* ─── Static Desktop Hero Fallback (Rendered when WebGL is unavailable/disabled) ─── */
+function DesktopHeroContent() {
+  return (
+    <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full pt-[100px] pb-16 lg:pt-[110px] lg:pb-24 flex justify-between items-center pointer-events-auto">
+      <div className="max-w-4xl text-left">
+        <div>
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/10 transition-colors duration-300">
+            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+            Your Trusted Store in Vavuniya
+          </div>
+        </div>
 
-const charVariants: Variants = {
-  hidden: { opacity: 0, y: 40 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-  },
-};
+        <div className="mb-6">
+          <h1 className="leading-[1.02] tracking-tight text-left">
+            <span
+              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tight drop-shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
+              style={{ fontFamily: "var(--font-outfit), sans-serif" }}
+            >
+              Premium Mobile
+            </span>
+            <span
+              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-serif italic mt-2 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent drop-shadow-md"
+              style={{ fontFamily: "var(--font-playfair), serif" }}
+            >
+              Experience.
+            </span>
+          </h1>
+        </div>
 
-const floatAnimation = {
-  y: [-4, 4, -4],
-  transition: { duration: 6, repeat: Infinity, ease: "easeInOut" as const, delay: 1 },
-};
+        <p className="text-[#6B7280] font-[400] md:font-[500] text-[20px] md:text-[22px] leading-[1.8] mb-10 max-w-[620px]">
+          Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.
+        </p>
 
-const headingContainerVariants: Variants = {
-  hidden: { opacity: 1 },
-  show: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.05,
-      delayChildren: 0.2,
-    },
-  },
-};
+        <div className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto">
+          {/* Primary CTA */}
+          <MagneticButton className="w-full sm:w-auto">
+            <Link
+              href="/products"
+              className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98]"
+            >
+              Shop Now
+              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+            </Link>
+          </MagneticButton>
+
+          {/* Secondary CTA */}
+          <MagneticButton className="w-full sm:w-auto">
+            <a
+              href={generateWhatsAppUrl()}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98]"
+            >
+              <MessageCircle className="w-5 h-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+              Contact Us
+            </a>
+          </MagneticButton>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function StaticDesktopHeroFallback({ bgImage }: { bgImage: string }) {
+  return (
+    <div className="relative w-full min-h-screen bg-black overflow-hidden flex items-center justify-center">
+      {/* Static Background Image with Gradient Overlays */}
+      <div className="absolute inset-0 z-0">
+        <img
+          src={bgImage}
+          alt="Street Mobile Store"
+          className="w-full h-full object-cover opacity-35"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
+      </div>
+
+      <DesktopHeroContent />
+    </div>
+  );
+}
 
 export default function HeroSection() {
   const [slides, setSlides] = useState<Array<{ src: string; alt: string }>>(defaultHeroSlides);
@@ -90,9 +132,6 @@ export default function HeroSection() {
     mouseX.set(x);
     mouseY.set(y);
   };
-
-  const parallaxX = useSpring(useTransform(mouseX, [-500, 500], [-15, 15]), { stiffness: 50, damping: 20 });
-  const parallaxY = useSpring(useTransform(mouseY, [-500, 500], [-15, 15]), { stiffness: 50, damping: 20 });
 
   useEffect(() => {
     async function loadDynamicSlides() {
@@ -123,6 +162,8 @@ export default function HeroSection() {
     }, 4000);
     return () => clearInterval(interval);
   }, [slides.length]);
+
+  const primaryBg = slides[0]?.src || defaultHeroSlides[0].src;
 
   return (
     <>
@@ -193,106 +234,44 @@ export default function HeroSection() {
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   currentSlide === idx ? "w-6 bg-white" : "w-1.5 bg-white/30"
                 }`}
-                aria-label={`Slide ${idx + 1}`}
+                aria-label={`Go to slide ${idx + 1}`}
               />
             ))}
           </div>
         )}
       </section>
 
-      {/* ── DESKTOP HERO SECTION (WebGL Scroll Dissolve) ── */}
+      {/* ── DESKTOP HERO SECTION (WebGL Guard + Dynamic Scroll Dissolve) ── */}
       <div className="hidden lg:block">
-        <ScrollDissolveReveal
-          images={slides.slice(0, 4).map((s) => s.src)}
-          containerClassName="h-[400vh]"
-        >
-          <div
-            className="relative w-full h-full flex items-center justify-center overflow-hidden"
-            onMouseMove={handleMouseMove}
+        <WebGLGuard fallback={<StaticDesktopHeroFallback bgImage={primaryBg} />}>
+          <DynamicScrollDissolveReveal
+            images={slides.slice(0, 4).map((s) => s.src)}
+            containerClassName="h-[400vh]"
           >
-            {/* Ambient brand color backlight */}
-            <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#88E788]/10 blur-[130px] rounded-full pointer-events-none z-0" />
-
-            {/* Left side blur and dark overlay for text readability */}
             <div
-              className="absolute inset-y-0 left-0 w-full lg:w-[68%] bg-gradient-to-r from-black via-black/80 to-transparent backdrop-blur-[6px] z-10 pointer-events-none"
-              style={{
-                maskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-                WebkitMaskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-              }}
-            />
+              className="relative w-full h-full flex items-center justify-center overflow-hidden"
+              onMouseMove={handleMouseMove}
+            >
+              {/* Ambient brand color backlight */}
+              <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
 
-            {/* Bottom gradient */}
-            <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
+              {/* Left side blur and dark overlay for text readability */}
+              <div
+                className="absolute inset-y-0 left-0 w-full lg:w-[68%] bg-gradient-to-r from-black via-black/80 to-transparent backdrop-blur-[6px] z-10 pointer-events-none"
+                style={{
+                  maskImage: "linear-gradient(to right, black 65%, transparent 100%)",
+                  WebkitMaskImage: "linear-gradient(to right, black 65%, transparent 100%)",
+                }}
+              />
 
-            <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full pt-[100px] pb-16 lg:pt-[110px] lg:pb-24 flex justify-between items-center pointer-events-auto">
-              {/* Left Content */}
-              <div className="max-w-4xl text-left">
-                <div>
-                  <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/10 transition-colors duration-300">
-                    <span className="flex h-2 w-2 rounded-full bg-green-400" />
-                    Your Trusted Store in Vavuniya
-                  </div>
-                </div>
+              {/* Bottom gradient */}
+              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
 
-                <div className="mb-6">
-                  <h1 className="leading-[1.02] tracking-tight text-left">
-                    <span
-                      className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tight drop-shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
-                      style={{ fontFamily: "var(--font-outfit), sans-serif" }}
-                    >
-                      Premium Mobile
-                    </span>
-                    <span
-                      className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-serif italic mt-2 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent drop-shadow-md"
-                      style={{ fontFamily: "var(--font-playfair), serif" }}
-                    >
-                      Experience.
-                    </span>
-                  </h1>
-                </div>
-
-                <motion.p
-                  variants={itemVar}
-                  className="text-[#6B7280] font-[400] md:font-[500] text-[20px] md:text-[22px] leading-[1.8] mb-10 max-w-[620px]"
-                >
-                  Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.
-                </motion.p>
-
-                <motion.div
-                  variants={itemVar}
-                  className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto"
-                >
-                  {/* Primary CTA */}
-                  <MagneticButton className="w-full sm:w-auto">
-                    <Link
-                      href="/products"
-                      className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98]"
-                    >
-                      Shop Now
-                      <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-                    </Link>
-                  </MagneticButton>
-
-                  {/* Secondary CTA */}
-                  <MagneticButton className="w-full sm:w-auto">
-                    <a
-                      href={generateWhatsAppUrl()}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98]"
-                    >
-                      <MessageCircle className="w-5 h-5 text-white/70 transition-transform duration-300 group-hover:scale-110" />
-                      Contact Us
-                    </a>
-                  </MagneticButton>
-                </motion.div>
-              </div>
+              <DesktopHeroContent />
             </div>
-          </div>
-        </ScrollDissolveReveal>
+          </DynamicScrollDissolveReveal>
+        </WebGLGuard>
       </div>
     </>
   );
 }
-

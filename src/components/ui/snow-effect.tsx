@@ -1,24 +1,22 @@
 "use client";
 
-import React, { useMemo, useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
+import { isWebGLAvailable, prefersReducedMotion, isLowPowerDevice } from "@/lib/webgl-utils";
 
-function SnowParticles({ count = 50000 }: { count?: number }) {
+function SnowParticles({ count = 10000 }: { count?: number }) {
   const pointsRef = useRef<THREE.Points>(null);
 
   // Generate particles
-  const [[positions, speeds]] = React.useState(() => {
+  const [[positions, speeds]] = useState(() => {
     const positions = new Float32Array(count * 3);
     const speeds = new Float32Array(count);
     
     for (let i = 0; i < count; i++) {
-      // Spread particles across a wide area (x: -50 to 50, y: -50 to 50, z: -20 to 20)
       positions[i * 3] = (Math.random() - 0.5) * 100;
       positions[i * 3 + 1] = (Math.random() - 0.5) * 100;
       positions[i * 3 + 2] = (Math.random() - 0.5) * 40;
-      
-      // Speed multiplier for variation
       speeds[i] = 0.1 + Math.random() * 0.5;
     }
     
@@ -26,7 +24,7 @@ function SnowParticles({ count = 50000 }: { count?: number }) {
   });
 
   useFrame((state, delta) => {
-    if (!pointsRef.current) return;
+    if (!pointsRef.current || (typeof document !== "undefined" && document.hidden)) return;
     
     const time = state.clock.getElapsedTime();
     const positionsAttr = pointsRef.current.geometry.attributes.position;
@@ -34,17 +32,12 @@ function SnowParticles({ count = 50000 }: { count?: number }) {
 
     for (let i = 0; i < count; i++) {
       const i3 = i * 3;
-      
-      // Move downward
       array[i3 + 1] -= speeds[i] * delta * 5;
-      
-      // Sway side to side slightly
       array[i3] += Math.sin(time + speeds[i] * 10) * delta * 0.5;
 
-      // Reset if it goes below the screen
       if (array[i3 + 1] < -50) {
         array[i3 + 1] = 50;
-        array[i3] = (Math.random() - 0.5) * 100; // Reset X to random
+        array[i3] = (Math.random() - 0.5) * 100;
       }
     }
     
@@ -73,11 +66,24 @@ function SnowParticles({ count = 50000 }: { count?: number }) {
 }
 
 export default function SnowEffect() {
+  const [canRender, setCanRender] = useState(false);
+
+  useEffect(() => {
+    if (!prefersReducedMotion() && !isLowPowerDevice() && isWebGLAvailable()) {
+      setCanRender(true);
+    }
+  }, []);
+
+  if (!canRender) return null;
+
   return (
     <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-      <Canvas camera={{ position: [0, 0, 10], fov: 60 }}>
+      <Canvas 
+        camera={{ position: [0, 0, 10], fov: 60 }}
+        gl={{ powerPreference: "low-power", antialias: false, failIfMajorPerformanceCaveat: true }}
+      >
         <React.Suspense fallback={null}>
-          <SnowParticles count={50000} />
+          <SnowParticles count={8000} />
         </React.Suspense>
       </Canvas>
     </div>

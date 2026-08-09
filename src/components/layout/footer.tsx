@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Phone, Mail, MapPin, ChevronRight, ArrowUpRight } from "lucide-react";
+import { Phone, Mail, MapPin, ChevronRight } from "lucide-react";
 import { siteSettings } from "@/lib/data";
 
 const footerLinks = {
@@ -21,7 +21,11 @@ const footerLinks = {
     { href: "/gallery", label: "Gallery" },
     { href: "/reviews", label: "Reviews" },
     { href: "/contact", label: "Contact Us" },
-    { href: "/admin/login", label: "Admin Portal" },
+  ],
+  policies: [
+    { href: "/return-policy", label: "Return & Refund Policy" },
+    { href: "/privacy-policy", label: "Privacy Policy" },
+    { href: "/terms-and-conditions", label: "Terms & Conditions" },
   ],
 };
 
@@ -33,7 +37,7 @@ export default function Footer() {
 
       {/* Main Footer */}
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-12 pb-10">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-8 lg:gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-8 lg:gap-8">
           
           {/* Brand Info */}
           <div className="sm:col-span-2 lg:col-span-2 space-y-4">
@@ -60,7 +64,7 @@ export default function Footer() {
                 <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center group-hover:border-zinc-600 transition-colors shrink-0">
                   <Phone className="w-3.5 h-3.5 text-zinc-400 group-hover:text-white" />
                 </div>
-                <span>+94 77 414 1118</span>
+                <span>{siteSettings.phone}</span>
               </a>
 
               <a 
@@ -77,7 +81,7 @@ export default function Footer() {
                 <div className="w-8 h-8 rounded-lg bg-zinc-900 border border-zinc-800 flex items-center justify-center shrink-0">
                   <MapPin className="w-3.5 h-3.5 text-zinc-400" />
                 </div>
-                <span>163, Kandaswamy Kovil Road, Vavuniya</span>
+                <span>{siteSettings.address}</span>
               </div>
             </div>
           </div>
@@ -142,6 +146,26 @@ export default function Footer() {
             </ul>
           </div>
 
+          {/* Policies & Compliance Links */}
+          <div>
+            <h3 className="text-xs font-bold uppercase tracking-wider text-zinc-400 mb-4 flex items-center gap-1">
+              Policies
+            </h3>
+            <ul className="space-y-2.5">
+              {footerLinks.policies.map((link) => (
+                <li key={link.label}>
+                  <Link
+                    href={link.href}
+                    className="text-xs sm:text-sm text-zinc-400 hover:text-white transition-colors inline-flex items-center gap-1 group"
+                  >
+                    <ChevronRight className="w-3 h-3 text-zinc-600 group-hover:text-white group-hover:translate-x-0.5 transition-all" />
+                    {link.label}
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
         </div>
       </div>
 
@@ -154,7 +178,7 @@ export default function Footer() {
           
           <div className="flex items-center gap-3">
             <a
-              href="https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr"
+              href={siteSettings.facebook}
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 flex items-center justify-center text-zinc-400 hover:text-white transition-all hover:scale-105"
@@ -165,7 +189,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="https://www.instagram.com/streetmobile.lk?utm_source=qr"
+              href={siteSettings.instagram}
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 flex items-center justify-center text-zinc-400 hover:text-white transition-all hover:scale-105"
@@ -176,7 +200,7 @@ export default function Footer() {
               </svg>
             </a>
             <a
-              href="https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9"
+              href={siteSettings.tiktok}
               target="_blank"
               rel="noopener noreferrer"
               className="w-9 h-9 rounded-xl bg-zinc-900 border border-zinc-800 hover:border-zinc-600 flex items-center justify-center text-zinc-400 hover:text-white transition-all hover:scale-105"

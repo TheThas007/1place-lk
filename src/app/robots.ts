@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: {
       userAgent: "*",
       allow: "/",
-      disallow: ["/admin/"],
+      disallow: ["/admin/", "/orders/", "/wishlist/", "/api/"],
     },
     sitemap: "https://www.streetmobile.lk/sitemap.xml",
   };

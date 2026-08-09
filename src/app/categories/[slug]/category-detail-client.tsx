@@ -6,6 +6,7 @@ import type { Variants } from "framer-motion";
 import { ArrowLeft, ArrowRight, Package, ShoppingBag } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category } from "@/lib/types";
+import ProductCard from "@/components/products/ProductCard";
 
 const containerVariants: Variants = {
   hidden: {},
@@ -151,63 +152,8 @@ export default function CategoryDetailClient({
             className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 lg:gap-5"
           >
             {products.map((product) => (
-              <motion.div key={product.id} variants={cardVariants}>
-                <Link
-                  href={`/products/${product.slug}`}
-                  className="group block bg-card rounded-2xl overflow-hidden border border-border/50 hover:border-border hover:shadow-2xl hover:shadow-black/5 transition-all duration-400 flex flex-col h-full"
-                >
-                  {/* Image */}
-                  <div className="relative aspect-square bg-gradient-to-br from-foreground/3 to-foreground/6 p-4 flex items-center justify-center overflow-hidden">
-                    {product.old_price && (
-                      <div className="absolute top-3 left-3 bg-gradient-to-r from-red-500 to-rose-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-full uppercase tracking-wider z-10 shadow-md">
-                        Sale
-                      </div>
-                    )}
-                    {product.stock_status === "out_of_stock" && (
-                      <div className="absolute top-3 right-3 bg-black/70 text-white text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider z-10">
-                        Sold Out
-                      </div>
-                    )}
-                    <div className="relative w-full h-full overflow-hidden rounded-xl">
-                      <img
-                        src={product.images[0]}
-                        alt={product.name}
-                        className="absolute inset-0 w-full h-full object-contain mix-blend-multiply group-hover:scale-108 transition-transform duration-600 ease-[cubic-bezier(0.16,1,0.3,1)]"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Info */}
-                  <div className="p-4 flex flex-col flex-1 justify-between gap-2">
-                    <div>
-                      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/70 mb-1">
-                        {product.category_name}
-                      </div>
-                      <h3 className="font-semibold text-sm lg:text-base line-clamp-2 leading-snug group-hover:text-muted-foreground transition-colors duration-200">
-                        {product.name}
-                      </h3>
-                    </div>
-
-                    <div className="flex items-baseline gap-2 mt-auto pt-2 border-t border-border/40">
-                      <span className="font-bold text-sm lg:text-base">
-                        {formatPrice(product.price)}
-                      </span>
-                      {product.old_price && (
-                        <>
-                          <span className="text-xs text-muted-foreground line-through">
-                            {formatPrice(product.old_price)}
-                          </span>
-                          <span className="ml-auto text-[10px] font-bold text-red-500">
-                            {Math.round(
-                              ((product.old_price - product.price) / product.old_price) * 100
-                            )}
-                            % OFF
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                </Link>
+              <motion.div key={product.id} variants={cardVariants} className="h-full">
+                <ProductCard product={product} />
               </motion.div>
             ))}
           </motion.div>

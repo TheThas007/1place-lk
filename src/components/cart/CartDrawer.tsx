@@ -159,92 +159,124 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
     }
   };
 
+  const handlePayHereCheckout = async () => {
+    setLoading(true);
+    try {
+      const sanitizedItems = cart.map(item => {
+        const itemObj: any = {
+          productId: item.productId,
+          name: item.name,
+          price: item.price,
+          image: item.image,
+          quantity: item.quantity
+        };
+        if (item.storage !== undefined) itemObj.storage = item.storage;
+        if (item.color !== undefined) itemObj.color = item.color;
+        return itemObj;
+      });
+
+      const orderData = {
+        userId: user?.uid || "guest",
+        customerName: cardName || codName || user?.displayName || "Customer",
+        items: sanitizedItems,
+        totalPrice: total,
+        paymentMethod: "PayHere Card",
+        status: "pending",
+        createdAt: new Date().toISOString(),
+        district: codDistrict || "Vavuniya",
+        address: codAddress || "PayHere Payment Gateway",
+        primaryPhone: codPhone1 || "N/A"
+      };
+
+      let finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
+
+      try {
+        const res = await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(orderData)
+        });
+        const data = await res.json();
+        if (data.orderId) finalOrderId = data.orderId;
+      } catch (e) {
+        console.warn("API order save warning:", e);
+      }
+
+      setOrderId(finalOrderId);
+
+      // Fetch PayHere hash
+      const hashRes = await fetch("/api/payhere/hash", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: finalOrderId, amount: total, currency: "LKR" })
+      });
+      const hashData = await hashRes.json();
+
+      if (!hashData.hash) {
+        throw new Error(hashData.error || "Failed to generate PayHere security hash");
+      }
+
+      if (typeof window !== "undefined" && (window as any).payhere) {
+        const payhere = (window as any).payhere;
+
+        const payment = {
+          sandbox: hashData.mode !== "live",
+          merchant_id: hashData.merchantId,
+          return_url: `${window.location.origin}/orders?orderId=${finalOrderId}`,
+          cancel_url: `${window.location.origin}/cart`,
+          notify_url: `${window.location.origin}/api/payhere/notify`,
+          order_id: finalOrderId,
+          items: cart.map(i => i.name).join(", "),
+          amount: hashData.amount,
+          currency: "LKR",
+          hash: hashData.hash,
+          first_name: orderData.customerName,
+          last_name: "",
+          email: user?.email || "customer@streetmobile.lk",
+          phone: orderData.primaryPhone,
+          address: orderData.address,
+          city: orderData.district,
+          country: "Sri Lanka",
+        };
+
+        payhere.onCompleted = function onCompleted(completedOrderId: string) {
+          console.log("PayHere payment completed:", completedOrderId);
+          clearCart();
+          setStep("success");
+        };
+
+        payhere.onDismissed = function onDismissed() {
+          setLoading(false);
+        };
+
+        payhere.onError = function onError(error: any) {
+          console.error("PayHere Error:", error);
+          alert("PayHere payment error: " + error);
+          setLoading(false);
+        };
+
+        payhere.startPayment(payment);
+      } else {
+        // Fallback simulation
+        setTimeout(() => {
+          clearCart();
+          setStep("success");
+        }, 1500);
+      }
+    } catch (e: any) {
+      console.error("PayHere Error:", e);
+      alert(e?.message || "Failed to launch PayHere payment gateway.");
+      setLoading(false);
+    }
+  };
+
   const handleCardSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (cardNumber.length < 16 || cardExpiry.length < 5 || cardCvv.length < 3 || !cardName) {
       alert("Please enter valid card details.");
       return;
     }
-    setLoading(true);
-    // Simulate payment gateway delay (2.5 seconds)
-    setTimeout(async () => {
-      try {
-        const sanitizedItems = cart.map(item => {
-          const itemObj: any = {
-            productId: item.productId,
-            name: item.name,
-            price: item.price,
-            image: item.image,
-            quantity: item.quantity
-          };
-          if (item.storage !== undefined) itemObj.storage = item.storage;
-          if (item.color !== undefined) itemObj.color = item.color;
-          return itemObj;
-        });
-
-        const orderData = {
-          userId: user?.uid || "guest",
-          customerName: cardName || codName || user?.displayName || "Card Customer",
-          items: sanitizedItems,
-          totalPrice: total,
-          paymentMethod: "Card",
-          status: "paid",
-          createdAt: new Date().toISOString(),
-          district: codDistrict || "Vavuniya",
-          address: codAddress || "Direct Card Payment",
-          primaryPhone: codPhone1 || "N/A"
-        };
-        
-        let finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
-
-        try {
-          const res = await fetch("/api/orders", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(orderData)
-          });
-          const data = await res.json();
-          if (data.orderId) finalOrderId = data.orderId;
-        } catch (e) {
-          console.warn("API card order save warning:", e);
-        }
-
-        setOrderId(finalOrderId);
-
-        try {
-          const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
-          if (!stored.includes(finalOrderId)) {
-            localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
-          }
-        } catch (e) {
-          console.warn("Could not save order to local storage", e);
-        }
-
-        // Trigger order alert email
-        fetch("/api/order-alert", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            orderId: finalOrderId,
-            customerName: orderData.customerName,
-            paymentMethod: orderData.paymentMethod,
-            totalPrice: orderData.totalPrice,
-            items: orderData.items,
-            district: orderData.district,
-            address: orderData.address,
-            primaryPhone: orderData.primaryPhone
-          })
-        }).catch(e => console.error(e));
-
-        clearCart();
-        setStep("success");
-      } catch (err) {
-        console.error(err);
-        alert("Failed to process order. Please try again.");
-      } finally {
-        setLoading(false);
-      }
-    }, 2500);
+    await handlePayHereCheckout();
   };
 
   const handleClose = () => {

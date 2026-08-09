@@ -2,8 +2,9 @@ import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
 import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner } from "./types";
 import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, siteSettings } from "./data";
+import { cache } from "react";
 
-export async function getProductBanners(): Promise<ProductBanner[]> {
+export const getProductBanners = cache(async (): Promise<ProductBanner[]> => {
   try {
     const q = query(collection(db, "product_banners"));
     const snapshot = await getDocs(q);
@@ -13,9 +14,9 @@ export async function getProductBanners(): Promise<ProductBanner[]> {
     console.warn("Offline/Error fetching product banners:", e);
     return [];
   }
-}
+});
 
-export async function getProducts(): Promise<Product[]> {
+export const getProducts = cache(async (): Promise<Product[]> => {
   try {
     const q = query(collection(db, "products"));
     const snapshot = await getDocs(q);
@@ -25,9 +26,9 @@ export async function getProducts(): Promise<Product[]> {
     console.warn("Offline/Error fetching products, returning fallbacks:", e);
   }
   return fallbackProducts;
-}
+});
 
-export async function getCategories(): Promise<Category[]> {
+export const getCategories = cache(async (): Promise<Category[]> => {
   try {
     const q = query(collection(db, "categories"));
     const snapshot = await getDocs(q);
@@ -37,9 +38,9 @@ export async function getCategories(): Promise<Category[]> {
     console.warn("Offline/Error fetching categories, returning fallbacks:", e);
   }
   return fallbackCategories;
-}
+});
 
-export async function getReviews(): Promise<Review[]> {
+export const getReviews = cache(async (): Promise<Review[]> => {
   try {
     const q = query(collection(db, "reviews"));
     const snapshot = await getDocs(q);
@@ -49,9 +50,9 @@ export async function getReviews(): Promise<Review[]> {
     console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
   }
   return fallbackReviews;
-}
+});
 
-export async function getBanners(): Promise<Banner[]> {
+export const getBanners = cache(async (): Promise<Banner[]> => {
   try {
     const q = query(collection(db, "banners"));
     const snapshot = await getDocs(q);
@@ -60,9 +61,9 @@ export async function getBanners(): Promise<Banner[]> {
     console.warn("Offline/Error fetching banners:", e);
     return [];
   }
-}
+});
 
-export async function getOfferBanners(placement?: string): Promise<OfferBanner[]> {
+export const getOfferBanners = cache(async (placement?: string): Promise<OfferBanner[]> => {
   try {
     const q = query(collection(db, "offer_banners"));
     const snapshot = await getDocs(q);
@@ -83,9 +84,9 @@ export async function getOfferBanners(placement?: string): Promise<OfferBanner[]
     console.warn("Offline/Error fetching offer banners:", e);
     return [];
   }
-}
+});
 
-export async function getHeroSlides(): Promise<HeroSlide[]> {
+export const getHeroSlides = cache(async (): Promise<HeroSlide[]> => {
   try {
     const q = query(collection(db, "hero_slides"));
     const snapshot = await getDocs(q);
@@ -95,9 +96,9 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
     console.warn("Offline/Error fetching hero slides:", e);
     return [];
   }
-}
+});
 
-export async function getGalleryImages(): Promise<any[]> {
+export const getGalleryImages = cache(async (): Promise<any[]> => {
   try {
     const q = query(collection(db, "gallery"));
     const snapshot = await getDocs(q);
@@ -106,9 +107,9 @@ export async function getGalleryImages(): Promise<any[]> {
     console.warn("Offline/Error fetching gallery images:", e);
     return [];
   }
-}
+});
 
-export async function getProductBySlug(slug: string): Promise<Product | null> {
+export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
   try {
     const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
     const snapshot = await getDocs(q);
@@ -117,9 +118,9 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
     console.warn("Offline/Error fetching product by slug:", e);
   }
   return fallbackProducts.find(p => p.slug === slug) || null;
-}
+});
 
-export async function getCategoryBySlug(slug: string): Promise<Category | null> {
+export const getCategoryBySlug = cache(async (slug: string): Promise<Category | null> => {
   try {
     const q = query(collection(db, "categories"), where("slug", "==", slug), limit(1));
     const snapshot = await getDocs(q);
@@ -128,19 +129,19 @@ export async function getCategoryBySlug(slug: string): Promise<Category | null> 
     console.warn("Offline/Error fetching category by slug:", e);
   }
   return fallbackCategories.find(c => c.slug === slug) || null;
-}
+});
 
 export { siteSettings } from "./data";
 
-export async function getUiSettings(): Promise<UiSettings> {
+export const getUiSettings = cache(async (): Promise<UiSettings> => {
   try {
     const docRef = doc(db, "settings", "ui");
     const docSnap = await getDoc(docRef);
     if (docSnap.exists()) {
       return docSnap.data() as UiSettings;
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching UI settings:", e);
+  } catch {
+    // Return empty fallback silently when offline or reconnecting
   }
   return {};
-}
+});

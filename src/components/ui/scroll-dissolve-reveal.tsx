@@ -303,6 +303,9 @@ const Scene = ({ images, scrollYProgress }: SceneProps) => {
   );
 
   useFrame((state) => {
+    // Pause animation logic if document is hidden
+    if (typeof document !== "undefined" && document.hidden) return;
+
     const timeInSeconds = state.clock.getElapsedTime();
     const progress = scrollYProgress.get();
 
@@ -402,7 +405,16 @@ export function ScrollDissolveReveal({
       className={cn("relative h-[400vh] w-full bg-black", containerClassName)}
     >
       <div className={cn("sticky top-0 h-screen w-full overflow-hidden", className)}>
-        <Canvas className="absolute inset-0 z-0">
+        <Canvas 
+          className="absolute inset-0 z-0"
+          gl={{ powerPreference: "high-performance", antialias: true, failIfMajorPerformanceCaveat: true }}
+          onCreated={({ gl }) => {
+            // Context lost handler
+            gl.domElement.addEventListener("webglcontextlost", (event) => {
+              event.preventDefault();
+            });
+          }}
+        >
           <OrthographicCamera
             makeDefault
             manual
@@ -426,3 +438,4 @@ export function ScrollDissolveReveal({
     </div>
   );
 }
+

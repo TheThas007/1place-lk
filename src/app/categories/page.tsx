@@ -1,11 +1,5 @@
-import Link from "next/link";
-import { getCategories } from "@/lib/firestore-client";
-import CategoriesClient from "./categories-client";
+import { redirect } from "next/navigation";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
-
-export default async function CategoriesPage() {
-  const categories = await getCategories();
-  return <CategoriesClient categories={categories} />;
+export default function CategoriesPage() {
+  redirect("/products");
 }

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Inter, Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 
 import Header from "@/components/layout/header";
@@ -10,6 +11,27 @@ import { CartProvider } from "@/lib/cart-context";
 import { ToastProvider } from "@/components/ui/ToastProvider";
 import SearchOverlay from "@/components/ui/SearchOverlay";
 import { WishlistProvider } from "@/lib/wishlist-context";
+import AnnouncementBar from "@/components/ui/AnnouncementBar";
+import CampaignPopup from "@/components/ui/CampaignPopup";
+import Script from "next/script";
+
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const outfit = Outfit({
+  subsets: ["latin"],
+  variable: "--font-outfit",
+  display: "swap",
+});
+
+const playfair = Playfair_Display({
+  subsets: ["latin"],
+  variable: "--font-playfair",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://www.streetmobile.lk"),
@@ -37,26 +59,26 @@ export const metadata: Metadata = {
   },
 };
 
-import AnnouncementBar from "@/components/ui/AnnouncementBar";
-import CampaignPopup from "@/components/ui/CampaignPopup";
-
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full antialiased">
+    <html
+      lang="en"
+      className={`h-full antialiased ${inter.variable} ${outfit.variable} ${playfair.variable}`}
+    >
       <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&family=Outfit:wght@400;500;600;700;800;900&family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap" rel="stylesheet" />
+        <Script src="https://www.payhere.lk/lib/payhere.js" strategy="lazyOnload" />
       </head>
-      <body className="min-h-full flex flex-col font-sans">
+      <body className="min-h-full flex flex-col font-sans bg-black text-white">
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>
               <ToastProvider>
+                {/* Screen reader live region for cart announcements */}
+                <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
                 <AnnouncementBar />
                 <Header />
                 <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">

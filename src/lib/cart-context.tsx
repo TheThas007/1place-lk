@@ -20,7 +20,12 @@ export interface CartItem {
   image: string;
   quantity: number;
   color?: string;
+  ram?: string;
   storage?: string;
+  variantId?: string;
+  warrantyId?: string;
+  warrantyTitle?: string;
+  warrantyPrice?: number;
   allow_cod?: boolean;
   allow_card?: boolean;
   allow_whatsapp?: boolean;
@@ -140,8 +145,20 @@ export function CartProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultCartContext: CartContextType = {
+  cart: [],
+  addToCart: () => {},
+  removeFromCart: () => {},
+  updateQuantity: () => {},
+  clearCart: () => {},
+  itemCount: 0,
+  total: 0,
+};
+
 export function useCart() {
   const ctx = useContext(CartContext);
-  if (!ctx) throw new Error("useCart must be used inside CartProvider");
+  if (!ctx) {
+    return defaultCartContext;
+  }
   return ctx;
 }

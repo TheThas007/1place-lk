@@ -111,7 +111,7 @@ export default function ShopBannerSlider({ banners = [] }: ShopBannerSliderProps
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.1 }}
-                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400/90 text-black text-[11px] font-black uppercase tracking-wider mb-3 shadow-lg"
+                className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-400 text-black text-[11px] font-black uppercase tracking-wider mb-3 shadow-lg animate-pulse"
               >
                 <Tag className="w-3 h-3" />
                 {current.badgeText || current.promoLabel}

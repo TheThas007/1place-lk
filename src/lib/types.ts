@@ -9,7 +9,9 @@ export interface Product {
   description: string;
   specifications: Record<string, string>;
   warranty: string;
+  brand_warranty?: string;
   stock_status: "in_stock" | "low_stock" | "out_of_stock";
+  stock_count?: number;
   colors: string[];
   storage_options: string[];
   storage_prices?: Record<string, number>;
@@ -20,6 +22,79 @@ export interface Product {
   allow_card?: boolean;
   allow_whatsapp?: boolean;
   created_at: string;
+  video_url?: string;
+  delivery_info?: string;
+  compatibility_tags?: string[];
+  compatible_brands?: string[];
+  compatible_models?: string[];
+  related_categories?: string[];
+  related_products?: string[];
+  recommendation_mode?: "auto" | "manual" | "pinned";
+  color_variants?: ProductColor[];
+  variant_combos?: ProductVariantCombo[];
+  warranty_options?: WarrantyOption[];
+}
+
+export interface ProductColor {
+  id: string;
+  name: string;
+  hex: string;
+  sort_order?: number;
+  is_default?: boolean;
+  active?: boolean;
+  cover_image?: string;
+  images: string[];
+  video_url?: string;
+  alt_text?: string;
+}
+
+export interface ProductVariantCombo {
+  id: string;
+  color_id?: string;
+  color_name?: string;
+  ram?: string;
+  storage?: string;
+  sim_type?: string;
+  sku: string;
+  barcode?: string;
+  price: number;
+  old_price?: number | null;
+  cost_price?: number;
+  stock_quantity: number;
+  reserved_stock: number;
+  available_stock: number;
+  low_stock_threshold?: number;
+  weight?: number;
+  status: "active" | "inactive";
+  image_ref?: string;
+}
+
+export interface WarrantyOption {
+  id: string;
+  title: string;
+  type: "No Warranty" | "Shop Warranty" | "Manufacturer Warranty" | "Extended Warranty" | "Lifetime Warranty" | "Unlimited Warranty";
+  duration_value: number | string;
+  duration_unit: "months" | "years" | "lifetime" | "unlimited";
+  additional_price: number;
+  coverage_details: string;
+  exclusions?: string;
+  claim_instructions?: string;
+  status: "active" | "inactive";
+  is_default?: boolean;
+  sort_order?: number;
+}
+
+export interface InventoryLog {
+  id: string;
+  variant_id: string;
+  variant_name: string;
+  previous_quantity: number;
+  changed_quantity: number;
+  new_quantity: number;
+  reason: "add_stock" | "damaged" | "correct_count" | "customer_return" | "supplier_restock" | "order_fulfillment";
+  admin_id?: string;
+  timestamp: string;
+  note?: string;
 }
 
 export interface Category {
@@ -32,12 +107,14 @@ export interface Category {
   description?: string;
   product_count?: number;
   group?: "phones" | "accessories" | "other";
+  status?: "active" | "inactive";
+  show_in_selector?: boolean;
 }
 
 export interface Review {
   id: string;
   author_name: string;
-  author_photo: string;
+  author_photo?: string;
   rating: number;
   text: string;
   review_date: string;

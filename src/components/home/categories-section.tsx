@@ -5,7 +5,15 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Category } from "@/lib/types";
 
-type Tab = "phones" | "accessories";
+type Tab = "phones" | "laptops" | "accessories";
+
+const FALLBACK_LAPTOPS: Category[] = [
+  { id: "laptop-1", name: "Apple MacBook", slug: "macbook", icon: "💻", image_url: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=600&auto=format&fit=crop", sort_order: 1, group: "other" },
+  { id: "laptop-2", name: "Asus ROG", slug: "asus", icon: "💻", image_url: "https://images.unsplash.com/photo-1588872657578-7efd1f1555ed?q=80&w=600&auto=format&fit=crop", sort_order: 2, group: "other" },
+  { id: "laptop-3", name: "MSI Gaming", slug: "msi", icon: "💻", image_url: "https://images.unsplash.com/photo-1603302576837-37561b2e2302?q=80&w=600&auto=format&fit=crop", sort_order: 3, group: "other" },
+  { id: "laptop-4", name: "Dell XPS", slug: "dell", icon: "💻", image_url: "https://images.unsplash.com/photo-1593642632823-8f785ba67e45?q=80&w=600&auto=format&fit=crop", sort_order: 4, group: "other" },
+  { id: "laptop-5", name: "Lenovo ThinkPad", slug: "lenovo", icon: "💻", image_url: "https://images.unsplash.com/photo-1541807084-5c52b6b3adef?q=80&w=600&auto=format&fit=crop", sort_order: 5, group: "other" },
+];
 
 function BrandCard({ cat, index }: { cat: Category; index: number }) {
   return (
@@ -16,8 +24,8 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
       transition={{ duration: 0.35, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
     >
       <Link
-        href={`/categories/${cat.slug}`}
-        className="group relative flex flex-col items-center justify-center p-5 sm:p-6 rounded-2xl border border-neutral-200 bg-white shadow-sm hover:border-black hover:shadow-md hover:-translate-y-1 transition-all duration-300 gap-3 text-center h-full"
+        href={`/products?category=${cat.slug}`}
+        className="group relative flex flex-col items-center justify-center p-5 sm:p-6 rounded-2xl border border-neutral-200 bg-white shadow-xs hover:border-black hover:shadow-md hover:-translate-y-1 transition-all duration-300 gap-3 text-center h-full"
       >
         <div className="w-12 h-12 sm:w-16 sm:h-16 flex items-center justify-center">
           {(() => {
@@ -42,7 +50,7 @@ function BrandCard({ cat, index }: { cat: Category; index: number }) {
             }
 
             return (
-              <span className="text-3xl filter drop-shadow-sm group-hover:scale-110 transition-all duration-300">
+              <span className="text-3xl filter drop-shadow-xs group-hover:scale-110 transition-all duration-300">
                 {cat.icon || "📱"}
               </span>
             );
@@ -67,9 +75,29 @@ export default function CategoriesSection({ categories }: { categories: Category
   const [tab, setTab] = useState<Tab>("phones");
 
   const phoneCategories = useMemo(() => categories.filter((c) => c.group === "phones"), [categories]);
-  const accessoryCategories = useMemo(() => categories.filter((c) => c.group === "accessories" || c.group === "other"), [categories]);
+  
+  const laptopCategories = useMemo(() => {
+    const fromDb = categories.filter(
+      (c) =>
+        c.group === "other" &&
+        (c.slug.includes("laptop") ||
+          c.slug.includes("macbook") ||
+          c.name.toLowerCase().includes("laptop") ||
+          c.name.toLowerCase().includes("macbook") ||
+          c.name.toLowerCase().includes("asus") ||
+          c.name.toLowerCase().includes("dell") ||
+          c.name.toLowerCase().includes("msi") ||
+          c.name.toLowerCase().includes("lenovo"))
+    );
+    return fromDb.length > 0 ? fromDb : FALLBACK_LAPTOPS;
+  }, [categories]);
 
-  const items = tab === "phones" ? phoneCategories : accessoryCategories;
+  const accessoryCategories = useMemo(
+    () => categories.filter((c) => c.group === "accessories" || (c.group === "other" && !laptopCategories.some(l => l.id === c.id))),
+    [categories, laptopCategories]
+  );
+
+  const items = tab === "phones" ? phoneCategories : tab === "laptops" ? laptopCategories : accessoryCategories;
 
   return (
     <section className="py-12 bg-white border-t border-neutral-100">
@@ -88,25 +116,26 @@ export default function CategoriesSection({ categories }: { categories: Category
         {/* Tab Switcher */}
         <div className="flex justify-center mb-10">
           <div className="inline-flex items-center p-1 rounded-full bg-neutral-50 border border-neutral-200/60 relative">
-            {(["phones", "accessories"] as Tab[]).map((t) => {
+            {(["phones", "laptops", "accessories"] as Tab[]).map((t) => {
               const isActive = tab === t;
+              const label = t === "phones" ? "📱 Smartphones" : t === "laptops" ? "💻 Laptops" : "🎧 Accessories";
               return (
                 <button
                   key={t}
                   onClick={() => setTab(t)}
-                  className={`relative px-6 py-2.5 rounded-full text-sm font-semibold transition-colors duration-300 capitalize z-10
+                  className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-semibold transition-colors duration-300 capitalize z-10
                     ${isActive ? "text-white" : "text-gray-500 hover:text-black"}
                   `}
                 >
                   {isActive && (
                     <motion.div
                       layoutId="category-tab-active"
-                      className="absolute inset-0 bg-neutral-900 rounded-full shadow-sm -z-10"
+                      className="absolute inset-0 bg-neutral-900 rounded-full shadow-xs -z-10"
                       transition={{ type: "spring", bounce: 0.15, duration: 0.5 }}
                     />
                   )}
                   <span className="relative z-10 flex items-center gap-2">
-                    {t === "phones" ? "📱 Smartphones" : "🎧 Accessories"}
+                    {label}
                   </span>
                 </button>
               );
@@ -122,11 +151,7 @@ export default function CategoriesSection({ categories }: { categories: Category
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -10 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            className={`grid gap-4 sm:gap-5
-              ${tab === "phones"
-                ? "grid-cols-3 sm:grid-cols-4 lg:grid-cols-5"
-                : "grid-cols-3 sm:grid-cols-4 lg:grid-cols-6"
-              }`}
+            className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5"
           >
             {items.map((cat, i) => (
               <BrandCard key={cat.id} cat={cat} index={i} />
@@ -137,12 +162,12 @@ export default function CategoriesSection({ categories }: { categories: Category
         {/* View All */}
         <div className="text-center mt-10">
           <Link
-            href="/categories"
+            href="/products"
             className="inline-flex items-center gap-2 px-6 py-3 rounded-xl border border-border/70
                        text-sm font-semibold text-muted-foreground hover:text-foreground
                        hover:border-foreground/30 hover:bg-foreground/5 transition-all duration-300"
           >
-            View All Categories →
+            View All Products →
           </Link>
         </div>
 

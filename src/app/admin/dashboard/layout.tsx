@@ -7,36 +7,54 @@ import {
   LayoutDashboard,
   Package,
   FolderOpen,
+  ShoppingBag,
+  Users,
+  HardDrive,
+  ImageIcon,
+  ShieldCheck,
+  CreditCard,
   Star,
-  Image as ImageIcon,
+  BarChart3,
   Settings,
   LogOut,
-  Eye,
   Bell,
+  Search,
+  Plus,
+  HelpCircle,
+  ChevronDown,
+  Menu,
+  X,
+  Smartphone,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
-
+import ProductModal from "@/components/admin/ProductModal";
 
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { id: "products", label: "Products", icon: Package, href: "/admin/dashboard/products" },
-  { id: "categories", label: "Categories", icon: FolderOpen, href: "/admin/dashboard/categories" },
-  { id: "orders", label: "Orders", icon: Package, href: "/admin/dashboard/orders" },
-  
-  // Marketing & Media
-  { id: "banners", label: "Offer Banners", icon: ImageIcon, href: "/admin/dashboard/banners" },
-  { id: "gallery", label: "Gallery", icon: ImageIcon, href: "/admin/dashboard/gallery" },
-  { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard/reviews" },
-  { id: "hero", label: "Hero Slides", icon: ImageIcon, href: "/admin/dashboard/hero" },
+  { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
+  { id: "categories", label: "Categories", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
+  { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
+  { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
+  { id: "inventory", label: "Inventory", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
+  { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
+  { id: "payments", label: "Payments", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
+  { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
+  { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
+  { id: "settings", label: "Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const [isAuthed, setIsAuthed] = useState(false);
-  
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  // Search & Modals
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isAddProductOpen, setIsAddProductOpen] = useState(false);
+
   // Live order alert state
   const [liveAlert, setLiveAlert] = useState<any | null>(null);
   const lastOrderId = useRef<string | null>(null);
@@ -50,6 +68,26 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     }
   }, [router]);
 
+  // Keyboard shortcut ⌘K for search
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        const searchInput = document.getElementById("admin-global-search");
+        if (searchInput) searchInput.focus();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Listen for global open product modal event
+  useEffect(() => {
+    const handleOpenModal = () => setIsAddProductOpen(true);
+    window.addEventListener("open-add-product-modal", handleOpenModal);
+    return () => window.removeEventListener("open-add-product-modal", handleOpenModal);
+  }, []);
+
   useEffect(() => {
     if (!isAuthed) return;
 
@@ -57,18 +95,16 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
       try {
         const snapshot = await getDocs(collection(db, "orders"));
         const sorted = snapshot.docs
-          .map(d => ({ ...d.data(), id: d.id }))
+          .map((d) => ({ ...d.data(), id: d.id }))
           .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-          
+
         if (sorted.length) {
           const doc = sorted[0];
-          
           if (lastOrderId.current && lastOrderId.current !== doc.id) {
             setLiveAlert({ ...doc });
             try {
               const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-              const promise = audio.play();
-              if (promise !== undefined) promise.catch(() => {});
+              audio.play().catch(() => {});
             } catch (e) {}
           }
           lastOrderId.current = doc.id;
@@ -83,131 +119,232 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     return () => clearInterval(interval);
   }, [isAuthed]);
 
-// Auto-dismiss live order alerts after 5 seconds
-useEffect(() => {
-  if (liveAlert) {
-    const timer = setTimeout(() => setLiveAlert(null), 5000);
-    return () => clearTimeout(timer);
-  }
-}, [liveAlert]);
+  useEffect(() => {
+    if (liveAlert) {
+      const timer = setTimeout(() => setLiveAlert(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [liveAlert]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
     router.push("/admin/login");
   };
 
-  if (!isAuthed) return <div className="min-h-screen bg-black flex items-center justify-center text-white">Loading...</div>;
+  if (!isAuthed) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center text-white font-sans">
+        <div className="flex items-center gap-2 font-bold text-sm">
+          <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          Authenticating Admin Session...
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="flex h-screen bg-black overflow-hidden font-sans text-white">
-      {/* Sidebar */}
-      <aside className="w-64 bg-slate-950/50 border-r border-white/5 flex flex-col backdrop-blur-xl">
-        <div className="p-6">
-          <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-            <div className="w-10 h-10 bg-white rounded-xl flex items-center justify-center group-hover:scale-105 transition-transform">
-              <span className="text-black font-black text-xl tracking-tighter">SM</span>
+    <div className="flex h-screen bg-[#090D14] overflow-hidden font-sans text-white">
+      {/* ── Mobile Sidebar Drawer Backdrop ── */}
+      {mobileSidebarOpen && (
+        <div
+          className="fixed inset-0 bg-black/80 z-40 lg:hidden"
+          onClick={() => setMobileSidebarOpen(false)}
+        />
+      )}
+
+      {/* ── Left Navigation Sidebar (Dark Mode) ── */}
+      <aside
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 ${
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+      >
+        {/* Brand Logo Header */}
+        <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between">
+          <Link href="/admin/dashboard" className="flex items-center gap-3">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+              <Smartphone className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-white font-bold tracking-tight">STREET MOBILE</h1>
-              <p className="text-[10px] text-white/40 uppercase tracking-widest font-semibold mt-0.5">Enterprise ERP</p>
+              <h1 className="text-base font-extrabold text-white tracking-tight leading-none">
+                StreetMobile<span className="text-blue-500">.lk</span>
+              </h1>
+              <span className="text-[10px] text-white/40 font-bold uppercase tracking-widest">
+                Admin Panel
+              </span>
             </div>
           </Link>
+
+          <button
+            onClick={() => setMobileSidebarOpen(false)}
+            className="p-1 rounded-lg text-white/40 hover:text-white lg:hidden"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
 
+        {/* Sidebar Nav Links */}
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
           {SIDEBAR_ITEMS.map((item) => {
-            const isActive = pathname === item.href || (item.href !== "/admin/dashboard" && pathname.startsWith(item.href));
+            const isTab = pathname === "/admin/dashboard" && typeof window !== "undefined" && window.location.search.includes(`tab=${item.id}`);
+            const isActive = isTab || (item.id === "overview" && pathname === "/admin/dashboard" && (typeof window === "undefined" || !window.location.search.includes("tab=")));
+            
             return (
               <Link
                 key={item.id}
                 href={item.href}
-                className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
+                onClick={() => setMobileSidebarOpen(false)}
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
                   isActive
-                    ? "bg-white text-black shadow-lg"
-                    : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                    ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30"
+                    : "text-white/60 hover:text-white hover:bg-white/5"
                 }`}
               >
-                <item.icon className="w-4 h-4" />
+                <item.icon className={`w-4 h-4 ${isActive ? "text-white" : "text-white/40"}`} />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t border-white/5 space-y-1">
-          <Link 
-            href="/admin/dashboard/settings"
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all ${
-              pathname === "/admin/dashboard/settings"
-                ? "bg-white text-black shadow-lg"
-                : "text-white/50 hover:text-white/80 hover:bg-white/5"
-            }`}
-          >
-            <Settings className="w-4 h-4" />
-            Settings
-          </Link>
+        {/* Bottom Support Widget Card */}
+        <div className="p-4 border-t border-white/10">
+          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center space-y-3">
+            <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
+              <HelpCircle className="w-4 h-4" />
+            </div>
+            <div>
+              <p className="text-xs font-bold text-white">Need Help?</p>
+              <p className="text-[11px] text-white/40">Contact support team</p>
+            </div>
+            <button
+              onClick={() => window.open("https://wa.me/94774141118", "_blank")}
+              className="w-full py-2 px-3 bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl hover:bg-white/20 transition-colors"
+            >
+              Contact Support
+            </button>
+          </div>
+
           <button
             onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium text-red-400/70 hover:text-red-400 hover:bg-red-500/5 transition-all"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
           >
-            <LogOut className="w-4 h-4" />
-            Logout
+            <LogOut className="w-3.5 h-3.5" />
+            Sign Out
           </button>
         </div>
       </aside>
 
-      {/* Main Content */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Top Bar */}
-        <div className="sticky top-0 z-10 bg-slate-950/80 backdrop-blur-xl border-b border-white/5 px-8 py-4 flex items-center justify-between">
-          <div>
-            <h2 className="text-xl font-bold text-white capitalize">
-              {pathname.split("/").pop() || "Overview"}
-            </h2>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link
-              href="/"
-              target="_blank"
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:text-white hover:bg-white/10 transition-all"
+      {/* ── Main Content Area (Dark Theme) ── */}
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        
+        {/* Top Header Bar */}
+        <header className="h-16 bg-[#0F172A] border-b border-white/10 px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0">
+          <div className="flex items-center gap-3 flex-1 max-w-xl">
+            <button
+              onClick={() => setMobileSidebarOpen(true)}
+              className="p-2 rounded-xl text-white/60 hover:text-white lg:hidden"
             >
-              <Eye className="w-4 h-4" />
-              View Site
-            </Link>
-            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-xs font-bold">
-              A
+              <Menu className="w-5 h-5" />
+            </button>
+
+            {/* Title / Search */}
+            <h2 className="hidden sm:block text-base font-extrabold text-white shrink-0">
+              StreetMobile Admin
+            </h2>
+
+            {/* Global Search Bar */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+              <input
+                id="admin-global-search"
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search anything..."
+                className="w-full pl-10 pr-12 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none focus:border-blue-500 focus:bg-white/10 transition-all"
+              />
+              <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-mono text-white/40 bg-white/10 border border-white/10 px-1.5 py-0.5 rounded">
+                ⌘ K
+              </span>
             </div>
           </div>
-        </div>
 
-        {/* Content */}
-        <div className="p-8">
+          {/* Top Right Controls */}
+          <div className="flex items-center gap-3 sm:gap-4 shrink-0">
+            {/* Notification Bell with unread badge */}
+            <button
+              type="button"
+              className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors"
+            >
+              <Bell className="w-5 h-5" />
+              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#0F172A]">
+                5
+              </span>
+            </button>
+
+            {/* Admin Profile Dropdown */}
+            <div className="flex items-center gap-2.5 pl-2 border-l border-white/10">
+              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
+                TA
+              </div>
+              <div className="hidden sm:block text-left">
+                <p className="text-xs font-extrabold text-white leading-none">Thas Admin</p>
+                <p className="text-[10px] text-white/40 font-medium">Admin</p>
+              </div>
+              <ChevronDown className="w-3.5 h-3.5 text-white/40 hidden sm:block" />
+            </div>
+
+            {/* Primary Blue Action Button "+ Add Product" */}
+            <button
+              type="button"
+              onClick={() => setIsAddProductOpen(true)}
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-md shadow-blue-600/30 active:scale-[0.98]"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Product</span>
+            </button>
+          </div>
+        </header>
+
+        {/* Dynamic Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#090D14] text-white">
           {children}
-        </div>
-      </main>
+        </main>
+      </div>
+
+      {/* Global Product Add Modal triggered from Top Bar */}
+      <ProductModal
+        isOpen={isAddProductOpen}
+        onClose={() => setIsAddProductOpen(false)}
+        onSave={() => {
+          setIsAddProductOpen(false);
+          window.location.reload();
+        }}
+        categories={[]}
+      />
 
       {/* Live Order Toast */}
       {liveAlert && (
-        <div className="fixed bottom-6 right-6 z-50 bg-slate-900 border-2 border-emerald-500/80 rounded-2xl p-5 shadow-[0_10px_40px_rgba(16,185,129,0.15)] max-w-sm flex items-start gap-4 animate-in fade-in slide-in-from-bottom-5">
-          <div className="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 shrink-0">
+        <div className="fixed bottom-6 right-6 z-50 bg-[#1E293B] border border-white/10 rounded-2xl p-5 shadow-2xl max-w-sm flex items-start gap-4 animate-in fade-in slide-in-from-bottom-5">
+          <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
             <Bell className="w-5 h-5 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-white font-bold text-sm">New Order Received!</h4>
             <p className="text-xs text-white/60 mt-1 truncate">
-              By {liveAlert.customerName || "Guest"} • {formatPrice(liveAlert.totalPrice || 0)}
+              By {liveAlert.customerName || "Guest"} • {formatPrice(liveAlert.finalTotal || liveAlert.totalPrice || 0)}
             </p>
             <div className="flex items-center gap-2 mt-3">
               <Link
-                href="/admin/dashboard/orders"
+                href="/admin/dashboard?tab=orders"
                 onClick={() => setLiveAlert(null)}
-                className="px-3 py-1.5 bg-white text-black font-semibold text-xs rounded-lg hover:bg-neutral-200 transition-colors"
+                className="px-3 py-1.5 bg-blue-600 text-white font-bold text-xs rounded-xl hover:bg-blue-700 transition-colors"
               >
                 View Order
               </Link>
               <button
                 onClick={() => setLiveAlert(null)}
-                className="px-3 py-1.5 bg-white/5 border border-white/10 text-white/60 hover:text-white rounded-lg text-xs transition-colors"
+                className="px-3 py-1.5 bg-white/10 text-white/60 hover:text-white rounded-xl text-xs font-semibold transition-colors"
               >
                 Dismiss
               </button>

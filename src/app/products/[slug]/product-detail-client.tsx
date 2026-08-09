@@ -1,392 +1,616 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { MessageCircle, ShieldCheck, Truck, ChevronRight, ChevronDown, Check, ShoppingBag } from "lucide-react";
-import { formatPrice } from "@/lib/utils";
+import { useRouter } from "next/navigation";
+import {
+  ShieldCheck,
+  Award,
+  Truck,
+  ChevronRight,
+  ChevronDown,
+  Check,
+  ShoppingBag,
+  Star,
+  Minus,
+  Plus,
+  ArrowRight,
+  Banknote,
+} from "lucide-react";
+import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
+import CompleteYourSetup from "@/components/products/CompleteYourSetup";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { getColorCSS, isLightColor } from "@/lib/color-utils";
+import { Product, ProductColor, ProductVariantCombo, WarrantyOption } from "@/lib/types";
 
-// ── Types ──
-interface Product {
-  id: string;
-  name: string;
-  slug: string;
-  category_name?: string;
-  price: number;
-  old_price: number | null;
-  description: string;
-  specifications: Record<string, string>;
-  warranty: string;
-  stock_status: "in_stock" | "low_stock" | "out_of_stock";
-  colors: string[];
-  storage_options: string[];
-  storage_prices?: Record<string, number>;
-  images: string[];
-  featured: boolean;
-  code?: string;
-}
-
-function generateOrderMessage(product: Product, storage: string, color: string, price: number) {
-  const text = `Hello STREET MOBILE,\n\nI would like to order:\n\n*Product Name:* ${product.name}${storage ? `\n*Storage:* ${storage}` : ""}${color ? `\n*Color:* ${color}` : ""}\n*Price:* ${formatPrice(price)}\n\nPlease provide availability.`;
-  return `https://wa.me/94774141118?text=${encodeURIComponent(text)}`;
-}
-
-function AddToBagDetailButton({ product, selectedStorage, selectedColor, displayPrice }: {
+export default function ProductDetailClient({
+  product,
+  allProducts = [],
+}: {
   product: Product;
-  selectedStorage: string;
-  selectedColor: string;
-  displayPrice: number;
+  allProducts?: Product[];
 }) {
+  const router = useRouter();
   const { addToCart } = useCart();
   const { user } = useAuth();
-  const [added, setAdded] = useState(false);
 
-  const handleAdd = () => {
-    if (!user) {
-      window.dispatchEvent(new Event("open-auth-modal"));
-      return;
+  // 1. Color Variants
+  const colorVariants: ProductColor[] = useMemo(() => {
+    if (product.color_variants && product.color_variants.length > 0) {
+      return product.color_variants;
     }
-    
+    if (product.colors && product.colors.length > 0) {
+      return product.colors.map((c, i) => ({
+        id: `c-${i}`,
+        name: c,
+        hex: getColorCSS(c),
+        images: product.images || [],
+      }));
+    }
+    return [
+      {
+        id: "c-default",
+        name: "Standard",
+        hex: "#000000",
+        images: product.images || [],
+      },
+    ];
+  }, [product]);
+
+  const [selectedColorObj, setSelectedColorObj] = useState<ProductColor>(
+    colorVariants[0] || { id: "c-0", name: "Standard", hex: "#000000", images: product.images || [] }
+  );
+
+  // Gallery Images dynamically update based on selected color
+  const activeImages = useMemo(() => {
+    if (selectedColorObj && selectedColorObj.images && selectedColorObj.images.length > 0) {
+      return selectedColorObj.images;
+    }
+    return product.images && product.images.length > 0
+      ? product.images
+      : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
+  }, [selectedColorObj, product.images]);
+
+  // 2. Combination Variants (RAM & Storage)
+  const variantCombos: ProductVariantCombo[] = useMemo(() => {
+    if (product.variant_combos && product.variant_combos.length > 0) {
+      return product.variant_combos;
+    }
+    if (product.storage_options && product.storage_options.length > 0) {
+      return product.storage_options.map((st, i) => ({
+        id: `v-${i}`,
+        storage: st,
+        sku: product.code || `${product.slug}-${st.toLowerCase()}`,
+        price: (product.storage_prices && product.storage_prices[st]) || product.price,
+        old_price: product.old_price,
+        stock_quantity: product.stock_status === "out_of_stock" ? 0 : 10,
+        reserved_stock: 0,
+        available_stock: product.stock_status === "out_of_stock" ? 0 : 10,
+        status: "active" as const,
+      }));
+    }
+    return [
+      {
+        id: "v-default",
+        sku: product.code || product.slug,
+        price: product.price,
+        old_price: product.old_price,
+        stock_quantity: product.stock_status === "out_of_stock" ? 0 : 10,
+        reserved_stock: 0,
+        available_stock: product.stock_status === "out_of_stock" ? 0 : 10,
+        status: "active" as const,
+      },
+    ];
+  }, [product]);
+
+  const [selectedCombo, setSelectedCombo] = useState<ProductVariantCombo | null>(
+    variantCombos.find((v) => v.stock_quantity > 0 && v.status !== "inactive") || variantCombos[0] || null
+  );
+
+  // Quantity
+  const [quantity, setQuantity] = useState<number>(1);
+  const [activeTab, setActiveTab] = useState<"description" | "specifications" | "warranty">("description");
+  const [added, setAdded] = useState(false);
+  const [buyingNow, setBuyingNow] = useState(false);
+
+  // 3. Warranty Options Selection
+  const availableWarranties = useMemo(() => {
+    if (product.warranty_options && product.warranty_options.length > 0) {
+      return product.warranty_options.filter((w) => w.status !== "inactive");
+    }
+    return [];
+  }, [product]);
+
+  const [selectedWarranty, setSelectedWarranty] = useState<WarrantyOption | null>(
+    availableWarranties.find((w) => w.is_default) || availableWarranties[0] || null
+  );
+
+  // Pricing & Stock Computations
+  const warrantyPrice = selectedWarranty ? selectedWarranty.additional_price : 0;
+  const currentVariantPrice = (selectedCombo ? selectedCombo.price : product.price) + warrantyPrice;
+  const currentVariantOldPrice = selectedCombo?.old_price ?? product.old_price;
+
+  const currentSku = selectedCombo?.sku || product.code || product.slug;
+  const currentStock = selectedCombo ? selectedCombo.stock_quantity : (product.stock_status === "out_of_stock" ? 0 : 10);
+  const isVariantOutOfStock = currentStock <= 0 || product.stock_status === "out_of_stock";
+
+  const discountPercent = currentVariantOldPrice && currentVariantOldPrice > currentVariantPrice
+    ? Math.round(((currentVariantOldPrice - currentVariantPrice) / currentVariantOldPrice) * 100)
+    : 0;
+
+  const handleQuantityChange = (delta: number) => {
+    setQuantity((prev) => Math.max(1, prev + delta));
+  };
+
+  const handleAddToCart = () => {
+    if (isVariantOutOfStock) return;
+
     addToCart({
       productId: product.id,
       name: product.name,
-      price: displayPrice,
-      image: product.images?.[0] ?? "",
-      quantity: 1,
-      storage: selectedStorage || undefined,
-      color: selectedColor || undefined,
+      price: currentVariantPrice,
+      image: activeImages[0] || product.images?.[0] || "",
+      quantity: quantity,
+      color: selectedColorObj?.name,
+      ram: selectedCombo?.ram,
+      storage: selectedCombo?.storage,
+      variantId: selectedCombo?.id,
+      warrantyTitle: selectedWarranty?.title || product.warranty,
+      warrantyPrice: selectedWarranty?.additional_price || 0,
     });
+
     setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleBuyNow = () => {
+    if (isVariantOutOfStock) return;
+    setBuyingNow(true);
+
+    addToCart({
+      productId: product.id,
+      name: product.name,
+      price: currentVariantPrice,
+      image: activeImages[0] || product.images?.[0] || "",
+      quantity: quantity,
+      color: selectedColorObj?.name,
+      ram: selectedCombo?.ram,
+      storage: selectedCombo?.storage,
+      variantId: selectedCombo?.id,
+      warrantyTitle: selectedWarranty?.title || product.warranty,
+      warrantyPrice: selectedWarranty?.additional_price || 0,
+    });
+
+    router.push("/checkout");
   };
 
   return (
-    <button
-      onClick={handleAdd}
-      className={`w-full flex items-center justify-center gap-2 px-8 py-4 rounded-xl font-bold text-lg transition-all active:scale-[0.98] ${
-        added
-          ? "bg-emerald-500 text-white"
-          : "bg-foreground text-background hover:bg-foreground/90"
-      }`}
-    >
-      {added ? (
-        <>
-          <Check className="w-5 h-5" />
-          Added to Bag!
-        </>
-      ) : (
-        <>
-          <ShoppingBag className="w-5 h-5" />
-          Add to Bag
-        </>
-      )}
-    </button>
-  );
-}
-
-export default function ProductDetailClient({ product }: { product: Product }) {
-  const [selectedStorage, setSelectedStorage] = useState<string>(product.storage_options?.[0] || "");
-  const [selectedColor, setSelectedColor] = useState<string>(product.colors?.[0] || "");
-  const [storageOpen, setStorageOpen] = useState(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-
-  const storagePrices = product.storage_prices || {};
-  const hasStoragePrices =
-    product.storage_options?.length > 0 &&
-    Object.keys(storagePrices).some((k) => storagePrices[k] > 0);
-
-  const displayPrice =
-    hasStoragePrices && selectedStorage && storagePrices[selectedStorage] > 0
-      ? storagePrices[selectedStorage]
-      : product.price;
-
-  const discount = product.old_price
-    ? Math.round(((product.old_price - displayPrice) / product.old_price) * 100)
-    : 0;
-
-  // Close dropdown when clicking outside
-  useEffect(() => {
-    function handleClickOutside(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setStorageOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  return (
-    <div className="bg-background min-h-screen pb-24">
-      {/* Breadcrumbs */}
-      <div className="border-b border-border bg-card">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-4">
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
-            <ChevronRight className="w-4 h-4" />
-            <Link href="/products" className="hover:text-foreground transition-colors">Products</Link>
-            <ChevronRight className="w-4 h-4" />
-            <span className="text-foreground font-medium truncate">{product.name}</span>
+    <div className="bg-white min-h-screen text-black pb-24">
+      {/* ── 1. Top Breadcrumbs ── */}
+      <div className="border-b border-[#EAEAEA] bg-white">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3.5">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium overflow-x-auto no-scrollbar">
+            <Link href="/" className="hover:text-black transition-colors shrink-0">
+              Home
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <Link
+              href={`/products?category=${product.category_id}`}
+              className="hover:text-black transition-colors shrink-0"
+            >
+              {product.category_name || "Products"}
+            </Link>
+            <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+            <span className="text-black font-semibold truncate">{product.name}</span>
           </div>
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 py-8 lg:py-12">
-        <div className="grid lg:grid-cols-2 gap-12 lg:gap-16">
+      {/* ── 2. Main Product Section ── */}
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-8 sm:pt-12">
+        <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+          
+          {/* Left Column: Image Gallery (Updates dynamically per color) */}
+          <div className="lg:col-span-6">
+            <ProductGallery
+              key={selectedColorObj.id}
+              images={activeImages}
+              name={product.name}
+              discount={discountPercent}
+              video_url={product.video_url}
+            />
+          </div>
 
-          {/* Image Gallery */}
-          <ProductGallery images={product.images || []} name={product.name} discount={discount} />
-
-          {/* Product Details */}
-          <div className="flex flex-col">
-            <div className="mb-2">
-              <span className="inline-block px-3 py-1 rounded-full bg-foreground/5 text-xs font-medium text-muted-foreground mb-4">
-                {product.category_name}
-              </span>
-              <h1 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2">{product.name}</h1>
-              {product.code && (
-                <div className="text-xs font-mono text-muted-foreground bg-foreground/5 px-2 py-1 rounded w-fit mb-4">
-                  Code: {product.code}
-                </div>
-              )}
-            </div>
-
-            {/* Price */}
-            <div className="flex items-end gap-4 mb-1">
-              <div className="text-4xl lg:text-5xl font-bold tracking-tight transition-all duration-300">
-                {formatPrice(displayPrice)}
-              </div>
-              {product.old_price && (
-                <div className="text-xl text-muted-foreground line-through mb-1">
-                  {formatPrice(product.old_price)}
-                </div>
-              )}
-            </div>
-            {hasStoragePrices && selectedStorage ? (
-              <p className="text-xs text-muted-foreground mb-5">
-                Price for <span className="font-semibold text-foreground">{selectedStorage}</span>
-              </p>
-            ) : <div className="mb-5" />}
-
-            {/* Status & Badges */}
-            <div className="flex flex-wrap gap-4 mb-7 pb-7 border-b border-border">
-              <div className="flex items-center gap-2 text-sm">
-                <div className={`w-2.5 h-2.5 rounded-full ${product.stock_status === "in_stock" ? "bg-green-500" : "bg-orange-500 animate-pulse"}`} />
-                <span className="font-medium">
-                  {product.stock_status === "in_stock" ? "In Stock" : "Low Stock"}
+          {/* Right Column: Complete Information & Variant Controls */}
+          <div className="lg:col-span-6 flex flex-col justify-between">
+            <div>
+              {/* Category & SKU */}
+              <div className="flex items-center justify-between gap-4 mb-3">
+                <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-[11px] font-bold text-gray-700 uppercase tracking-widest">
+                  {product.category_name || "Smartphones"}
+                </span>
+                <span className="text-xs font-mono text-gray-400">
+                  SKU: {currentSku}
                 </span>
               </div>
-              {product.warranty && (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                  <ShieldCheck className="w-4 h-4 text-foreground" />
-                  <span>{product.warranty}</span>
-                </div>
-              )}
-            </div>
 
-            {/* ── Color Swatches ── */}
-            {product.colors && product.colors.length > 0 && (
-              <div className="mb-6">
-                <h3 className="text-sm font-semibold mb-3">
-                  Color:{" "}
-                  <span className="text-muted-foreground font-normal">{selectedColor}</span>
-                </h3>
-                <div className="flex flex-wrap gap-3">
-                  {product.colors.map((color) => {
-                    const css = getColorCSS(color);
-                    const light = isLightColor(css);
-                    const isSelected = selectedColor === color;
-                    return (
-                      <button
-                        key={color}
-                        onClick={() => setSelectedColor(color)}
-                        title={color}
-                        className="relative group flex flex-col items-center gap-1.5"
-                      >
-                        {/* Color circle */}
-                        <span
-                          className="w-9 h-9 rounded-full border-2 transition-all duration-200 flex items-center justify-center shadow-sm"
-                          style={{
-                            backgroundColor: css,
-                            borderColor: isSelected ? (light ? "#374151" : css) : "transparent",
-                            outline: isSelected ? `2px solid ${css}` : "2px solid transparent",
-                            outlineOffset: "2px",
-                            boxShadow: isSelected
-                              ? `0 0 0 2px ${css}40`
-                              : "0 1px 3px rgba(0,0,0,0.15)",
-                          }}
-                        >
-                          {isSelected && (
-                            <Check
-                              className="w-4 h-4"
-                              style={{ color: light ? "#111" : "#fff" }}
-                              strokeWidth={3}
-                            />
-                          )}
-                        </span>
-                        {/* Label below */}
-                        <span className={`text-[10px] font-medium transition-colors ${isSelected ? "text-foreground" : "text-muted-foreground"}`}>
-                          {color}
-                        </span>
-                      </button>
-                    );
-                  })}
+              {/* Title */}
+              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-black tracking-tight mb-3 leading-snug">
+                {product.name}
+              </h1>
+
+              {/* Rating & Stock Status */}
+              <div className="flex items-center flex-wrap gap-4 mb-5 pb-5 border-b border-[#EAEAEA]">
+                <div className="flex items-center gap-1.5 text-xs font-semibold text-black">
+                  <div className="flex items-center gap-0.5 text-amber-500">
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                    <Star className="w-4 h-4 fill-amber-400" />
+                  </div>
+                  <span className="font-bold">4.9</span>
+                  <span className="text-gray-400 font-normal">(24 verified reviews)</span>
+                </div>
+
+                <div className="flex items-center gap-2 text-xs font-semibold">
+                  <span
+                    className={`w-2.5 h-2.5 rounded-full ${
+                      isVariantOutOfStock
+                        ? "bg-red-500"
+                        : currentStock <= 5
+                        ? "bg-amber-500 animate-pulse"
+                        : "bg-emerald-500"
+                    }`}
+                  />
+                  <span>
+                    {isVariantOutOfStock
+                      ? "Out of Stock"
+                      : currentStock <= 5
+                      ? `Low Stock — Only ${currentStock} Left`
+                      : "In Stock & Ready to Ship"}
+                  </span>
                 </div>
               </div>
-            )}
 
-            {/* ── Storage Dropdown ── */}
-            {product.storage_options && product.storage_options.length > 0 && (
-              <div className="mb-8" ref={dropdownRef}>
-                <h3 className="text-sm font-semibold mb-3">Storage</h3>
+              {/* Price Display */}
+              <div className="flex items-baseline flex-wrap gap-3 mb-6">
+                <span className="text-3xl sm:text-4xl font-black text-black tracking-tight">
+                  {formatPrice(currentVariantPrice)}
+                </span>
+                {currentVariantOldPrice && currentVariantOldPrice > currentVariantPrice && (
+                  <span className="text-lg text-gray-400 line-through font-medium">
+                    {formatPrice(currentVariantOldPrice)}
+                  </span>
+                )}
+                {discountPercent > 0 && (
+                  <span className="text-xs font-black text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-md animate-pulse">
+                    SAVE {discountPercent}%
+                  </span>
+                )}
+              </div>
 
-                {/* Trigger button */}
-                <button
-                  type="button"
-                  onClick={() => setStorageOpen((o) => !o)}
-                  className="w-full flex items-center justify-between px-4 py-3 rounded-xl border border-border bg-card hover:border-foreground/30 transition-all text-sm font-medium"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-foreground">{selectedStorage}</span>
-                    {storagePrices[selectedStorage] > 0 && (
-                      <>
-                        <span className="text-muted-foreground">·</span>
-                        <span className="text-foreground font-bold">
-                          {formatPrice(storagePrices[selectedStorage])}
-                        </span>
-                      </>
-                    )}
+              {/* Short Description */}
+              {product.description && (
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3">
+                  {product.description}
+                </p>
+              )}
+
+              {/* ── 🛡️ Bold Warranty Badges (Clean Text with Icons) ── */}
+              {(availableWarranties.length > 0 || product.warranty || product.brand_warranty) && (
+                <div className="space-y-2 mb-6">
+                  {availableWarranties.length > 0 ? (
+                    availableWarranties.map((w) => (
+                      <div
+                        key={w.id}
+                        className="flex items-center gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl"
+                      >
+                        <ShieldCheck className="w-5 h-5 text-black shrink-0" />
+                        <div>
+                          <span>Warranty: <strong className="font-extrabold text-black">{w.title}</strong></span>
+                          {w.coverage_details && (
+                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5">{w.coverage_details}</span>
+                          )}
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      {product.warranty && (
+                        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl">
+                          <ShieldCheck className="w-5 h-5 text-black shrink-0" />
+                          <span>Warranty: <strong className="font-extrabold text-black">{product.warranty}</strong></span>
+                        </div>
+                      )}
+
+                      {product.brand_warranty && (
+                        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl">
+                          <Award className="w-5 h-5 text-black shrink-0" />
+                          <span>Brand Warranty: <strong className="font-extrabold text-black">{product.brand_warranty}</strong></span>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+
+              {/* ── 1. COLOUR SELECTOR ── */}
+              {colorVariants.length > 0 && (
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <label className="text-xs font-bold text-black uppercase tracking-wider">
+                      Colour: <span className="font-medium text-gray-600">{selectedColorObj.name}</span>
+                    </label>
                   </div>
-                  <ChevronDown
-                    className={`w-4 h-4 text-muted-foreground transition-transform duration-200 ${storageOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-
-                {/* Dropdown panel — scrollable */}
-                <div
-                  className="overflow-hidden transition-all duration-300 ease-in-out"
-                  style={{ maxHeight: storageOpen ? "320px" : "0px", opacity: storageOpen ? 1 : 0 }}
-                >
-                  <div className="mt-2 rounded-xl border border-border bg-card shadow-lg overflow-y-auto max-h-72">
-                    {product.storage_options.map((opt, idx) => {
-                      const optPrice = storagePrices[opt];
-                      const isActive = selectedStorage === opt;
+                  <div className="flex flex-wrap gap-3">
+                    {colorVariants.map((c) => {
+                      const isSelected = selectedColorObj.id === c.id;
+                      const hexColor = c.hex || getColorCSS(c.name);
+                      const light = isLightColor(hexColor);
                       return (
                         <button
-                          key={opt}
+                          key={c.id}
                           type="button"
-                          onClick={() => {
-                            setSelectedStorage(opt);
-                            setStorageOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-4 py-3.5 text-sm transition-colors
-                            ${idx !== 0 ? "border-t border-border" : ""}
-                            ${isActive
-                              ? "bg-foreground/5 text-foreground"
-                              : "hover:bg-foreground/[0.03] text-muted-foreground hover:text-foreground"
-                            }`}
+                          onClick={() => setSelectedColorObj(c)}
+                          title={c.name}
+                          className={`w-8 h-8 rounded-full relative flex items-center justify-center transition-all ${
+                            isSelected
+                              ? "ring-2 ring-black ring-offset-2 scale-110 shadow-sm"
+                              : "border border-gray-300 hover:scale-105"
+                          }`}
+                          style={{ backgroundColor: hexColor }}
                         >
-                          <div className="flex items-center gap-3">
-                            {/* Active indicator */}
-                            <span className={`w-2 h-2 rounded-full shrink-0 transition-all ${isActive ? "bg-foreground scale-100" : "bg-transparent scale-0"}`} />
-                            <span className={`font-semibold ${isActive ? "text-foreground" : ""}`}>{opt}</span>
-                          </div>
-                          {optPrice && optPrice > 0 && (
-                            <span className={`font-bold tabular-nums ${isActive ? "text-foreground" : "text-muted-foreground"}`}>
-                              {formatPrice(optPrice)}
-                            </span>
+                          {isSelected && (
+                            <Check className={`w-3.5 h-3.5 ${light ? "text-black" : "text-white"}`} />
                           )}
                         </button>
                       );
                     })}
                   </div>
                 </div>
+              )}
+
+              {/* ── 2. MEMORY / STORAGE & SIM VARIANT SELECTOR (MOBILE PHONES ONLY) ── */}
+              {isPhoneProduct(product) && variantCombos.length > 0 && (variantCombos.length > 1 || variantCombos.some((v) => Boolean(v.ram || v.storage)) || (product.storage_options && product.storage_options.length > 0)) && (
+                <div className="mb-6">
+                  <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2.5">
+                    Select Memory / Storage Variant:
+                  </label>
+                  <div className="relative">
+                    <select
+                      value={selectedCombo?.id || ""}
+                      onChange={(e) => {
+                        const targetCombo = variantCombos.find((c) => c.id === e.target.value);
+                        if (targetCombo) setSelectedCombo(targetCombo);
+                      }}
+                      className="w-full px-4 py-3.5 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs sm:text-sm font-bold text-black appearance-none outline-none focus:border-black transition-all cursor-pointer pr-10 shadow-xs"
+                    >
+                      {variantCombos.map((combo) => {
+                        const isComboOutOfStock = combo.stock_quantity <= 0 || combo.status === "inactive";
+                        const simLabel = combo.sim_type ? ` • ${combo.sim_type}` : "";
+                        const label = combo.ram
+                          ? `${combo.ram} + ${combo.storage || ""}${simLabel}`
+                          : `${combo.storage || ""}${simLabel}`.trim() || `${formatPrice(combo.price)}`;
+
+                        return (
+                          <option
+                            key={combo.id}
+                            value={combo.id}
+                            disabled={isComboOutOfStock}
+                            className={isComboOutOfStock ? "text-gray-400" : "text-black"}
+                          >
+                            {label} — {formatPrice(combo.price)} {isComboOutOfStock ? "(Out of Stock)" : ""}
+                          </option>
+                        );
+                      })}
+                    </select>
+
+                    {/* Chevron Down Arrow Icon */}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-black">
+                      <ChevronDown className="w-5 h-5" />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Quantity Selector */}
+              <div className="mb-8">
+                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2.5">
+                  Quantity
+                </label>
+                <div className="inline-flex items-center border border-[#EAEAEA] rounded-full p-1 bg-white">
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(-1)}
+                    disabled={quantity <= 1 || isVariantOutOfStock}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30"
+                  >
+                    <Minus className="w-3.5 h-3.5" />
+                  </button>
+                  <span className="w-12 text-center text-xs font-bold text-black">{quantity}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleQuantityChange(1)}
+                    disabled={isVariantOutOfStock}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30"
+                  >
+                    <Plus className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+
+              {/* ── Primary Action Buttons (Side by Side Desktop, Stacked Mobile) ── */}
+              <div className="flex flex-col sm:flex-row gap-3 mb-8">
+                {/* 1. Add to Bag (White with Black Border) */}
+                <button
+                  type="button"
+                  disabled={isVariantOutOfStock}
+                  onClick={handleAddToCart}
+                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm border-2 border-black flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    isVariantOutOfStock
+                      ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
+                      : added
+                      ? "bg-emerald-600 border-emerald-600 text-white"
+                      : "bg-white text-black hover:bg-gray-50"
+                  }`}
+                >
+                  {added ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Added to Bag!</span>
+                    </>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Bag</span>
+                    </>
+                  )}
+                </button>
+
+                {/* 2. Buy Now (Black Filled) */}
+                <button
+                  type="button"
+                  disabled={isVariantOutOfStock || buyingNow}
+                  onClick={handleBuyNow}
+                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    isVariantOutOfStock
+                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                      : "bg-black text-white hover:bg-gray-800 shadow-md"
+                  }`}
+                >
+                  {buyingNow ? (
+                    <span>Proceeding...</span>
+                  ) : (
+                    <>
+                      <span>Buy Now</span>
+                      <ArrowRight className="w-4 h-4" />
+                    </>
+                  )}
+                </button>
+              </div>
+
+              {/* ── Trust Badges ── */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs text-gray-700">
+                <div className="flex items-center gap-2.5">
+                  <ShieldCheck className="w-4 h-4 text-black shrink-0" />
+                  <span className="font-bold">{product.warranty || "Genuine Warranty"}</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Banknote className="w-4 h-4 text-black shrink-0" />
+                  <span>Cash on Delivery</span>
+                </div>
+                <div className="flex items-center gap-2.5">
+                  <Truck className="w-4 h-4 text-black shrink-0" />
+                  <span>{product.delivery_info || "Express Delivery Sri Lanka"}</span>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+
+        {/* ── 3. Content Tabs Below ── */}
+        <div className="mt-16 sm:mt-20 border-t border-[#EAEAEA] pt-10">
+          <div className="flex items-center gap-6 border-b border-[#EAEAEA] overflow-x-auto no-scrollbar mb-8">
+            <button
+              onClick={() => setActiveTab("description")}
+              className={`pb-4 text-xs sm:text-sm font-bold transition-all relative shrink-0 ${
+                activeTab === "description" ? "text-black" : "text-gray-400 hover:text-black"
+              }`}
+            >
+              Description
+              {activeTab === "description" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("specifications")}
+              className={`pb-4 text-xs sm:text-sm font-bold transition-all relative shrink-0 ${
+                activeTab === "specifications" ? "text-black" : "text-gray-400 hover:text-black"
+              }`}
+            >
+              Specifications
+              {activeTab === "specifications" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+              )}
+            </button>
+
+            <button
+              onClick={() => setActiveTab("warranty")}
+              className={`pb-4 text-xs sm:text-sm font-bold transition-all relative shrink-0 ${
+                activeTab === "warranty" ? "text-black" : "text-gray-400 hover:text-black"
+              }`}
+            >
+              Warranty & Delivery
+              {activeTab === "warranty" && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-black" />
+              )}
+            </button>
+          </div>
+
+          <div className="max-w-4xl">
+            {activeTab === "description" && (
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed space-y-4">
+                <p>{product.description}</p>
               </div>
             )}
 
-            {/* CTA Buttons */}
-            <div className="mt-auto space-y-3 pt-4">
-              <AddToBagDetailButton
-                product={product}
-                selectedStorage={selectedStorage}
-                selectedColor={selectedColor}
-                displayPrice={displayPrice}
-              />
-              <a
-                href={generateOrderMessage(product, selectedStorage, selectedColor, displayPrice)}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full flex items-center justify-center gap-2 bg-[#25D366] text-white px-8 py-4 rounded-xl font-bold text-lg hover:bg-[#20bd5a] hover:shadow-lg hover:shadow-[#25D366]/20 transition-all active:scale-[0.98]"
-              >
-                <MessageCircle className="w-5 h-5" />
-                Buy via WhatsApp
-              </a>
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground bg-foreground/5 py-3 rounded-xl border border-foreground/10">
-                <Truck className="w-4 h-4" />
-                Island-wide Delivery Available
+            {activeTab === "specifications" && (
+              <div className="border border-[#EAEAEA] rounded-2xl overflow-hidden">
+                <table className="w-full text-xs sm:text-sm text-left">
+                  <tbody>
+                    {product.specifications && Object.keys(product.specifications).length > 0 ? (
+                      Object.entries(product.specifications).map(([key, val], idx) => (
+                        <tr
+                          key={key}
+                          className={idx % 2 === 0 ? "bg-[#FAFAFA]" : "bg-white"}
+                        >
+                          <td className="px-5 py-3.5 font-bold text-black border-r border-[#EAEAEA] w-1/3">
+                            {key}
+                          </td>
+                          <td className="px-5 py-3.5 text-gray-700">{val}</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td className="px-5 py-4 text-gray-400">
+                          General product specifications included with manufacturer packaging.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
               </div>
-            </div>
-          </div>
-        </div>
+            )}
 
-        {/* Specifications */}
-        <div className="mt-16 lg:mt-24 pb-20 lg:pb-0">
-          <div className="grid lg:grid-cols-3 gap-12 lg:gap-16">
-            <div className="lg:col-span-2">
-              <h2 className="text-2xl font-bold tracking-tight mb-6">Product Overview</h2>
-              <div className="prose prose-neutral max-w-none text-muted-foreground leading-relaxed mb-12">
-                <p>{product.description}</p>
-                <p className="mt-4">
-                  Experience unparalleled performance and elegant design. Every device is thoroughly
-                  tested to ensure it meets our strict quality standards before making it to our
-                  shelves. At STREET MOBILE, we guarantee authenticity and provide dedicated
-                  after-sales support for your peace of mind.
-                </p>
-              </div>
-            </div>
-
-            {product.specifications && Object.keys(product.specifications).length > 0 && (
-              <div>
-                <div className="bg-card border border-border rounded-3xl p-6 lg:p-8">
-                  <h2 className="text-xl font-bold tracking-tight mb-6">Specifications</h2>
-                  <div className="space-y-4">
-                    {Object.entries(product.specifications).map(([key, value]) => (
-                      <div key={key} className="flex flex-col py-3 border-b border-border last:border-0">
-                        <span className="text-sm text-muted-foreground mb-1">{key}</span>
-                        <span className="font-medium text-sm">{value as string}</span>
-                      </div>
-                    ))}
+            {activeTab === "warranty" && (
+              <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl p-6">
+                <div className="flex items-start gap-3">
+                  <ShieldCheck className="w-5 h-5 text-black shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-black mb-1">Warranty Details</h4>
+                    <p>{product.warranty || "1 Year Company Warranty against manufacturer defects."}</p>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3 pt-3 border-t border-[#EAEAEA]">
+                  <Truck className="w-5 h-5 text-black shrink-0 mt-0.5" />
+                  <div>
+                    <h4 className="font-bold text-black mb-1">Delivery Information</h4>
+                    <p>{product.delivery_info || "Express island-wide delivery in Sri Lanka within 1-3 business days. Cash on delivery available."}</p>
                   </div>
                 </div>
               </div>
             )}
           </div>
         </div>
-      </div>
 
-      {/* ── Sticky Mobile Bottom Action Bar ── */}
-      <div className="fixed bottom-14 left-0 right-0 z-40 lg:hidden bg-white/95 backdrop-blur-md border-t border-gray-200 p-3 shadow-2xl">
-        <div className="flex items-center gap-2 max-w-md mx-auto">
-          <div className="flex-1">
-            <AddToBagDetailButton
-              product={product}
-              selectedStorage={selectedStorage}
-              selectedColor={selectedColor}
-              displayPrice={displayPrice}
-            />
-          </div>
-          <a
-            href={generateOrderMessage(product, selectedStorage, selectedColor, displayPrice)}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center justify-center p-3 rounded-xl bg-[#25D366] text-white font-bold hover:bg-[#20bd5a] transition-all shrink-0 active:scale-95"
-            title="Order via WhatsApp"
-          >
-            <MessageCircle className="w-6 h-6" />
-          </a>
-        </div>
+        {/* ── 4. Intelligent Recommendations ("Complete Your Setup") ── */}
+        <CompleteYourSetup currentProduct={product} allProducts={allProducts} />
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ import { useWishlist } from "@/lib/wishlist-context";
 import { getProducts } from "@/lib/firestore-client";
 import { Product } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
-import AddToBagButton from "@/components/cart/AddToBagButton";
+import ProductCard from "@/components/products/ProductCard";
 
 export default function WishlistPage() {
   const { wishlist, toggleWishlist, clearWishlist } = useWishlist();
@@ -79,46 +79,7 @@ export default function WishlistPage() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 lg:gap-6">
             {savedProducts.map((product) => (
-              <div
-                key={product.id}
-                className="group relative bg-white border border-gray-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 flex flex-col justify-between"
-              >
-                {/* Remove button */}
-                <button
-                  onClick={() => toggleWishlist(product.id)}
-                  className="absolute top-3 right-3 z-10 p-2 rounded-full bg-white/80 backdrop-blur-md text-red-500 hover:bg-red-500 hover:text-white transition-all shadow"
-                  title="Remove from wishlist"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-
-                {/* Product Image & Info */}
-                <Link href={`/products/${product.slug}`} className="block">
-                  <div className="aspect-square bg-gray-50 p-4 flex items-center justify-center overflow-hidden">
-                    <img
-                      src={product.images[0]}
-                      alt={product.name}
-                      className="w-full h-full object-contain mix-blend-multiply group-hover:scale-105 transition-transform duration-500"
-                    />
-                  </div>
-                  <div className="p-4">
-                    <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">
-                      {product.category_name}
-                    </span>
-                    <h3 className="font-semibold text-sm line-clamp-2 text-gray-900 group-hover:text-blue-600 transition-colors">
-                      {product.name}
-                    </h3>
-                    <div className="mt-2 font-black text-base text-gray-900">
-                      {formatPrice(product.price)}
-                    </div>
-                  </div>
-                </Link>
-
-                {/* Add to Bag Button */}
-                <div className="p-4 pt-0">
-                  <AddToBagButton product={product} size="sm" className="w-full" />
-                </div>
-              </div>
+              <ProductCard key={product.id} product={product} />
             ))}
           </div>
         )}

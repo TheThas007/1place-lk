@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { X, Upload, Loader2, Link } from "lucide-react";
 import { Category } from "@/lib/types";
-import { db, storage } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
-import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 
 interface CategoryModalProps {
@@ -21,6 +20,8 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
     image_url: "",
     sort_order: 0,
     group: "phones",
+    status: "active",
+    show_in_selector: true,
   });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
@@ -30,7 +31,11 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
 
   useEffect(() => {
     if (initialData) {
-      setFormData(initialData);
+      setFormData({
+        ...initialData,
+        status: initialData.status ?? "active",
+        show_in_selector: initialData.show_in_selector ?? true,
+      });
       setImagePreview(initialData.image_url || "");
       setIconPreview(
         initialData.icon?.startsWith("http") || initialData.icon?.startsWith("data:")
@@ -45,6 +50,8 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         image_url: "",
         sort_order: 0,
         group: "phones",
+        status: "active",
+        show_in_selector: true,
       });
       setImagePreview("");
       setIconPreview("");
@@ -101,7 +108,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       }
 
       if (!finalImageUrl) {
-        alert("Please provide an image URL or upload a file.");
+        alert("Please provide an image URL or upload a PNG/WebP file.");
         setIsLoading(false);
         return;
       }
@@ -110,6 +117,8 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         ...formData,
         image_url: finalImageUrl,
         icon: finalIcon,
+        status: formData.status || "active",
+        show_in_selector: formData.show_in_selector !== false,
       };
 
       if (initialData && initialData.id) {
@@ -141,6 +150,23 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         </div>
 
         <form onSubmit={handleSave} className="p-6 space-y-6">
+          {/* Live Circular Image Preview */}
+          <div className="text-center pb-2">
+            <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3">Live Selector Preview</p>
+            <div className="flex flex-col items-center justify-center">
+              <div className="w-24 h-24 rounded-full border-2 border-white/30 bg-[#F5F5F7] p-3 flex items-center justify-center overflow-hidden shadow-lg">
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Live Selector Preview" className="w-full h-full object-contain mix-blend-multiply" />
+                ) : (
+                  <ImageIcon className="w-8 h-8 text-slate-400" />
+                )}
+              </div>
+              <span className="text-xs font-bold text-white mt-2">
+                {formData.name || "Category Name"}
+              </span>
+            </div>
+          </div>
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-white/70 mb-2">Category Name</label>
@@ -166,54 +192,22 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
 
           <div className="grid grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Category Icon</label>
-              <div className="flex items-center gap-4 mb-3">
-                <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
-                  {iconPreview ? (
-                    <img src={iconPreview} alt="Icon Preview" className="w-full h-full object-cover" />
-                  ) : formData.icon && (formData.icon.startsWith("http") || formData.icon.startsWith("data:")) ? (
-                    <img src={formData.icon} alt="Icon Preview" className="w-full h-full object-contain p-1" />
-                  ) : formData.icon ? (
-                    <span className="text-2xl">{formData.icon}</span>
-                  ) : (
-                    <ImageIcon className="w-5 h-5 text-white/20" />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <input
-                    type="file"
-                    id="categoryIconUpload"
-                    accept="image/*"
-                    onChange={handleIconChange}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="categoryIconUpload"
-                    className="inline-flex items-center gap-2 px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-medium rounded-lg cursor-pointer transition-colors"
-                  >
-                    <Upload className="w-3.5 h-3.5" />
-                    Upload Icon
-                  </label>
-                </div>
-              </div>
-              <input
-                type="text"
-                placeholder="Or paste URL / Emoji (📱)"
-                value={formData.icon || ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, icon: e.target.value });
-                  if (!iconFile && e.target.value.startsWith("http")) setIconPreview(e.target.value);
-                  else if (!iconFile) setIconPreview("");
-                }}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none text-sm"
-              />
+              <label className="block text-sm font-medium text-white/70 mb-2">Status</label>
+              <select
+                value={formData.status || "active"}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as "active" | "inactive" })}
+                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
+              >
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
             </div>
             <div>
               <label className="block text-sm font-medium text-white/70 mb-2">Group</label>
               <select
                 value={formData.group || "phones"}
                 onChange={(e) => setFormData({ ...formData, group: e.target.value as any })}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-4 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2.5 text-white focus:ring-2 focus:ring-blue-500 outline-none"
               >
                 <option value="phones">Phones</option>
                 <option value="accessories">Accessories</option>
@@ -231,14 +225,35 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
             </div>
           </div>
 
+          {/* Show in Category Selector Toggle */}
+          <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-4">
+            <div>
+              <p className="text-sm font-medium text-white">Show in Category Selector</p>
+              <p className="text-xs text-white/40">Display in the visual circular category bar on Shop All page</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setFormData({ ...formData, show_in_selector: !formData.show_in_selector })}
+              className={`w-12 h-6 rounded-full transition-colors relative p-1 ${
+                formData.show_in_selector !== false ? "bg-blue-600" : "bg-white/20"
+              }`}
+            >
+              <div
+                className={`w-4 h-4 rounded-full bg-white transition-transform ${
+                  formData.show_in_selector !== false ? "translate-x-6" : "translate-x-0"
+                }`}
+              />
+            </button>
+          </div>
+
           {/* Image Upload */}
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-white/70 mb-2">Category Image</label>
+              <label className="block text-sm font-medium text-white/70 mb-2">Category Image (Transparent PNG / WebP)</label>
               <div className="flex items-center gap-6">
-                <div className="w-32 h-32 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
+                <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center overflow-hidden shrink-0">
                   {imagePreview ? (
-                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-contain p-2" />
                   ) : (
                     <ImageIcon className="w-8 h-8 text-white/20" />
                   )}
@@ -274,7 +289,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
                 <Link className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
                 <input
                   type="url"
-                  placeholder="https://example.com/image.jpg"
+                  placeholder="https://example.com/image.png"
                   value={formData.image_url || ""}
                   onChange={(e) => {
                     setFormData({ ...formData, image_url: e.target.value });

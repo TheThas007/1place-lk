@@ -61,25 +61,28 @@ export async function POST(req: Request) {
           </div>
         </div>
       `;
-    } else if (statusType === "delivered_thankyou") {
-      subject = `❤️ Thank You for Shopping at STREET MOBILE!`;
+    } else if (statusType === "delivered_thankyou" || statusType === "delivered" || statusType === "completed") {
+      subject = `✅ Thank you for your order on StreetMobile.lk!`;
       htmlContent = `
-        <div style="font-family: Arial, sans-serif; background-color: #0f172a; color: #ffffff; padding: 30px; borderRadius: 16px;">
-          <div style="text-align: center; margin-bottom: 20px;">
-            <h1 style="color: #f43f5e; margin: 0;">STREET MOBILE</h1>
-            <p style="color: #94a3b8; font-size: 14px;">Your Trusted Mobile Store in Vavuniya</p>
+        <div style="font-family: Arial, sans-serif; background-color: #000000; color: #ffffff; padding: 30px; border-radius: 20px;">
+          <div style="text-align: center; margin-bottom: 25px;">
+            <h1 style="color: #ffffff; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">STREET MOBILE</h1>
+            <p style="color: #94a3b8; font-size: 13px; margin-top: 4px;">Your Premium Mobile & Tech Store in Sri Lanka</p>
           </div>
-          <div style="background: rgba(255,255,255,0.05); padding: 24px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); text-align: center;">
-            <h2 style="color: #fb7185; margin-top: 0; font-size: 22px;">❤️ Thank You for Choosing STREET MOBILE!</h2>
-            <p style="font-size: 15px; leading: 1.6;">Dear <strong>${customerName}</strong>,</p>
-            <p style="font-size: 14px; color: #cbd5e1; line-height: 1.6;">
-              Your parcel has been delivered! We want to express our deepest gratitude for choosing <strong>STREET MOBILE</strong> for your digital life. 
+          <div style="background: #111827; padding: 28px; border-radius: 16px; border: 1px solid #1f2937; text-align: center;">
+            <div style="width: 48px; height: 48px; background-color: #10b981; color: #000000; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 24px; font-weight: bold; margin-bottom: 16px;">✓</div>
+            <h2 style="color: #ffffff; margin: 0 0 10px 0; font-size: 20px; font-weight: 800;">Thank you for your order on StreetMobile.lk!</h2>
+            <p style="font-size: 14px; color: #cbd5e1; margin-bottom: 20px; line-height: 1.6;">
+              Your package has been successfully packed, shipped & delivered.
             </p>
-            <p style="font-size: 14px; color: #cbd5e1; line-height: 1.6;">
-              We are honored to serve you, and you are now an valued member of our <strong>Street Mobile Family</strong>! ❤️
-            </p>
-            <div style="margin-top: 25px; padding-top: 15px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #94a3b8;">
-              <p>163, Kandaswamy Kovil Road, Vavuniya Town · 075 454 1118</p>
+            <div style="margin: 25px 0;">
+              <a href="https://wa.me/94774141118?text=Hi!%20I'd%20like%20to%20join%20the%20Street%20Mobile%20VIP%20WhatsApp%20Channel!" target="_blank" style="background-color: #25d366; color: #ffffff; padding: 14px 28px; border-radius: 12px; font-weight: 800; font-size: 14px; text-decoration: none; display: inline-block;">
+                📲 Join Our WhatsApp Channel
+              </a>
+            </div>
+            <div style="margin-top: 30px; padding-top: 18px; border-top: 1px solid #1f2937; font-size: 12px; color: #64748b;">
+              <p style="margin: 0;">STREET MOBILE Sri Lanka · Tel: +94 77 414 1118</p>
+              <p style="margin: 4px 0 0 0;">Web: <a href="https://www.streetmobile.lk" style="color: #60a5fa; text-decoration: none;">www.streetmobile.lk</a></p>
             </div>
           </div>
         </div>

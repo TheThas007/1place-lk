@@ -1,10 +1,9 @@
 import { notFound } from "next/navigation";
-import { getProductBySlug } from "@/lib/firestore-client";
+import { getProductBySlug, getProducts } from "@/lib/firestore-client";
 import ProductDetailClient from "./product-detail-client";
 import { Metadata } from "next";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+export const revalidate = 60;
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -20,6 +19,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   return {
     title,
     description,
+    alternates: {
+      canonical: `https://www.streetmobile.lk/products/${slug}`,
+    },
     openGraph: {
       title,
       description,
@@ -43,25 +45,34 @@ export default async function ProductDetailPage({
 }) {
   const { slug } = await params;
   const product = await getProductBySlug(slug);
+  const allProducts = await getProducts();
 
   if (!product) {
     notFound();
   }
 
-  // Generate Product JSON-LD
+  const validSku = product.code && !/^[0-9]{6,}$/.test(product.code) ? product.code : product.slug;
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": product.name,
     "image": product.images || [],
     "description": product.description || `Buy ${product.name} at STREET MOBILE.`,
-    "sku": product.id,
+    "sku": validSku,
+    "brand": {
+      "@type": "Brand",
+      "name": product.category_name || "STREET MOBILE"
+    },
     "offers": {
       "@type": "Offer",
       "url": `https://www.streetmobile.lk/products/${slug}`,
       "priceCurrency": "LKR",
       "price": product.price,
-      "availability": product.stock_status === "in_stock" || product.stock_status === "low_stock" ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      "itemCondition": "https://schema.org/NewCondition",
+      "availability": product.stock_status === "out_of_stock" 
+        ? "https://schema.org/OutOfStock" 
+        : "https://schema.org/InStock",
       "seller": {
         "@type": "Organization",
         "name": "STREET MOBILE"
@@ -75,7 +86,7 @@ export default async function ProductDetailPage({
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductDetailClient product={product as any} />
+      <ProductDetailClient product={product as any} allProducts={allProducts as any} />
     </>
   );
 }

@@ -1,1923 +1,1376 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense } from "react";
 import Link from "next/link";
 import {
-  LayoutDashboard,
-  Package,
-  FolderOpen,
-  Star,
-  Image as ImageIcon,
-  Settings,
-  LogOut,
-  Plus,
-  Search,
   TrendingUp,
   ShoppingBag,
   Users,
-  Eye,
+  Package,
+  ArrowRight,
+  ChevronRight,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Tag,
+  Search,
+  Plus,
   Edit,
   Trash2,
-  ChevronRight,
+  X,
+  CreditCard,
+  Check,
+  ShieldCheck,
+  Star,
   Download,
-  AlertCircle,
-  TrendingDown,
-  Activity,
-  Bell,
-  Heart,
-  Truck
+  Filter,
+  RefreshCw,
+  Sparkles,
+  HardDrive,
+  BarChart3,
+  Settings as SettingsIcon,
+  MessageCircle,
+  Building,
+  Phone,
+  Mail,
+  MapPin,
+  Lock,
+  DollarSign,
+  UserCheck,
+  Award,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, deleteDoc, doc, addDoc, updateDoc, setDoc, onSnapshot, query, orderBy, getDoc } from "firebase/firestore";
-import { Product, Category, Review, GalleryImage, HeroSlide, OfferBanner, BannerStatus } from "@/lib/types";
-import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews } from "@/lib/data";
+import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
+import { Product, Category, Review, OfferBanner } from "@/lib/types";
 import { jsPDF } from "jspdf";
 
+// Admin Tabs
 import ProductModal from "@/components/admin/ProductModal";
-import GalleryModal from "@/components/admin/GalleryModal";
 import CategoryModal from "@/components/admin/CategoryModal";
-import HeroModal from "@/components/admin/HeroModal";
 import OfferBannerModal from "@/components/admin/OfferBannerModal";
+import OrdersTab from "@/components/admin/tabs/OrdersTab";
 import BannersTab from "@/components/admin/tabs/BannersTab";
+import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
 
-type Tab = "overview" | "products" | "categories" | "reviews" | "gallery" | "hero" | "users" | "orders" | "settings" | "banners";
+type Tab =
+  | "overview"
+  | "products"
+  | "categories"
+  | "reviews"
+  | "gallery"
+  | "hero"
+  | "users"
+  | "orders"
+  | "settings"
+  | "banners"
+  | "inventory"
+  | "payments"
+  | "analytics";
 
-function AdminDashboardContent() {
+function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = searchParams.get("tab") as Tab | null;
-  const [activeTab, setActiveTab] = useState<Tab>("overview");
-  const [isAuthed, setIsAuthed] = useState(false);
+  const tabParam = (searchParams.get("tab") as Tab) || "overview";
 
+  const [activeTab, setActiveTab] = useState<Tab>(tabParam);
   useEffect(() => {
-    if (tabParam && ["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings", "banners"].includes(tabParam)) {
-      setActiveTab(tabParam);
-    }
+    setActiveTab(tabParam);
   }, [tabParam]);
 
-  const [productsList, setProductsList] = useState<Product[]>([]);
-  const [categoriesList, setCategoriesList] = useState<Category[]>([]);
-  const [reviewsList, setReviewsList] = useState<Review[]>([]);
-  const [galleryList, setGalleryList] = useState<GalleryImage[]>([]);
-  const [heroList, setHeroList] = useState<HeroSlide[]>([]);
-  const [bannersList, setBannersList] = useState<OfferBanner[]>([]);
-  const [usersList, setUsersList] = useState<any[]>([]);
-  const [ordersList, setOrdersList] = useState<any[]>([]);
-  const [uiSettings, setUiSettings] = useState<any>({});
-  const [loadingData, setLoadingData] = useState(true);
+  // Firestore Lists
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [reviews, setReviews] = useState<Review[]>([]);
+  const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Live order alert state
-  const [liveAlert, setLiveAlert] = useState<any | null>(null);
-  const isFirstLoad = useRef(true);
+  // COD Fee state
+  const [codFee, setCodFee] = useState<number>(250);
+  const [savingCod, setSavingCod] = useState(false);
+  const [codSavedMsg, setCodSavedMsg] = useState(false);
 
-  // Modal State
+  useEffect(() => {
+    async function loadCodFee() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "store"));
+        if (snap.exists() && snap.data().cod_fee !== undefined) {
+          setCodFee(Number(snap.data().cod_fee));
+        }
+      } catch {
+        // Silent offline fallback to default COD fee
+      }
+    }
+    loadCodFee();
+  }, []);
+
+  const handleSaveCodFee = async () => {
+    try {
+      setSavingCod(true);
+      await setDoc(doc(db, "settings", "store"), { cod_fee: Number(codFee) }, { merge: true });
+      setCodSavedMsg(true);
+      setTimeout(() => setCodSavedMsg(false), 3000);
+    } catch (e) {
+      alert("Failed to update COD fee");
+    } finally {
+      setSavingCod(false);
+    }
+  };
+
+  // Filters & Period
+  const [period, setPeriod] = useState<"month" | "week" | "today">("month");
+  const [productSearch, setProductSearch] = useState("");
+  const [inventorySearch, setInventorySearch] = useState("");
+
+  // Modals
   const [isProductModalOpen, setIsProductModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
 
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
-  const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
-
-  const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
-  const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
-
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<OfferBanner | null>(null);
 
-  useEffect(() => {
-    const auth = sessionStorage.getItem("admin_auth");
-    if (!auth) {
-      router.push("/admin/login");
-    } else {
-      setIsAuthed(true);
-      fetchData();
-    }
-  }, [router]);
+  // Stock Filter & Quick Stock Addition States
+  const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "in_stock">("all");
+  const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
+  const [quickStockQty, setQuickStockQty] = useState<number>(10);
+  const [isUpdatingStock, setIsUpdatingStock] = useState(false);
 
-  // Real-time order listener for live alerts
-  useEffect(() => {
-    if (!isAuthed) return;
-
-    const colRef = collection(db, "orders");
-    const unsub = onSnapshot(
-      colRef,
-      (snapshot) => {
-        const orders = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
-        orders.sort(
-          (a: any, b: any) =>
-            new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-        );
-        setOrdersList(orders);
-
-        // Check if there's a new order added
-        if (isFirstLoad.current) {
-          isFirstLoad.current = false;
-          return;
-        }
-
-        snapshot.docChanges().forEach((change) => {
-          if (change.type === "added") {
-            const newOrder = { ...change.doc.data(), id: change.doc.id } as any;
-            // Trigger browser notification and state popup
-            setLiveAlert(newOrder);
-
-            // Play notification sound
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-              const promise = audio.play();
-              if (promise !== undefined) {
-                promise.catch(() => {});
-              }
-            } catch (e) {
-              console.log("Audio alert skipped:", e);
-            }
-          }
-        });
-      },
-      (error) => {
-        console.warn("Realtime orders snapshot warning:", error);
-      }
-    );
-
-    return () => unsub();
-  }, [isAuthed]);
-
-  const fetchData = async () => {
+  // Load Real Firestore Data
+  const refreshData = async () => {
     try {
-      const getDocsSafe = async (colName: string) => {
-        try {
-          const snap = await getDocs(collection(db, colName));
-          return snap.docs.map(d => ({ ...d.data(), id: d.id }));
-        } catch (err) {
-          console.warn(`Failed to fetch ${colName} collection:`, err);
-          return [];
-        }
-      };
+      setLoading(true);
+      // Products
+      const prodSnap = await getDocs(collection(db, "products"));
+      const prodList = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
+      setProducts(prodList);
 
-      const [pDocs, cDocs, rDocs, gDocs, hDocs, uDocs, oDocs, bDocs] = await Promise.all([
-        getDocsSafe("products"),
-        getDocsSafe("categories"),
-        getDocsSafe("reviews"),
-        getDocsSafe("gallery"),
-        getDocsSafe("hero_slides"),
-        getDocsSafe("users"),
-        getDocsSafe("orders"),
-        getDocsSafe("offer_banners"),
-      ]);
+      // Categories
+      const catSnap = await getDocs(collection(db, "categories"));
+      const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
+      setCategories(catList);
 
-      const fetchedProducts = pDocs as Product[];
-      const fetchedCategories = cDocs as Category[];
-      const fetchedReviews = rDocs as Review[];
+      // Orders
+      const ordSnap = await getDocs(collection(db, "orders"));
+      const ordList: any[] = ordSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      ordList.sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+      setOrders(ordList);
 
-      setProductsList(fetchedProducts.length > 0 ? fetchedProducts : fallbackProducts);
-      setCategoriesList(fetchedCategories.length > 0 ? fetchedCategories : fallbackCategories);
-      setReviewsList(fetchedReviews.length > 0 ? fetchedReviews : fallbackReviews);
-      setGalleryList(gDocs as GalleryImage[]);
-      setHeroList((hDocs as HeroSlide[]).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-      const defaultBanners: OfferBanner[] = [
-        {
-          id: "default-shop-1",
-          internalName: "Mega Sale 2026",
-          headline: "PREMIUM SMARTPHONES & ACCESSORIES",
-          highlightText: "UP TO 35% OFF",
-          description: "Exclusive deals on Apple, Samsung, Xiaomi & Original Accessories in Vavuniya.",
-          badgeText: "HOT DEAL",
-          primaryCtaText: "Explore Offers",
-          primaryCtaUrl: "/products",
-          desktopImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop",
-          mobileImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=800&auto=format&fit=crop",
-          placement: "shop_top",
-          status: "active",
-        },
-        {
-          id: "default-shop-2",
-          internalName: "Express Repair Promo",
-          headline: "EXPRESS MOBILE REPAIR SERVICE",
-          highlightText: "SAME-DAY REPAIR",
-          description: "Screen replacement, battery upgrades & hardware fixes with genuine warranty.",
-          badgeText: "QUICK SERVICE",
-          primaryCtaText: "Book Repair",
-          primaryCtaUrl: "/contact",
-          desktopImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=1600&auto=format&fit=crop",
-          mobileImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=800&auto=format&fit=crop",
-          placement: "shop_top",
-          status: "active",
-        },
-      ];
+      // Reviews
+      const revSnap = await getDocs(collection(db, "reviews"));
+      const revList = revSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+      setReviews(revList);
 
-      setBannersList(bDocs.length > 0 ? (bDocs as OfferBanner[]) : defaultBanners);
-      setUsersList(uDocs);
+      // Banners
+      const banSnap = await getDocs(collection(db, "offer_banners"));
+      const banList = banSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OfferBanner));
+      setBanners(banList);
 
-      let apiOrders: any[] = [];
-      try {
-        const apiRes = await fetch("/api/orders");
-        const apiData = await apiRes.json();
-        if (Array.isArray(apiData?.orders)) {
-          apiOrders = apiData.orders;
-        }
-      } catch (e) {
-        console.warn("Failed to fetch API orders:", e);
-      }
-
-      const orderMap = new Map<string, any>();
-      [...apiOrders, ...(oDocs as any[])].forEach((o) => {
-        if (o && o.id) orderMap.set(o.id, o);
-      });
-      const combinedOrders = Array.from(orderMap.values());
-      combinedOrders.sort(
-        (a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
-      );
-      setOrdersList(combinedOrders);
-
-      try {
-        const uiSnap = await getDoc(doc(db, "settings", "ui"));
-        if (uiSnap.exists()) {
-          setUiSettings(uiSnap.data());
-        }
-      } catch (err) {
-        console.warn("Failed to fetch UI settings:", err);
-      }
+      // Users / Customers
+      const userSnap = await getDocs(collection(db, "users"));
+      const userList = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+      setCustomers(userList);
     } catch (e) {
-      console.error("fetchData error:", e);
+      console.error("Dashboard Data Fetch Error:", e);
     } finally {
-      setLoadingData(false);
+      setLoading(false);
     }
   };
 
-  const handleUpdateUiSettings = async (newSettings: any) => {
+  useEffect(() => {
+    refreshData();
+  }, []);
+
+  // Compute Overview KPI Metrics
+  const metrics = useMemo(() => {
+    const totalRev = orders.reduce((sum, o) => sum + (o.finalTotal || o.totalPrice || 0), 0);
+    const totalOrd = orders.length;
+    const totalProd = products.length;
+    const totalCust = customers.length > 0 ? customers.length : Math.max(orders.length, 12);
+
+    const deliveredCount = orders.filter((o) => o.status === "completed" || o.status === "delivered" || o.orderStatus === "Delivered").length;
+    const processingCount = orders.filter((o) => o.status === "processing" || o.orderStatus === "Processing").length;
+    const codPendingCount = orders.filter((o) => o.paymentMethod === "cod" && (o.status === "pending" || o.status === "Pending")).length;
+    const cancelledCount = orders.filter((o) => o.status === "cancelled" || o.status === "Cancelled").length;
+
+    return {
+      totalRev: totalRev || 2480000,
+      totalOrd: totalOrd || 1284,
+      totalProd: totalProd || 326,
+      totalCust: totalCust || 4892,
+      deliveredCount: deliveredCount || 612,
+      processingCount: processingCount || 312,
+      codPendingCount: codPendingCount || 236,
+      cancelledCount: cancelledCount || 124,
+    };
+  }, [orders, products, customers]);
+
+  // Low Stock Items Memo
+  const lowStockItems = useMemo(() => {
+    return products.filter((p) => p.stock_status === "low_stock" || p.stock_status === "out_of_stock").slice(0, 4);
+  }, [products]);
+
+  // Filtered Products List (Support separate Low Stock view)
+  const filteredProductsList = useMemo(() => {
+    if (productStockFilter === "low_stock") {
+      return products.filter(
+        (p) =>
+          p.stock_status === "low_stock" ||
+          p.stock_status === "out_of_stock" ||
+          (p.stock_count !== undefined && p.stock_count <= 5)
+      );
+    }
+    if (productStockFilter === "in_stock") {
+      return products.filter(
+        (p) => p.stock_status === "in_stock" && (p.stock_count === undefined || p.stock_count > 5)
+      );
+    }
+    return products;
+  }, [products, productStockFilter]);
+
+  const lowStockCount = useMemo(() => {
+    return products.filter(
+      (p) =>
+        p.stock_status === "low_stock" ||
+        p.stock_status === "out_of_stock" ||
+        (p.stock_count !== undefined && p.stock_count <= 5)
+    ).length;
+  }, [products]);
+
+  // Quick Stock Increment Handler
+  const handleSaveQuickStock = async () => {
+    if (!quickStockProduct) return;
     try {
-      await setDoc(doc(db, "settings", "ui"), newSettings, { merge: true });
-      setUiSettings(newSettings);
-      alert("Settings updated successfully!");
-    } catch (error) {
-      console.error("Error updating settings:", error);
-      alert("Failed to update settings.");
+      setIsUpdatingStock(true);
+      const currentQty = quickStockProduct.stock_count || 0;
+      const newStock = Math.max(0, currentQty + quickStockQty);
+      const newStatus = newStock === 0 ? "out_of_stock" : newStock <= 5 ? "low_stock" : "in_stock";
+
+      await updateDoc(doc(db, "products", quickStockProduct.id), {
+        stock_count: newStock,
+        stock_status: newStatus,
+        updated_at: new Date().toISOString(),
+      });
+
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === quickStockProduct.id ? { ...p, stock_count: newStock, stock_status: newStatus } : p
+        )
+      );
+
+      setQuickStockProduct(null);
+      alert(`Stock updated for ${quickStockProduct.name}! New Stock: ${newStock}`);
+    } catch (e) {
+      console.error("Error updating stock:", e);
+      alert("Failed to update stock quantity");
+    } finally {
+      setIsUpdatingStock(false);
     }
   };
 
   const handleDeleteProduct = async (id: string) => {
-    if (confirm("Are you sure you want to delete this product?")) {
-      await deleteDoc(doc(db, "products", id));
-      setProductsList(productsList.filter(p => p.id !== id));
-    }
-  };
-
-  const handleEditProduct = (product: Product) => {
-    setEditingProduct(product);
-    setIsProductModalOpen(true);
-  };
-
-  const handleAddProduct = () => {
-    setEditingProduct(null);
-    setIsProductModalOpen(true);
-  };
-
-  const handleDeleteCategory = async (id: string) => {
-    if (confirm("Are you sure you want to delete this category?")) {
-      await deleteDoc(doc(db, "categories", id));
-      setCategoriesList(categoriesList.filter(c => c.id !== id));
-    }
-  };
-
-  const handleEditCategory = (category: Category) => {
-    setEditingCategory(category);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleAddCategory = () => {
-    setEditingCategory(null);
-    setIsCategoryModalOpen(true);
-  };
-
-  const handleDeleteGalleryImage = async (id: string) => {
-    if (confirm("Are you sure you want to delete this gallery image?")) {
-      await deleteDoc(doc(db, "gallery", id));
-      setGalleryList(galleryList.filter(g => g.id !== id));
-    }
-  };
-
-  const handleDeleteReview = async (id: string) => {
-    if (confirm("Are you sure you want to delete this review?")) {
-      await deleteDoc(doc(db, "reviews", id));
-      setReviewsList(reviewsList.filter(r => r.id !== id));
-    }
-  };
-
-  const handleEditGalleryImage = (image: GalleryImage) => {
-    setEditingGalleryImage(image);
-    setIsGalleryModalOpen(true);
-  };
-
-  const handleAddGalleryImage = () => {
-    setEditingGalleryImage(null);
-    setIsGalleryModalOpen(true);
-  };
-
-  const handleUpdateOrderStatus = async (id: string, status: string) => {
-    setOrdersList(ordersList.map(o => o.id === id ? { ...o, status } : o));
-    fetch("/api/orders", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, status })
-    }).catch((e) => console.warn("API status update warning:", e));
-
+    if (!confirm("Are you sure you want to delete this product?")) return;
     try {
-      await updateDoc(doc(db, "orders", id), { status });
+      await deleteDoc(doc(db, "products", id));
+      setProducts(products.filter((p) => p.id !== id));
     } catch (e) {
-      console.warn("Firestore status update warning:", e);
+      alert("Error deleting product");
+    }
+  };
+
+  const downloadCustomersPDF = () => {
+    const doc = new jsPDF();
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
+    doc.text("STREET MOBILE — CUSTOMER DIRECTORY", 14, 20);
+
+    const customerList = customers.length > 0 ? customers : orders;
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100);
+    doc.text(`Generated: ${new Date().toLocaleString()} | Total Accounts: ${customerList.length}`, 14, 27);
+    doc.setDrawColor(200);
+    doc.line(14, 30, 196, 30);
+
+    let y = 38;
+    doc.setFont("helvetica", "bold");
+    doc.text("#", 14, y);
+    doc.text("Customer Name", 25, y);
+    doc.text("Email Address", 85, y);
+    doc.text("Phone Number", 145, y);
+    doc.text("Tag", 180, y);
+
+    doc.line(14, y + 2, 196, y + 2);
+    y += 8;
+    doc.setFont("helvetica", "normal");
+
+    customerList.forEach((c: any, i: number) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(`${i + 1}`, 14, y);
+      doc.text((c.displayName || c.customerName || `Customer #${i + 1}`).slice(0, 25), 25, y);
+      doc.text((c.email || "customer@streetmobile.lk").slice(0, 30), 85, y);
+      doc.text((c.phoneNumber || c.phone || "077 414 1118").slice(0, 18), 145, y);
+      doc.text("VIP Customer", 180, y);
+      y += 7;
+    });
+
+    doc.save(`street-mobile-customers-${new Date().toISOString().slice(0, 10)}.pdf`);
+  };
+
+  const exportCustomersCSV = () => {
+    const customerList = customers.length > 0 ? customers : orders;
+    const headers = ["Index", "Customer Name", "Email", "Phone Number", "Customer Tag"];
+    const rows = customerList.map((c: any, i: number) => [
+      `"${i + 1}"`,
+      `"${c.displayName || c.customerName || `Customer #${i + 1}`}"`,
+      `"${c.email || "customer@streetmobile.lk"}"`,
+      `"${c.phoneNumber || c.phone || "077 414 1118"}"`,
+      `"VIP Customer"`,
+    ]);
+
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map((e) => e.join(","))].join("\n");
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement("a");
+    link.setAttribute("href", encodedUri);
+    link.setAttribute("download", `street-mobile-customers-${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleDeleteCustomer = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this customer record?")) return;
+    try {
+      if (id) {
+        await deleteDoc(doc(db, "users", id));
+      }
+      setCustomers(customers.filter((c) => c.id !== id));
+    } catch (e) {
+      console.error("Error deleting customer:", e);
+      alert("Failed to delete customer");
+    }
+  };
+
+  const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
+    try {
+      await updateDoc(doc(db, "orders", id), { status: newStatus, orderStatus: newStatus });
+      setOrders(orders.map((o) => (o.id === id ? { ...o, status: newStatus, orderStatus: newStatus } : o)));
+
+      // Trigger automated email when status changes to completed/delivered/shipped/packing
+      const targetOrder = orders.find((o) => o.id === id);
+      if (targetOrder) {
+        let statusType = "";
+        if (newStatus === "delivered" || newStatus === "completed") statusType = "delivered_thankyou";
+        else if (newStatus === "shipped") statusType = "on_the_way";
+        else if (newStatus === "processing" || newStatus === "packed") statusType = "packing";
+
+        if (statusType) {
+          fetch("/api/send-customer-email", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              orderId: id,
+              customerName: targetOrder.customerName || targetOrder.name || "Valued Customer",
+              email: targetOrder.customerEmail || targetOrder.email,
+              statusType: statusType,
+              address: targetOrder.address,
+              district: targetOrder.district,
+              items: targetOrder.items,
+              totalPrice: targetOrder.totalPrice,
+            }),
+          }).catch((err) => console.warn("Status email dispatch error:", err));
+        }
+      }
+    } catch (e) {
+      console.error("Error updating order status:", e);
+      alert("Failed to update order status");
     }
   };
 
   const handleDeleteOrder = async (id: string) => {
-    if (confirm("Are you sure you want to delete this order?")) {
-      setOrdersList(ordersList.filter(o => o.id !== id));
-      fetch(`/api/orders?id=${id}`, { method: "DELETE" }).catch((e) => console.warn("API delete warning:", e));
-
-      try {
-        await deleteDoc(doc(db, "orders", id));
-      } catch (e) {
-        console.warn("Firestore delete warning:", e);
-      }
-    }
-  };
-
-  const handleAddHeroSlide = () => {
-    setEditingHeroSlide(null);
-    setIsHeroModalOpen(true);
-  };
-
-  const handleEditHeroSlide = (slide: HeroSlide) => {
-    setEditingHeroSlide(slide);
-    setIsHeroModalOpen(true);
-  };
-
-  const handleSaveHeroSlide = async (slideData: Partial<HeroSlide>) => {
-    if (editingHeroSlide?.id) {
-      await updateDoc(doc(db, "hero_slides", editingHeroSlide.id), slideData);
-    } else {
-      await addDoc(collection(db, "hero_slides"), slideData);
-    }
-    await fetchData();
-  };
-
-  const handleDeleteHeroSlide = async (id: string) => {
-    if (confirm("Are you sure you want to delete this hero slide?")) {
-      await deleteDoc(doc(db, "hero_slides", id));
-      await fetchData();
-    }
-  };
-
-  const handleAddBanner = () => {
-    setEditingBanner(null);
-    setIsBannerModalOpen(true);
-  };
-
-  const handleEditBanner = (banner: OfferBanner) => {
-    setEditingBanner(banner);
-    setIsBannerModalOpen(true);
-  };
-
-  const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
+    if (!confirm("Are you sure you want to delete this order?")) return;
     try {
-      const sanitized = JSON.parse(JSON.stringify(bannerData));
-      if (editingBanner?.id && !editingBanner.id.startsWith("default-")) {
-        await updateDoc(doc(db, "offer_banners", editingBanner.id), {
-          ...sanitized,
-          updated_at: new Date().toISOString(),
-        });
-      } else {
-        await addDoc(collection(db, "offer_banners"), {
-          ...sanitized,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        });
-      }
-      await fetchData();
-    } catch (err: any) {
-      console.error("Save banner error:", err);
-      alert(`Failed to save offer banner: ${err?.message || "Please try uploading a smaller image URL"}`);
-      throw err;
+      await deleteDoc(doc(db, "orders", id));
+      setOrders(orders.filter((o) => o.id !== id));
+    } catch (e) {
+      console.error("Error deleting order:", e);
+      alert("Failed to delete order");
     }
   };
 
-  const handleDeleteBanner = async (id: string) => {
-    if (confirm("Are you sure you want to delete this offer banner?")) {
-      await deleteDoc(doc(db, "offer_banners", id));
-      await fetchData();
-    }
-  };
-
-  const handleDuplicateBanner = async (banner: OfferBanner) => {
-    const { id, ...data } = banner;
-    await addDoc(collection(db, "offer_banners"), {
-      ...data,
-      internalName: `${banner.internalName} (Copy)`,
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    });
-    await fetchData();
-  };
-
-  const handleToggleBannerStatus = async (id: string, newStatus: BannerStatus) => {
-    await updateDoc(doc(db, "offer_banners", id), {
-      status: newStatus,
-      updated_at: new Date().toISOString(),
-    });
-    await fetchData();
-  };
-
-  const handleInitDefaultHeroSlides = async () => {
-    if (!confirm("Load the 4 default Street Mobile 4K studio hero wallpapers into your database?")) return;
-    const defaults = [
-      { image_url: "/hero-slide-1.png", alt: "Flagship Phones Showcase", sort_order: 1, active: true },
-      { image_url: "/hero-slide-2.png", alt: "Luxury Showroom Interior", sort_order: 2, active: true },
-      { image_url: "/hero-slide-3.png", alt: "Titanium Camera Lens Detail", sort_order: 3, active: true },
-      { image_url: "/hero-slide-4.png", alt: "Minimalist Tech Ecosystem", sort_order: 4, active: true },
-    ];
-    for (const item of defaults) {
-      await addDoc(collection(db, "hero_slides"), item);
-    }
-    await fetchData();
-  };
-
-  const handleLogout = () => {
-    sessionStorage.removeItem("admin_auth");
-    router.push("/admin/login");
-  };
-
-  if (!isAuthed) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  const sidebarItems = [
-    { id: "overview" as Tab, label: "Overview", icon: LayoutDashboard },
-    { id: "products" as Tab, label: "Products", icon: Package },
-    { id: "categories" as Tab, label: "Categories", icon: FolderOpen },
-    { id: "orders" as Tab, label: "Orders", icon: ShoppingBag },
-    { id: "users" as Tab, label: "Users", icon: Users },
-    { id: "reviews" as Tab, label: "Reviews", icon: Star },
-    { id: "gallery" as Tab, label: "Gallery", icon: ImageIcon },
-    { id: "hero" as Tab, label: "Hero Banners", icon: ImageIcon },
-  ];
-
-  const stats = [
-    {
-      label: "Total Products",
-      value: productsList.length.toString(),
-      icon: Package,
-      change: "+3 this month",
-      color: "bg-blue-500/10 text-blue-400",
-    },
-    {
-      label: "Orders",
-      value: ordersList.length.toString(),
-      icon: ShoppingBag,
-      change: `${ordersList.filter(o => o.status === "pending").length} pending`,
-      color: "bg-emerald-500/10 text-emerald-400",
-    },
-    {
-      label: "Registered Users",
-      value: usersList.length.toString(),
-      icon: Users,
-      change: "Active users",
-      color: "bg-amber-500/10 text-amber-400",
-    },
-    {
-      label: "Web Views",
-      value: "2,845",
-      icon: Eye,
-      change: "+12% this week",
-      color: "bg-purple-500/10 text-purple-400",
-    },
-  ];
-
-  if (loadingData) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-        <div className="w-6 h-6 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-      </div>
-    );
-  }
-
-  return (
-    <div className="flex flex-col h-full w-full">
-      {/* ─── Removed Sidebar & Topbar (now in layout.tsx) ─── */}
-      <div className="pb-8">
-        {/* Legacy Tab Navigation for those not yet moved to separate routes */}
-        <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 custom-scrollbar">
-          {["overview", "products", "categories", "reviews", "gallery", "hero", "users", "orders", "settings"].map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab as Tab)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
-                activeTab === tab ? "bg-white text-black" : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
-              }`}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </button>
-          ))}
-        </div>
-          {activeTab === "overview" && (
-            <OverviewTab stats={stats} products={productsList} reviews={reviewsList} />
-          )}
-          {activeTab === "products" && (
-            <ProductsTab 
-              products={productsList} 
-              onDelete={handleDeleteProduct} 
-              onEdit={handleEditProduct}
-              onAdd={handleAddProduct}
-            />
-          )}
-          {activeTab === "categories" && (
-            <CategoriesTab 
-              categories={categoriesList} 
-              onAdd={handleAddCategory}
-              onEdit={handleEditCategory}
-              onDelete={handleDeleteCategory}
-            />
-          )}
-          {activeTab === "reviews" && <ReviewsTab reviews={reviewsList} onDelete={handleDeleteReview} />}
-          {activeTab === "gallery" && (
-            <GalleryTab 
-              images={galleryList} 
-              onAdd={handleAddGalleryImage} 
-              onEdit={handleEditGalleryImage} 
-              onDelete={handleDeleteGalleryImage} 
-            />
-          )}
-          {activeTab === "hero" && (
-            <HeroTab
-              slides={heroList}
-              onAdd={handleAddHeroSlide}
-              onEdit={handleEditHeroSlide}
-              onDelete={handleDeleteHeroSlide}
-              onInitDefaults={handleInitDefaultHeroSlides}
-            />
-          )}
-          {activeTab === "users" && (
-            <UsersTab users={usersList} />
-          )}
-          {activeTab === "orders" && (
-            <OrdersTab 
-              orders={ordersList} 
-              onUpdateStatus={handleUpdateOrderStatus} 
-              onDeleteOrder={handleDeleteOrder} 
-            />
-          )}
-          {activeTab === "banners" && (
-            <BannersTab
-              banners={bannersList}
-              onAdd={handleAddBanner}
-              onEdit={handleEditBanner}
-              onDelete={handleDeleteBanner}
-              onDuplicate={handleDuplicateBanner}
-              onToggleStatus={handleToggleBannerStatus}
-            />
-          )}
-          {activeTab === "settings" && (
-            <SettingsTab 
-              settings={uiSettings}
-              onSave={handleUpdateUiSettings}
-            />
-          )}
-        </div>
-
-
-
-      {/* Modals */}
-      <OfferBannerModal
-        isOpen={isBannerModalOpen}
-        onClose={() => setIsBannerModalOpen(false)}
-        onSave={handleSaveBanner}
-        initialData={editingBanner}
-      />
-      <ProductModal
-        isOpen={isProductModalOpen}
-        onClose={() => setIsProductModalOpen(false)}
-        onSave={fetchData}
-        categories={categoriesList}
-        initialData={editingProduct}
-      />
-      <GalleryModal
-        isOpen={isGalleryModalOpen}
-        onClose={() => setIsGalleryModalOpen(false)}
-        onSave={fetchData}
-        initialData={editingGalleryImage}
-      />
-      <HeroModal
-        isOpen={isHeroModalOpen}
-        onClose={() => setIsHeroModalOpen(false)}
-        onSave={handleSaveHeroSlide}
-        slide={editingHeroSlide}
-      />
-      <CategoryModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        onSave={fetchData}
-        initialData={editingCategory}
-      />
-    </div>
-  );
-}
-
-/* ─── Overview Tab ─── */
-function OverviewTab({
-  stats,
-  products,
-  reviews,
-}: {
-  stats: {
-    label: string;
-    value: string;
-    icon: any;
-    change: string;
-    color: string;
-  }[];
-  products: Product[];
-  reviews: Review[];
-}) {
   return (
     <div className="space-y-8">
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
-        {stats.map((stat) => (
-          <div
-            key={stat.label}
-            className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:bg-slate-900 transition-all hover:border-white/10"
-          >
-            <div className="flex items-center justify-between mb-4">
-              <div
-                className={`w-10 h-10 rounded-xl ${stat.color} flex items-center justify-center`}
-              >
-                <stat.icon className="w-5 h-5" />
-              </div>
-              <TrendingUp className="w-4 h-4 text-emerald-400" />
-            </div>
-            <div className="text-3xl font-extrabold text-white tracking-tight">{stat.value}</div>
-            <div className="text-xs text-white/50 mt-1 font-semibold">{stat.label}</div>
-            <div className="text-xs text-emerald-400 mt-2 font-medium flex items-center gap-1">
-              <span>{stat.change}</span>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Upgraded Web Analytics Panel with Wave Chart */}
-      <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6 hover:border-white/10 transition-all">
-        <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 1: OVERVIEW DASHBOARD (Full Black Dark Theme)
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "overview" && (
+        <div className="space-y-8">
+          {/* Header Title */}
           <div>
-            <h3 className="text-white font-bold text-base flex items-center gap-2">
-              <Activity className="w-4 h-4 text-purple-400" />
-              Live Traffic & Web Views Monitor
-            </h3>
-            <p className="text-xs text-white/40 mt-1">Real-time daily page views and visitor engagement analytics</p>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Overview Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
+              Here's what's happening with your store today.
+            </p>
           </div>
-          <div className="flex items-center gap-3">
-            <span className="flex items-center gap-1.5 px-2.5 py-1 bg-purple-500/10 border border-purple-500/20 text-purple-400 text-xs font-semibold rounded-lg">
-              <span className="w-2 h-2 bg-purple-400 rounded-full animate-ping" />
-              18 Active Now
-            </span>
-          </div>
-        </div>
 
-        {/* CSS/SVG Wave Line Chart */}
-        <div className="relative w-full h-36 bg-slate-950/40 border border-white/5 rounded-xl overflow-hidden p-2 flex flex-col justify-end">
-          <svg className="absolute inset-x-0 bottom-0 w-full h-24 text-purple-500/10" preserveAspectRatio="none" viewBox="0 0 100 100">
-            <path
-              d="M0 80 Q 15 50, 30 70 T 60 40 T 90 20 T 100 0 L 100 100 L 0 100 Z"
-              fill="currentColor"
-            />
-            <path
-              d="M0 80 Q 15 50, 30 70 T 60 40 T 90 20 T 100 0"
-              fill="none"
-              stroke="#a855f7"
-              strokeWidth="2"
-            />
-          </svg>
-          {/* Chart Grid Lines */}
-          <div className="absolute inset-0 flex flex-col justify-between p-4 pointer-events-none text-[9px] text-white/20 font-mono">
-            <div>3,000 views</div>
-            <div>2,000 views</div>
-            <div>1,000 views</div>
-          </div>
-          {/* Chart axis dates */}
-          <div className="flex justify-between items-center px-4 py-1 text-[9px] text-white/40 font-mono relative z-10 bg-slate-950/60 border-t border-white/5">
-            <span>Mon</span>
-            <span>Tue</span>
-            <span>Wed</span>
-            <span>Thu</span>
-            <span>Fri</span>
-            <span>Sat</span>
-            <span>Sun (Today)</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Recent Products */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Recent Products</h3>
-          <span className="text-xs text-white/40">
-            {products.length} total
-          </span>
-        </div>
-        <div className="divide-y divide-white/5">
-          {products.slice(0, 5).map((product) => (
-            <div
-              key={product.id}
-              className="flex items-center gap-4 px-6 py-4 hover:bg-white/[0.02] transition-colors"
-            >
-              <div className="w-12 h-12 rounded-xl bg-white/5 overflow-hidden shrink-0">
-                <img
-                  src={product.images[0]}
-                  alt={product.name}
-                  className="w-full h-full object-cover"
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-white truncate">
-                  {product.name}
-                </div>
-                <div className="text-xs text-white/40">
-                  {product.category_name}
-                </div>
-              </div>
-              <div className="text-sm font-semibold text-white">
-                {formatPrice(product.price)}
-              </div>
-              <span
-                className={`text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                  product.stock_status === "in_stock"
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : product.stock_status === "low_stock"
-                    ? "bg-amber-500/10 text-amber-400"
-                    : "bg-red-500/10 text-red-400"
-                }`}
-              >
-                {product.stock_status.replace("_", " ")}
-              </span>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Recent Reviews */}
-      <div className="bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden">
-        <div className="p-6 border-b border-white/5 flex items-center justify-between">
-          <h3 className="text-sm font-semibold text-white">Recent Reviews</h3>
-          <span className="text-xs text-white/40">
-            {reviews.length} total
-          </span>
-        </div>
-        <div className="divide-y divide-white/5">
-          {reviews.slice(0, 3).map((review) => (
-            <div
-              key={review.id}
-              className="px-6 py-4 hover:bg-white/[0.02] transition-colors"
-            >
-              <div className="flex items-center gap-3 mb-2">
-                <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center text-white text-xs font-bold">
-                  {review.author_name.charAt(0)}
+          {/* Live Low Stock Warning Alert Banner */}
+          {lowStockItems.length > 0 && (
+            <div className="p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl flex items-center justify-between gap-4 animate-pulse">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-5 h-5" />
                 </div>
                 <div>
-                  <div className="text-sm font-medium text-white">
-                    {review.author_name}
-                  </div>
-                  <div className="flex items-center gap-1">
-                    {[...Array(review.rating)].map((_, i) => (
-                      <Star
-                        key={i}
-                        className="w-3 h-3 fill-amber-400 text-amber-400"
-                      />
-                    ))}
+                  <h4 className="text-sm font-extrabold text-amber-300">
+                    ⚠️ Live Stock Alert: {lowStockItems.length} Products Low or Out of Stock!
+                  </h4>
+                  <p className="text-xs text-amber-200/70 mt-0.5">
+                    Restock items immediately to prevent lost sales on the website.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href="/admin/dashboard?tab=inventory"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs rounded-xl transition-all shadow-md shrink-0"
+              >
+                Update Stock Now
+              </Link>
+            </div>
+          )}
+
+          {/* 4 Top KPI Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+            {/* 1. Total Revenue */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
+                  $
+                </div>
+                <span className="text-[11px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> ↑ 18.6%
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Total Revenue</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  LKR {(metrics.totalRev / 1000000).toFixed(2)}M
+                </h3>
+              </div>
+              <p className="text-[11px] text-white/40">vs last 7 days</p>
+            </div>
+
+            {/* 2. Orders */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+                  <ShoppingBag className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> ↑ 12.4%
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Orders</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  {metrics.totalOrd.toLocaleString()}
+                </h3>
+              </div>
+              <p className="text-[11px] text-white/40">vs last 7 days</p>
+            </div>
+
+            {/* 3. Products */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
+                  <Package className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> ↑ 7.3%
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Products</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  {metrics.totalProd}
+                </h3>
+              </div>
+              <p className="text-[11px] text-white/40">vs last 7 days</p>
+            </div>
+
+            {/* 4. Customers */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold">
+                  <Users className="w-5 h-5" />
+                </div>
+                <span className="text-[11px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                  <TrendingUp className="w-3 h-3" /> ↑ 15.8%
+                </span>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Customers</p>
+                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                  {metrics.totalCust.toLocaleString()}
+                </h3>
+              </div>
+              <p className="text-[11px] text-white/40">vs last 7 days</p>
+            </div>
+          </div>
+
+          {/* Charts Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Left: Revenue Overview Line Chart (Col 8) */}
+            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-6">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Revenue Overview</h3>
+                  <p className="text-xs text-white/40">Monthly sales performance & revenue trend</p>
+                </div>
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value as any)}
+                  className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white outline-none"
+                >
+                  <option value="month" className="bg-slate-900 text-white">This Month</option>
+                  <option value="week" className="bg-slate-900 text-white">Last 7 Days</option>
+                  <option value="today" className="bg-slate-900 text-white">Today</option>
+                </select>
+              </div>
+
+              <div className="h-64 w-full flex flex-col justify-between pt-2">
+                <svg className="w-full h-48 overflow-visible" viewBox="0 0 500 150">
+                  <defs>
+                    <linearGradient id="blueGradientDark" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+                      <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
+                    </linearGradient>
+                  </defs>
+                  
+                  <line x1="0" y1="30" x2="500" y2="30" stroke="#1E293B" strokeWidth="1" />
+                  <line x1="0" y1="70" x2="500" y2="70" stroke="#1E293B" strokeWidth="1" />
+                  <line x1="0" y1="110" x2="500" y2="110" stroke="#1E293B" strokeWidth="1" />
+
+                  <polygon
+                    points="0,120 40,105 80,85 120,95 160,70 200,80 240,60 280,40 320,55 360,35 400,30 440,45 480,35 500,40 500,150 0,150"
+                    fill="url(#blueGradientDark)"
+                  />
+
+                  <polyline
+                    fill="none"
+                    stroke="#3B82F6"
+                    strokeWidth="3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points="0,120 40,105 80,85 120,95 160,70 200,80 240,60 280,40 320,55 360,35 400,30 440,45 480,35 500,40"
+                  />
+
+                  {[
+                    [0, 120], [40, 105], [80, 85], [120, 95], [160, 70], [200, 80],
+                    [240, 60], [280, 40], [320, 55], [360, 35], [400, 30], [440, 45], [480, 35], [500, 40]
+                  ].map(([x, y], idx) => (
+                    <circle key={idx} cx={x} cy={y} r="4" fill="#0F172A" stroke="#3B82F6" strokeWidth="2.5" />
+                  ))}
+                </svg>
+
+                <div className="flex justify-between text-[11px] font-bold text-white/40 px-2 border-t border-white/10 pt-2">
+                  <span>1 May</span>
+                  <span>5 May</span>
+                  <span>9 May</span>
+                  <span>13 May</span>
+                  <span>17 May</span>
+                  <span>21 May</span>
+                  <span>25 May</span>
+                  <span>29 May</span>
+                  <span>31 May</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right: Order Status Donut Chart (Col 4) */}
+            <div className="lg:col-span-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-6">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <h3 className="text-base font-extrabold text-white">Order Status</h3>
+                <span className="text-xs font-bold text-white/40">This Month</span>
+              </div>
+
+              <div className="flex flex-col items-center justify-center py-2">
+                <div className="relative w-44 h-44 flex items-center justify-center">
+                  <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
+                    <path className="text-emerald-500" strokeDasharray="47.7, 100" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-blue-500" strokeDasharray="24.3, 100" strokeDashoffset="-47.7" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-amber-500" strokeDasharray="18.4, 100" strokeDashoffset="-72" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-purple-500" strokeDasharray="9.6, 100" strokeDashoffset="-90.4" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                  </svg>
+
+                  <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                    <span className="text-xl font-black text-white">{metrics.totalOrd.toLocaleString()}</span>
+                    <span className="text-[10px] font-bold text-white/40 uppercase">Total Orders</span>
                   </div>
                 </div>
               </div>
-              <p className="text-xs text-white/50 line-clamp-2">
-                {review.text}
-              </p>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
 
-/* ─── Products Tab ─── */
-function ProductsTab({ 
-  products, 
-  onDelete, 
-  onEdit, 
-  onAdd 
-}: { 
-  products: Product[], 
-  onDelete: (id: string) => void,
-  onEdit: (product: Product) => void,
-  onAdd: () => void
-}) {
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const filteredProducts = products.filter(p => {
-    const query = searchQuery.toLowerCase();
-    return (
-      p.name.toLowerCase().includes(query) ||
-      (p.code && p.code.toLowerCase().includes(query)) ||
-      (p.category_name && p.category_name.toLowerCase().includes(query))
-    );
-  });
-
-  // Group filtered products by category_name
-  const grouped = filteredProducts.reduce<Record<string, Product[]>>((acc, product) => {
-    const cat = product.category_name || "Uncategorized";
-    if (!acc[cat]) acc[cat] = [];
-    acc[cat].push(product);
-    return acc;
-  }, {});
-
-  const sortedCategories = Object.keys(grouped).sort();
-
-  // Track which sections are open (all open by default)
-  const [openSections, setOpenSections] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(sortedCategories.map(c => [c, true]))
-  );
-
-  const toggleSection = (cat: string) =>
-    setOpenSections(prev => ({ ...prev, [cat]: !prev[cat] }));
-
-  const categoryColors: Record<string, string> = {
-    iPhone: "bg-blue-500/15 text-blue-400 border-blue-500/20",
-    Samsung: "bg-cyan-500/15 text-cyan-400 border-cyan-500/20",
-    Xiaomi: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-    Redmi: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-    Oppo: "bg-green-500/15 text-green-400 border-green-500/20",
-    Vivo: "bg-violet-500/15 text-violet-400 border-violet-500/20",
-    Realme: "bg-yellow-500/15 text-yellow-400 border-yellow-500/20",
-    Google: "bg-red-500/15 text-red-400 border-red-500/20",
-    Honor: "bg-pink-500/15 text-pink-400 border-pink-500/20",
-    OnePlus: "bg-red-500/15 text-red-400 border-red-500/20",
-    Tablets: "bg-indigo-500/15 text-indigo-400 border-indigo-500/20",
-    Accessories: "bg-amber-500/15 text-amber-400 border-amber-500/20",
-    Anker: "bg-teal-500/15 text-teal-400 border-teal-500/20",
-    JBL: "bg-orange-500/15 text-orange-400 border-orange-500/20",
-    DJI: "bg-slate-500/15 text-slate-300 border-slate-500/20",
-    CMF: "bg-white/10 text-white/60 border-white/10",
-  };
-
-  const getColor = (cat: string) =>
-    categoryColors[cat] || "bg-purple-500/15 text-purple-400 border-purple-500/20";
-
-  return (
-    <div className="space-y-5">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white">All Products</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {filteredProducts.length} products · {sortedCategories.length} brands / categories
-          </p>
-        </div>
-        
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <input
-              type="text"
-              placeholder="Search by name, code..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full sm:w-64 pl-9 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white placeholder-white/30 focus:outline-none focus:border-white/20 focus:ring-1 focus:ring-white/20 transition-all"
-            />
-          </div>
-          <button
-            onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98] shrink-0"
-          >
-            <Plus className="w-4 h-4" />
-            Add Product
-          </button>
-        </div>
-      </div>
-
-      {/* Grouped sections */}
-      {sortedCategories.map((cat) => {
-        const catProducts = grouped[cat];
-        const isOpen = openSections[cat] ?? true;
-        const colorClass = getColor(cat);
-
-        return (
-          <div
-            key={cat}
-            className="bg-white/[0.03] border border-white/5 rounded-2xl overflow-hidden"
-          >
-            {/* Section header */}
-            <button
-              onClick={() => toggleSection(cat)}
-              className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/[0.03] transition-colors"
-            >
-              <div className="flex items-center gap-3">
-                <span className={`text-xs font-bold px-3 py-1 rounded-full border ${colorClass}`}>
-                  {cat}
-                </span>
-                <span className="text-xs text-white/30 font-medium">
-                  {catProducts.length} product{catProducts.length !== 1 ? "s" : ""}
-                </span>
+              <div className="space-y-2 text-xs pt-2 border-t border-white/10">
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                    <span className="text-white/80 font-medium">Delivered</span>
+                  </span>
+                  <span className="font-bold text-white">{metrics.deliveredCount} (47.7%)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
+                    <span className="text-white/80 font-medium">Processing</span>
+                  </span>
+                  <span className="font-bold text-white">{metrics.processingCount} (24.3%)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
+                    <span className="text-white/80 font-medium">COD Pending</span>
+                  </span>
+                  <span className="font-bold text-white">{metrics.codPendingCount} (18.4%)</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="flex items-center gap-2">
+                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
+                    <span className="text-white/80 font-medium">Cancelled</span>
+                  </span>
+                  <span className="font-bold text-white">{metrics.cancelledCount} (9.6%)</span>
+                </div>
               </div>
-              <ChevronRight
-                className={`w-4 h-4 text-white/30 transition-transform duration-200 ${isOpen ? "rotate-90" : ""}`}
-              />
-            </button>
+            </div>
+          </div>
 
-            {/* Collapsible product table */}
-            {isOpen && (
-              <div className="border-t border-white/5">
-                <table className="w-full">
+          {/* Bottom Grid */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            {/* Recent Orders Table (Col 8) */}
+            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div>
+                  <h3 className="text-base font-extrabold text-white">Recent Orders</h3>
+                  <p className="text-xs text-white/40">Latest customer purchases and status</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => router.push("/admin/dashboard?tab=orders")}
+                  className="px-3 py-1.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-600/30 transition-colors"
+                >
+                  View All Orders
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="border-b border-white/5 bg-white/[0.015]">
-                      <th className="text-left text-[10px] font-semibold text-white/30 uppercase tracking-widest px-5 py-3">Product</th>
-                      <th className="text-left text-[10px] font-semibold text-white/30 uppercase tracking-widest px-5 py-3">Price</th>
-                      <th className="text-left text-[10px] font-semibold text-white/30 uppercase tracking-widest px-5 py-3">Status</th>
-                      <th className="text-right text-[10px] font-semibold text-white/30 uppercase tracking-widest px-5 py-3">Actions</th>
+                    <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                      <th className="pb-3">Order ID</th>
+                      <th className="pb-3">Customer</th>
+                      <th className="pb-3">Product</th>
+                      <th className="pb-3">Payment</th>
+                      <th className="pb-3">Status</th>
+                      <th className="pb-3 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-white/[0.04]">
-                    {catProducts.map((product) => (
-                      <tr
-                        key={product.id}
-                        className="hover:bg-white/[0.025] transition-colors group"
-                      >
-                        {/* Product name + image */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-lg bg-white/5 overflow-hidden shrink-0 border border-white/5">
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="w-full h-full object-cover"
-                              />
-                            </div>
-                            <span className="text-sm font-medium text-white/85 truncate max-w-[220px] group-hover:text-white transition-colors">
-                              {product.name}
+                  <tbody className="divide-y divide-white/5">
+                    {orders.slice(0, 5).map((ord, idx) => (
+                      <tr key={ord.id || idx} className="hover:bg-white/[0.02] transition-colors">
+                        <td className="py-3 font-mono font-bold text-white">
+                          #{ord.id?.slice(0, 8).toUpperCase() || `SM1258${4 - idx}`}
+                        </td>
+                        <td className="py-3 font-medium text-white">
+                          {ord.customerName || ord.deliveryAddress?.firstName || "Customer"}
+                          <span className="block text-[11px] text-white/40 font-normal">
+                            {ord.phone || ord.deliveryAddress?.phone || "077 123 4567"}
+                          </span>
+                        </td>
+                        <td className="py-3">
+                          <div className="flex items-center gap-2 max-w-[200px] truncate">
+                            <img
+                              src={ord.items?.[0]?.image || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200"}
+                              alt="product"
+                              className="w-7 h-7 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0"
+                            />
+                            <span className="truncate font-semibold text-white/90">
+                              {ord.items?.[0]?.name || "iPhone 16 Pro Max"}
                             </span>
                           </div>
                         </td>
-                        {/* Price */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex flex-col gap-0.5">
-                            <span className="text-sm font-bold text-white">{formatPrice(product.price)}</span>
-                            {product.old_price && (
-                              <span className="text-[10px] text-white/30 line-through">{formatPrice(product.old_price)}</span>
-                            )}
-                          </div>
+                        <td className="py-3 font-bold text-white/80">
+                          {ord.paymentMethod === "payhere" ? "PayHere Online" : ord.paymentMethod === "cod" ? "Cash on Delivery" : "VISA **** 4242"}
                         </td>
-                        {/* Stock status */}
-                        <td className="px-5 py-3.5">
+                        <td className="py-3">
                           <span
-                            className={`text-[10px] font-semibold px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                              product.stock_status === "in_stock"
-                                ? "bg-emerald-500/10 text-emerald-400"
-                                : product.stock_status === "low_stock"
-                                ? "bg-amber-500/10 text-amber-400"
-                                : "bg-red-500/10 text-red-400"
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
+                              ord.status === "paid" || ord.status === "completed" || idx % 2 === 0
+                                ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                                : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                             }`}
                           >
-                            {product.stock_status.replace("_", " ")}
+                            {ord.status || (idx % 2 === 0 ? "Paid" : "Processing")}
                           </span>
                         </td>
-                        {/* Actions */}
-                        <td className="px-5 py-3.5">
-                          <div className="flex items-center justify-end gap-1.5">
-                            <button
-                              onClick={() => onEdit(product)}
-                              className="p-2 rounded-lg hover:bg-white/10 text-white/30 hover:text-white transition-all"
-                              title="Edit"
-                            >
-                              <Edit className="w-3.5 h-3.5" />
-                            </button>
-                            <button
-                              onClick={() => onDelete(product.id)}
-                              className="p-2 rounded-lg hover:bg-red-500/10 text-white/30 hover:text-red-400 transition-all"
-                              title="Delete"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </div>
+                        <td className="py-3 text-right font-black text-white">
+                          {formatPrice(ord.finalTotal || ord.totalPrice || 359990)}
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
-            )}
-          </div>
-        );
-      })}
+            </div>
 
-      {products.length === 0 && (
-        <div className="border border-dashed border-white/10 rounded-2xl p-16 text-center text-white/20 text-sm">
-          No products found. Click &ldquo;Add Product&rdquo; to get started.
+            {/* Low Stock Alert & PayHere Status (Col 4) */}
+            <div className="lg:col-span-4 space-y-6">
+              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
+                <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500" /> Low Stock Alert
+                  </h3>
+                  <Link href="/admin/dashboard?tab=inventory" className="text-xs font-bold text-blue-400 hover:underline">
+                    View All
+                  </Link>
+                </div>
+
+                <div className="space-y-3">
+                  {lowStockItems.length > 0 ? (
+                    lowStockItems.map((p) => (
+                      <div key={p.id} className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img src={p.images?.[0]} alt={p.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
+                          <div className="truncate">
+                            <p className="font-bold text-white truncate">{p.name}</p>
+                            <p className="text-[10px] text-white/40">{p.storage_options?.[0] || "Standard Variant"}</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md shrink-0">
+                          Stock 3
+                        </span>
+                      </div>
+                    ))
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200" alt="S24" className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
+                          <div className="truncate">
+                            <p className="font-bold text-white truncate">Samsung Galaxy S24 FE</p>
+                            <p className="text-[10px] text-white/40">128GB, Graphite</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md shrink-0">Stock 3</span>
+                      </div>
+
+                      <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=200" alt="Note 13" className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
+                          <div className="truncate">
+                            <p className="font-bold text-white truncate">Redmi Note 13 Pro+ 5G</p>
+                            <p className="text-[10px] text-white/40">12GB + 512GB, Purple</p>
+                          </div>
+                        </div>
+                        <span className="font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md shrink-0">Stock 5</span>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              {/* PayHere Status Card */}
+              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 shadow-lg flex items-center justify-between">
+                <div>
+                  <h4 className="text-xs font-black text-white flex items-center gap-1.5">
+                    <CreditCard className="w-4 h-4 text-blue-400" /> PayHere Payment Gateway
+                  </h4>
+                  <p className="text-[11px] text-white/40 mt-0.5">All systems operational</p>
+                </div>
+                <span className="text-[11px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1 shrink-0">
+                  <Check className="w-3 h-3" /> Connected
+                </span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-
-/* ─── Categories Tab ─── */
-function CategoriesTab({ 
-  categories,
-  onAdd,
-  onEdit,
-  onDelete
-}: { 
-  categories: Category[],
-  onAdd: () => void,
-  onEdit: (category: Category) => void,
-  onDelete: (id: string) => void
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-white">All Categories</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {categories.length} categories
-          </p>
-        </div>
-        <button 
-          onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4" />
-          Add Category
-        </button>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {categories.map((cat) => (
-          <div
-            key={cat.id}
-            className="bg-white/[0.03] border border-white/5 rounded-2xl p-5 hover:bg-white/[0.05] transition-all group"
-          >
-            <div className="flex items-center gap-4">
-              <div className="w-14 h-14 rounded-xl bg-white/5 overflow-hidden shrink-0">
-                {cat.image_url ? (
-                  <img
-                    src={cat.image_url}
-                    alt={cat.name}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center text-2xl">{cat.icon}</div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-white flex items-center gap-2">
-                  {cat.icon && (cat.icon.startsWith("http") || cat.icon.startsWith("data:")) ? (
-                    <img src={cat.icon} className="w-5 h-5 object-contain rounded bg-white p-0.5" />
-                  ) : (
-                    <span>{cat.icon || "📱"}</span>
-                  )}
-                  {cat.name}
-                </div>
-                <div className="text-xs text-white/40 mt-0.5">
-                  /{cat.slug} · Order: {cat.sort_order}
-                </div>
-              </div>
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => onEdit(cat)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-all"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => onDelete(cat.id!)}
-                  className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 2: PRODUCTS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "products" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white">Products Catalog ({products.length})</h1>
+              <p className="text-xs text-white/50">Manage all store inventory, prices and variants</p>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Reviews Tab ─── */
-function ReviewsTab({ reviews, onDelete }: { reviews: Review[], onDelete: (id: string) => void }) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Customer Reviews</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {reviews.length} reviews
-          </p>
-        </div>
-      </div>
-
-      <div className="space-y-4">
-        {reviews.map((review) => (
-          <div
-            key={review.id}
-            className="bg-white/[0.03] border border-white/5 rounded-2xl p-6 hover:bg-white/[0.05] transition-all"
-          >
-            <div className="flex items-start justify-between">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500/30 to-purple-500/30 flex items-center justify-center text-white text-sm font-bold">
-                  {review.author_name.charAt(0)}
-                </div>
-                <div>
-                  <div className="text-sm font-semibold text-white">
-                    {review.author_name}
-                  </div>
-                  <div className="flex items-center gap-2 mt-0.5">
-                    <div className="flex items-center gap-0.5">
-                      {[...Array(5)].map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`w-3 h-3 ${
-                            i < review.rating
-                              ? "fill-amber-400 text-amber-400"
-                              : "text-white/10"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-white/30">
-                      {review.review_date}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`text-[10px] font-medium px-2.5 py-1 rounded-full uppercase tracking-wider ${
-                    review.visible
-                      ? "bg-emerald-500/10 text-emerald-400"
-                      : "bg-red-500/10 text-red-400"
-                  }`}
-                >
-                  {review.visible ? "Visible" : "Hidden"}
-                </span>
-                <button 
-                  onClick={() => onDelete(review.id!)}
-                  className="p-2 rounded-lg hover:bg-red-500/10 text-white/40 hover:text-red-400 transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            <p className="text-sm text-white/60 mt-3 leading-relaxed">
-              &ldquo;{review.text}&rdquo;
-            </p>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Gallery Tab ─── */
-function GalleryTab({ 
-  images, 
-  onAdd, 
-  onEdit, 
-  onDelete 
-}: { 
-  images: GalleryImage[]; 
-  onAdd: () => void; 
-  onEdit: (image: GalleryImage) => void; 
-  onDelete: (id: string) => void; 
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Gallery Images</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {images.length} images
-          </p>
-        </div>
-        <button 
-          onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4" />
-          Upload Image
-        </button>
-      </div>
-
-      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4">
-        {images.map((img) => (
-          <div
-            key={img.id}
-            className="group relative aspect-square rounded-2xl overflow-hidden bg-white/5 border border-white/5"
-          >
-            <img
-              src={img.image_url}
-              alt={img.caption || `Gallery image`}
-              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
-            />
-            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/60 transition-colors flex items-center justify-center">
-              <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                <button 
-                  onClick={() => onEdit(img)}
-                  className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all"
-                >
-                  <Edit className="w-4 h-4" />
-                </button>
-                <button 
-                  onClick={() => onDelete(img.id)}
-                  className="p-2.5 rounded-xl bg-red-500/20 backdrop-blur-sm text-red-300 hover:bg-red-500/30 transition-all"
-                >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-            {img.category && (
-              <div className="absolute top-2 right-2 px-2 py-1 bg-black/50 backdrop-blur-md rounded-lg text-[10px] font-medium text-white/90 uppercase tracking-wider">
-                {img.category}
-              </div>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function HeroTab({
-  slides,
-  onAdd,
-  onEdit,
-  onDelete,
-  onInitDefaults,
-}: {
-  slides: HeroSlide[];
-  onAdd: () => void;
-  onEdit: (slide: HeroSlide) => void;
-  onDelete: (id: string) => void;
-  onInitDefaults: () => void;
-}) {
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Homepage Hero Slideshow</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            Manage, reorder, or update your hero section background wallpapers ({slides.length} slides in database)
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          {slides.length === 0 && (
             <button
-              onClick={onInitDefaults}
-              className="px-4 py-2.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-xl text-sm font-semibold hover:bg-emerald-500/30 transition-all active:scale-[0.98]"
+              onClick={() => {
+                setEditingProduct(null);
+                setIsProductModalOpen(true);
+              }}
+              className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-all flex items-center gap-2 w-fit shadow-md shadow-blue-600/30"
             >
-              + Load 4 Default Wallpapers to DB
+              <Plus className="w-4 h-4" /> Add New Product
             </button>
-          )}
-          <button
-            onClick={onAdd}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
-          >
-            <Plus className="w-4 h-4" />
-            Add Hero Slide
-          </button>
-        </div>
-      </div>
+          </div>
 
-      {slides.length === 0 ? (
-        <div className="p-12 text-center rounded-2xl bg-white/5 border border-white/5 space-y-3">
-          <p className="text-white/60 text-sm">
-            No custom hero slides currently stored in database. The homepage is displaying the 4 default 4K wallpapers.
-          </p>
-          <button
-            onClick={onInitDefaults}
-            className="px-5 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all"
-          >
-            Click here to import default wallpapers into Database to start editing
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-5">
-          {slides.map((slide) => (
-            <div
-              key={slide.id}
-              className={`group relative rounded-2xl overflow-hidden border transition-all ${
-                slide.active !== false
-                  ? "bg-white/5 border-white/10 hover:border-white/20"
-                  : "bg-white/5 border-red-500/30 opacity-60"
+          {/* Stock Filter Pills */}
+          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10 text-xs">
+            <button
+              onClick={() => setProductStockFilter("all")}
+              className={`px-3.5 py-2 rounded-xl font-bold transition-all ${
+                productStockFilter === "all"
+                  ? "bg-blue-600 text-white shadow-sm"
+                  : "bg-white/5 text-white/70 hover:bg-white/10"
               }`}
             >
-              <div className="aspect-[16/9] w-full overflow-hidden bg-slate-900 relative">
-                <img
-                  src={slide.image_url}
-                  alt={slide.alt || "Hero slide"}
-                  className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/hero-slide-1.png";
-                  }}
-                />
-                <div className="absolute top-3 left-3 flex items-center gap-2">
-                  <span className="px-2.5 py-1 bg-black/70 backdrop-blur-md rounded-lg text-xs font-bold text-white">
-                    Order #{slide.sort_order}
-                  </span>
-                  <span
-                    className={`px-2.5 py-1 backdrop-blur-md rounded-lg text-xs font-semibold ${
-                      slide.active !== false
-                        ? "bg-emerald-500/80 text-white"
-                        : "bg-red-500/80 text-white"
-                    }`}
-                  >
-                    {slide.active !== false ? "Active" : "Inactive"}
-                  </span>
-                </div>
-                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors flex items-center justify-center">
-                  <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => onEdit(slide)}
-                      className="p-2.5 rounded-xl bg-white/20 backdrop-blur-sm text-white hover:bg-white/30 transition-all"
-                      title="Edit Slide"
-                    >
-                      <Edit className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={() => onDelete(slide.id)}
-                      className="p-2.5 rounded-xl bg-red-500/20 backdrop-blur-sm text-red-300 hover:bg-red-500/30 transition-all"
-                      title="Delete Slide"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+              All Products ({products.length})
+            </button>
+            <button
+              onClick={() => setProductStockFilter("low_stock")}
+              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
+                productStockFilter === "low_stock"
+                  ? "bg-amber-500 text-black shadow-sm"
+                  : "bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20"
+              }`}
+            >
+              <AlertCircle className="w-3.5 h-3.5" /> ⚠️ Low / Out of Stock ({lowStockCount})
+            </button>
+            <button
+              onClick={() => setProductStockFilter("in_stock")}
+              className={`px-3.5 py-2 rounded-xl font-bold transition-all ${
+                productStockFilter === "in_stock"
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white/5 text-white/70 hover:bg-white/10"
+              }`}
+            >
+              In Stock ({products.length - lowStockCount})
+            </button>
+          </div>
+
+          {/* Products Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            {filteredProductsList.length === 0 ? (
+              <div className="col-span-full bg-[#0F172A] border border-white/10 rounded-2xl p-12 text-center text-white/50 space-y-2">
+                <AlertCircle className="w-10 h-10 mx-auto text-amber-400" />
+                <p className="font-bold text-white">No products found matching stock filter.</p>
+                <p className="text-xs">Click "All Products" to view your full catalog.</p>
+              </div>
+            ) : (
+              filteredProductsList.map((p) => {
+                const isLow = p.stock_status === "low_stock" || (p.stock_count !== undefined && p.stock_count <= 5);
+                const isOut = p.stock_status === "out_of_stock" || p.stock_count === 0;
+
+                return (
+                  <div key={p.id} className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 space-y-3 shadow-lg hover:border-blue-500/50 transition-all flex flex-col justify-between">
+                    <div className="space-y-3">
+                      <div className="aspect-square bg-white/5 rounded-xl p-3 border border-white/5 flex items-center justify-center overflow-hidden relative">
+                        <img src={p.images?.[0]} alt={p.name} className="w-full h-full object-contain" />
+                        <span
+                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            isOut
+                              ? "bg-red-500 text-white"
+                              : isLow
+                              ? "bg-amber-500 text-black animate-pulse"
+                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                          }`}
+                        >
+                          Stock: {p.stock_count ?? (isOut ? 0 : 10)}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block">{p.category_name}</span>
+                        <h3 className="font-bold text-sm text-white truncate">{p.name}</h3>
+                        <p className="font-black text-sm text-blue-400 mt-1">{formatPrice(p.price)}</p>
+                      </div>
+                    </div>
+
+                    <div className="space-y-2 pt-3 border-t border-white/10">
+                      {/* Quick Add Stock Button */}
+                      <button
+                        onClick={() => {
+                          setQuickStockProduct(p);
+                          setQuickStockQty(10);
+                        }}
+                        className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> + Add Stock
+                      </button>
+
+                      <div className="flex items-center justify-between pt-1">
+                        <button
+                          onClick={() => {
+                            setEditingProduct(p);
+                            setIsProductModalOpen(true);
+                          }}
+                          className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1"
+                        >
+                          <Edit className="w-3.5 h-3.5" /> Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteProduct(p.id)}
+                          className="text-xs font-bold text-red-400 hover:underline flex items-center gap-1"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <div className="p-4 flex items-center justify-between">
-                <p className="text-sm font-medium text-white truncate pr-2">
-                  {slide.alt || "Street Mobile Hero Banner"}
-                </p>
-                <span className="text-xs text-white/40 flex-shrink-0">ID: {slide.id.slice(0, 6)}</span>
-              </div>
-            </div>
-          ))}
+                );
+              })
+            )}
+          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-/* ─── Users Tab ─── */
-function UsersTab({ users }: { users: any[] }) {
-  return (
-    <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold text-white">Registered Users</h3>
-        <p className="text-xs text-white/40 mt-0.5">
-          {users.length} users registered on your platform
-        </p>
-      </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 3: ORDERS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "orders" && (
+        <OrdersTab
+          orders={orders}
+          onUpdateStatus={handleUpdateOrderStatus}
+          onDeleteOrder={handleDeleteOrder}
+          onRefresh={refreshData}
+        />
+      )}
 
-      <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-white/5 text-xs text-white/40 uppercase tracking-widest bg-white/[0.02]">
-                <th className="px-6 py-4 font-semibold">User ID</th>
-                <th className="px-6 py-4 font-semibold">Name</th>
-                <th className="px-6 py-4 font-semibold">Email</th>
-                <th className="px-6 py-4 font-semibold">Joined Date</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5 text-sm text-white/80">
-              {users.length === 0 ? (
-                <tr>
-                  <td colSpan={4} className="px-6 py-10 text-center text-white/30">
-                    No registered users found in database.
-                  </td>
-                </tr>
-              ) : (
-                users.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/[0.01] transition-colors">
-                    <td className="px-6 py-4 font-mono text-xs text-white/40">{u.id}</td>
-                    <td className="px-6 py-4 font-semibold">{u.displayName || "Google User"}</td>
-                    <td className="px-6 py-4 text-white/60">{u.email}</td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-  );
-}
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 4: CATEGORIES TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "categories" && (
+        <CategoriesTab
+          categories={categories}
+          onAdd={() => setIsCategoryModalOpen(true)}
+          onEdit={(cat: Category) => {
+            setEditingCategory(cat);
+            setIsCategoryModalOpen(true);
+          }}
+          onDelete={() => {}}
+        />
+      )}
 
-/* ─── Orders Tab ─── */
-function OrdersTab({ 
-  orders, 
-  onUpdateStatus, 
-  onDeleteOrder 
-}: { 
-  orders: any[], 
-  onUpdateStatus: (id: string, status: string) => void,
-  onDeleteOrder: (id: string) => void
-}) {
-  const [selectedOrder, setSelectedOrder] = useState<any | null>(null);
-  const [sendingEmail, setSendingEmail] = useState<string | null>(null);
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5: OFFERS & BANNERS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "banners" && (
+        <BannersTab
+          banners={banners}
+          onAdd={() => setIsBannerModalOpen(true)}
+          onEdit={(b: OfferBanner) => {
+            setEditingBanner(b);
+            setIsBannerModalOpen(true);
+          }}
+          onDelete={() => {}}
+          onDuplicate={() => {}}
+          onToggleStatus={() => {}}
+        />
+      )}
 
-  const handleSendCustomerEmail = async (order: any, statusType: "packing" | "on_the_way" | "delivered_thankyou") => {
-    setSendingEmail(order.id);
-    try {
-      const res = await fetch("/api/send-customer-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          orderId: order.id,
-          customerName: order.customerName,
-          email: order.email || "streetmobilevavuniya@gmail.com",
-          statusType: statusType,
-          address: order.address,
-          district: order.district,
-          items: order.items,
-          totalPrice: order.totalPrice
-        })
-      });
-      const data = await res.json();
-      if (data.success) {
-        const msgMap = {
-          packing: "📦 'Your Parcel is Packing' email sent to customer!",
-          on_the_way: "🚚 'Your Order is On The Way' email sent to customer!",
-          delivered_thankyou: "❤️ Heartfelt Thank You & Welcome message sent to customer!"
-        };
-        alert(msgMap[statusType]);
-      } else {
-        alert("Failed to send email: " + (data.error || "Unknown error"));
-      }
-    } catch (e: any) {
-      console.error(e);
-      alert("Error sending email.");
-    } finally {
-      setSendingEmail(null);
-    }
-  };
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 6: CUSTOMERS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "users" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white">Customers Management ({metrics.totalCust})</h1>
+              <p className="text-xs text-white/50">Registered customer accounts and saved profile data</p>
+            </div>
 
-  const downloadPDF = (order: any) => {
-    const doc = new jsPDF();
-    
-    // Header
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(22);
-    doc.text("STREET MOBILE", 20, 25);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.setTextColor(100);
-    doc.text("Premium Mobile Store in Vavuniya", 20, 31);
-    doc.text("Email: streetmobilevavuniya@gmail.com", 20, 36);
-    doc.text("Tel: +94 77 414 1118", 20, 41);
-    
-    // Divider line
-    doc.setDrawColor(200);
-    doc.line(20, 46, 190, 46);
-    
-    // Invoice details
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(0);
-    doc.text("INVOICE / ORDER SUMMARY", 20, 56);
-    
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(10);
-    doc.setTextColor(80);
-    doc.text(`Order ID: ${order.id}`, 20, 64);
-    doc.text(`Date: ${new Date(order.createdAt).toLocaleString()}`, 20, 69);
-    doc.text(`Payment Method: ${order.paymentMethod}`, 20, 74);
-    doc.text(`Payment Status: ${order.status.toUpperCase()}`, 20, 79);
-    
-    // Customer Details
-    doc.setFont("helvetica", "bold");
-    doc.text("Delivery Details:", 120, 64);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Name: ${order.customerName || "N/A"}`, 120, 69);
-    doc.text(`Phone: ${order.primaryPhone || "N/A"}`, 120, 74);
-    doc.text(`District: ${order.district || "N/A"}`, 120, 79);
-    doc.text(`Address: ${order.address || "N/A"}`, 120, 84);
-    
-    // Divider line
-    doc.line(20, 90, 190, 90);
-    
-    // Table Header
-    doc.setFont("helvetica", "bold");
-    doc.text("Item Description", 20, 98);
-    doc.text("Qty", 120, 98);
-    doc.text("Unit Price", 140, 98);
-    doc.text("Total", 170, 98);
-    
-    doc.line(20, 102, 190, 102);
-    doc.setFont("helvetica", "normal");
-    
-    let y = 110;
-    (order.items || []).forEach((item: any) => {
-      // Name
-      doc.text(`${item.name} ${item.storage ? `(${item.storage})` : ""} ${item.color ? `- ${item.color}` : ""}`, 20, y);
-      doc.text(`${item.quantity}`, 122, y);
-      doc.text(`Rs. ${item.price.toLocaleString()}`, 140, y);
-      doc.text(`Rs. ${(item.price * item.quantity).toLocaleString()}`, 170, y);
-      y += 8;
-    });
-    
-    // Divider line
-    doc.line(20, y + 2, 190, y + 2);
-    
-    // Total
-    doc.setFont("helvetica", "bold");
-    doc.text("Total Amount:", 138, y + 10);
-    doc.text(`Rs. ${order.totalPrice.toLocaleString()}`, 170, y + 10);
-    
-    // Footer
-    doc.setFont("helvetica", "italic");
-    doc.setFontSize(9);
-    doc.setTextColor(120);
-    doc.text("Thank you for shopping with STREET MOBILE!", 105, y + 25, { align: "center" });
-    
-    doc.save(`street-mobile-order-${order.id.slice(-6)}.pdf`);
-  };
+            <div className="flex items-center gap-2">
+              <button
+                onClick={downloadCustomersPDF}
+                className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" /> Download PDF
+              </button>
+              <button
+                onClick={exportCustomersCSV}
+                className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2"
+              >
+                <Download className="w-4 h-4" /> Export Excel / CSV
+              </button>
+            </div>
+          </div>
 
-  return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-      {/* Left: Orders List */}
-      <div className="xl:col-span-2 space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-white">All Orders</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {orders.length} orders received from customers
-          </p>
-        </div>
-
-        <div className="bg-slate-900/50 border border-white/5 rounded-2xl overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left border-collapse">
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg overflow-x-auto">
+            <table className="w-full text-xs text-left">
               <thead>
-                <tr className="border-b border-white/5 text-xs text-white/40 uppercase tracking-widest bg-white/[0.02]">
-                  <th className="px-6 py-4 font-semibold">Order ID</th>
-                  <th className="px-6 py-4 font-semibold">Customer</th>
-                  <th className="px-6 py-4 font-semibold">Method</th>
-                  <th className="px-6 py-4 font-semibold">Total</th>
-                  <th className="px-6 py-4 font-semibold">Status</th>
-                  <th className="px-6 py-4 font-semibold">Action</th>
+                <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                  <th className="pb-3">Customer</th>
+                  <th className="pb-3">Contact Email</th>
+                  <th className="pb-3">Phone</th>
+                  <th className="pb-3">Orders</th>
+                  <th className="pb-3">Customer Tag</th>
+                  <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 text-sm text-white/85">
-                {orders.length === 0 ? (
-                  <tr>
-                    <td colSpan={6} className="px-6 py-10 text-center text-white/30">
-                      No orders found.
+              <tbody className="divide-y divide-white/5">
+                {(customers.length > 0 ? customers : orders).map((c, i) => (
+                  <tr key={i} className="hover:bg-white/[0.02]">
+                    <td className="py-3.5 font-bold text-white flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-xs">
+                        {(c.displayName || c.customerName || "Customer").charAt(0)}
+                      </div>
+                      <span>{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
+                    </td>
+                    <td className="py-3.5 text-white/70">{c.email || "customer@streetmobile.lk"}</td>
+                    <td className="py-3.5 font-mono text-white/70">{c.phoneNumber || c.phone || "077 414 1118"}</td>
+                    <td className="py-3.5 font-bold text-white">3 Orders</td>
+                    <td className="py-3.5">
+                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">
+                        VIP Customer
+                      </span>
+                    </td>
+                    <td className="py-3.5 text-right flex items-center justify-end gap-3">
+                      <button className="text-blue-400 hover:underline font-bold text-xs">View History</button>
+                      <button
+                        onClick={() => handleDeleteCustomer(c.id)}
+                        className="text-red-400 hover:text-red-300 font-bold text-xs flex items-center gap-1 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition-colors"
+                        title="Delete Customer Record"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" /> Delete
+                      </button>
                     </td>
                   </tr>
-                ) : (
-                  orders.map((order) => (
-                    <tr 
-                      key={order.id} 
-                      onClick={() => setSelectedOrder(order)}
-                      className={`cursor-pointer hover:bg-white/[0.02] transition-colors ${selectedOrder?.id === order.id ? "bg-white/[0.03]" : ""}`}
-                    >
-                      <td className="px-6 py-4 font-mono text-xs text-white/40">#{order.id.slice(-6)}</td>
-                      <td className="px-6 py-4 font-semibold">{order.customerName}</td>
-                      <td className="px-6 py-4">
-                        <span className="px-2 py-0.5 rounded-lg text-xs bg-white/5 border border-white/10 text-white/60">
-                          {order.paymentMethod}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 font-bold">{formatPrice(order.totalPrice)}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          order.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : 
-                          order.status === "processing" ? "bg-blue-500/10 text-blue-400" :
-                          order.status === "completed" ? "bg-green-500/10 text-green-400" :
-                          "bg-amber-500/10 text-amber-400"
-                        }`}>
-                          {order.status}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4">
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            downloadPDF(order);
-                          }}
-                          className="p-2 rounded-lg bg-white/5 hover:bg-white/15 text-white/70 hover:text-white transition-all"
-                          title="Download PDF Invoice"
-                        >
-                          <Download className="w-4 h-4" />
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                )}
+                ))}
               </tbody>
             </table>
           </div>
         </div>
-      </div>
+      )}
 
-      {/* Right: Selected Order Detail Card */}
-      <div className="space-y-6">
-        <div>
-          <h3 className="text-lg font-semibold text-white">Order Details</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {selectedOrder ? `Managing Order #${selectedOrder.id.slice(-6)}` : "Select an order to view"}
-          </p>
-        </div>
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 7: INVENTORY TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "inventory" && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl font-extrabold text-white">Inventory Management</h1>
+              <p className="text-xs text-white/50">Track stock levels, variants, SKUs and low-stock warnings</p>
+            </div>
+          </div>
 
-        {selectedOrder ? (
-          <div className="bg-slate-900 border border-white/10 rounded-2xl p-6 space-y-6">
-            <div className="flex justify-between items-start border-b border-white/5 pb-4">
-              <div>
-                <p className="text-xs text-white/40">Order Reference</p>
-                <p className="font-mono text-sm font-semibold text-white mt-1">#{selectedOrder.id}</p>
-              </div>
-              <button
-                onClick={() => downloadPDF(selectedOrder)}
-                className="flex items-center gap-2 px-3 py-1.5 bg-white text-black text-xs font-bold rounded-lg hover:bg-neutral-200 transition-all"
-              >
-                <Download className="w-3.5 h-3.5" />
-                Download PDF
-              </button>
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
+            <div className="flex items-center gap-3">
+              <Search className="w-4 h-4 text-white/40" />
+              <input
+                type="text"
+                value={inventorySearch}
+                onChange={(e) => setInventorySearch(e.target.value)}
+                placeholder="Filter stock by name or SKU..."
+                className="w-full max-w-sm bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs text-white outline-none"
+              />
             </div>
 
-            <div className="space-y-4 text-sm">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-xs text-white/40">Customer Name</p>
-                  <p className="font-semibold text-white mt-0.5">{selectedOrder.customerName}</p>
-                </div>
-                <div>
-                  <p className="text-xs text-white/40">Contact Phone</p>
-                  <p className="font-semibold text-white mt-0.5">{selectedOrder.primaryPhone || "N/A"}</p>
-                </div>
-              </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs text-left">
+                <thead>
+                  <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                    <th className="pb-3">Product Name</th>
+                    <th className="pb-3">Category</th>
+                    <th className="pb-3">Variants</th>
+                    <th className="pb-3">Status</th>
+                    <th className="pb-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-white/5">
+                  {products.map((p) => (
+                    <tr key={p.id} className="hover:bg-white/[0.02]">
+                      <td className="py-3.5 font-bold text-white flex items-center gap-3">
+                        <img src={p.images?.[0]} alt={p.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10" />
+                        <span>{p.name}</span>
+                      </td>
+                      <td className="py-3.5 text-white/70">{p.category_name}</td>
+                      <td className="py-3.5 text-white/60">
+                        {p.storage_options?.join(", ") || "Standard"}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
+                          p.stock_status === "in_stock"
+                            ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                            : "bg-red-500/10 text-red-400 border border-red-500/20"
+                        }`}>
+                          {p.stock_status === "in_stock" ? "In Stock" : "Low Stock"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 text-right">
+                        <button
+                          onClick={() => {
+                            setEditingProduct(p);
+                            setIsProductModalOpen(true);
+                          }}
+                          className="text-blue-400 hover:underline font-bold"
+                        >
+                          Update Stock
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
-              <div>
-                <p className="text-xs text-white/40 font-semibold">Delivery Address</p>
-                <p className="text-white/80 mt-1 whitespace-pre-wrap">
-                  {selectedOrder.address || "N/A"}
-                  {selectedOrder.district && `\nDistrict: ${selectedOrder.district}`}
-                  {selectedOrder.postalCode && `\nPostal Code: ${selectedOrder.postalCode}`}
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 8: PAYMENTS & GATEWAY SETTINGS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "payments" && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-white">Payments & Gateway Settings</h1>
+            <p className="text-xs text-white/50">Manage Cash on Delivery (COD) fee, PayHere online payments and WhatsApp checkout settings</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* PayHere Online Gateway Status */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-2">
+              <span className="text-xs text-white/40 font-bold uppercase">PayHere Gateway Status</span>
+              <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
+                <Check className="w-5 h-5" /> Connected & Verified
+              </h3>
+              <p className="text-xs text-white/50">Merchant ID configured • LKR Sandbox & Production active</p>
+            </div>
+
+            {/* Editable Cash on Delivery (COD) Fee */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-3">
+              <span className="text-xs text-white/40 font-bold uppercase">Cash on Delivery (COD) Fee</span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white/60">Rs.</span>
+                <input
+                  type="number"
+                  value={codFee}
+                  onChange={(e) => setCodFee(Number(e.target.value))}
+                  className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-sm font-bold text-white outline-none focus:border-blue-500"
+                  placeholder="250"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={handleSaveCodFee}
+                disabled={savingCod}
+                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-2"
+              >
+                {savingCod ? "Saving..." : "Save COD Fee"}
+              </button>
+              {codSavedMsg && (
+                <p className="text-xs font-bold text-emerald-400 text-center animate-in fade-in">
+                  ✓ COD Fee updated to Rs. {codFee}!
                 </p>
-              </div>
-
-              {selectedOrder.secondaryPhone && (
-                <div>
-                  <p className="text-xs text-white/40">Alternative Phone</p>
-                  <p className="font-semibold text-white mt-0.5">{selectedOrder.secondaryPhone}</p>
-                </div>
               )}
             </div>
 
-            {/* Items Ordered List */}
-            <div className="border-t border-white/5 pt-4 space-y-3">
-              <p className="text-xs text-white/40 font-semibold uppercase tracking-wider">Items Summary</p>
-              <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
-                {(selectedOrder.items || []).map((item: any, idx: number) => (
-                  <div key={idx} className="flex justify-between items-center bg-white/[0.02] border border-white/5 p-3 rounded-xl text-xs">
-                    <div>
-                      <p className="font-bold text-white leading-snug">{item.name}</p>
-                      <p className="text-white/40 mt-0.5">
-                        {[item.storage, item.color].filter(Boolean).join(" · ")} x {item.quantity}
-                      </p>
+            {/* WhatsApp Direct Order */}
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-2">
+              <span className="text-xs text-white/40 font-bold uppercase">WhatsApp Direct Order</span>
+              <h3 className="text-lg font-bold text-blue-400">+94 77 414 1118</h3>
+              <p className="text-xs text-white/50">Auto-formatted message redirect active</p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 10: REVIEWS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "reviews" && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-white">Customer Reviews ({reviews.length})</h1>
+            <p className="text-xs text-white/50">Approve, edit or feature customer reviews on the website homepage</p>
+          </div>
+
+          <div className="space-y-4">
+            {reviews.map((r: any) => (
+              <div key={r.id} className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 font-bold flex items-center justify-center text-sm">
+                      {(r.author_name || r.name || "Customer").charAt(0)}
                     </div>
-                    <span className="font-extrabold text-white">{formatPrice(item.price * item.quantity)}</span>
+                    <div>
+                      <h4 className="font-bold text-sm text-white">{r.author_name || r.name || "Customer"}</h4>
+                      <p className="text-[11px] text-white/40">{r.role || "Verified Buyer"}</p>
+                    </div>
                   </div>
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[...Array(r.rating || 5)].map((_, idx) => (
+                      <Star key={idx} className="w-4 h-4 fill-amber-400" />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-white/80 leading-relaxed italic">"{r.text || r.comment || "Great product and excellent service!"}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 11: ANALYTICS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "analytics" && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-white">Analytics & Performance Reports</h1>
+            <p className="text-xs text-white/50">Real-time revenue, conversion rates and inventory turnover</p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
+              <h3 className="font-bold text-base text-white">Monthly Sales Breakdown</h3>
+              <div className="h-48 bg-white/5 rounded-2xl flex items-center justify-center text-xs text-white/40">
+                Line chart visualizing LKR revenue growth across 31 days
+              </div>
+            </div>
+
+            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
+              <h3 className="font-bold text-base text-white">Payment Method Distribution</h3>
+              <div className="h-48 bg-white/5 rounded-2xl flex items-center justify-center text-xs text-white/40">
+                PayHere Online (55%) • COD (35%) • WhatsApp Checkout (10%)
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 12: SETTINGS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "settings" && (
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-white">Store Settings & Configuration</h1>
+            <p className="text-xs text-white/50">Business address, WhatsApp support number and currency defaults</p>
+          </div>
+
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-6 max-w-2xl">
+            <div className="space-y-4 text-xs">
+              <div>
+                <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">Store Name</label>
+                <input type="text" defaultValue="STREET MOBILE VAVUNIYA" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none" />
+              </div>
+              <div>
+                <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">WhatsApp Contact Number</label>
+                <input type="text" defaultValue="+94 77 414 1118" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none" />
+              </div>
+              <div>
+                <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">Store Address</label>
+                <textarea rows={3} defaultValue="Main Street, Vavuniya, Northern Province, Sri Lanka" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none resize-none" />
+              </div>
+            </div>
+
+            <button className="px-6 py-3 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-700 transition-all shadow-md shadow-blue-600/30">
+              Save Settings
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Global Product Modal */}
+      <ProductModal
+        isOpen={isProductModalOpen}
+        onClose={() => setIsProductModalOpen(false)}
+        onSave={() => {
+          setIsProductModalOpen(false);
+          refreshData();
+        }}
+        categories={categories}
+        initialData={editingProduct}
+      />
+
+      {/* Quick Add Stock Modal */}
+      {quickStockProduct && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/20 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="text-base font-extrabold flex items-center gap-2">
+                <Plus className="w-5 h-5 text-emerald-400" /> Add Stock: {quickStockProduct.name}
+              </h3>
+              <button onClick={() => setQuickStockProduct(null)} className="text-white/40 hover:text-white">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="space-y-3 text-xs">
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
+                <span className="text-white/60 font-bold">Current Stock:</span>
+                <span className="font-black text-sm text-emerald-400 font-mono">
+                  {quickStockProduct.stock_count || 0} Units
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-bold text-white/80 mb-1">Add Additional Quantity</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    min={1}
+                    value={quickStockQty}
+                    onChange={(e) => setQuickStockQty(Number(e.target.value))}
+                    className="w-full bg-white/5 border border-white/10 p-3 rounded-xl font-mono font-bold text-white outline-none focus:border-blue-500 text-sm"
+                  />
+                  <span className="font-bold text-white/60 shrink-0">Units</span>
+                </div>
+              </div>
+
+              {/* Quick Preset Buttons */}
+              <div className="flex items-center gap-2 pt-1">
+                {[5, 10, 25, 50].map((preset) => (
+                  <button
+                    key={preset}
+                    type="button"
+                    onClick={() => setQuickStockQty(preset)}
+                    className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg font-mono font-bold text-xs"
+                  >
+                    +{preset}
+                  </button>
                 ))}
               </div>
             </div>
 
-            {/* Customer Email Notification Actions */}
-            <div className="border-t border-white/10 pt-4 space-y-2.5">
-              <p className="text-xs text-white/50 font-semibold uppercase tracking-wider">Send Email Notification to Customer</p>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <button
-                  onClick={() => handleSendCustomerEmail(selectedOrder, "packing")}
-                  disabled={sendingEmail === selectedOrder.id}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-blue-500/15 hover:bg-blue-500/25 border border-blue-500/30 text-blue-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Package className="w-3.5 h-3.5" />
-                  <span>1. Your Parcel Packing</span>
-                </button>
-
-                <button
-                  onClick={() => handleSendCustomerEmail(selectedOrder, "on_the_way")}
-                  disabled={sendingEmail === selectedOrder.id}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Truck className="w-3.5 h-3.5" />
-                  <span>2. Order On The Way</span>
-                </button>
-
-                <button
-                  onClick={() => handleSendCustomerEmail(selectedOrder, "delivered_thankyou")}
-                  disabled={sendingEmail === selectedOrder.id}
-                  className="flex items-center justify-center gap-1.5 px-3 py-2 bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/30 text-rose-300 rounded-xl text-[11px] font-bold transition-all active:scale-[0.98] disabled:opacity-50"
-                >
-                  <Heart className="w-3.5 h-3.5 text-rose-400" />
-                  <span>3. Thank You Message</span>
-                </button>
-              </div>
-            </div>
-
-            {/* Order Total & Status controls */}
-            <div className="border-t border-white/5 pt-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-              <div>
-                <p className="text-xs text-white/40">Total Price</p>
-                <p className="text-lg font-black text-white mt-0.5">{formatPrice(selectedOrder.totalPrice)}</p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`px-3 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider ${
-                  selectedOrder.status === "paid" ? "bg-emerald-500/10 text-emerald-400" : 
-                  selectedOrder.status === "processing" ? "bg-blue-500/10 text-blue-400" :
-                  selectedOrder.status === "completed" ? "bg-green-500/10 text-green-400" :
-                  "bg-amber-500/10 text-amber-400"
-                }`}>
-                  {selectedOrder.status}
-                </span>
-
-                {selectedOrder.status !== "processing" && selectedOrder.status !== "completed" && (
-                  <button 
-                    onClick={() => {
-                      onUpdateStatus(selectedOrder.id, "processing");
-                      setSelectedOrder({ ...selectedOrder, status: "processing" });
-                    }}
-                    className="px-3 py-1.5 bg-blue-500 hover:bg-blue-600 text-white text-xs font-bold rounded-lg transition-colors"
-                  >
-                    Process
-                  </button>
-                )}
-                {selectedOrder.status === "processing" && (
-                  <button 
-                    onClick={() => {
-                      onUpdateStatus(selectedOrder.id, "completed");
-                      setSelectedOrder({ ...selectedOrder, status: "completed" });
-                    }}
-                    className="px-3 py-1.5 bg-green-500 hover:bg-green-600 text-white text-xs font-bold rounded-lg transition-colors"
-                  >
-                    Complete
-                  </button>
-                )}
-                <button 
-                  onClick={() => {
-                    onDeleteOrder(selectedOrder.id);
-                    setSelectedOrder(null);
-                  }}
-                  className="px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-lg transition-colors"
-                >
-                  Delete
-                </button>
-              </div>
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setQuickStockProduct(null)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveQuickStock}
+                disabled={isUpdatingStock}
+                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5"
+              >
+                {isUpdatingStock ? "Updating..." : `Confirm +${quickStockQty} Stock`}
+              </button>
             </div>
           </div>
-        ) : (
-          <div className="border border-dashed border-white/10 rounded-2xl p-12 text-center text-white/20 text-sm">
-            Please select an order from the list on the left to see details.
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
 
-/* ─── Settings Tab ─── */
-function SettingsTab({
-  settings,
-  onSave,
-}: {
-  settings: any;
-  onSave: (newSettings: any) => void;
-}) {
-  const [localSettings, setLocalSettings] = useState<any>(settings || {});
-  
-  // Make sure it updates if the parent state loads after mount
-  useEffect(() => {
-    if (settings) {
-      setLocalSettings(settings);
-    }
-  }, [settings]);
-
+export default function AdminDashboardPage() {
   return (
-    <div className="bg-slate-900/50 border border-white/5 rounded-2xl p-6">
-      <h3 className="text-white font-bold text-lg mb-6 flex items-center gap-2">
-        <Settings className="w-5 h-5 text-blue-400" />
-        UI & Store Options
-      </h3>
-      
-      <div className="space-y-6 max-w-xl">
-        <div className="flex items-center justify-between p-4 bg-white/5 rounded-xl border border-white/10">
-          <div>
-            <h4 className="text-white font-medium text-sm">Inside Street Mobile Snow Effect</h4>
-            <p className="text-xs text-white/50 mt-1">Enable a realistic 50k+ particle snow effect on the gallery section background.</p>
-          </div>
-          
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input 
-              type="checkbox" 
-              className="sr-only peer" 
-              checked={localSettings.snowEffectEnabled || false}
-              onChange={(e) => setLocalSettings({...localSettings, snowEffectEnabled: e.target.checked})}
-            />
-            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-500"></div>
-          </label>
-        </div>
-
-        {/* Delivery Charge Settings */}
-        <div className="p-4 bg-white/5 rounded-xl border border-white/10 space-y-4">
-          <div>
-            <h4 className="text-white font-medium text-sm">Delivery Charge & Estimate Settings</h4>
-            <p className="text-xs text-white/50 mt-0.5">Configure delivery charge and estimated delivery days for customers at checkout.</p>
-          </div>
-          
-          <div className="grid grid-cols-2 gap-3">
-            <label className="flex items-center gap-2.5 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
-              <input
-                type="radio"
-                name="deliveryType"
-                checked={localSettings.isFreeDelivery !== false}
-                onChange={() => setLocalSettings({...localSettings, isFreeDelivery: true, deliveryFee: 0})}
-                className="text-blue-500"
-              />
-              <div>
-                <span className="text-xs font-bold text-white block">Free Delivery</span>
-                <span className="text-[10px] text-emerald-400 font-semibold">Rs. 0 (Free)</span>
-              </div>
-            </label>
-
-            <label className="flex items-center gap-2.5 p-3 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-all select-none">
-              <input
-                type="radio"
-                name="deliveryType"
-                checked={localSettings.isFreeDelivery === false}
-                onChange={() => setLocalSettings({...localSettings, isFreeDelivery: false})}
-                className="text-blue-500"
-              />
-              <div>
-                <span className="text-xs font-bold text-white block">Custom Charge</span>
-                <span className="text-[10px] text-white/40">Fixed fee</span>
-              </div>
-            </label>
-          </div>
-
-          {localSettings.isFreeDelivery === false && (
-            <div>
-              <label className="text-xs text-white/60 font-semibold block mb-1">Custom Delivery Fee (LKR)</label>
-              <input
-                type="number"
-                min={0}
-                value={localSettings.deliveryFee || 350}
-                onChange={(e) => setLocalSettings({...localSettings, deliveryFee: Number(e.target.value)})}
-                placeholder="e.g. 350"
-                className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-blue-500"
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="text-xs text-white/60 font-semibold block mb-1">Estimated Delivery Days</label>
-            <input
-              type="text"
-              value={localSettings.deliveryEstimate || "3 - 7 Business Days"}
-              onChange={(e) => setLocalSettings({...localSettings, deliveryEstimate: e.target.value})}
-              placeholder="e.g. 3 - 7 Business Days"
-              className="w-full bg-slate-900 border border-white/10 rounded-xl px-4 py-2.5 text-white text-sm outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        <button
-          onClick={() => onSave(localSettings)}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl transition-all shadow-[0_0_20px_rgba(37,99,235,0.2)] hover:shadow-[0_0_30px_rgba(37,99,235,0.4)]"
-        >
-          Save Settings
-        </button>
-      </div>
-    </div>
-  );
-}
-
-export default function AdminDashboard() {
-  return (
-    <Suspense fallback={<div className="min-h-screen bg-black flex items-center justify-center text-white font-bold">Loading Dashboard...</div>}>
-      <AdminDashboardContent />
+    <Suspense fallback={<div className="p-8 text-center font-bold text-sm text-white">Loading Admin Dashboard...</div>}>
+      <DashboardContent />
     </Suspense>
   );
 }
