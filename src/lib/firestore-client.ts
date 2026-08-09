@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
 import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner } from "./types";
-import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, siteSettings } from "./data";
+import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, fallbackOfferBanners, siteSettings } from "./data";
 import { cache } from "react";
 
 export const getProductBanners = cache(async (): Promise<ProductBanner[]> => {
@@ -67,7 +67,10 @@ export const getOfferBanners = cache(async (placement?: string): Promise<OfferBa
   try {
     const q = query(collection(db, "offer_banners"));
     const snapshot = await getDocs(q);
-    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OfferBanner));
+    let docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OfferBanner));
+    if (docs.length === 0) {
+      docs = fallbackOfferBanners;
+    }
     const now = new Date();
     
     return docs.filter(b => {
@@ -81,8 +84,8 @@ export const getOfferBanners = cache(async (placement?: string): Promise<OfferBa
       return true;
     }).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   } catch (e) {
-    console.warn("Offline/Error fetching offer banners:", e);
-    return [];
+    console.warn("Offline/Error fetching offer banners, returning fallbacks:", e);
+    return placement ? fallbackOfferBanners.filter(b => b.placement === placement) : fallbackOfferBanners;
   }
 });
 

@@ -43,7 +43,8 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner } from "@/lib/types";
+import { Product, Category, Review, OfferBanner, BannerStatus } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -153,7 +154,7 @@ function DashboardContent() {
       // Categories
       const catSnap = await getDocs(collection(db, "categories"));
       const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
-      setCategories(catList);
+      setCategories(catList.length > 0 ? catList : fallbackCategories);
 
       // Orders
       const ordSnap = await getDocs(collection(db, "orders"));
@@ -169,7 +170,7 @@ function DashboardContent() {
       // Banners
       const banSnap = await getDocs(collection(db, "offer_banners"));
       const banList = banSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OfferBanner));
-      setBanners(banList);
+      setBanners(banList.length > 0 ? banList : fallbackOfferBanners);
 
       // Users / Customers
       const userSnap = await getDocs(collection(db, "users"));
@@ -357,6 +358,75 @@ function DashboardContent() {
       console.error("Error deleting customer:", e);
       alert("Failed to delete customer");
     }
+  };
+
+  const handleDeleteCategory = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+    try {
+      if (id && !id.startsWith("default-")) {
+        await deleteDoc(doc(db, "categories", id));
+      }
+    } catch (e) {
+      console.error("Error deleting category:", e);
+    }
+    setCategories((prev) => prev.filter((c) => c.id !== id));
+  };
+
+  const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
+    try {
+      if (editingBanner && editingBanner.id && !editingBanner.id.startsWith("default-")) {
+        await updateDoc(doc(db, "offer_banners", editingBanner.id), bannerData);
+        setBanners((prev) => prev.map((b) => (b.id === editingBanner.id ? ({ ...b, ...bannerData } as OfferBanner) : b)));
+      } else {
+        const docRef = await addDoc(collection(db, "offer_banners"), bannerData);
+        setBanners((prev) => [...prev, { ...bannerData, id: docRef.id } as OfferBanner]);
+      }
+      setIsBannerModalOpen(false);
+      setEditingBanner(null);
+      refreshData();
+    } catch (e) {
+      console.error("Error saving offer banner:", e);
+      alert("Failed to save offer banner");
+    }
+  };
+
+  const handleDeleteBanner = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this offer banner?")) return;
+    try {
+      if (id && !id.startsWith("default-")) {
+        await deleteDoc(doc(db, "offer_banners", id));
+      }
+    } catch (e) {
+      console.error("Error deleting banner:", e);
+    }
+    setBanners((prev) => prev.filter((b) => b.id !== id));
+  };
+
+  const handleDuplicateBanner = async (banner: OfferBanner) => {
+    try {
+      const duplicatedData = {
+        ...banner,
+        internalName: `${banner.internalName} (Copy)`,
+        headline: `${banner.headline}`,
+        created_at: new Date().toISOString(),
+      };
+      delete (duplicatedData as any).id;
+      const docRef = await addDoc(collection(db, "offer_banners"), duplicatedData);
+      setBanners((prev) => [...prev, { ...duplicatedData, id: docRef.id } as OfferBanner]);
+    } catch (e) {
+      console.error("Error duplicating banner:", e);
+    }
+  };
+
+  const handleToggleBannerStatus = async (id: string, newStatus: BannerStatus) => {
+    try {
+      if (id && !id.startsWith("default-")) {
+        await updateDoc(doc(db, "offer_banners", id), { status: newStatus });
+      }
+    } catch (e) {
+      console.error("Error toggling banner status:", e);
+    }
+    setBanners((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
   };
 
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
@@ -951,12 +1021,15 @@ function DashboardContent() {
       {activeTab === "categories" && (
         <CategoriesTab
           categories={categories}
-          onAdd={() => setIsCategoryModalOpen(true)}
+          onAdd={() => {
+            setEditingCategory(null);
+            setIsCategoryModalOpen(true);
+          }}
           onEdit={(cat: Category) => {
             setEditingCategory(cat);
             setIsCategoryModalOpen(true);
           }}
-          onDelete={() => {}}
+          onDelete={handleDeleteCategory}
         />
       )}
 
@@ -966,14 +1039,17 @@ function DashboardContent() {
       {activeTab === "banners" && (
         <BannersTab
           banners={banners}
-          onAdd={() => setIsBannerModalOpen(true)}
+          onAdd={() => {
+            setEditingBanner(null);
+            setIsBannerModalOpen(true);
+          }}
           onEdit={(b: OfferBanner) => {
             setEditingBanner(b);
             setIsBannerModalOpen(true);
           }}
-          onDelete={() => {}}
-          onDuplicate={() => {}}
-          onToggleStatus={() => {}}
+          onDelete={handleDeleteBanner}
+          onDuplicate={handleDuplicateBanner}
+          onToggleStatus={handleToggleBannerStatus}
         />
       )}
 
@@ -1291,6 +1367,25 @@ function DashboardContent() {
         }}
         categories={categories}
         initialData={editingProduct}
+      />
+
+      {/* Category Modal */}
+      <CategoryModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        onSave={() => {
+          setIsCategoryModalOpen(false);
+          refreshData();
+        }}
+        initialData={editingCategory}
+      />
+
+      {/* Offer Banner Modal */}
+      <OfferBannerModal
+        isOpen={isBannerModalOpen}
+        onClose={() => setIsBannerModalOpen(false)}
+        onSave={handleSaveBanner}
+        initialData={editingBanner}
       />
 
       {/* Quick Add Stock Modal */}

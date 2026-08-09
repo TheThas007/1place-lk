@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner } from "./types";
 
 // ===== Site Settings =====
 export const siteSettings: SiteSettings = {
@@ -614,3 +614,49 @@ export const banners: Banner[] = [
     active: true,
   },
 ];
+
+// ===== Offer Banners =====
+export const fallbackOfferBanners: OfferBanner[] = [
+  {
+    id: "default-shop-1",
+    internalName: "Mega Sale 2026",
+    headline: "PREMIUM SMARTPHONES & ACCESSORIES",
+    highlightText: "UP TO 35% OFF",
+    description: "Exclusive deals on Apple, Samsung, Xiaomi & Original Accessories in Vavuniya.",
+    badgeText: "HOT DEAL",
+    primaryCtaText: "Explore Offers",
+    primaryCtaUrl: "/products",
+    desktopImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop",
+    mobileImage: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=800&auto=format&fit=crop",
+    placement: "shop_top",
+    status: "active",
+  },
+  {
+    id: "default-shop-2",
+    internalName: "Express Repair Promo",
+    headline: "EXPRESS MOBILE REPAIR SERVICE",
+    highlightText: "SAME-DAY REPAIR",
+    description: "Screen replacement, battery upgrades & hardware fixes with genuine warranty.",
+    badgeText: "QUICK SERVICE",
+    primaryCtaText: "Book Repair",
+    primaryCtaUrl: "/contact",
+    desktopImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=1600&auto=format&fit=crop",
+    mobileImage: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=800&auto=format&fit=crop",
+    placement: "shop_top",
+    status: "active",
+  },
+  {
+    id: "default-hero-1",
+    internalName: "Homepage Hero Promo",
+    headline: "NEW ARRIVALS - STREET MOBILE",
+    highlightText: "BEST PRICES IN TOWN",
+    description: "Island-wide delivery & 100% genuine products guaranteed.",
+    badgeText: "NEW ARRIVAL",
+    primaryCtaText: "Shop Now",
+    primaryCtaUrl: "/products",
+    desktopImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1600&auto=format&fit=crop",
+    placement: "homepage_after_categories",
+    status: "active",
+  },
+];
+

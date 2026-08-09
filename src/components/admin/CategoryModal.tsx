@@ -108,9 +108,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       }
 
       if (!finalImageUrl) {
-        alert("Please provide an image URL or upload a PNG/WebP file.");
-        setIsLoading(false);
-        return;
+        finalImageUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop";
       }
 
       const categoryData = {

@@ -86,17 +86,19 @@ export default function CategoriesTab({
                 </div>
               </div>
 
-              <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <div className="flex items-center gap-1 opacity-100 sm:opacity-90 hover:opacity-100 transition-opacity shrink-0">
                 <button
+                  type="button"
                   onClick={() => onEdit(cat)}
-                  className="p-2 rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                  className="p-2 rounded-lg bg-white/10 hover:bg-white/20 text-white transition-all shadow-xs"
                   aria-label="Edit category"
                 >
                   <Edit className="w-4 h-4" />
                 </button>
                 <button
+                  type="button"
                   onClick={() => onDelete(cat.id!)}
-                  className="p-2 rounded-lg hover:bg-red-500/10 text-white/60 hover:text-red-400 transition-all"
+                  className="p-2 rounded-lg bg-red-500/20 hover:bg-red-500/30 text-red-400 hover:text-red-300 transition-all shadow-xs"
                   aria-label="Delete category"
                 >
                   <Trash2 className="w-4 h-4" />
