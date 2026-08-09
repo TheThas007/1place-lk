@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Image as ImageIcon, Eye, Calendar, Sparkles, Copy, Check, Tag, Clock, Smartphone, Monitor } from "lucide-react";
+import { X, Image as ImageIcon, Video, Upload, Eye, Calendar, Sparkles, Copy, Check, Tag, Clock, Smartphone, Monitor } from "lucide-react";
 import { OfferBanner, BannerPlacement, BannerStatus } from "@/lib/types";
 
 interface OfferBannerModalProps {
@@ -368,6 +368,45 @@ export default function OfferBannerModal({
 
               {activeTab === "media" && (
                 <div className="space-y-4">
+                  {/* Background Video Section */}
+                  <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2">
+                    <div className="flex justify-between items-center">
+                      <label className="block text-xs font-bold text-amber-300 flex items-center gap-1.5 uppercase tracking-wider">
+                        <Video className="w-4 h-4 text-amber-400" /> Background Video (MP4 / WebM)
+                      </label>
+                      <span className="text-[10px] bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-bold">New Feature</span>
+                    </div>
+                    <input
+                      type="url"
+                      placeholder="https://... direct MP4/WebM video URL"
+                      value={formData.videoUrl || ""}
+                      onChange={(e) => setFormData({ ...formData, videoUrl: e.target.value })}
+                      className="w-full px-3.5 py-2.5 bg-slate-900 border border-amber-400/30 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400 font-mono"
+                    />
+                    <p className="text-[11px] text-amber-200/70">
+                      If set, this plays as a video background for full-width offer banners on the store!
+                    </p>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      {[
+                        { url: "https://assets.mixkit.co/videos/preview/mixkit-circuit-board-microchip-technological-process-42284-large.mp4", label: "⚡ Circuit Tech Motion" },
+                        { url: "https://assets.mixkit.co/videos/preview/mixkit-glowing-lines-in-a-dark-space-41559-large.mp4", label: "✨ Neon Particles Flow" },
+                      ].map((preset) => (
+                        <button
+                          key={preset.url}
+                          type="button"
+                          onClick={() => setFormData({ ...formData, videoUrl: preset.url })}
+                          className={`text-[11px] font-semibold p-2 rounded-xl border text-left truncate transition-all ${
+                            formData.videoUrl === preset.url
+                              ? "border-amber-400 bg-amber-400/20 text-amber-300 font-bold"
+                              : "border-white/10 bg-white/5 text-white/70 hover:text-white hover:bg-white/10"
+                          }`}
+                        >
+                          {preset.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   <div>
                     <div className="flex justify-between items-center mb-1">
                       <label className="block text-xs font-medium text-white/70">Desktop Image *</label>
@@ -598,8 +637,17 @@ export default function OfferBannerModal({
                   previewDevice === "mobile" ? "aspect-[9/12] max-w-[260px] mx-auto" : "aspect-[16/9] w-full"
                 }`}
               >
-                {/* Background image / overlay */}
-                {formData.desktopImage ? (
+                {/* Background video / image / overlay */}
+                {formData.videoUrl ? (
+                  <video
+                    src={formData.videoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : formData.desktopImage ? (
                   <img
                     src={previewDevice === "mobile" && formData.mobileImage ? formData.mobileImage : formData.desktopImage}
                     alt="Preview"
@@ -607,7 +655,7 @@ export default function OfferBannerModal({
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-white/30 text-xs">
-                    No image uploaded
+                    No media uploaded
                   </div>
                 )}
                 <div

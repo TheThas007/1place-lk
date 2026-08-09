@@ -67,12 +67,12 @@ function DesktopHeroContent() {
           Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto pointer-events-auto">
           {/* Primary CTA */}
-          <MagneticButton className="w-full sm:w-auto">
+          <MagneticButton className="w-full sm:w-auto pointer-events-auto">
             <Link
               href="/products"
-              className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98]"
+              className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98] pointer-events-auto cursor-pointer"
             >
               Shop Now
               <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
@@ -80,12 +80,12 @@ function DesktopHeroContent() {
           </MagneticButton>
 
           {/* Secondary CTA */}
-          <MagneticButton className="w-full sm:w-auto">
+          <MagneticButton className="w-full sm:w-auto pointer-events-auto">
             <a
               href={generateWhatsAppUrl()}
               target="_blank"
               rel="noopener noreferrer"
-              className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98]"
+              className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98] pointer-events-auto cursor-pointer"
             >
               <MessageCircle className="w-5 h-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
               Contact Us

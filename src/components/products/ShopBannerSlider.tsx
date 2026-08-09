@@ -83,18 +83,29 @@ export default function ShopBannerSlider({ banners = [] }: ShopBannerSliderProps
           transition={{ duration: 0.5, ease: "easeInOut" }}
           className="relative min-h-[220px] sm:min-h-[280px] md:min-h-[320px] flex items-center"
         >
-          {/* Background Image */}
+          {/* Background Video or Image */}
           <div className="absolute inset-0 z-0">
-            <picture>
-              {current.mobileImage && (
-                <source media="(max-width: 640px)" srcSet={current.mobileImage} />
-              )}
-              <img
-                src={current.desktopImage || current.mobileImage || "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop"}
-                alt={current.headline || "Offer Banner"}
+            {current.videoUrl ? (
+              <video
+                src={current.videoUrl}
+                autoPlay
+                loop
+                muted
+                playsInline
                 className="w-full h-full object-cover object-center"
               />
-            </picture>
+            ) : (
+              <picture>
+                {current.mobileImage && (
+                  <source media="(max-width: 640px)" srcSet={current.mobileImage} />
+                )}
+                <img
+                  src={current.desktopImage || current.mobileImage || "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop"}
+                  alt={current.headline || "Offer Banner"}
+                  className="w-full h-full object-cover object-center"
+                />
+              </picture>
+            )}
             {/* Gradient Overlays for readable text */}
             <div
               className="absolute inset-0 bg-gradient-to-r from-black/90 via-black/60 to-transparent z-10"

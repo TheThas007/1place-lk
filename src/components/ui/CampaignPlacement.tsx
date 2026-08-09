@@ -63,21 +63,30 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
   if (!banner) return null;
 
   return (
-    <div className={`relative overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 my-10 ${className}`}>
-      {/* Background Image / Overlay */}
-      {banner.desktopImage && (
+    <div className={`relative w-full overflow-hidden rounded-3xl border border-white/10 bg-zinc-950 my-8 min-h-[320px] sm:min-h-[380px] lg:min-h-[420px] flex items-center shadow-2xl ${className}`}>
+      {/* Background Video or Image / Overlay */}
+      {banner.videoUrl ? (
+        <video
+          src={banner.videoUrl}
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover object-center"
+        />
+      ) : banner.desktopImage ? (
         <picture>
           {banner.mobileImage && <source media="(max-width: 768px)" srcSet={banner.mobileImage} />}
           <img
             src={banner.desktopImage}
             alt={banner.altText || banner.headline}
-            className="absolute inset-0 w-full h-full object-cover"
+            className="absolute inset-0 w-full h-full object-cover object-center"
           />
         </picture>
-      )}
+      ) : null}
 
       <div
-        className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent"
+        className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent z-0"
         style={{ opacity: (banner.overlayOpacity ?? 50) / 100 }}
       />
 
