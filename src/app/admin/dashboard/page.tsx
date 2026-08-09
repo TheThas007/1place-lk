@@ -178,7 +178,15 @@ function DashboardContent() {
       // Banners
       const banSnap = await getDocs(collection(db, "offer_banners"));
       const banList = banSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OfferBanner));
-      setBanners(banList.length > 0 ? banList : fallbackOfferBanners);
+      let mergedBanners = banList;
+      if (banSnap.docs.length === 0) {
+        mergedBanners = fallbackOfferBanners;
+      } else {
+        const existingIds = new Set(banList.map((b) => b.id));
+        const missingFallbacks = fallbackOfferBanners.filter((f) => !existingIds.has(f.id));
+        mergedBanners = [...banList, ...missingFallbacks];
+      }
+      setBanners(mergedBanners.filter((b) => b.status !== "archived"));
 
       // Hero Slides
       const heroSnap = await getDocs(collection(db, "hero_slides"));
@@ -387,8 +395,8 @@ function DashboardContent() {
 
   const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
     try {
-      if (editingBanner && editingBanner.id && !editingBanner.id.startsWith("default-")) {
-        await updateDoc(doc(db, "offer_banners", editingBanner.id), bannerData);
+      if (editingBanner && editingBanner.id) {
+        await setDoc(doc(db, "offer_banners", editingBanner.id), { ...editingBanner, ...bannerData }, { merge: true });
         setBanners((prev) => prev.map((b) => (b.id === editingBanner.id ? ({ ...b, ...bannerData } as OfferBanner) : b)));
       } else {
         const docRef = await addDoc(collection(db, "offer_banners"), bannerData);
@@ -404,10 +412,15 @@ function DashboardContent() {
   };
 
   const handleDeleteBanner = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this offer banner?")) return;
+    if (!confirm("Are you sure you want to delete / remove this offer banner?")) return;
     try {
-      if (id && !id.startsWith("default-")) {
-        await deleteDoc(doc(db, "offer_banners", id));
+      if (id) {
+        if (id.startsWith("default-")) {
+          const target = banners.find((b) => b.id === id);
+          await setDoc(doc(db, "offer_banners", id), { ...(target || {}), id, status: "archived" }, { merge: true });
+        } else {
+          await deleteDoc(doc(db, "offer_banners", id));
+        }
       }
     } catch (e) {
       console.error("Error deleting banner:", e);
@@ -433,8 +446,9 @@ function DashboardContent() {
 
   const handleToggleBannerStatus = async (id: string, newStatus: BannerStatus) => {
     try {
-      if (id && !id.startsWith("default-")) {
-        await updateDoc(doc(db, "offer_banners", id), { status: newStatus });
+      const target = banners.find((b) => b.id === id);
+      if (id) {
+        await setDoc(doc(db, "offer_banners", id), { ...(target || {}), id, status: newStatus }, { merge: true });
       }
     } catch (e) {
       console.error("Error toggling banner status:", e);

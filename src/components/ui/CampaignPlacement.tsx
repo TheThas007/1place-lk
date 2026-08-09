@@ -25,9 +25,12 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
         const banners = await getOfferBanners(placement);
         if (banners.length > 0) {
           setBanner(banners[0]);
+        } else {
+          setBanner(null);
         }
       } catch (err) {
         console.error("Failed to load banner for placement:", placement, err);
+        setBanner(null);
       }
     }
     loadBanner();
