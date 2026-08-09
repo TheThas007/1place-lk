@@ -43,7 +43,7 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus } from "@/lib/types";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide } from "@/lib/types";
 import { categories as fallbackCategories, fallbackOfferBanners } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
@@ -51,9 +51,11 @@ import { jsPDF } from "jspdf";
 import ProductModal from "@/components/admin/ProductModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import OfferBannerModal from "@/components/admin/OfferBannerModal";
+import HeroModal from "@/components/admin/HeroModal";
 import OrdersTab from "@/components/admin/tabs/OrdersTab";
 import BannersTab from "@/components/admin/tabs/BannersTab";
 import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
+import HeroTab from "@/components/admin/tabs/HeroTab";
 
 type Tab =
   | "overview"
@@ -86,6 +88,7 @@ function DashboardContent() {
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
+  const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -136,6 +139,9 @@ function DashboardContent() {
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<OfferBanner | null>(null);
 
+  const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
+  const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
+
   // Stock Filter & Quick Stock Addition States
   const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "in_stock">("all");
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
@@ -171,6 +177,11 @@ function DashboardContent() {
       const banSnap = await getDocs(collection(db, "offer_banners"));
       const banList = banSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OfferBanner));
       setBanners(banList.length > 0 ? banList : fallbackOfferBanners);
+
+      // Hero Slides
+      const heroSnap = await getDocs(collection(db, "hero_slides"));
+      const heroList = heroSnap.docs.map((d) => ({ id: d.id, ...d.data() } as HeroSlide));
+      setHeroSlides(heroList);
 
       // Users / Customers
       const userSnap = await getDocs(collection(db, "users"));
@@ -427,6 +438,36 @@ function DashboardContent() {
       console.error("Error toggling banner status:", e);
     }
     setBanners((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
+  };
+
+  const handleSaveHeroSlide = async (slideData: Partial<HeroSlide>) => {
+    try {
+      if (editingHeroSlide && editingHeroSlide.id) {
+        await updateDoc(doc(db, "hero_slides", editingHeroSlide.id), slideData);
+        setHeroSlides((prev) => prev.map((s) => (s.id === editingHeroSlide.id ? ({ ...s, ...slideData } as HeroSlide) : s)));
+      } else {
+        const docRef = await addDoc(collection(db, "hero_slides"), slideData);
+        setHeroSlides((prev) => [...prev, { ...slideData, id: docRef.id } as HeroSlide]);
+      }
+      setIsHeroModalOpen(false);
+      setEditingHeroSlide(null);
+      refreshData();
+    } catch (e) {
+      console.error("Error saving hero slide:", e);
+      alert("Failed to save hero slide");
+    }
+  };
+
+  const handleDeleteHeroSlide = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this hero slider image?")) return;
+    try {
+      if (id) {
+        await deleteDoc(doc(db, "hero_slides", id));
+      }
+    } catch (e) {
+      console.error("Error deleting hero slide:", e);
+    }
+    setHeroSlides((prev) => prev.filter((s) => s.id !== id));
   };
 
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
@@ -1054,6 +1095,24 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          TAB 5B: HOMEPAGE HERO SLIDER TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "hero" && (
+        <HeroTab
+          slides={heroSlides}
+          onAdd={() => {
+            setEditingHeroSlide(null);
+            setIsHeroModalOpen(true);
+          }}
+          onEdit={(slide: HeroSlide) => {
+            setEditingHeroSlide(slide);
+            setIsHeroModalOpen(true);
+          }}
+          onDelete={handleDeleteHeroSlide}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB 6: CUSTOMERS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "users" && (
@@ -1386,6 +1445,14 @@ function DashboardContent() {
         onClose={() => setIsBannerModalOpen(false)}
         onSave={handleSaveBanner}
         initialData={editingBanner}
+      />
+
+      {/* Hero Modal */}
+      <HeroModal
+        isOpen={isHeroModalOpen}
+        onClose={() => setIsHeroModalOpen(false)}
+        onSave={handleSaveHeroSlide}
+        slide={editingHeroSlide}
       />
 
       {/* Quick Add Stock Modal */}
