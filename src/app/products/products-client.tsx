@@ -162,6 +162,12 @@ interface FilterSidebarProps {
   allProducts: Product[];
   // active category products (for brand options)
   categoryProducts: Product[];
+  // category state
+  allCategoriesList: Category[];
+  categoryCounts: Map<string, number>;
+  selectedCategories: string[];
+  onCategorySelect: (catSlugOrId: string) => void;
+  onClearCategories: () => void;
   // sort
   sortKey: SortKey;
   onSortChange: (key: SortKey) => void;
@@ -199,6 +205,11 @@ interface FilterSidebarProps {
 function FilterSidebarContent({
   allProducts,
   categoryProducts,
+  allCategoriesList,
+  categoryCounts,
+  selectedCategories,
+  onCategorySelect,
+  onClearCategories,
   sortKey,
   onSortChange,
   selectedBrands,
@@ -228,7 +239,9 @@ function FilterSidebarContent({
   onClose,
 }: FilterSidebarProps) {
   const [showAllBrands, setShowAllBrands] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
   const BRAND_PREVIEW = 8;
+  const CAT_PREVIEW = 8;
 
   // Build brand list from products in current category scope
   const brandCounts = useMemo(() => {
@@ -247,6 +260,7 @@ function FilterSidebarContent({
   }, [brandCounts]);
 
   const visibleBrands = showAllBrands ? orderedBrands : orderedBrands.slice(0, BRAND_PREVIEW);
+  const visibleCategories = showAllCategories ? allCategoriesList : allCategoriesList.slice(0, CAT_PREVIEW);
 
   return (
     <div className="flex flex-col gap-0">
@@ -266,6 +280,77 @@ function FilterSidebarContent({
           </select>
           <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400 pointer-events-none" />
         </div>
+      </div>
+
+      {/* ── 1. CATEGORY (PRODUCT TYPES) ── */}
+      <div className="pb-5 border-t border-neutral-100 pt-5">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-[11px] font-black uppercase tracking-[0.12em] text-neutral-400">Category (Type)</p>
+          {selectedCategories.length > 0 && (
+            <button
+              type="button"
+              onClick={onClearCategories}
+              className="text-[10px] font-bold text-neutral-400 hover:text-black transition-colors"
+            >
+              Clear
+            </button>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            type="button"
+            onClick={onClearCategories}
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+              selectedCategories.length === 0
+                ? "bg-black text-white border-black"
+                : "bg-neutral-100 text-neutral-600 border-transparent hover:border-black hover:text-black"
+            }`}
+          >
+            All Categories
+          </button>
+
+          {visibleCategories.map((cat) => {
+            const isSelected = selectedCategories.some(
+              (c) =>
+                c.toLowerCase() === cat.id.toLowerCase() ||
+                c.toLowerCase() === cat.slug.toLowerCase() ||
+                c.toLowerCase() === cat.name.toLowerCase()
+            );
+            const count = categoryCounts.get(cat.name.toLowerCase()) || 0;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => onCategorySelect(cat.slug || cat.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all border ${
+                  isSelected
+                    ? "bg-black text-white border-black"
+                    : "bg-neutral-100 text-neutral-600 border-transparent hover:border-black hover:text-black"
+                }`}
+              >
+                {cat.name}
+                <span className={`ml-1 text-[10px] font-normal ${isSelected ? "opacity-70" : "opacity-50"}`}>
+                  ({count})
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {allCategoriesList.length > CAT_PREVIEW && (
+          <button
+            type="button"
+            onClick={() => setShowAllCategories((v) => !v)}
+            className="mt-2.5 flex items-center gap-1 text-[10px] font-bold text-neutral-400 hover:text-black transition-colors"
+          >
+            {showAllCategories ? (
+              <><ChevronUp className="w-3 h-3" /> Show Less</>
+            ) : (
+              <><ChevronDown className="w-3 h-3" /> Show {allCategoriesList.length - CAT_PREVIEW} More</>
+            )}
+          </button>
+        )}
       </div>
 
       {/* ── 1. BRAND ── */}
@@ -735,10 +820,73 @@ export default function ProductsClient({
     minPrice, maxPrice, inStockOnly, newArrivalsOnly, featuredOnly, onSaleOnly, sortKey,
   ]);
 
+  // 1. Dynamic extraction of all Categories across Firestore categories prop AND actual products
+  const allCategoriesList = useMemo(() => {
+    const map = new Map<string, Category>();
+
+    // Add categories prop from Firestore
+    categories.forEach((c) => {
+      if (c && c.name) {
+        const cleanName = c.name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+        const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanName.toLowerCase());
+        if (cleanName && !isBrand) {
+          map.set(cleanName.toLowerCase(), { ...c, name: cleanName });
+        }
+      }
+    });
+
+    // Add any custom categories present on actual products
+    initialProducts.forEach((p) => {
+      const rawCat = (p.category_name || p.categoryName || "").trim();
+      const cleanCat = rawCat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+      const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanCat.toLowerCase());
+
+      if (cleanCat && !isBrand && !map.has(cleanCat.toLowerCase())) {
+        const slug = p.category_slug || p.categorySlug || cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        map.set(cleanCat.toLowerCase(), {
+          id: `cat-${slug}`,
+          name: cleanCat,
+          slug: slug,
+          icon: "📱",
+          image_url: "",
+          sort_order: 99,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [categories, initialProducts]);
+
+  // Count products for each category
+  const categoryCounts = useMemo(() => {
+    const map = new Map<string, number>();
+    initialProducts.forEach((p) => {
+      const rawCat = (p.category_name || p.categoryName || "").trim();
+      const cleanCat = rawCat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim().toLowerCase();
+      if (cleanCat) {
+        map.set(cleanCat, (map.get(cleanCat) || 0) + 1);
+      }
+    });
+    return map;
+  }, [initialProducts]);
+
+  const handleClearCategories = () => {
+    setSelectedCategories([]);
+    updateUrlParams({ category: null });
+  };
+
   /* ── Active filter chips ── */
   const activeFilters: { label: string; onRemove: () => void }[] = [
+    ...selectedCategories.map((cId) => {
+      const catObj = allCategoriesList.find((c) => c.id === cId || c.slug === cId || c.name.toLowerCase() === cId.toLowerCase());
+      const label = catObj ? catObj.name : cId;
+      return {
+        label: `Category: ${label}`,
+        onRemove: () => handleCategorySelect(cId),
+      };
+    }),
     ...selectedBrands.map((b) => ({
-      label: b,
+      label: `Brand: ${b}`,
       onRemove: () => {
         const next = selectedBrands.filter((x) => x !== b);
         setSelectedBrands(next);
@@ -765,6 +913,11 @@ export default function ProductsClient({
   const sidebarProps: FilterSidebarProps = {
     allProducts: initialProducts,
     categoryProducts,
+    allCategoriesList,
+    categoryCounts,
+    selectedCategories,
+    onCategorySelect: handleCategorySelect,
+    onClearCategories: handleClearCategories,
     sortKey,
     onSortChange: handleSortChange,
     selectedBrands,
