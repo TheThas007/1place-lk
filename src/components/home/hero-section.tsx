@@ -117,27 +117,27 @@ export default function HeroSection() {
           transition={{ duration: 0.7, ease: "easeOut" }}
           className="absolute inset-0 z-0"
         >
-          {/* Desktop Background Image */}
+          {/* Desktop Background Image (Full Visibility & High Clarity) */}
           <img
             src={desktopBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="hidden lg:block w-full h-full object-cover object-center opacity-40"
+            className="hidden lg:block w-full h-full object-cover object-center opacity-100"
           />
           {/* Mobile Background Image */}
           <img
             src={mobileBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="lg:hidden w-full h-full object-cover object-center opacity-45"
+            className="lg:hidden w-full h-full object-cover object-center opacity-100"
           />
 
-          {/* Luxury Gradient Overlays for perfect legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 z-10" />
+          {/* Gentle Gradient Overlay for Readability while keeping image bright */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 z-10" />
         </motion.div>
       </AnimatePresence>
 
       {/* ── Ambient Backlight Glow ── */}
-      <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 blur-[140px] rounded-full pointer-events-none z-10" />
+      <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none z-10" />
 
       {/* ── Content Container ── */}
       <div className="relative z-20 max-w-[1440px] mx-auto px-4 lg:px-8 w-full pt-24 pb-16 lg:pt-32 lg:pb-24">
