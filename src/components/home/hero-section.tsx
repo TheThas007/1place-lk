@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
 import { getHeroSlides } from "@/lib/firestore-client";
 import { HeroSlide } from "@/lib/types";
 
@@ -61,7 +61,7 @@ export default function HeroSection() {
       ? "justify-end"
       : "justify-start";
 
-  // Vertical alignment helper (default vertically centered)
+  // Vertical alignment helper (default vertically centered ~49%)
   const vertAlignClass =
     currentSlide.content_vertical_position === "top"
       ? "items-start pt-16"
@@ -77,7 +77,7 @@ export default function HeroSection() {
       ? "text-right items-end"
       : "text-left items-start";
 
-  // Container Max Width (760px desktop width default)
+  // Container Max Width (720px desktop width default)
   const maxWClass =
     currentSlide.content_max_width === "500px"
       ? "max-w-[500px]"
@@ -91,13 +91,13 @@ export default function HeroSection() {
       ? "max-w-[680px]"
       : currentSlide.content_max_width === "700px"
       ? "max-w-[700px]"
-      : currentSlide.content_max_width === "720px"
-      ? "max-w-[720px]"
+      : currentSlide.content_max_width === "760px"
+      ? "max-w-[760px]"
       : currentSlide.content_max_width === "820px"
       ? "max-w-[820px]"
       : currentSlide.content_max_width === "full"
       ? "max-w-full"
-      : "max-w-[760px]";
+      : "max-w-[720px]";
 
   // Heading Line 1 & Line 2 Extraction - EXACT ONCE RENDERING (No duplicated fallback)
   const rawLine1 = currentSlide.heading_line_1 !== undefined && currentSlide.heading_line_1 !== ""
@@ -139,23 +139,27 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
+      className="group relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[520px] max-h-[880px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
       style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* ── Background Carousel Layer (100vw Edge-to-Edge) ── */}
+      {/* ── Background Carousel Layer (100vw Edge-to-Edge with 1.02 scale animation) ── */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide.id || currentIndex}
-          initial={{ opacity: 0, scale: 1.02 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.98 }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="absolute inset-0 z-0 w-full h-full"
+          className="absolute inset-0 z-0 w-full h-full overflow-hidden"
         >
-          {/* Desktop Background Image */}
-          <img
+          {/* Desktop Background Image with subtle cinematic scale */}
+          <motion.img
+            key={`img-desktop-${currentIndex}`}
+            initial={{ scale: 1.02 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             src={desktopBg}
             alt={currentSlide.alt || line1Text || "Hero Banner"}
             className="hidden lg:block w-full h-full object-cover"
@@ -164,7 +168,11 @@ export default function HeroSection() {
             }}
           />
           {/* Mobile Background Image */}
-          <img
+          <motion.img
+            key={`img-mobile-${currentIndex}`}
+            initial={{ scale: 1.02 }}
+            animate={{ scale: 1 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
             src={mobileBg}
             alt={currentSlide.alt || line1Text || "Hero Banner"}
             className="lg:hidden w-full h-full object-cover"
@@ -182,8 +190,8 @@ export default function HeroSection() {
             }}
           />
 
-          {/* Smooth Left-to-Right Dark Gradient (Strongest behind text, transparent toward phone) */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10 pointer-events-none" />
+          {/* Controlled Cinematic Left-to-Right Gradient (0%: 0.88 -> 42%: 0.55 -> 65%: 0.08 -> 100%: 0) */}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.88)_0%,rgba(5,5,5,0.55)_42%,rgba(5,5,5,0.08)_65%,transparent_100%)] z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 
@@ -194,17 +202,20 @@ export default function HeroSection() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -16 }}
-              transition={{ duration: 0.45, ease: "easeOut" }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.4, ease: "easeOut" }}
               className={`flex flex-col ${textAlignClass} w-full`}
               style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
             >
-              {/* 1. Subtle Premium Eyebrow Badge (11px Manrope 700, 0.12em tracking, compact 8px x 13px, 18px bottom margin) */}
+              {/* 1. Compact Premium Eyebrow Badge (11px / 700 / 0.12em tracking / 20px bottom margin) */}
               {currentSlide.show_badge !== false && currentSlide.campaign_label && (
-                <div
-                  className="inline-flex items-center gap-2 px-[13px] py-[8px] rounded-full text-[11px] font-bold tracking-[0.12em] shadow-md backdrop-blur-md mb-[18px] shrink-0"
+                <motion.div
+                  initial={{ opacity: 0, y: -8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.45, delay: 0.0 }}
+                  className="inline-flex items-center gap-2 px-[13px] py-[7px] rounded-full text-[11px] font-bold tracking-[0.12em] shadow-md backdrop-blur-md mb-[20px] shrink-0"
                   style={{
                     color: currentSlide.badge_text_color || "#FFFFFF",
                     backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.12)",
@@ -213,38 +224,47 @@ export default function HeroSection() {
                 >
                   <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>{currentSlide.campaign_label}</span>
-                </div>
+                </motion.div>
               )}
 
-              {/* 2. Main Dual-Line Heading (Exact Single Render, Manrope 800, clamp(48px, 3.25vw, 62px), xl:whitespace-nowrap, gap 3px) */}
-              <div className="hero-heading flex flex-col gap-[3px] mb-[22px] w-full max-w-[760px]">
+              {/* 2. Main Dual-Line Heading (Manrope 750/800, 56px / clamp, gap 4px, 24px bottom margin) */}
+              <div className="hero-heading flex flex-col gap-[4px] mb-[24px] w-full max-w-[720px]">
                 {showLine1 && (
-                  <span
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[50px] lg:text-[clamp(48px,3.25vw,62px)]"
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.08 }}
+                    className="block leading-[1.02] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[34px] sm:text-[42px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
                     style={{
                       color: line1Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
                     }}
                   >
                     {line1Text}
-                  </span>
+                  </motion.span>
                 )}
                 {showLine2 && (
-                  <span
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[50px] lg:text-[clamp(48px,3.25vw,62px)]"
+                  <motion.span
+                    initial={{ opacity: 0, y: 12 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: 0.16 }}
+                    className="block leading-[1.02] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[34px] sm:text-[42px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
                     style={{
                       color: line2Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
                     }}
                   >
                     {line2Text}
-                  </span>
+                  </motion.span>
                 )}
               </div>
 
               {/* 3. Description (Manrope 500, 17px, line-height 1.6, max width 520px, 30px bottom margin) */}
               {currentSlide.show_description !== false && currentSlide.description && (
-                <p
+                <motion.p
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.24 }}
                   className="text-[17px] leading-[1.6] font-medium max-w-[520px] lg:line-clamp-2 drop-shadow-md break-normal whitespace-normal hyphens-none mb-[30px]"
                   style={{
                     color: currentSlide.description_color || "#D1D5DB",
@@ -252,18 +272,23 @@ export default function HeroSection() {
                   }}
                 >
                   {currentSlide.description}
-                </p>
+                </motion.p>
               )}
 
-              {/* 4. Compact Premium CTA Buttons (Height 52px, Padding 26px, Radius 10px, 14px 700 weight, 12px gap) */}
-              <div className={`flex flex-col sm:flex-row items-center gap-[12px] w-full sm:w-auto ${
-                currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
-              }`}>
-                {/* Primary Solid Button */}
+              {/* 4. Compact Premium CTA Buttons (Height 52px, Padding 28px, Radius 12px, 14px 700 weight, 12px gap) */}
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.32 }}
+                className={`flex flex-col sm:flex-row items-center gap-[12px] w-full sm:w-auto ${
+                  currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
+                }`}
+              >
+                {/* Primary Solid Button with lift hover & circular arrow badge */}
                 {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
                   <Link
                     href={currentSlide.primary_button_url || "/products"}
-                    className="group w-full sm:w-auto h-[52px] px-[26px] rounded-[10px] font-bold text-[14px] shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
+                    className="group/btn w-full sm:w-auto h-[52px] px-[28px] rounded-[12px] font-bold text-[14px] shadow-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0"
                     style={{
                       color: currentSlide.button_text_color || "#000000",
                       backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
@@ -271,75 +296,107 @@ export default function HeroSection() {
                     }}
                   >
                     <span>{currentSlide.primary_button_text}</span>
-                    <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
+                    <span className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center transition-transform duration-300 group-hover/btn:translate-x-1">
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </span>
                   </Link>
                 )}
 
-                {/* Secondary Transparent Bordered Button */}
+                {/* Secondary Dark-Glass Bordered Button */}
                 {currentSlide.show_secondary_button === true && currentSlide.secondary_button_text && (
                   <a
                     href={currentSlide.secondary_button_url || "#"}
                     target={currentSlide.secondary_button_url?.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="group w-full sm:w-auto h-[52px] px-[26px] rounded-[10px] font-bold text-[14px] border border-white/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
+                    className="group/sec w-full sm:w-auto h-[52px] px-[28px] rounded-[12px] font-bold text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md"
                     style={{
                       color: currentSlide.secondary_button_text_color || "#FFFFFF",
                       backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
-                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.2)",
+                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
                     }}
                   >
                     {isWhatsAppAction(currentSlide.secondary_button_url) ? (
-                      <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+                      <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
                     ) : (
-                      <ArrowRight className="w-4 h-4 opacity-70 transition-transform duration-300 group-hover:translate-x-1" />
+                      <ArrowRight className="w-4 h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
                     )}
                     <span>{currentSlide.secondary_button_text}</span>
                   </a>
                 )}
-              </div>
+              </motion.div>
+
+              {/* 5. Minimal Trust Strip (34px top spacing, outline icons, 12px labels, subtle separators) */}
+              {currentSlide.show_trust_strip !== false && (
+                <motion.div
+                  initial={{ opacity: 0, y: 12 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.40 }}
+                  className="mt-[34px] flex flex-wrap items-center gap-3 sm:gap-4 text-[12px] font-medium text-white/70 tracking-wide"
+                >
+                  <div className="flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{currentSlide.trust_item_1 || "Genuine Products"}</span>
+                  </div>
+                  <span className="text-white/30 text-[10px]">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{currentSlide.trust_item_2 || "Islandwide Delivery"}</span>
+                  </div>
+                  <span className="text-white/30 text-[10px]">•</span>
+                  <div className="flex items-center gap-1.5">
+                    <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                    <span>{currentSlide.trust_item_3 || "Secure Payments"}</span>
+                  </div>
+                </motion.div>
+              )}
             </motion.div>
           </AnimatePresence>
 
         </div>
       </div>
 
-      {/* ── Navigation Arrows ── */}
+      {/* ── Glass Navigation Control Arrows (42px circle, hover reveal) ── */}
       {slides.length > 1 && (
         <>
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Slide"
-            className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-[42px] h-[42px] rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-xl cursor-pointer"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             type="button"
             onClick={handleNext}
             aria-label="Next Slide"
-            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-[42px] h-[42px] rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-xl cursor-pointer"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5" />
           </button>
         </>
       )}
 
-      {/* ── Pagination Dots ── */}
+      {/* ── Premium Progress Indicators (30px x 4px Pill for Active, 5px Muted Dot for Inactive) ── */}
       {slides.length > 1 && (
-        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
-          {slides.map((_, idx) => (
-            <button
-              key={idx}
-              type="button"
-              onClick={() => setCurrentIndex(idx)}
-              className={`h-2 rounded-full transition-all duration-300 ${
-                currentIndex === idx ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
-              }`}
-              aria-label={`Go to slide ${idx + 1}`}
-            />
-          ))}
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5">
+          {slides.map((_, idx) => {
+            const isActive = idx === currentIndex;
+            return (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setCurrentIndex(idx)}
+                aria-label={`Go to slide ${idx + 1}`}
+                className={`transition-all duration-300 cursor-pointer ${
+                  isActive
+                    ? "w-[30px] h-[4px] rounded-full bg-white shadow-lg"
+                    : "w-[5px] h-[5px] rounded-full bg-white/40 hover:bg-white/70"
+                }`}
+              />
+            );
+          })}
         </div>
       )}
     </section>

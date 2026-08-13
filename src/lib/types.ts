@@ -223,6 +223,10 @@ export interface HeroSlide {
   show_badge?: boolean;
   show_description?: boolean;
   show_primary_button?: boolean;
+  show_trust_strip?: boolean;
+  trust_item_1?: string;
+  trust_item_2?: string;
+  trust_item_3?: string;
 
   // Custom Styling & Overlay Controls
   badge_text_color?: string;

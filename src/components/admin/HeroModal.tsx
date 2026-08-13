@@ -52,6 +52,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [headingLine2Casing, setHeadingLine2Casing] = useState<"as_typed" | "uppercase" | "title_case">("as_typed");
   const [showDescription, setShowDescription] = useState(true);
   const [showPrimaryButton, setShowPrimaryButton] = useState(true);
+  const [showTrustStrip, setShowTrustStrip] = useState(true);
+  const [trustItem1, setTrustItem1] = useState("Genuine Products");
+  const [trustItem2, setTrustItem2] = useState("Islandwide Delivery");
+  const [trustItem3, setTrustItem3] = useState("Secure Payments");
 
   const [badgeTextColor, setBadgeTextColor] = useState("#FFFFFF");
   const [badgeBgColor, setBadgeBgColor] = useState("#10B981");
@@ -116,6 +120,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setShowDescription(slide.show_description ?? true);
       setShowPrimaryButton(slide.show_primary_button ?? true);
       setShowSecondaryButton(slide.show_secondary_button ?? false);
+      setShowTrustStrip(slide.show_trust_strip ?? true);
+      setTrustItem1(slide.trust_item_1 || "Genuine Products");
+      setTrustItem2(slide.trust_item_2 || "Islandwide Delivery");
+      setTrustItem3(slide.trust_item_3 || "Secure Payments");
       setSecondaryButtonText(slide.secondary_button_text || "View Product");
       setSecondaryButtonUrl(slide.secondary_button_url || "");
       setStartDate(slide.start_date || "");
@@ -285,6 +293,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         show_description: showDescription,
         show_primary_button: showPrimaryButton,
         show_secondary_button: showSecondaryButton,
+        show_trust_strip: showTrustStrip,
+        trust_item_1: trustItem1.trim(),
+        trust_item_2: trustItem2.trim(),
+        trust_item_3: trustItem3.trim(),
         secondary_button_text: secondaryButtonText.trim() || "View Product",
         secondary_button_url: secondaryButtonUrl.trim(),
         start_date: startDate,
@@ -962,6 +974,54 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                 placeholder="Short supporting description (max 520px width recommended)."
                 className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none resize-none"
               />
+            </div>
+
+            {/* Trust Strip Manager Section */}
+            <div className="p-3.5 bg-white/5 border border-white/10 rounded-xl space-y-3 pt-3">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-white/90">Trust Strip Badges</label>
+                <label className="flex items-center gap-1.5 text-xs font-medium text-white/70 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showTrustStrip}
+                    onChange={(e) => setShowTrustStrip(e.target.checked)}
+                    className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                  />
+                  Show Trust Strip
+                </label>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Item 1</label>
+                  <input
+                    type="text"
+                    value={trustItem1}
+                    onChange={(e) => setTrustItem1(e.target.value)}
+                    placeholder="e.g. Genuine Products"
+                    className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Item 2</label>
+                  <input
+                    type="text"
+                    value={trustItem2}
+                    onChange={(e) => setTrustItem2(e.target.value)}
+                    placeholder="e.g. Islandwide Delivery"
+                    className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Item 3</label>
+                  <input
+                    type="text"
+                    value={trustItem3}
+                    onChange={(e) => setTrustItem3(e.target.value)}
+                    placeholder="e.g. Secure Payments"
+                    className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* Responsive Typography Sizes */}
