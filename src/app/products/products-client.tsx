@@ -341,7 +341,7 @@ function FilterSidebarContent({
                 <span className="text-[10px] text-neutral-400 font-medium">({allProducts.length})</span>
               </label>
 
-              {filteredCategoriesList.map((cat) => {
+              {filteredCategoriesList.map((cat, idx) => {
                 const isSelected = selectedCategories.some(
                   (c) =>
                     c.toLowerCase() === cat.id.toLowerCase() ||
@@ -351,7 +351,7 @@ function FilterSidebarContent({
                 const count = categoryCounts.get(cat.name.toLowerCase()) || 0;
 
                 return (
-                  <label key={cat.id} className="flex items-center justify-between text-xs cursor-pointer group py-1">
+                  <label key={`${cat.id || cat.slug}-${idx}`} className="flex items-center justify-between text-xs cursor-pointer group py-1">
                     <div className="flex items-center gap-2.5">
                       <input
                         type="checkbox"
@@ -856,7 +856,9 @@ export default function ProductsClient({
         const cleanName = c.name.replace(/[\u0080-\uFFFF]/g, "").trim();
         const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanName.toLowerCase());
         if (cleanName && !isBrand) {
-          map.set(cleanName.toLowerCase(), { ...c, name: cleanName });
+          const rawSlug = (c.slug || cleanName).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+          const safeId = c.id || `cat-${rawSlug || "general"}`;
+          map.set(cleanName.toLowerCase(), { ...c, id: safeId, name: cleanName });
         }
       }
     });
@@ -868,11 +870,12 @@ export default function ProductsClient({
       const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanCat.toLowerCase());
 
       if (cleanCat && !isBrand && !map.has(cleanCat.toLowerCase())) {
-        const slug = p.category_slug || p.categorySlug || cleanCat.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+        const rawSlug = (p.category_slug || p.categorySlug || cleanCat).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+        const safeSlug = rawSlug || "general";
         map.set(cleanCat.toLowerCase(), {
-          id: `cat-${slug}`,
+          id: `cat-${safeSlug}`,
           name: cleanCat,
-          slug: slug,
+          slug: safeSlug,
           icon: "📱",
           image_url: "",
           sort_order: 99,
