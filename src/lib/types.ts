@@ -215,6 +215,8 @@ export interface HeroSlide {
   button_bg_color?: string;
   overlay_color?: string;
   overlay_opacity?: number; // 0 to 100
+  desktop_image_position?: string;
+  mobile_image_position?: string;
 }
 
 export interface ProductBanner {

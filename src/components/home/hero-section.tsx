@@ -103,31 +103,37 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative w-full h-[480px] sm:h-[540px] md:h-[600px] lg:h-[650px] xl:h-[700px] bg-black overflow-hidden flex items-center justify-center text-white"
+      className="relative w-full w-screen max-w-full h-[520px] sm:h-[580px] md:h-[620px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* ── Background Carousel Layer ── */}
+      {/* ── Background Carousel Layer (100vw Edge-to-Edge) ── */}
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide.id || currentIndex}
-          initial={{ opacity: 0, scale: 1.03 }}
+          initial={{ opacity: 0, scale: 1.02 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
           transition={{ duration: 0.6, ease: "easeOut" }}
-          className="absolute inset-0 z-0"
+          className="absolute inset-0 z-0 w-full h-full"
         >
           {/* Desktop Background Image */}
           <img
             src={desktopBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="hidden lg:block w-full h-full object-cover object-center"
+            className="hidden lg:block w-full h-full object-cover"
+            style={{
+              objectPosition: currentSlide.desktop_image_position || "center",
+            }}
           />
           {/* Mobile Background Image */}
           <img
             src={mobileBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="lg:hidden w-full h-full object-cover object-center"
+            className="lg:hidden w-full h-full object-cover"
+            style={{
+              objectPosition: currentSlide.mobile_image_position || "center",
+            }}
           />
 
           {/* Dynamic Admin Custom Overlay Color & Opacity */}
@@ -140,7 +146,7 @@ export default function HeroSection() {
           />
 
           {/* Soft Left Side Shadow Gradient for Text Legibility */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10 pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 

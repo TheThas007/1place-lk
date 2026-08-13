@@ -45,6 +45,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [buttonBgColor, setButtonBgColor] = useState("#FFFFFF");
   const [overlayColor, setOverlayColor] = useState("#000000");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(40);
+  const [desktopImagePosition, setDesktopImagePosition] = useState("center");
+  const [mobileImagePosition, setMobileImagePosition] = useState("center");
 
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
@@ -84,6 +86,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setButtonBgColor(slide.button_bg_color || "#FFFFFF");
       setOverlayColor(slide.overlay_color || "#000000");
       setOverlayOpacity(slide.overlay_opacity ?? 40);
+      setDesktopImagePosition(slide.desktop_image_position || "center");
+      setMobileImagePosition(slide.mobile_image_position || "center");
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -113,6 +117,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setButtonBgColor("#FFFFFF");
       setOverlayColor("#000000");
       setOverlayOpacity(40);
+      setDesktopImagePosition("center");
+      setMobileImagePosition("center");
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -183,6 +189,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         button_bg_color: buttonBgColor,
         overlay_color: overlayColor,
         overlay_opacity: Number(overlayOpacity) ?? 40,
+        desktop_image_position: desktopImagePosition,
+        mobile_image_position: mobileImagePosition,
       });
 
       onClose();
@@ -493,6 +501,39 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   onChange={(e) => setOverlayOpacity(Number(e.target.value))}
                   className="w-full accent-emerald-500 cursor-pointer mt-2"
                 />
+              </div>
+            </div>
+
+            {/* Image Focal Positioning Controls */}
+            <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Desktop Image Focal Position</label>
+                <select
+                  value={desktopImagePosition}
+                  onChange={(e) => setDesktopImagePosition(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="center">Center (Default)</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Mobile Image Focal Position</label>
+                <select
+                  value={mobileImagePosition}
+                  onChange={(e) => setMobileImagePosition(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="center">Center (Default)</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                  <option value="left">Left</option>
+                  <option value="right">Right</option>
+                </select>
               </div>
             </div>
           </div>
