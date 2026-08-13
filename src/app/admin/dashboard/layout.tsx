@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   LayoutDashboard,
@@ -35,7 +35,7 @@ import ProductModal from "@/components/admin/ProductModal";
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
-  { id: "categories", label: "Categories", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
+  { id: "categories", label: "Brand & Categories", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
@@ -47,9 +47,13 @@ const SIDEBAR_ITEMS = [
   { id: "settings", label: "Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
 ];
 
-export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+import { Suspense } from "react";
+
+function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const activeTabParam = searchParams.get("tab") || "overview";
   const [isAuthed, setIsAuthed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
@@ -106,8 +110,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             setLiveAlert({ ...doc });
             try {
               const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-              audio.play().catch(() => {});
-            } catch (e) {}
+              audio.play().catch(() => { });
+            } catch (e) { }
           }
           lastOrderId.current = doc.id;
         }
@@ -156,9 +160,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Left Navigation Sidebar (Dark Mode) ── */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 ${
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         {/* Brand Logo Header */}
         <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between">
@@ -187,19 +190,17 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* Sidebar Nav Links */}
         <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
           {SIDEBAR_ITEMS.map((item) => {
-            const isTab = pathname === "/admin/dashboard" && typeof window !== "undefined" && window.location.search.includes(`tab=${item.id}`);
-            const isActive = isTab || (item.id === "overview" && pathname === "/admin/dashboard" && (typeof window === "undefined" || !window.location.search.includes("tab=")));
-            
+            const isActive = activeTabParam === item.id;
+
             return (
               <Link
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
-                  isActive
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${isActive
                     ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30"
                     : "text-white/60 hover:text-white hover:bg-white/5"
-                }`}
+                  }`}
               >
                 <item.icon className={`w-4 h-4 ${isActive ? "text-white" : "text-white/40"}`} />
                 {item.label}
@@ -238,7 +239,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
 
       {/* ── Main Content Area (Dark Theme) ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        
+
         {/* Top Header Bar */}
         <header className="h-16 bg-[#0F172A] border-b border-white/10 px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0">
           <div className="flex items-center gap-3 flex-1 max-w-xl">
@@ -355,5 +356,13 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         </div>
       )}
     </div>
+  );
+}
+
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#090D14] flex items-center justify-center text-white text-sm font-bold">Loading Admin Panel...</div>}>
+      <DashboardLayoutContent>{children}</DashboardLayoutContent>
+    </Suspense>
   );
 }

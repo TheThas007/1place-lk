@@ -39,30 +39,20 @@ export default async function FeaturedAccessories() {
     allProducts = fallbackProducts;
   }
 
-  // Filter for accessories
+  // Filter for accessories or non-phone products
   let accessoryProducts = allProducts.filter(
     (p) =>
-      ACCESSORY_CATEGORY_IDS.has(p.category_id) ||
-      ["anker", "ugreen", "baseus", "smart-watches", "tablets", "accessories", "jbl", "dji", "soundcore"].includes(
-        (p.category_name || "").toLowerCase()
-      ) ||
-      ["12", "13", "14", "8", "15", "16"].includes(p.id)
+      p.category_id !== "cat-smartphones" &&
+      p.category_id !== "cat-feature-phones" &&
+      p.category_name?.toLowerCase() !== "iphone" &&
+      p.category_name?.toLowerCase() !== "smartphones"
   );
 
-  if (accessoryProducts.length < 4) {
-    const fallbackItems = fallbackProducts.filter((p) => ACCESSORY_FALLBACK_IDS.includes(p.id));
-    accessoryProducts = [...accessoryProducts, ...fallbackItems];
+  if (accessoryProducts.length === 0) {
+    accessoryProducts = allProducts;
   }
 
-  // Deduplicate and get top 4
-  const seen = new Set<string>();
-  const featuredAccessories = accessoryProducts
-    .filter((p) => {
-      if (seen.has(p.id)) return false;
-      seen.add(p.id);
-      return true;
-    })
-    .slice(0, 4);
+  const featuredAccessories = accessoryProducts.slice(0, 4);
 
   return (
     <section className="py-16 lg:py-24 bg-background relative overflow-hidden border-t border-white/5">

@@ -1,22 +1,25 @@
 import HeroSection from "@/components/home/hero-section";
 import TrustIndicators from "@/components/home/trust-indicators";
+import CategoriesSection from "@/components/home/categories-section";
+import NewArrivalsSection from "@/components/home/new-arrivals-section";
 import FeaturedProducts from "@/components/home/featured-products";
 import FeaturedAccessories from "@/components/home/featured-accessories";
-import CategoriesSection from "@/components/home/categories-section";
+import ShopByCategoryCarousel from "@/components/home/shop-by-category-carousel";
 import ReviewsSection from "@/components/home/reviews-section";
 import GallerySection from "@/components/home/gallery-section";
 import StoreLocation from "@/components/home/store-location";
 import CampaignPlacement from "@/components/ui/CampaignPlacement";
 
-import { getCategories, getReviews, getGalleryImages, getUiSettings } from "@/lib/firestore-client";
+import { getCategories, getProducts, getReviews, getGalleryImages, getUiSettings } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
 
 export const revalidate = 60; // Revalidate cache every 60s for high performance
 
 export default async function HomePage() {
-  const [categories, reviews, galleryImages, uiSettings] = await Promise.all([
+  const [categories, products, reviews, galleryImages, uiSettings] = await Promise.all([
     getCategories(),
+    getProducts(),
     getReviews(),
     getGalleryImages(),
     getUiSettings(),
@@ -68,16 +71,37 @@ export default async function HomePage() {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
+      {/* 3. Premium hero banner slider */}
       <HeroSection />
-      <TrustIndicators />
-      <FeaturedProducts />
-      <FeaturedAccessories />
+
+      {/* 5. Shop by Category */}
       <CategoriesSection categories={categories} />
-      <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        <CampaignPlacement placement="homepage_after_categories" />
-      </div>
+
+      {/* 6. New Arrivals */}
+      <NewArrivalsSection initialProducts={products} />
+
+      {/* 7. Featured Mobile Phones */}
+      <FeaturedProducts />
+
+      {/* 8. Mobile Accessories promotional banner */}
+      <CampaignPlacement placement="homepage_after_categories" />
+
+      {/* 9. Best Selling Products / Featured Accessories */}
+      <FeaturedAccessories />
+
+      {/* Trust/service strip */}
+      <TrustIndicators />
+
+      {/* 9B. Shop by Category (Carousel Slider) */}
+      <ShopByCategoryCarousel />
+
+      {/* 10. Brand/service benefits & Store Gallery */}
       <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
+
+      {/* 11. Google customer reviews */}
       <ReviewsSection reviews={reviews} />
+
+      {/* 12. Newsletter & Store Location */}
       <StoreLocation />
     </>
   );

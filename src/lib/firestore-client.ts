@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
-import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner } from "./types";
-import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, fallbackOfferBanners, siteSettings } from "./data";
+import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner, Brand } from "./types";
+import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, fallbackOfferBanners, siteSettings, DEFAULT_BRANDS } from "./data";
 import { cache } from "react";
 
 export const getProductBanners = cache(async (): Promise<ProductBanner[]> => {
@@ -40,6 +40,18 @@ export const getCategories = cache(async (): Promise<Category[]> => {
   return fallbackCategories;
 });
 
+export const getBrands = cache(async (): Promise<Brand[]> => {
+  try {
+    const q = query(collection(db, "brands"));
+    const snapshot = await getDocs(q);
+    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Brand));
+    if (docs.length > 0) return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  } catch (e) {
+    console.warn("Offline/Error fetching brands, returning fallbacks:", e);
+  }
+  return DEFAULT_BRANDS;
+});
+
 export const getReviews = cache(async (): Promise<Review[]> => {
   try {
     const q = query(collection(db, "reviews"));
@@ -67,14 +79,25 @@ export const getOfferBanners = cache(async (placement?: string): Promise<OfferBa
   try {
     const q = query(collection(db, "offer_banners"));
     const snapshot = await getDocs(q);
-    let docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as OfferBanner));
+    let docs = snapshot.docs.map((doc) => {
+      const data = doc.data();
+      return {
+        ...data,
+        id: doc.id,
+        status: data.status || "active",
+        placement: data.placement || "homepage_after_categories",
+        contentMode: data.contentMode || "image_only",
+      } as OfferBanner;
+    });
+
     if (docs.length === 0) {
       docs = fallbackOfferBanners;
     }
     const now = new Date();
     
-    return docs.filter(b => {
-      if (b.status === "archived" || b.status === "draft" || b.status === "paused") return false;
+    const activeBanners = docs.filter((b) => {
+      const status = b.status || "active";
+      if (status === "archived" || status === "draft" || status === "paused") return false;
       if (placement && b.placement !== placement) return false;
       
       // Schedule check
@@ -83,9 +106,15 @@ export const getOfferBanners = cache(async (placement?: string): Promise<OfferBa
       
       return true;
     }).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+    if (activeBanners.length === 0 && placement) {
+      return fallbackOfferBanners.filter((b) => b.placement === placement && b.status === "active");
+    }
+
+    return activeBanners;
   } catch (e) {
     console.warn("Offline/Error fetching offer banners, returning fallbacks:", e);
-    return placement ? fallbackOfferBanners.filter(b => b.placement === placement) : fallbackOfferBanners;
+    return placement ? fallbackOfferBanners.filter((b) => b.placement === placement) : fallbackOfferBanners;
   }
 });
 

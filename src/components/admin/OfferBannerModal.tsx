@@ -106,8 +106,8 @@ export default function OfferBannerModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.internalName || !formData.headline) {
-      alert("Please provide at least an internal name and public headline.");
+    if (!formData.internalName || (formData.contentMode !== "image_only" && !formData.headline)) {
+      alert("Please provide an internal campaign name.");
       return;
     }
     setLoading(true);
@@ -237,11 +237,80 @@ export default function OfferBannerModal({
             <div className="flex-1 p-6 overflow-y-auto space-y-5 custom-scrollbar">
               {activeTab === "info" && (
                 <div className="space-y-4">
+                  {/* Banner Content Mode Selection */}
                   <div>
-                    <label className="block text-xs font-medium text-white/70 mb-1">Internal Name *</label>
+                    <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider mb-2">
+                      Banner Content Mode *
+                    </label>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, contentMode: "image_only" })}
+                        className={`p-3 rounded-xl border text-left text-xs transition-all ${
+                          formData.contentMode === "image_only" || (!formData.contentMode && !formData.headline)
+                            ? "border-amber-400 bg-amber-400/10 text-white font-bold"
+                            : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        }`}
+                      >
+                        <p className="font-bold">1. Image Only</p>
+                        <p className="text-[10px] text-white/50 mt-0.5">No text overlays. Best for pre-made artwork</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, contentMode: "overlay" })}
+                        className={`p-3 rounded-xl border text-left text-xs transition-all ${
+                          formData.contentMode === "overlay"
+                            ? "border-amber-400 bg-amber-400/10 text-white font-bold"
+                            : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        }`}
+                      >
+                        <p className="font-bold">2. Overlay Content</p>
+                        <p className="text-[10px] text-white/50 mt-0.5">Heading & CTA over background image</p>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, contentMode: "split" })}
+                        className={`p-3 rounded-xl border text-left text-xs transition-all ${
+                          formData.contentMode === "split"
+                            ? "border-amber-400 bg-amber-400/10 text-white font-bold"
+                            : "border-white/10 bg-white/5 text-white/60 hover:text-white"
+                        }`}
+                      >
+                        <p className="font-bold">3. Split Content</p>
+                        <p className="text-[10px] text-white/50 mt-0.5">Text on left, product image on right</p>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Image Fit & Clickable Toggles */}
+                  <div className="grid grid-cols-2 gap-3 p-3 bg-white/5 border border-white/10 rounded-xl">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white/80">Make Entire Banner Clickable</span>
+                      <input
+                        type="checkbox"
+                        checked={formData.entireBannerClickable !== false}
+                        onChange={(e) => setFormData({ ...formData, entireBannerClickable: e.target.checked })}
+                        className="w-4 h-4 accent-amber-400 rounded cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-semibold text-white/80">Image Fit Mode</span>
+                      <select
+                        value={formData.imageFit || "cover"}
+                        onChange={(e) => setFormData({ ...formData, imageFit: e.target.value as "cover" | "contain" })}
+                        className="bg-zinc-800 text-white text-xs px-2 py-1 rounded-lg border border-white/10 outline-none"
+                      >
+                        <option value="cover">Cover (Crop to fill)</option>
+                        <option value="contain">Contain (No crop)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-medium text-white/70 mb-1">Internal Campaign Name *</label>
                     <input
                       type="text"
-                      placeholder="e.g. iPhone 16 Launch Festival Banner"
+                      placeholder="e.g. Fitbit Smartwatch Campaign 2026"
                       value={formData.internalName || ""}
                       onChange={(e) => setFormData({ ...formData, internalName: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
@@ -455,6 +524,59 @@ export default function OfferBannerModal({
                       onChange={(e) => setFormData({ ...formData, mobileImage: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                     />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/10">
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Image Fit</label>
+                      <select
+                        value={formData.imageFit || "cover"}
+                        onChange={(e) => setFormData({ ...formData, imageFit: e.target.value as any })}
+                        className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      >
+                        <option value="cover">Cover (Fill Entire Frame)</option>
+                        <option value="contain">Contain (Fit Entire Image)</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Image Position</label>
+                      <select
+                        value={formData.imagePosition || "center"}
+                        onChange={(e) => setFormData({ ...formData, imagePosition: e.target.value as any })}
+                        className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      >
+                        <option value="center">Center</option>
+                        <option value="top">Top</option>
+                        <option value="bottom">Bottom</option>
+                        <option value="left">Left</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Desktop Height (px)</label>
+                      <input
+                        type="number"
+                        placeholder="Default auto / 440"
+                        value={formData.bannerHeightDesktop || ""}
+                        onChange={(e) => setFormData({ ...formData, bannerHeightDesktop: e.target.value ? Number(e.target.value) : undefined })}
+                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-xs font-medium text-white/70 mb-1">Section Spacing (px)</label>
+                      <input
+                        type="number"
+                        placeholder="Default 64"
+                        value={formData.sectionSpacing || ""}
+                        onChange={(e) => setFormData({ ...formData, sectionSpacing: e.target.value ? Number(e.target.value) : undefined })}
+                        className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none"
+                      />
+                    </div>
                   </div>
 
                   <div>

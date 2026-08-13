@@ -269,7 +269,7 @@ export default function TrustIndicators() {
             Why Choose Us
           </div>
           <h2 className="text-3xl lg:text-[2.75rem] font-bold text-gray-900 tracking-tight leading-tight mb-4">
-            Services You Can Trust
+            Why Choose Street Mobile
           </h2>
           <p className="text-gray-600 text-base lg:text-lg max-w-xl mx-auto leading-relaxed font-normal">
             Premium quality, professional service, and total peace of mind — every time.

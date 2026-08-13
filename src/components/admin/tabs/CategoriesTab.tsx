@@ -21,7 +21,7 @@ export default function CategoriesTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-white">Categories Management</h3>
+          <h3 className="text-lg font-semibold text-white">Brand & Categories Management</h3>
           <p className="text-xs text-white/40 mt-0.5">
             {categories.length} total categories
           </p>
@@ -73,16 +73,17 @@ export default function CategoriesTab({
                   /{cat.slug} · Order: {cat.sort_order ?? 0}
                 </p>
 
-                <div className="mt-2 flex items-center gap-2">
+                <div className="mt-2 flex flex-wrap items-center gap-1.5">
+                  {cat.show_on_homepage !== false ? (
+                    <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                      <CheckCircle2 className="w-3 h-3" /> Homepage
+                    </span>
+                  ) : null}
                   {cat.show_in_selector !== false ? (
                     <span className="inline-flex items-center gap-1 text-[10px] text-blue-400 font-medium bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
-                      <CheckCircle2 className="w-3 h-3" /> Selector Bar
+                      <CheckCircle2 className="w-3 h-3" /> Selector
                     </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1 text-[10px] text-white/40 font-medium bg-white/5 px-2 py-0.5 rounded-md">
-                      <XCircle className="w-3 h-3" /> Selector Hidden
-                    </span>
-                  )}
+                  ) : null}
                 </div>
               </div>
 

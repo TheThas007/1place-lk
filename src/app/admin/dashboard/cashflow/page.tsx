@@ -8,7 +8,11 @@ import { formatPrice } from "@/lib/utils";
 import { Search, Plus, DollarSign, TrendingUp, TrendingDown, Edit, Trash2 } from "lucide-react";
 import CashFlowModal from "@/components/admin/CashFlowModal";
 
-export default function CashFlowPage() {
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
+
+function CashFlowContent() {
   const [transactions, setTransactions] = useState<CashFlowTransaction[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
@@ -197,5 +201,13 @@ export default function CashFlowPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function CashFlowPage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-white/50">Loading Cash Flow...</div>}>
+      <CashFlowContent />
+    </Suspense>
   );
 }

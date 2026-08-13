@@ -1,5 +1,7 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useMemo, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -46,7 +48,7 @@ import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
 import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners } from "@/lib/data";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -57,12 +59,15 @@ import HeroModal from "@/components/admin/HeroModal";
 import OrdersTab from "@/components/admin/tabs/OrdersTab";
 import BannersTab from "@/components/admin/tabs/BannersTab";
 import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
+import ProductsTab from "@/components/admin/tabs/ProductsTab";
 import HeroTab from "@/components/admin/tabs/HeroTab";
+import BrandsTab from "@/components/admin/tabs/BrandsTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
+  | "brands"
   | "reviews"
   | "gallery"
   | "hero"
@@ -157,7 +162,7 @@ function DashboardContent() {
       // Products
       const prodSnap = await getDocs(collection(db, "products"));
       const prodList = prodSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Product));
-      setProducts(prodList);
+      setProducts(prodList.length > 0 ? prodList : fallbackProducts);
 
       // Categories
       const catSnap = await getDocs(collection(db, "categories"));
@@ -175,17 +180,34 @@ function DashboardContent() {
       const revList = revSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
       setReviews(revList);
 
-      // Banners
+      // Banners (Guaranteed 100% Unique Keys)
       const banSnap = await getDocs(collection(db, "offer_banners"));
-      const banList = banSnap.docs.map((d) => ({ id: d.id, ...d.data() } as OfferBanner));
-      let mergedBanners = banList;
+      const banList = banSnap.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          status: data.status || "active",
+          placement: data.placement || "homepage_after_categories",
+        } as OfferBanner;
+      });
+
+      const bannerMap = new Map<string, OfferBanner>();
+      banList.forEach((b) => {
+        if (b.id) bannerMap.set(b.id, b);
+      });
+
       if (banSnap.docs.length === 0) {
-        mergedBanners = fallbackOfferBanners;
+        fallbackOfferBanners.forEach((f) => {
+          if (!bannerMap.has(f.id)) bannerMap.set(f.id, f);
+        });
       } else {
-        const existingIds = new Set(banList.map((b) => b.id));
-        const missingFallbacks = fallbackOfferBanners.filter((f) => !existingIds.has(f.id));
-        mergedBanners = [...banList, ...missingFallbacks];
+        fallbackOfferBanners.forEach((f) => {
+          if (!bannerMap.has(f.id)) bannerMap.set(f.id, f);
+        });
       }
+
+      const mergedBanners = Array.from(bannerMap.values());
       setBanners(mergedBanners.filter((b) => b.status !== "archived"));
 
       // Hero Slides
@@ -382,7 +404,22 @@ function DashboardContent() {
   };
 
   const handleDeleteCategory = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this category?")) return;
+    const targetCategory = categories.find((c) => c.id === id);
+    const categorySlug = targetCategory?.slug;
+    const categoryName = targetCategory?.name || "Category";
+
+    const linkedProducts = products.filter(
+      (p) => p.category_id === id || p.category_name?.toLowerCase() === categoryName.toLowerCase() || (categorySlug && p.category_id === categorySlug)
+    );
+
+    if (linkedProducts.length > 0) {
+      alert(
+        `⚠️ Cannot delete "${categoryName}"!\n\nThis category currently has ${linkedProducts.length} linked product(s). Please reassign or update these products to another category before deleting this category.`
+      );
+      return;
+    }
+
+    if (!confirm(`Are you sure you want to delete category "${categoryName}"?`)) return;
     try {
       if (id && !id.startsWith("default-")) {
         await deleteDoc(doc(db, "categories", id));
@@ -934,130 +971,38 @@ function DashboardContent() {
           TAB 2: PRODUCTS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "products" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl font-extrabold text-white">Products Catalog ({products.length})</h1>
-              <p className="text-xs text-white/50">Manage all store inventory, prices and variants</p>
-            </div>
-            <button
-              onClick={() => {
-                setEditingProduct(null);
-                setIsProductModalOpen(true);
-              }}
-              className="px-4 py-2.5 bg-blue-600 text-white rounded-xl font-bold text-xs hover:bg-blue-700 transition-all flex items-center gap-2 w-fit shadow-md shadow-blue-600/30"
-            >
-              <Plus className="w-4 h-4" /> Add New Product
-            </button>
-          </div>
-
-          {/* Stock Filter Pills */}
-          <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-white/10 text-xs">
-            <button
-              onClick={() => setProductStockFilter("all")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all ${
-                productStockFilter === "all"
-                  ? "bg-blue-600 text-white shadow-sm"
-                  : "bg-white/5 text-white/70 hover:bg-white/10"
-              }`}
-            >
-              All Products ({products.length})
-            </button>
-            <button
-              onClick={() => setProductStockFilter("low_stock")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all flex items-center gap-1.5 ${
-                productStockFilter === "low_stock"
-                  ? "bg-amber-500 text-black shadow-sm"
-                  : "bg-amber-500/10 text-amber-300 border border-amber-500/20 hover:bg-amber-500/20"
-              }`}
-            >
-              <AlertCircle className="w-3.5 h-3.5" /> ⚠️ Low / Out of Stock ({lowStockCount})
-            </button>
-            <button
-              onClick={() => setProductStockFilter("in_stock")}
-              className={`px-3.5 py-2 rounded-xl font-bold transition-all ${
-                productStockFilter === "in_stock"
-                  ? "bg-emerald-600 text-white shadow-sm"
-                  : "bg-white/5 text-white/70 hover:bg-white/10"
-              }`}
-            >
-              In Stock ({products.length - lowStockCount})
-            </button>
-          </div>
-
-          {/* Products Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
-            {filteredProductsList.length === 0 ? (
-              <div className="col-span-full bg-[#0F172A] border border-white/10 rounded-2xl p-12 text-center text-white/50 space-y-2">
-                <AlertCircle className="w-10 h-10 mx-auto text-amber-400" />
-                <p className="font-bold text-white">No products found matching stock filter.</p>
-                <p className="text-xs">Click "All Products" to view your full catalog.</p>
-              </div>
-            ) : (
-              filteredProductsList.map((p) => {
-                const isLow = p.stock_status === "low_stock" || (p.stock_count !== undefined && p.stock_count <= 5);
-                const isOut = p.stock_status === "out_of_stock" || p.stock_count === 0;
-
-                return (
-                  <div key={p.id} className="bg-[#0F172A] border border-white/10 rounded-2xl p-4 space-y-3 shadow-lg hover:border-blue-500/50 transition-all flex flex-col justify-between">
-                    <div className="space-y-3">
-                      <div className="aspect-square bg-white/5 rounded-xl p-3 border border-white/5 flex items-center justify-center overflow-hidden relative">
-                        <img src={p.images?.[0]} alt={p.name} className="w-full h-full object-contain" />
-                        <span
-                          className={`absolute top-2 right-2 px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
-                            isOut
-                              ? "bg-red-500 text-white"
-                              : isLow
-                              ? "bg-amber-500 text-black animate-pulse"
-                              : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          }`}
-                        >
-                          Stock: {p.stock_count ?? (isOut ? 0 : 10)}
-                        </span>
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block">{p.category_name}</span>
-                        <h3 className="font-bold text-sm text-white truncate">{p.name}</h3>
-                        <p className="font-black text-sm text-blue-400 mt-1">{formatPrice(p.price)}</p>
-                      </div>
-                    </div>
-
-                    <div className="space-y-2 pt-3 border-t border-white/10">
-                      {/* Quick Add Stock Button */}
-                      <button
-                        onClick={() => {
-                          setQuickStockProduct(p);
-                          setQuickStockQty(10);
-                        }}
-                        className="w-full py-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-extrabold text-xs rounded-xl transition-all flex items-center justify-center gap-1.5"
-                      >
-                        <Plus className="w-3.5 h-3.5" /> + Add Stock
-                      </button>
-
-                      <div className="flex items-center justify-between pt-1">
-                        <button
-                          onClick={() => {
-                            setEditingProduct(p);
-                            setIsProductModalOpen(true);
-                          }}
-                          className="text-xs font-bold text-blue-400 hover:underline flex items-center gap-1"
-                        >
-                          <Edit className="w-3.5 h-3.5" /> Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteProduct(p.id)}
-                          className="text-xs font-bold text-red-400 hover:underline flex items-center gap-1"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })
-            )}
-          </div>
-        </div>
+        <ProductsTab
+          products={products}
+          onDelete={handleDeleteProduct}
+          onEdit={(p: Product) => {
+            setEditingProduct(p);
+            setIsProductModalOpen(true);
+          }}
+          onAdd={(catName?: string) => {
+            if (catName) {
+              const matchedCat = categories.find(
+                (c) => c.name.toLowerCase().includes(catName.toLowerCase()) || c.id === catName
+              );
+              setEditingProduct({
+                id: "",
+                name: "",
+                slug: "",
+                code: "",
+                category_id: matchedCat?.id || "cat-smartphones",
+                category_name: matchedCat?.name || catName,
+                brand: "Apple",
+                price: 0,
+                description: "",
+                images: [],
+                stock_status: "in_stock",
+                stock_count: 10,
+              } as any);
+            } else {
+              setEditingProduct(null);
+            }
+            setIsProductModalOpen(true);
+          }}
+        />
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -1073,21 +1018,31 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 4: CATEGORIES TAB
+          TAB 4: CATEGORIES & BRANDS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "categories" && (
-        <CategoriesTab
-          categories={categories}
-          onAdd={() => {
-            setEditingCategory(null);
-            setIsCategoryModalOpen(true);
-          }}
-          onEdit={(cat: Category) => {
-            setEditingCategory(cat);
-            setIsCategoryModalOpen(true);
-          }}
-          onDelete={handleDeleteCategory}
-        />
+        <div className="space-y-10">
+          <CategoriesTab
+            categories={categories}
+            onAdd={() => {
+              setEditingCategory(null);
+              setIsCategoryModalOpen(true);
+            }}
+            onEdit={(cat: Category) => {
+              setEditingCategory(cat);
+              setIsCategoryModalOpen(true);
+            }}
+            onDelete={handleDeleteCategory}
+          />
+
+          <div className="border-t border-white/10 pt-10">
+            <BrandsTab products={products} />
+          </div>
+        </div>
+      )}
+
+      {activeTab === "brands" && (
+        <BrandsTab products={products} />
       )}
 
       {/* ════════════════════════════════════════════════════════════════════

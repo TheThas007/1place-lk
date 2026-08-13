@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, Variants, useMotionValue, useSpring, useTransform } from "framer-motion";
+import { motion, AnimatePresence, Variants, useMotionValue } from "framer-motion";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { ArrowRight, MessageCircle } from "lucide-react";
@@ -23,16 +23,6 @@ const defaultHeroSlides = [
   { src: "/hero-slide-3.png", alt: "Mobile Accessories Display" },
   { src: "/hero-slide-4.png", alt: "Premium Phone Experience" },
 ];
-
-/* ─── Animation Variants ─── */
-const itemVar: Variants = {
-  hidden: { opacity: 0, y: 30 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1] },
-  },
-};
 
 /* ─── Static Desktop Hero Fallback (Rendered when WebGL is unavailable/disabled) ─── */
 function DesktopHeroContent() {

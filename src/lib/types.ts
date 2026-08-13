@@ -6,6 +6,7 @@ export interface Product {
   category_name?: string;
   price: number;
   old_price: number | null;
+  sale_price?: number | null;
   description: string;
   specifications: Record<string, string>;
   warranty: string;
@@ -33,6 +34,43 @@ export interface Product {
   color_variants?: ProductColor[];
   variant_combos?: ProductVariantCombo[];
   warranty_options?: WarrantyOption[];
+  productType?: "phone" | "accessory";
+  hasColorVariants?: boolean;
+  hasStorageVariants?: boolean;
+  is_new_arrival?: boolean;
+  category_slug?: string;
+  categoryId?: string;
+  categoryName?: string;
+  categorySlug?: string;
+  brand_id?: string;
+  brand_name?: string;
+  brand_slug?: string;
+  brandId?: string;
+  brandName?: string;
+  brandSlug?: string;
+  subcategory_id?: string;
+  subcategory_name?: string;
+  subcategory_slug?: string;
+  subcategoryId?: string;
+  subcategoryName?: string;
+  subcategorySlug?: string;
+  installment_price?: string;
+  brand?: string;
+  tags?: string[];
+  status?: "active" | "draft" | "inactive";
+  show_on_homepage?: boolean;
+}
+
+export interface Brand {
+  id: string;
+  name: string;
+  slug: string;
+  logo_url?: string;
+  description?: string;
+  sort_order?: number;
+  status?: "active" | "inactive";
+  show_on_homepage?: boolean;
+  product_count?: number;
 }
 
 export interface ProductColor {
@@ -52,6 +90,7 @@ export interface ProductVariantCombo {
   id: string;
   color_id?: string;
   color_name?: string;
+  color_hex?: string;
   ram?: string;
   storage?: string;
   sim_type?: string;
@@ -67,6 +106,7 @@ export interface ProductVariantCombo {
   weight?: number;
   status: "active" | "inactive";
   image_ref?: string;
+  warranty?: string;
 }
 
 export interface WarrantyOption {
@@ -106,9 +146,11 @@ export interface Category {
   sort_order: number;
   description?: string;
   product_count?: number;
-  group?: "phones" | "accessories" | "other";
+  group?: "phones" | "product_categories" | "accessories" | "other";
   status?: "active" | "inactive";
   show_in_selector?: boolean;
+  show_on_homepage?: boolean;
+  parent_id?: string;
 }
 
 export interface Review {
@@ -143,9 +185,22 @@ export interface Banner {
 export interface HeroSlide {
   id: string;
   image_url: string;
+  desktop_image_url?: string;
+  mobile_image_url?: string;
   alt: string;
   sort_order: number;
   active: boolean;
+  campaign_label?: string;
+  heading?: string;
+  description?: string;
+  promo_text?: string;
+  primary_button_text?: string;
+  primary_button_url?: string;
+  show_secondary_button?: boolean;
+  secondary_button_text?: string;
+  secondary_button_url?: string;
+  start_date?: string;
+  expiry_date?: string;
 }
 
 export interface ProductBanner {
@@ -230,6 +285,15 @@ export interface OfferBanner {
   countdownLabel?: string;
   countdownExpiredMsg?: string;
   
+  contentMode?: "image_only" | "overlay" | "split";
+  imageFit?: "cover" | "contain";
+  imagePosition?: "center" | "top" | "bottom" | "left" | "right";
+  entireBannerClickable?: boolean;
+  enableCta?: boolean;
+  cornerRadius?: number;
+  bannerHeightDesktop?: number;
+  sectionSpacing?: number;
+
   created_at?: string;
   updated_at?: string;
 }

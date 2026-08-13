@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand } from "./types";
 
 // ===== Site Settings =====
 export const siteSettings: SiteSettings = {
@@ -21,36 +21,42 @@ export const siteSettings: SiteSettings = {
   },
 };
 
-// ===== Categories =====
-export const categories: Category[] = [
-  // ── Phone Brands ──────────────────────────────────────────
-  { id: "1",  name: "iPhone",   slug: "iphone",   icon: "https://icon.horse/icon/apple.com",   image_url: "https://images.unsplash.com/photo-1510557880182-3d4d3cba35a5?q=80&w=600&auto=format&fit=crop", sort_order: 1,  group: "phones" },
-  { id: "2",  name: "Samsung",  slug: "samsung",  icon: "https://icon.horse/icon/samsung.com", image_url: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=600&auto=format&fit=crop", sort_order: 2,  group: "phones" },
-  { id: "3",  name: "Xiaomi",   slug: "xiaomi",   icon: "https://icon.horse/icon/mi.com",  image_url: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=600&auto=format&fit=crop", sort_order: 3,  group: "phones" },
-  { id: "4",  name: "Redmi",    slug: "redmi",    icon: "https://icon.horse/icon/mi.com",  image_url: "https://images.unsplash.com/photo-1628101484218-bd7d79bba8cb?q=80&w=600&auto=format&fit=crop", sort_order: 4,  group: "phones" },
-  { id: "5",  name: "Oppo",     slug: "oppo",     icon: "https://icon.horse/icon/oppo.com",    image_url: "https://images.unsplash.com/photo-1585060544812-6b45742d762f?q=80&w=600&auto=format&fit=crop", sort_order: 5,  group: "phones" },
-  { id: "6",  name: "Vivo",     slug: "vivo",     icon: "https://icon.horse/icon/vivo.com",    image_url: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=600&auto=format&fit=crop", sort_order: 6,  group: "phones" },
-  { id: "7",  name: "Realme",   slug: "realme",   icon: "https://icon.horse/icon/realme.com", image_url: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=600&auto=format&fit=crop", sort_order: 7,  group: "phones" },
-  { id: "11", name: "Google",   slug: "google",   icon: "https://icon.horse/icon/google.com",        image_url: "https://images.unsplash.com/photo-1573804633927-bfcbcd909acd?q=80&w=600&auto=format&fit=crop", sort_order: 8,  group: "phones" },
-  { id: "12", name: "Honor",    slug: "honor",    icon: "https://icon.horse/icon/honor.com",         image_url: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=600&auto=format&fit=crop", sort_order: 9,  group: "phones" },
-  { id: "13", name: "OnePlus",  slug: "oneplus",  icon: "https://icon.horse/icon/oneplus.com",       image_url: "https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=600&auto=format&fit=crop", sort_order: 10, group: "phones" },
+// ===== Brands / Manufacturers =====
+export const DEFAULT_BRANDS: Brand[] = [
+  { id: "brand-apple", name: "Apple", slug: "apple", logo_url: "https://icon.horse/icon/apple.com", sort_order: 1, status: "active", show_on_homepage: true },
+  { id: "brand-samsung", name: "Samsung", slug: "samsung", logo_url: "https://icon.horse/icon/samsung.com", sort_order: 2, status: "active", show_on_homepage: true },
+  { id: "brand-redmi", name: "Redmi", slug: "redmi", logo_url: "https://icon.horse/icon/mi.com", sort_order: 3, status: "active", show_on_homepage: true },
+  { id: "brand-xiaomi", name: "Xiaomi", slug: "xiaomi", logo_url: "https://icon.horse/icon/mi.com", sort_order: 4, status: "active", show_on_homepage: true },
+  { id: "brand-honor", name: "Honor", slug: "honor", logo_url: "https://icon.horse/icon/honor.com", sort_order: 5, status: "active", show_on_homepage: true },
+  { id: "brand-oppo", name: "Oppo", slug: "oppo", logo_url: "https://icon.horse/icon/oppo.com", sort_order: 6, status: "active", show_on_homepage: true },
+  { id: "brand-vivo", name: "Vivo", slug: "vivo", logo_url: "https://icon.horse/icon/vivo.com", sort_order: 7, status: "active", show_on_homepage: true },
+  { id: "brand-realme", name: "Realme", slug: "realme", logo_url: "https://icon.horse/icon/realme.com", sort_order: 8, status: "active", show_on_homepage: true },
+  { id: "brand-google", name: "Google", slug: "google", logo_url: "https://icon.horse/icon/google.com", sort_order: 9, status: "active", show_on_homepage: true },
+  { id: "brand-jbl", name: "JBL", slug: "jbl", logo_url: "https://icon.horse/icon/jbl.com", sort_order: 10, status: "active", show_on_homepage: true },
+  { id: "brand-lenyes", name: "LENYES", slug: "lenyes", logo_url: "", sort_order: 11, status: "active", show_on_homepage: true },
+  { id: "brand-ugreen", name: "UGREEN", slug: "ugreen", logo_url: "", sort_order: 12, status: "active", show_on_homepage: true },
+  { id: "brand-anker", name: "Anker", slug: "anker", logo_url: "", sort_order: 13, status: "active", show_on_homepage: true },
+  { id: "brand-baseus", name: "Baseus", slug: "baseus", logo_url: "", sort_order: 14, status: "active", show_on_homepage: true },
+  { id: "brand-oraimo", name: "Oraimo", slug: "oraimo", logo_url: "", sort_order: 15, status: "active", show_on_homepage: true },
+  { id: "brand-other", name: "Other", slug: "other", sort_order: 16, status: "active", show_on_homepage: false },
+];
 
-  // ── Accessories / Gadget Brands ───────────────────────────
-  { id: "8",  name: "Tablets",      slug: "tablets",      icon: "https://icon.horse/icon/apple.com",        image_url: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=600&auto=format&fit=crop", sort_order: 11, group: "other" },
-  { id: "9",  name: "Smart Watches",slug: "smart-watches",icon: "https://cdn.simpleicons.org/wearos/4285F4",       image_url: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=600&auto=format&fit=crop", sort_order: 12, group: "other" },
-  { id: "10", name: "Accessories",  slug: "accessories",  icon: "https://cdn.simpleicons.org/bluetooth/0082FC",    image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 13, group: "accessories" },
-  { id: "14", name: "Anker",        slug: "anker",        icon: "https://icon.horse/icon/anker.com",             image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 14, group: "accessories" },
-  { id: "15", name: "Soundcore",    slug: "soundcore",    icon: "https://icon.horse/icon/soundcore.com",         image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop", sort_order: 15, group: "accessories" },
-  { id: "16", name: "Ugreen",       slug: "ugreen",       icon: "https://icon.horse/icon/ugreen.com",            image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 16, group: "accessories" },
-  { id: "17", name: "Baseus",       slug: "baseus",       icon: "https://icon.horse/icon/baseus.com",            image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 17, group: "accessories" },
-  { id: "18", name: "DJI",          slug: "dji",          icon: "https://icon.horse/icon/dji.com",               image_url: "https://images.unsplash.com/photo-1579829366248-204fe8413f31?q=80&w=600&auto=format&fit=crop", sort_order: 18, group: "accessories" },
-  { id: "19", name: "CMF",          slug: "cmf",          icon: "https://icon.horse/icon/cmf.tech",              image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop", sort_order: 19, group: "accessories" },
-  { id: "20", name: "Wiwu",         slug: "wiwu",         icon: "https://icon.horse/icon/wiwu.com",              image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 20, group: "accessories" },
-  { id: "21", name: "Lenyes",       slug: "lenyes",       icon: "https://icon.horse/icon/lenyes.com",            image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 21, group: "accessories" },
-  { id: "22", name: "Hollyland",    slug: "hollyland",    icon: "https://icon.horse/icon/hollyland-tech.com",    image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 22, group: "accessories" },
-  { id: "23", name: "Green Lion",   slug: "green-lion",   icon: "https://icon.horse/icon/greenlion.net",         image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 23, group: "accessories" },
-  { id: "24", name: "Brodu",        slug: "brodu",        icon: "https://icon.horse/icon/brodu.com",             image_url: "https://images.unsplash.com/photo-1583394838336-acd977736f90?q=80&w=600&auto=format&fit=crop", sort_order: 24, group: "accessories" },
-  { id: "25", name: "JBL",          slug: "jbl",          icon: "https://icon.horse/icon/jbl.com",               image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop", sort_order: 25, group: "accessories" },
+// ===== Product Categories (Product Types Only) =====
+export const categories: Category[] = [
+  { id: "cat-smartphones", name: "Smartphones", slug: "smartphones", icon: "📱", image_url: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop", sort_order: 1, group: "product_categories", show_on_homepage: true },
+  { id: "cat-feature-phones", name: "Feature Phones", slug: "feature-phones", icon: "📞", image_url: "https://images.unsplash.com/photo-1580910051074-3eb694886505?q=80&w=600&auto=format&fit=crop", sort_order: 2, group: "product_categories", show_on_homepage: true },
+  { id: "cat-tablets", name: "Tablets", slug: "tablets", icon: "📱", image_url: "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=600&auto=format&fit=crop", sort_order: 3, group: "product_categories", show_on_homepage: true },
+  { id: "cat-watches", name: "Smart Watches", slug: "smart-watches", icon: "⌚", image_url: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=600&auto=format&fit=crop", sort_order: 4, group: "product_categories", show_on_homepage: true },
+  { id: "cat-speakers", name: "Speakers", slug: "speakers", icon: "🔊", image_url: "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=600&auto=format&fit=crop", sort_order: 5, group: "product_categories", show_on_homepage: true },
+  { id: "cat-earbuds", name: "Earbuds & TWS", slug: "earbuds", icon: "🎧", image_url: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=600&auto=format&fit=crop", sort_order: 6, group: "product_categories", show_on_homepage: true },
+  { id: "cat-headphones", name: "Headphones", slug: "headphones", icon: "🎧", image_url: "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?q=80&w=600&auto=format&fit=crop", sort_order: 7, group: "product_categories", show_on_homepage: true },
+  { id: "cat-adapter", name: "Chargers & Adapters", slug: "chargers-adapters", icon: "🔌", image_url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=600&auto=format&fit=crop", sort_order: 8, group: "product_categories", show_on_homepage: true },
+  { id: "cat-cables", name: "Charging Cables", slug: "charging-cables", icon: "🔌", image_url: "https://images.unsplash.com/photo-1541643600914-78b084683601?q=80&w=600&auto=format&fit=crop", sort_order: 9, group: "product_categories", show_on_homepage: true },
+  { id: "cat-powerbanks", name: "Power Banks", slug: "power-banks", icon: "🔋", image_url: "https://images.unsplash.com/photo-1609592424089-70a98b4793f0?q=80&w=600&auto=format&fit=crop", sort_order: 10, group: "product_categories", show_on_homepage: true },
+  { id: "cat-cases", name: "Phone Cases", slug: "phone-cases", icon: "📱", image_url: "https://images.unsplash.com/photo-1601593378579-245c1103c80a?q=80&w=600&auto=format&fit=crop", sort_order: 11, group: "product_categories", show_on_homepage: true },
+  { id: "cat-screen-protectors", name: "Screen Protectors", slug: "screen-protectors", icon: "🛡️", image_url: "https://images.unsplash.com/photo-1584438784894-089d6a62b8fa?q=80&w=600&auto=format&fit=crop", sort_order: 12, group: "product_categories", show_on_homepage: true },
+  { id: "cat-accessories", name: "Mobile Accessories", slug: "mobile-accessories", icon: "🎧", image_url: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=600&auto=format&fit=crop", sort_order: 13, group: "product_categories", show_on_homepage: true },
+  { id: "cat-repair-parts", name: "Repair Parts", slug: "repair-parts", icon: "🛠️", image_url: "https://images.unsplash.com/photo-1597740985671-2a8a3b80502e?q=80&w=600&auto=format&fit=crop", sort_order: 14, group: "product_categories", show_on_homepage: true },
 ];
 
 // ===== Sample Products =====
@@ -647,16 +653,16 @@ export const fallbackOfferBanners: OfferBanner[] = [
   },
   {
     id: "default-hero-1",
-    internalName: "Homepage Hero Promo",
-    headline: "NEW ARRIVALS - STREET MOBILE",
-    highlightText: "BEST PRICES IN TOWN",
-    description: "Island-wide delivery & 100% genuine products guaranteed.",
-    badgeText: "NEW ARRIVAL",
-    primaryCtaText: "Shop Now",
-    primaryCtaUrl: "/products",
-    desktopImage: "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=1600&auto=format&fit=crop",
+    internalName: "Fitbit Smartwatch Promotional Banner",
+    headline: "Fitbit Smartwatch Collection",
+    primaryCtaUrl: "/products?category=smart-watches",
+    desktopImage: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=1600&auto=format&fit=crop",
+    mobileImage: "https://images.unsplash.com/photo-1579586337278-3befd40fd17a?q=80&w=800&auto=format&fit=crop",
     placement: "homepage_after_categories",
     status: "active",
+    contentMode: "image_only",
+    imageFit: "cover",
+    entireBannerClickable: true,
   },
 ];
 
