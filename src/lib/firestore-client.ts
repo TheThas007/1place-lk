@@ -28,12 +28,21 @@ export const getProducts = cache(async (): Promise<Product[]> => {
   return fallbackProducts;
 });
 
+import { KNOWN_BRAND_NAMES } from "./migration-audit";
+
 export const getCategories = cache(async (): Promise<Category[]> => {
   try {
     const q = query(collection(db, "categories"));
     const snapshot = await getDocs(q);
     const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
-    if (docs.length > 0) return docs;
+    if (docs.length > 0) {
+      const cleanDocs = docs.filter(c => {
+        const cName = (c.name || "").toLowerCase();
+        const cSlug = (c.slug || "").toLowerCase();
+        return !KNOWN_BRAND_NAMES.some(b => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+      });
+      if (cleanDocs.length > 0) return cleanDocs;
+    }
   } catch (e) {
     console.warn("Offline/Error fetching categories, returning fallbacks:", e);
   }

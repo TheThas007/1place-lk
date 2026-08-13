@@ -4,6 +4,8 @@ import React from "react";
 import { Category } from "@/lib/types";
 import { Plus, Edit, Trash2, CheckCircle2, XCircle } from "lucide-react";
 
+import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
+
 interface CategoriesTabProps {
   categories: Category[];
   onAdd: () => void;
@@ -19,6 +21,14 @@ export default function CategoriesTab({
 }: CategoriesTabProps) {
   const [isFixing, setIsFixing] = React.useState(false);
   const [fixMessage, setFixMessage] = React.useState<string | null>(null);
+
+  const cleanCategories = React.useMemo(() => {
+    return categories.filter((c) => {
+      const cName = (c.name || "").toLowerCase();
+      const cSlug = (c.slug || "").toLowerCase();
+      return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+    });
+  }, [categories]);
 
   const handleFixClassification = async () => {
     if (!confirm("This will safely check all products in database and separate mixed Category (Smartphones, Watches, Laptops) & Brand (Apple, Samsung, Honor) fields. Proceed?")) return;
@@ -51,7 +61,7 @@ export default function CategoriesTab({
         <div>
           <h3 className="text-lg font-bold text-white">Product Categories Management</h3>
           <p className="text-xs text-white/50 mt-0.5">
-            {categories.length} categories · Categories classify product types (Smartphones, Smart Watches, Laptops, Earbuds, Chargers, etc.). Genuine manufacturers (Apple, Samsung, Honor, etc.) are in the Brands tab.
+            {cleanCategories.length} categories · Categories classify product types (Smartphones, Smart Watches, Laptops, Earbuds, Chargers, etc.). Genuine manufacturers (Apple, Samsung, Honor, etc.) are in the Brands tab.
           </p>
         </div>
         <div className="flex items-center gap-3">
@@ -80,7 +90,7 @@ export default function CategoriesTab({
       )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-        {categories.map((cat) => (
+        {cleanCategories.map((cat) => (
           <div
             key={cat.id}
             className="bg-white/[0.03] border border-white/10 rounded-2xl p-5 hover:bg-white/[0.06] transition-all group relative flex flex-col justify-between"

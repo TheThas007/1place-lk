@@ -33,6 +33,7 @@ import { db } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
+import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -216,19 +217,24 @@ export default function ProductModal({
     );
   };
 
-  // Merged Categories List (Default 12 Categories + Props Categories)
+  // Merged Categories List (Default 12 Categories + Props Categories, filtered to exclude Brand names)
   const mergedCategories = React.useMemo(() => {
     const map = new Map<string, Category>();
     DEFAULT_PRODUCT_CATEGORIES.forEach((c) => map.set(c.id, c));
     categories.forEach((c) => {
-      const existingKey = Array.from(map.keys()).find((k) => {
-        const item = map.get(k);
-        return item && (item.name.toLowerCase() === c.name.toLowerCase() || item.slug === c.slug);
-      });
-      if (existingKey) {
-        map.set(existingKey, c);
-      } else {
-        map.set(c.id || `c-${c.name}`, c);
+      const cName = (c.name || "").toLowerCase();
+      const cSlug = (c.slug || "").toLowerCase();
+      const isBrand = KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+      if (!isBrand) {
+        const existingKey = Array.from(map.keys()).find((k) => {
+          const item = map.get(k);
+          return item && (item.name.toLowerCase() === c.name.toLowerCase() || item.slug === c.slug);
+        });
+        if (existingKey) {
+          map.set(existingKey, c);
+        } else {
+          map.set(c.id || `c-${c.name}`, c);
+        }
       }
     });
     return Array.from(map.values());

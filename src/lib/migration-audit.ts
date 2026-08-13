@@ -17,11 +17,11 @@ export interface MigrationAuditResult {
   reason: string;
 }
 
-const KNOWN_BRAND_NAMES = [
+export const KNOWN_BRAND_NAMES = [
   "Apple", "Samsung", "Redmi", "Xiaomi", "Honor", "Oppo", "Vivo", "Realme",
   "Google", "OnePlus", "JBL", "LENYES", "UGREEN", "Anker", "Baseus", "Oraimo",
   "DJI", "Sony", "Bose", "Huawei", "Joyroom", "Hoco", "REMAX", "LDNIO",
-  "Marshall", "Sennheiser", "Kingston", "Wiwu", "Lenyes", "Hollyland"
+  "Marshall", "Sennheiser", "Kingston", "Wiwu", "Lenyes", "Hollyland", "iPhone", "Nokia", "HMD", "Greentel"
 ];
 
 const STANDARD_CATEGORIES = [
