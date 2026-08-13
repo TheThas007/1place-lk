@@ -28,6 +28,7 @@ import CartDrawer from "@/components/cart/CartDrawer";
 import { categories as fallbackCategories } from "@/lib/data";
 import { getCategories } from "@/lib/firestore-client";
 import { Category } from "@/lib/types";
+import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -125,15 +126,24 @@ export default function Header() {
     ? user.displayName.split(" ").map((w) => w[0]).join("").slice(0, 2).toUpperCase()
     : user?.email?.[0]?.toUpperCase() ?? "U";
 
-  // Deduplicate categories for clean presentation
+  // Deduplicate categories & exclude brand names for clean presentation
   const uniqueNavCategories = useMemo(() => {
     const map = new Map<string, Category>();
-    catList.forEach((c) => {
-      if (c && c.name && !map.has(c.name.toLowerCase())) {
-        map.set(c.name.toLowerCase(), c);
+    const brandLowerList = KNOWN_BRAND_NAMES.map((b) => b.toLowerCase());
+    
+    // Combine Firestore categories + fallbackCategories
+    const all = [...catList, ...fallbackCategories];
+    all.forEach((c) => {
+      if (
+        c &&
+        c.name &&
+        !brandLowerList.includes(c.name.toLowerCase().trim()) &&
+        !map.has(c.name.toLowerCase().trim())
+      ) {
+        map.set(c.name.toLowerCase().trim(), c);
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
   }, [catList]);
 
   return (
@@ -275,38 +285,54 @@ export default function Header() {
                 <AnimatePresence>
                   {isCategoriesOpen && (
                     <motion.div
-                      initial={{ opacity: 0, y: -6 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{ opacity: 0, y: -6 }}
+                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
                       transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-[520px] bg-white border border-[#EAEAEA] rounded-[16px] shadow-[0_12px_40px_rgba(0,0,0,0.08)] p-5 sm:p-6 z-50 text-black"
+                      className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-[560px] bg-white border border-[#EAEAEA] rounded-[20px] shadow-[0_16px_50px_rgba(0,0,0,0.12)] p-5 sm:p-6 z-50 text-black"
                     >
-                      <div className="grid grid-cols-2 gap-2 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
-                        {uniqueNavCategories.map((cat) => (
-                          <Link
-                            key={cat.id}
-                            href={`/products?category=${cat.slug}`}
-                            onClick={() => setIsCategoriesOpen(false)}
-                            className="group flex items-center justify-between min-h-[44px] px-3.5 py-2.5 rounded-xl bg-white hover:bg-[#F5F5F7] transition-all duration-200 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                          >
-                            <div className="flex items-center gap-2.5 min-w-0">
-                              <span className="w-1.5 h-1.5 rounded-full bg-black/30 group-hover:bg-black transition-colors shrink-0" />
-                              <span className="text-xs font-semibold text-black truncate">{cat.name}</span>
-                            </div>
-                            <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-black group-hover:translate-x-0.5 transition-all shrink-0" />
-                          </Link>
-                        ))}
+                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 px-1">
+                        <span className="text-[11px] font-black uppercase tracking-wider text-gray-400">
+                          Product Categories ({uniqueNavCategories.length})
+                        </span>
+                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
+                          Official Sri Lanka Warranty
+                        </span>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
+                        {uniqueNavCategories.map((cat) => {
+                          const icon = cat.icon || "📱";
+                          return (
+                            <Link
+                              key={cat.id || cat.slug}
+                              href={`/products?category=${cat.slug}`}
+                              onClick={() => setIsCategoriesOpen(false)}
+                              className="group flex items-center justify-between min-h-[46px] px-3.5 py-2.5 rounded-xl bg-[#FAFAFA] hover:bg-black transition-all duration-200 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
+                            >
+                              <div className="flex items-center gap-3 min-w-0">
+                                <span className="text-base shrink-0 group-hover:scale-110 transition-transform">
+                                  {icon}
+                                </span>
+                                <span className="text-xs font-extrabold text-gray-900 group-hover:text-white truncate">
+                                  {cat.name}
+                                </span>
+                              </div>
+                              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                            </Link>
+                          );
+                        })}
                       </div>
 
                       {/* Dropdown Footer */}
-                      <div className="mt-4 pt-3 border-t border-[#EAEAEA] flex items-center justify-between">
-                        <span className="text-[11px] text-gray-500 font-medium">Browse complete inventory</span>
+                      <div className="mt-4 pt-3 border-t border-[#EAEAEA] flex items-center justify-between px-1">
+                        <span className="text-[11px] text-gray-500 font-medium">Looking for a specific device?</span>
                         <Link
                           href="/products"
                           onClick={() => setIsCategoriesOpen(false)}
-                          className="inline-flex items-center gap-1.5 text-xs font-bold text-black hover:opacity-75 transition-opacity"
+                          className="inline-flex items-center gap-1.5 text-xs font-extrabold text-black hover:text-blue-600 transition-colors"
                         >
-                          <span>View All Products</span>
+                          <span>Browse All Catalog</span>
                           <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
                       </div>
@@ -600,12 +626,15 @@ export default function Header() {
                         </Link>
                         {uniqueNavCategories.map((cat) => (
                           <Link
-                            key={cat.id}
+                            key={cat.id || cat.slug}
                             href={`/products?category=${cat.slug}`}
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                            className="flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
                           >
-                            <span>{cat.name}</span>
+                            <span className="flex items-center gap-2.5">
+                              <span className="text-sm">{cat.icon || "📱"}</span>
+                              <span>{cat.name}</span>
+                            </span>
                             <ChevronRight className="w-3.5 h-3.5 text-white/20" />
                           </Link>
                         ))}
