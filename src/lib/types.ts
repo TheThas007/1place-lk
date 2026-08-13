@@ -223,7 +223,10 @@ export interface HeroSlide {
   text_align?: "left" | "center" | "right";
   content_horizontal_position?: "left" | "center" | "right";
   content_vertical_position?: "top" | "center" | "bottom";
-  content_max_width?: "500px" | "620px" | "720px" | "full";
+  content_max_width?: "500px" | "570px" | "620px" | "720px" | "full";
+  desktop_heading_size?: string;
+  mobile_heading_size?: string;
+  font_family?: string;
 }
 
 export interface ProductBanner {

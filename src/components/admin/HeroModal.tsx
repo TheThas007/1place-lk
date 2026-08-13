@@ -54,7 +54,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [contentHorizontalPosition, setContentHorizontalPosition] = useState<"left" | "center" | "right">("left");
   const [contentVerticalPosition, setContentVerticalPosition] = useState<"top" | "center" | "bottom">("center");
-  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "620px" | "720px" | "full">("620px");
+  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "570px" | "620px" | "720px" | "full">("620px");
+  const [desktopHeadingSize, setDesktopHeadingSize] = useState("72px");
+  const [mobileHeadingSize, setMobileHeadingSize] = useState("42px");
+  const [fontFamily, setFontFamily] = useState("Plus Jakarta Sans");
 
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
@@ -104,6 +107,9 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setContentHorizontalPosition(slide.content_horizontal_position || "left");
       setContentVerticalPosition(slide.content_vertical_position || "center");
       setContentMaxWidth(slide.content_max_width || "620px");
+      setDesktopHeadingSize(slide.desktop_heading_size || "72px");
+      setMobileHeadingSize(slide.mobile_heading_size || "42px");
+      setFontFamily(slide.font_family || "Plus Jakarta Sans");
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -143,6 +149,9 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setContentHorizontalPosition("left");
       setContentVerticalPosition("center");
       setContentMaxWidth("620px");
+      setDesktopHeadingSize("72px");
+      setMobileHeadingSize("42px");
+      setFontFamily("Plus Jakarta Sans");
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -222,6 +231,9 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         content_horizontal_position: contentHorizontalPosition,
         content_vertical_position: contentVerticalPosition,
         content_max_width: contentMaxWidth,
+        desktop_heading_size: desktopHeadingSize,
+        mobile_heading_size: mobileHeadingSize,
+        font_family: fontFamily,
       });
 
       onClose();
