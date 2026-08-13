@@ -44,10 +44,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [showHeadingLine2, setShowHeadingLine2] = useState(true);
   const [headingLine1Color, setHeadingLine1Color] = useState("#FFFFFF");
   const [headingLine2Color, setHeadingLine2Color] = useState("#FFFFFF");
-  const [headingLine1Size, setHeadingLine1Size] = useState("clamp(46px, 4vw, 68px)");
-  const [headingLine2Size, setHeadingLine2Size] = useState("clamp(46px, 4vw, 68px)");
+  const [headingLine1Size, setHeadingLine1Size] = useState("clamp(48px, 3.25vw, 62px)");
+  const [headingLine2Size, setHeadingLine2Size] = useState("clamp(48px, 3.25vw, 62px)");
   const [headingLine1Weight, setHeadingLine1Weight] = useState("800");
   const [headingLine2Weight, setHeadingLine2Weight] = useState("800");
+  const [headingLine1Casing, setHeadingLine1Casing] = useState<"as_typed" | "uppercase" | "title_case">("as_typed");
+  const [headingLine2Casing, setHeadingLine2Casing] = useState<"as_typed" | "uppercase" | "title_case">("as_typed");
   const [showDescription, setShowDescription] = useState(true);
   const [showPrimaryButton, setShowPrimaryButton] = useState(true);
 
@@ -68,14 +70,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [contentHorizontalPosition, setContentHorizontalPosition] = useState<"left" | "center" | "right">("left");
   const [contentVerticalPosition, setContentVerticalPosition] = useState<"top" | "center" | "bottom">("center");
-  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "520px" | "570px" | "620px" | "700px" | "720px" | "full">("700px");
-  const [desktopHeadingSize, setDesktopHeadingSize] = useState("clamp(46px, 4vw, 68px)");
-  const [tabletHeadingSize, setTabletHeadingSize] = useState("52px");
+  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "520px" | "570px" | "620px" | "680px" | "700px" | "720px" | "760px" | "820px" | "full">("760px");
+  const [desktopHeadingSize, setDesktopHeadingSize] = useState("clamp(48px, 3.25vw, 62px)");
+  const [tabletHeadingSize, setTabletHeadingSize] = useState("50px");
   const [mobileHeadingSize, setMobileHeadingSize] = useState("38px");
   const [fontFamily, setFontFamily] = useState("Manrope");
   const [fontWeight, setFontWeight] = useState("800");
-  const [lineHeight, setLineHeight] = useState("1.02");
-  const [letterSpacing, setLetterSpacing] = useState("-0.04em");
+  const [lineHeight, setLineHeight] = useState("1.04");
+  const [letterSpacing, setLetterSpacing] = useState("-0.045em");
 
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
@@ -100,10 +102,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setShowHeadingLine2(slide.show_heading_line_2 ?? true);
       setHeadingLine1Color(slide.heading_line_1_color || slide.headingLine1Color || slide.heading_color || "#FFFFFF");
       setHeadingLine2Color(slide.heading_line_2_color || slide.headingLine2Color || slide.heading_color || "#FFFFFF");
-      setHeadingLine1Size(slide.heading_line_1_size || "clamp(46px, 4vw, 68px)");
-      setHeadingLine2Size(slide.heading_line_2_size || "clamp(46px, 4vw, 68px)");
+      setHeadingLine1Size(slide.heading_line_1_size || "clamp(48px, 3.25vw, 62px)");
+      setHeadingLine2Size(slide.heading_line_2_size || "clamp(48px, 3.25vw, 62px)");
       setHeadingLine1Weight(slide.heading_line_1_weight || "800");
       setHeadingLine2Weight(slide.heading_line_2_weight || "800");
+      setHeadingLine1Casing(slide.heading_line_1_casing || "as_typed");
+      setHeadingLine2Casing(slide.heading_line_2_casing || "as_typed");
       setDescription(slide.description || "");
       setPromoText(slide.promo_text || "");
       setPrimaryButtonText(slide.primary_button_text || "Shop Now");
@@ -137,14 +141,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign(slide.text_align || "left");
       setContentHorizontalPosition(slide.content_horizontal_position || "left");
       setContentVerticalPosition(slide.content_vertical_position || "center");
-      setContentMaxWidth(slide.content_max_width || "700px");
-      setDesktopHeadingSize(slide.desktop_heading_size || "clamp(46px, 4vw, 68px)");
-      setTabletHeadingSize(slide.tablet_heading_size || "52px");
+      setContentMaxWidth(slide.content_max_width || "760px");
+      setDesktopHeadingSize(slide.desktop_heading_size || "clamp(48px, 3.25vw, 62px)");
+      setTabletHeadingSize(slide.tablet_heading_size || "50px");
       setMobileHeadingSize(slide.mobile_heading_size || "38px");
       setFontFamily(slide.font_family || "Manrope");
       setFontWeight(slide.font_weight || "800");
-      setLineHeight(slide.line_height || "1.02");
-      setLetterSpacing(slide.letter_spacing || "-0.04em");
+      setLineHeight(slide.line_height || "1.04");
+      setLetterSpacing(slide.letter_spacing || "-0.045em");
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -159,10 +163,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setShowHeadingLine2(true);
       setHeadingLine1Color("#FFFFFF");
       setHeadingLine2Color("#FFFFFF");
-      setHeadingLine1Size("clamp(46px, 4vw, 68px)");
-      setHeadingLine2Size("clamp(46px, 4vw, 68px)");
+      setHeadingLine1Size("clamp(48px, 3.25vw, 62px)");
+      setHeadingLine2Size("clamp(48px, 3.25vw, 62px)");
       setHeadingLine1Weight("800");
       setHeadingLine2Weight("800");
+      setHeadingLine1Casing("as_typed");
+      setHeadingLine2Casing("as_typed");
       setDescription("");
       setPromoText("");
       setPrimaryButtonText("Shop Now");
@@ -196,14 +202,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign("left");
       setContentHorizontalPosition("left");
       setContentVerticalPosition("center");
-      setContentMaxWidth("700px");
-      setDesktopHeadingSize("clamp(46px, 4vw, 68px)");
-      setTabletHeadingSize("52px");
+      setContentMaxWidth("760px");
+      setDesktopHeadingSize("clamp(48px, 3.25vw, 62px)");
+      setTabletHeadingSize("50px");
       setMobileHeadingSize("38px");
       setFontFamily("Manrope");
       setFontWeight("800");
-      setLineHeight("1.02");
-      setLetterSpacing("-0.04em");
+      setLineHeight("1.04");
+      setLetterSpacing("-0.045em");
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -269,6 +275,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         heading_line_2_size: headingLine2Size,
         heading_line_1_weight: headingLine1Weight,
         heading_line_2_weight: headingLine2Weight,
+        heading_line_1_casing: headingLine1Casing,
+        heading_line_2_casing: headingLine2Casing,
         description: description.trim(),
         promo_text: promoText.trim(),
         primary_button_text: primaryButtonText.trim() || "Shop Now",
@@ -836,6 +844,18 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
                 <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 1 Text Case</label>
+                  <select
+                    value={headingLine1Casing}
+                    onChange={(e) => setHeadingLine1Casing(e.target.value as any)}
+                    className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="as_typed">As Typed (Default)</option>
+                    <option value="uppercase">Uppercase (UPPERCASE)</option>
+                    <option value="title_case">Title Case (Title Case)</option>
+                  </select>
+                </div>
+                <div>
                   <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 1 Color</label>
                   <div className="flex items-center gap-2">
                     <input
@@ -877,6 +897,18 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   placeholder="e.g. Ultimate Performance."
                   className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 2 Text Case</label>
+                  <select
+                    value={headingLine2Casing}
+                    onChange={(e) => setHeadingLine2Casing(e.target.value as any)}
+                    className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                  >
+                    <option value="as_typed">As Typed (Default)</option>
+                    <option value="uppercase">Uppercase (UPPERCASE)</option>
+                    <option value="title_case">Title Case (Title Case)</option>
+                  </select>
+                </div>
                 <div>
                   <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 2 Color</label>
                   <div className="flex items-center gap-2">

@@ -77,27 +77,65 @@ export default function HeroSection() {
       ? "text-right items-end"
       : "text-left items-start";
 
-  // Container Max Width (default 680px desktop width)
-  const maxWClass = "w-full max-w-[680px]";
+  // Container Max Width (760px desktop width default)
+  const maxWClass =
+    currentSlide.content_max_width === "500px"
+      ? "max-w-[500px]"
+      : currentSlide.content_max_width === "520px"
+      ? "max-w-[520px]"
+      : currentSlide.content_max_width === "570px"
+      ? "max-w-[570px]"
+      : currentSlide.content_max_width === "620px"
+      ? "max-w-[620px]"
+      : currentSlide.content_max_width === "680px"
+      ? "max-w-[680px]"
+      : currentSlide.content_max_width === "700px"
+      ? "max-w-[700px]"
+      : currentSlide.content_max_width === "720px"
+      ? "max-w-[720px]"
+      : currentSlide.content_max_width === "820px"
+      ? "max-w-[820px]"
+      : currentSlide.content_max_width === "full"
+      ? "max-w-full"
+      : "max-w-[760px]";
 
   // Heading Line 1 & Line 2 Extraction - EXACT ONCE RENDERING (No duplicated fallback)
-  const line1Text = currentSlide.heading_line_1 !== undefined && currentSlide.heading_line_1 !== ""
+  const rawLine1 = currentSlide.heading_line_1 !== undefined && currentSlide.heading_line_1 !== ""
     ? currentSlide.heading_line_1
     : (currentSlide.heading && !currentSlide.heading_line_2
         ? (currentSlide.heading.includes(". ") ? currentSlide.heading.split(". ")[0] + "." : currentSlide.heading)
         : "Latest Smartphones.");
 
-  const line2Text = currentSlide.heading_line_2 !== undefined && currentSlide.heading_line_2 !== ""
+  const rawLine2 = currentSlide.heading_line_2 !== undefined && currentSlide.heading_line_2 !== ""
     ? currentSlide.heading_line_2
     : (currentSlide.heading && !currentSlide.heading_line_1 && currentSlide.heading.includes(". ")
         ? currentSlide.heading.split(". ").slice(1).join(". ")
         : "Ultimate Performance.");
+
+  // Text Case formatting helper (Default "as_typed" preserves exact admin casing)
+  const formatCasing = (text: string, casing?: "as_typed" | "uppercase" | "title_case") => {
+    if (!text) return "";
+    if (casing === "uppercase") return text.toUpperCase();
+    if (casing === "title_case") {
+      return text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
+    }
+    return text; // "as_typed" - exact admin capitalization
+  };
+
+  const line1Text = formatCasing(rawLine1, currentSlide.heading_line_1_casing);
+  const line2Text = formatCasing(rawLine2, currentSlide.heading_line_2_casing);
 
   const showLine1 = currentSlide.show_heading_line_1 !== false && Boolean(line1Text);
   const showLine2 = currentSlide.show_heading_line_2 !== false && Boolean(line2Text);
 
   const line1Color = currentSlide.heading_line_1_color || currentSlide.headingLine1Color || currentSlide.heading_color || "#FFFFFF";
   const line2Color = currentSlide.heading_line_2_color || currentSlide.headingLine2Color || currentSlide.heading_color || "#FFFFFF";
+
+  const isWhatsAppAction = (url?: string) => {
+    if (!url) return false;
+    const lower = url.toLowerCase();
+    return lower.includes("whatsapp") || lower.includes("wa.me") || lower.includes("api.whatsapp");
+  };
 
   return (
     <section
@@ -144,8 +182,8 @@ export default function HeroSection() {
             }}
           />
 
-          {/* Gradual Left-to-Right Dark Overlay (Keeps right side clear for banner image subject) */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10 pointer-events-none" />
+          {/* Smooth Left-to-Right Dark Gradient (Strongest behind text, transparent toward phone) */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/40 to-transparent z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 
@@ -163,26 +201,26 @@ export default function HeroSection() {
               className={`flex flex-col ${textAlignClass} w-full`}
               style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
             >
-              {/* 1. Eyebrow / Badge (12px, 700 weight, 0.1em letter spacing, exact admin casing) */}
+              {/* 1. Subtle Premium Eyebrow Badge (11px Manrope 700, 0.12em tracking, compact 8px x 13px, 18px bottom margin) */}
               {currentSlide.show_badge !== false && currentSlide.campaign_label && (
                 <div
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold tracking-[0.1em] shadow-lg backdrop-blur-md mb-[14px] shrink-0"
+                  className="inline-flex items-center gap-2 px-[13px] py-[8px] rounded-full text-[11px] font-bold tracking-[0.12em] shadow-md backdrop-blur-md mb-[18px] shrink-0"
                   style={{
                     color: currentSlide.badge_text_color || "#FFFFFF",
-                    backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.15)",
+                    backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.12)",
                     fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
                   }}
                 >
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
                   <span>{currentSlide.campaign_label}</span>
                 </div>
               )}
 
-              {/* 2. Main Dual-Line Heading (Exact Single Render per Line, Manrope 800, 58px / clamp, gap 3px) */}
-              <div className="hero-heading flex flex-col gap-[3px] mb-[18px] w-full max-w-[680px]">
+              {/* 2. Main Dual-Line Heading (Exact Single Render, Manrope 800, clamp(48px, 3.25vw, 62px), xl:whitespace-nowrap, gap 3px) */}
+              <div className="hero-heading flex flex-col gap-[3px] mb-[22px] w-full max-w-[760px]">
                 {showLine1 && (
                   <span
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[52px] lg:text-[58px] xl:text-[clamp(52px,3.6vw,64px)]"
+                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[50px] lg:text-[clamp(48px,3.25vw,62px)]"
                     style={{
                       color: line1Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -193,7 +231,7 @@ export default function HeroSection() {
                 )}
                 {showLine2 && (
                   <span
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[52px] lg:text-[58px] xl:text-[clamp(52px,3.6vw,64px)]"
+                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-extrabold text-[34px] sm:text-[42px] md:text-[50px] lg:text-[clamp(48px,3.25vw,62px)]"
                     style={{
                       color: line2Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -204,10 +242,10 @@ export default function HeroSection() {
                 )}
               </div>
 
-              {/* 3. Description (17-19px, 500 weight, line-height 1.55, max width 520px, 28px bottom margin) */}
+              {/* 3. Description (Manrope 500, 17px, line-height 1.6, max width 520px, 30px bottom margin) */}
               {currentSlide.show_description !== false && currentSlide.description && (
                 <p
-                  className="text-[17px] sm:text-[18px] lg:text-[19px] leading-[1.55] font-medium max-w-[520px] drop-shadow-md break-normal whitespace-normal hyphens-none mb-[28px]"
+                  className="text-[17px] leading-[1.6] font-medium max-w-[520px] lg:line-clamp-2 drop-shadow-md break-normal whitespace-normal hyphens-none mb-[30px]"
                   style={{
                     color: currentSlide.description_color || "#D1D5DB",
                     fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -217,15 +255,15 @@ export default function HeroSection() {
                 </p>
               )}
 
-              {/* 4. Compact CTA Buttons (Height 54px, Padding 26-30px, Radius 12px, 15px semibold labels) */}
-              <div className={`flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto ${
+              {/* 4. Compact Premium CTA Buttons (Height 52px, Padding 26px, Radius 10px, 14px 700 weight, 12px gap) */}
+              <div className={`flex flex-col sm:flex-row items-center gap-[12px] w-full sm:w-auto ${
                 currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
               }`}>
                 {/* Primary Solid Button */}
                 {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
                   <Link
                     href={currentSlide.primary_button_url || "/products"}
-                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[12px] font-semibold text-[15px] shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
+                    className="group w-full sm:w-auto h-[52px] px-[26px] rounded-[10px] font-bold text-[14px] shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
                     style={{
                       color: currentSlide.button_text_color || "#000000",
                       backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
@@ -243,15 +281,19 @@ export default function HeroSection() {
                     href={currentSlide.secondary_button_url || "#"}
                     target={currentSlide.secondary_button_url?.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[12px] font-semibold text-[15px] border transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
+                    className="group w-full sm:w-auto h-[52px] px-[26px] rounded-[10px] font-bold text-[14px] border border-white/20 transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
                     style={{
                       color: currentSlide.secondary_button_text_color || "#FFFFFF",
                       backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
-                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
+                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.2)",
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
                     }}
                   >
-                    <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+                    {isWhatsAppAction(currentSlide.secondary_button_url) ? (
+                      <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+                    ) : (
+                      <ArrowRight className="w-4 h-4 opacity-70 transition-transform duration-300 group-hover:translate-x-1" />
+                    )}
                     <span>{currentSlide.secondary_button_text}</span>
                   </a>
                 )}

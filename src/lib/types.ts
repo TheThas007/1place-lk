@@ -218,6 +218,8 @@ export interface HeroSlide {
   heading_line_2_size?: string;
   heading_line_1_weight?: string;
   heading_line_2_weight?: string;
+  heading_line_1_casing?: "as_typed" | "uppercase" | "title_case";
+  heading_line_2_casing?: "as_typed" | "uppercase" | "title_case";
   show_badge?: boolean;
   show_description?: boolean;
   show_primary_button?: boolean;
@@ -239,7 +241,7 @@ export interface HeroSlide {
   text_align?: "left" | "center" | "right";
   content_horizontal_position?: "left" | "center" | "right";
   content_vertical_position?: "top" | "center" | "bottom";
-  content_max_width?: "500px" | "520px" | "570px" | "620px" | "700px" | "720px" | "full";
+  content_max_width?: "500px" | "520px" | "570px" | "620px" | "680px" | "700px" | "720px" | "760px" | "820px" | "full";
   desktop_heading_size?: string;
   tablet_heading_size?: string;
   mobile_heading_size?: string;
