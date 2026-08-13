@@ -37,6 +37,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [active, setActive] = useState(true);
 
+  const [showBadge, setShowBadge] = useState(true);
+  const [headingLine1, setHeadingLine1] = useState("");
+  const [headingLine2, setHeadingLine2] = useState("");
+  const [showDescription, setShowDescription] = useState(true);
+  const [showPrimaryButton, setShowPrimaryButton] = useState(true);
+
   const [badgeTextColor, setBadgeTextColor] = useState("#FFFFFF");
   const [badgeBgColor, setBadgeBgColor] = useState("#10B981");
   const [headingColor, setHeadingColor] = useState("#FFFFFF");
@@ -54,10 +60,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [contentHorizontalPosition, setContentHorizontalPosition] = useState<"left" | "center" | "right">("left");
   const [contentVerticalPosition, setContentVerticalPosition] = useState<"top" | "center" | "bottom">("center");
-  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "570px" | "620px" | "720px" | "full">("620px");
-  const [desktopHeadingSize, setDesktopHeadingSize] = useState("72px");
-  const [mobileHeadingSize, setMobileHeadingSize] = useState("42px");
-  const [fontFamily, setFontFamily] = useState("Plus Jakarta Sans");
+  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "520px" | "570px" | "620px" | "720px" | "full">("520px");
+  const [desktopHeadingSize, setDesktopHeadingSize] = useState("clamp(48px, 4.2vw, 72px)");
+  const [tabletHeadingSize, setTabletHeadingSize] = useState("54px");
+  const [mobileHeadingSize, setMobileHeadingSize] = useState("40px");
+  const [fontFamily, setFontFamily] = useState("Manrope");
+  const [fontWeight, setFontWeight] = useState("800");
+  const [lineHeight, setLineHeight] = useState("1.02");
+  const [letterSpacing, setLetterSpacing] = useState("-0.04em");
 
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
@@ -76,10 +86,15 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setAlt(slide.alt || "");
       setCampaignLabel(slide.campaign_label || "NEW ARRIVAL");
       setHeading(slide.heading || slide.alt || "");
+      setHeadingLine1(slide.heading_line_1 || "");
+      setHeadingLine2(slide.heading_line_2 || "");
       setDescription(slide.description || "");
       setPromoText(slide.promo_text || "");
       setPrimaryButtonText(slide.primary_button_text || "Shop Now");
       setPrimaryButtonUrl(slide.primary_button_url || "/products");
+      setShowBadge(slide.show_badge ?? true);
+      setShowDescription(slide.show_description ?? true);
+      setShowPrimaryButton(slide.show_primary_button ?? true);
       setShowSecondaryButton(slide.show_secondary_button ?? false);
       setSecondaryButtonText(slide.secondary_button_text || "View Product");
       setSecondaryButtonUrl(slide.secondary_button_url || "");
@@ -106,10 +121,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign(slide.text_align || "left");
       setContentHorizontalPosition(slide.content_horizontal_position || "left");
       setContentVerticalPosition(slide.content_vertical_position || "center");
-      setContentMaxWidth(slide.content_max_width || "620px");
-      setDesktopHeadingSize(slide.desktop_heading_size || "72px");
-      setMobileHeadingSize(slide.mobile_heading_size || "42px");
-      setFontFamily(slide.font_family || "Plus Jakarta Sans");
+      setContentMaxWidth(slide.content_max_width || "520px");
+      setDesktopHeadingSize(slide.desktop_heading_size || "clamp(48px, 4.2vw, 72px)");
+      setTabletHeadingSize(slide.tablet_heading_size || "54px");
+      setMobileHeadingSize(slide.mobile_heading_size || "40px");
+      setFontFamily(slide.font_family || "Manrope");
+      setFontWeight(slide.font_weight || "800");
+      setLineHeight(slide.line_height || "1.02");
+      setLetterSpacing(slide.letter_spacing || "-0.04em");
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -118,10 +137,15 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setAlt("");
       setCampaignLabel("NEW ARRIVAL");
       setHeading("");
+      setHeadingLine1("");
+      setHeadingLine2("");
       setDescription("");
       setPromoText("");
       setPrimaryButtonText("Shop Now");
       setPrimaryButtonUrl("/products");
+      setShowBadge(true);
+      setShowDescription(true);
+      setShowPrimaryButton(true);
       setShowSecondaryButton(false);
       setSecondaryButtonText("View Product");
       setSecondaryButtonUrl("");
@@ -148,10 +172,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign("left");
       setContentHorizontalPosition("left");
       setContentVerticalPosition("center");
-      setContentMaxWidth("620px");
-      setDesktopHeadingSize("72px");
-      setMobileHeadingSize("42px");
-      setFontFamily("Plus Jakarta Sans");
+      setContentMaxWidth("520px");
+      setDesktopHeadingSize("clamp(48px, 4.2vw, 72px)");
+      setTabletHeadingSize("54px");
+      setMobileHeadingSize("40px");
+      setFontFamily("Manrope");
+      setFontWeight("800");
+      setLineHeight("1.02");
+      setLetterSpacing("-0.04em");
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -194,17 +222,26 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
 
       const mainImg = finalDesktopUrl || desktopPreview || "/hero-slide-1.png";
 
+      const computedHeading = (headingLine1.trim() || headingLine2.trim())
+        ? [headingLine1.trim(), headingLine2.trim()].filter(Boolean).join(" ")
+        : heading.trim();
+
       await onSave({
         image_url: mainImg,
         desktop_image_url: mainImg,
         mobile_image_url: finalMobileUrl || mainImg,
-        alt: alt.trim() || heading.trim() || "Street Mobile Hero Banner",
+        alt: alt.trim() || computedHeading || "Street Mobile Hero Banner",
         campaign_label: campaignLabel.trim(),
-        heading: heading.trim(),
+        heading: computedHeading,
+        heading_line_1: headingLine1.trim(),
+        heading_line_2: headingLine2.trim(),
         description: description.trim(),
         promo_text: promoText.trim(),
         primary_button_text: primaryButtonText.trim() || "Shop Now",
         primary_button_url: primaryButtonUrl.trim() || "/products",
+        show_badge: showBadge,
+        show_description: showDescription,
+        show_primary_button: showPrimaryButton,
         show_secondary_button: showSecondaryButton,
         secondary_button_text: secondaryButtonText.trim() || "View Product",
         secondary_button_url: secondaryButtonUrl.trim(),
@@ -232,8 +269,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         content_vertical_position: contentVerticalPosition,
         content_max_width: contentMaxWidth,
         desktop_heading_size: desktopHeadingSize,
+        tablet_heading_size: tabletHeadingSize,
         mobile_heading_size: mobileHeadingSize,
         font_family: fontFamily,
+        font_weight: fontWeight,
+        line_height: lineHeight,
+        letter_spacing: letterSpacing,
       });
 
       onClose();
@@ -702,49 +743,181 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
             </div>
           </div>
 
-          {/* Campaign Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-xs font-bold text-white/70 mb-1">Campaign Label</label>
-              <input
-                type="text"
-                value={campaignLabel}
-                onChange={(e) => setCampaignLabel(e.target.value)}
-                placeholder="e.g. NEW ARRIVAL, 5TH ANNIVERSARY"
-                className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
-              />
+          {/* ════════════════════════════════════════════════════════════════════
+              HERO CONTENT MANAGER SECTION
+          ════════════════════════════════════════════════════════════════════ */}
+          <div className="p-4 bg-emerald-950/20 border border-emerald-500/30 rounded-2xl space-y-4">
+            <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <Sparkles className="w-4 h-4" /> Hero Content & Typography Manager
+            </h4>
+
+            {/* Eyebrow / Badge Row */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div className="sm:col-span-2">
+                <label className="block text-xs font-bold text-white/80 mb-1">Eyebrow / Badge Text</label>
+                <input
+                  type="text"
+                  value={campaignLabel}
+                  onChange={(e) => setCampaignLabel(e.target.value)}
+                  placeholder="e.g. YOUR TRUSTED STORE IN VAVUNIYA"
+                  className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div className="flex items-end pb-1">
+                <label className="flex items-center gap-2 text-xs font-bold text-white/80 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showBadge}
+                    onChange={(e) => setShowBadge(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-500 rounded"
+                  />
+                  Show Eyebrow / Badge
+                </label>
+              </div>
             </div>
+
+            {/* Heading Lines */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs font-bold text-white/80 mb-1">Heading Line 1</label>
+                <input
+                  type="text"
+                  value={headingLine1}
+                  onChange={(e) => setHeadingLine1(e.target.value)}
+                  placeholder="e.g. Premium Mobile"
+                  className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-white/80 mb-1">Heading Line 2</label>
+                <input
+                  type="text"
+                  value={headingLine2}
+                  onChange={(e) => setHeadingLine2(e.target.value)}
+                  placeholder="e.g. Experience."
+                  className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                />
+              </div>
+            </div>
+
+            {/* Fallback Single Line Heading */}
             <div>
-              <label className="block text-xs font-bold text-white/70 mb-1">Heading</label>
+              <label className="block text-[11px] font-medium text-white/50 mb-1">Single Full Heading (Used if Line 1 & Line 2 are empty)</label>
               <input
                 type="text"
                 value={heading}
                 onChange={(e) => setHeading(e.target.value)}
-                placeholder="e.g. Premium Mobile Experience"
-                className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                placeholder="e.g. Premium Mobile Experience."
+                className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none"
               />
             </div>
-            <div>
-              <label className="block text-xs font-bold text-white/70 mb-1">Offer / Promo Price Text</label>
-              <input
-                type="text"
-                value={promoText}
-                onChange={(e) => setPromoText(e.target.value)}
-                placeholder="e.g. From LKR 449,999 or 20% OFF"
-                className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
-              />
-            </div>
-          </div>
 
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-1">Supporting Description</label>
-            <textarea
-              rows={2}
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              placeholder="Short supporting description of the product or campaign."
-              className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none resize-none"
-            />
+            {/* Description Row */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-white/80">Description Text</label>
+                <label className="flex items-center gap-2 text-xs font-bold text-white/80 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={showDescription}
+                    onChange={(e) => setShowDescription(e.target.checked)}
+                    className="w-4 h-4 accent-emerald-500 rounded"
+                  />
+                  Show Description
+                </label>
+              </div>
+              <textarea
+                rows={2}
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Short supporting description (max 520px width recommended)."
+                className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs focus:ring-1 focus:ring-emerald-500 outline-none resize-none"
+              />
+            </div>
+
+            {/* Responsive Typography Sizes */}
+            <div className="pt-3 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Desktop Heading Size</label>
+                <input
+                  type="text"
+                  value={desktopHeadingSize}
+                  onChange={(e) => setDesktopHeadingSize(e.target.value)}
+                  placeholder="clamp(48px, 4.2vw, 72px)"
+                  className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Tablet Heading Size</label>
+                <input
+                  type="text"
+                  value={tabletHeadingSize}
+                  onChange={(e) => setTabletHeadingSize(e.target.value)}
+                  placeholder="54px"
+                  className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Mobile Heading Size</label>
+                <input
+                  type="text"
+                  value={mobileHeadingSize}
+                  onChange={(e) => setMobileHeadingSize(e.target.value)}
+                  placeholder="40px"
+                  className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Font Family</label>
+                <select
+                  value={fontFamily}
+                  onChange={(e) => setFontFamily(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="Manrope">Manrope (Default)</option>
+                  <option value="Plus Jakarta Sans">Plus Jakarta Sans</option>
+                  <option value="Outfit">Outfit</option>
+                  <option value="Inter">Inter</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Font Weight, Line Height & Letter Spacing */}
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Font Weight</label>
+                <select
+                  value={fontWeight}
+                  onChange={(e) => setFontWeight(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="800">800 (Extra Bold)</option>
+                  <option value="700">700 (Bold)</option>
+                  <option value="600">600 (Semi Bold)</option>
+                  <option value="900">900 (Black)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Line Height</label>
+                <input
+                  type="text"
+                  value={lineHeight}
+                  onChange={(e) => setLineHeight(e.target.value)}
+                  placeholder="1.02"
+                  className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono"
+                />
+              </div>
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Letter Spacing</label>
+                <input
+                  type="text"
+                  value={letterSpacing}
+                  onChange={(e) => setLetterSpacing(e.target.value)}
+                  placeholder="-0.04em"
+                  className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono"
+                />
+              </div>
+            </div>
           </div>
 
           {/* CTA Buttons Config */}

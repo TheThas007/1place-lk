@@ -206,6 +206,12 @@ export interface HeroSlide {
   start_date?: string;
   expiry_date?: string;
 
+  heading_line_1?: string;
+  heading_line_2?: string;
+  show_badge?: boolean;
+  show_description?: boolean;
+  show_primary_button?: boolean;
+
   // Custom Styling & Overlay Controls
   badge_text_color?: string;
   badge_bg_color?: string;
@@ -223,10 +229,14 @@ export interface HeroSlide {
   text_align?: "left" | "center" | "right";
   content_horizontal_position?: "left" | "center" | "right";
   content_vertical_position?: "top" | "center" | "bottom";
-  content_max_width?: "500px" | "570px" | "620px" | "720px" | "full";
+  content_max_width?: "500px" | "520px" | "570px" | "620px" | "720px" | "full";
   desktop_heading_size?: string;
+  tablet_heading_size?: string;
   mobile_heading_size?: string;
   font_family?: string;
+  font_weight?: string;
+  line_height?: string;
+  letter_spacing?: string;
 }
 
 export interface ProductBanner {

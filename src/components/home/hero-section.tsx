@@ -53,7 +53,7 @@ export default function HeroSection() {
   const desktopBg = currentSlide.desktop_image_url || currentSlide.image_url;
   const mobileBg  = currentSlide.mobile_image_url || currentSlide.image_url || desktopBg;
 
-  // Layout alignment helpers
+  // Horizontal alignment helper
   const horizAlignClass =
     currentSlide.content_horizontal_position === "center"
       ? "justify-center"
@@ -61,6 +61,7 @@ export default function HeroSection() {
       ? "justify-end"
       : "justify-start";
 
+  // Vertical alignment helper (default vertically centered)
   const vertAlignClass =
     currentSlide.content_vertical_position === "top"
       ? "items-start pt-16"
@@ -68,6 +69,7 @@ export default function HeroSection() {
       ? "items-end pb-16"
       : "items-center";
 
+  // Text alignment helper
   const textAlignClass =
     currentSlide.text_align === "center"
       ? "text-center items-center"
@@ -75,18 +77,27 @@ export default function HeroSection() {
       ? "text-right items-end"
       : "text-left items-start";
 
+  // Max width (default 520px as per spec)
   const maxWClass =
     currentSlide.content_max_width === "500px"
       ? "max-w-[500px]"
+      : currentSlide.content_max_width === "570px"
+      ? "max-w-[570px]"
+      : currentSlide.content_max_width === "620px"
+      ? "max-w-[620px]"
       : currentSlide.content_max_width === "720px"
       ? "max-w-[720px]"
       : currentSlide.content_max_width === "full"
       ? "max-w-full"
-      : "max-w-[620px]";
+      : "max-w-[520px]";
+
+  // Construct heading text or line 1 & line 2
+  const hasTwoLines = Boolean(currentSlide.heading_line_1 || currentSlide.heading_line_2);
 
   return (
     <section
-      className="relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
+      className="relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0 font-sans"
+      style={{ fontFamily: currentSlide.font_family || "'Manrope', sans-serif" }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -128,12 +139,12 @@ export default function HeroSection() {
             }}
           />
 
-          {/* Gradual Left-to-Right Dark Overlay (Keeps right image clear & bright) */}
+          {/* Gradual Left-to-Right Dark Overlay (Keeps right side clear for banner image subject) */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Aligned Content Container (Matches max 1400px Navbar) ── */}
+      {/* ── Aligned Content Container (Matches max 1400px Navbar Logo Line) ── */}
       <div className={`relative z-20 max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full h-full flex ${vertAlignClass} ${horizAlignClass}`}>
         <div className={`${maxWClass} flex flex-col ${textAlignClass} w-full`}>
 
@@ -146,10 +157,10 @@ export default function HeroSection() {
               transition={{ duration: 0.45, ease: "easeOut" }}
               className={`flex flex-col ${textAlignClass} w-full`}
             >
-              {/* 1. Small Premium Badge (12px, 16px bottom margin) */}
-              {currentSlide.campaign_label && (
+              {/* 1. Small Uppercase Eyebrow / Badge (12px, 700 weight, 0.1em letter spacing, 14px bottom margin) */}
+              {currentSlide.show_badge !== false && currentSlide.campaign_label && (
                 <div
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider shadow-lg backdrop-blur-md mb-4 shrink-0"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-[0.1em] shadow-lg backdrop-blur-md mb-[14px] shrink-0"
                   style={{
                     color: currentSlide.badge_text_color || "#FFFFFF",
                     backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.15)",
@@ -160,67 +171,73 @@ export default function HeroSection() {
                 </div>
               )}
 
-              {/* 2. Main Heading (clamp 42px-72px, line-height 0.98-1.05, max 2 lines, 20px bottom margin) */}
-              {currentSlide.heading && (
-                <h1
-                  className="text-[36px] sm:text-[48px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-black leading-[1.02] tracking-tight drop-shadow-xl line-clamp-2 hyphens-none break-normal mb-5"
-                  style={{ color: currentSlide.heading_color || "#FFFFFF" }}
-                >
-                  {currentSlide.heading}
-                </h1>
-              )}
+              {/* 2. Main Heading (clamp 48px-72px, 800 weight, line-height 1.02, letter-spacing -0.04em, max 2 lines, 18px bottom margin) */}
+              <h1
+                className="text-[36px] sm:text-[48px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-extrabold leading-[1.02] tracking-[-0.04em] drop-shadow-xl line-clamp-2 hyphens-none break-normal mb-[18px]"
+                style={{
+                  color: currentSlide.heading_color || "#FFFFFF",
+                  fontWeight: currentSlide.font_weight || "800",
+                }}
+              >
+                {hasTwoLines ? (
+                  <>
+                    {currentSlide.heading_line_1}
+                    {currentSlide.heading_line_2 && (
+                      <>
+                        <br />
+                        {currentSlide.heading_line_2}
+                      </>
+                    )}
+                  </>
+                ) : (
+                  currentSlide.heading || "Premium Mobile Experience."
+                )}
+              </h1>
 
-              {/* Promo Price Tag */}
-              {currentSlide.promo_text && (
-                <div className="inline-block px-3 py-1 bg-red-600 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-md shadow-lg mb-4">
-                  {currentSlide.promo_text}
-                </div>
-              )}
-
-              {/* 3. Description (17px-20px, max 2 lines, 30px spacing before buttons) */}
-              {currentSlide.description && (
+              {/* 3. Description (17-19px, 500 weight, line-height 1.55, max width 520px, 28px bottom margin) */}
+              {currentSlide.show_description !== false && currentSlide.description && (
                 <p
-                  className="text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.6] font-medium drop-shadow-md line-clamp-2 hyphens-none break-normal mb-[30px]"
+                  className="text-[17px] sm:text-[18px] lg:text-[19px] leading-[1.55] font-medium max-w-[520px] drop-shadow-md line-clamp-2 hyphens-none break-normal mb-[28px]"
                   style={{ color: currentSlide.description_color || "#D1D5DB" }}
                 >
                   {currentSlide.description}
                 </p>
               )}
 
-              {/* 4. Compact Premium CTA Buttons */}
+              {/* 4. Compact CTA Buttons (Height 54px, Padding 26-30px, Radius 12px, 15px semibold labels) */}
               <div className={`flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto ${
                 currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
               }`}>
-                {/* Primary Compact CTA (Height 54px, Padding 28px, Radius 14px) */}
-                {currentSlide.primary_button_text && (
+                {/* Primary Solid Button */}
+                {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
                   <Link
                     href={currentSlide.primary_button_url || "/products"}
-                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[14px] font-medium text-base shadow-xl transition-all flex items-center justify-center gap-3 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
+                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[12px] font-semibold text-[15px] shadow-xl transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
                     style={{
                       color: currentSlide.button_text_color || "#000000",
                       backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
                     }}
                   >
                     <span>{currentSlide.primary_button_text}</span>
-                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
+                    <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 )}
 
-                {/* Secondary CTA (Height 54px, Padding 28px, Radius 14px, Transparent with Border) */}
-                {currentSlide.show_secondary_button && currentSlide.secondary_button_url && (
+                {/* Secondary Transparent Bordered Button */}
+                {currentSlide.show_secondary_button === true && currentSlide.secondary_button_text && (
                   <a
-                    href={currentSlide.secondary_button_url}
-                    target={currentSlide.secondary_button_url.startsWith("http") ? "_blank" : "_self"}
+                    href={currentSlide.secondary_button_url || "#"}
+                    target={currentSlide.secondary_button_url?.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[14px] font-medium text-base border transition-all flex items-center justify-center gap-3 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
+                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[12px] font-semibold text-[15px] border transition-all flex items-center justify-center gap-2.5 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
                     style={{
                       color: currentSlide.secondary_button_text_color || "#FFFFFF",
                       backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
                       borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
                     }}
                   >
-                    <MessageCircle className="w-5 h-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
-                    <span>{currentSlide.secondary_button_text || "Contact Us"}</span>
+                    <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
+                    <span>{currentSlide.secondary_button_text}</span>
                   </a>
                 )}
               </div>
