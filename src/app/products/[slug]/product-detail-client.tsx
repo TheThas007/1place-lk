@@ -17,6 +17,7 @@ import {
   ArrowRight,
   Banknote,
   CreditCard,
+  MessageCircle,
 } from "lucide-react";
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
@@ -57,6 +58,7 @@ export default function ProductDetailClient({
 
   // 1. Color Variants
   const colorVariants: ProductColor[] = useMemo(() => {
+    if (product.hasColorVariants === false) return [];
     if (product.color_variants && product.color_variants.length > 0) {
       return product.color_variants;
     }
@@ -68,19 +70,69 @@ export default function ProductDetailClient({
         images: product.images || [],
       }));
     }
-    return [
-      {
-        id: "c-default",
-        name: "Standard",
-        hex: "#000000",
-        images: product.images || [],
-      },
-    ];
+    return [];
   }, [product]);
 
   // 2. Normalized Product Variants (Single Source of Truth)
   const normalizedVariants: NormalizedVariant[] = useMemo(() => {
     const list: NormalizedVariant[] = [];
+
+    if (colorVariants.length === 0) {
+      if (product.variant_combos && product.variant_combos.length > 0) {
+        product.variant_combos.forEach((combo, idx) => {
+          const validPrice = (combo.price && Number(combo.price) > 0) ? Number(combo.price) : (product.price || 0);
+          const validOldPrice = (combo.old_price && Number(combo.old_price) > 0) ? Number(combo.old_price) : (product.old_price || null);
+
+          list.push({
+            id: combo.id || `v-${idx}`,
+            color: "",
+            colorObj: { id: "c-0", name: "", hex: "", images: product.images || [] },
+            storage: combo.storage || combo.ram || "Standard",
+            ram: combo.ram,
+            sim_type: combo.sim_type,
+            price: validPrice,
+            old_price: validOldPrice,
+            stock: combo.stock_quantity ?? (product.stock_status === "out_of_stock" ? 0 : 10),
+            sku: combo.sku || product.code || product.slug,
+            image: combo.image_ref || product.images?.[0],
+            gallery: product.images || [],
+            warranty: combo.warranty,
+            status: combo.status || "active",
+          });
+        });
+      } else if (product.storage_options && product.storage_options.length > 0) {
+        product.storage_options.forEach((st) => {
+          list.push({
+            id: `v-${st}`.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+            color: "",
+            colorObj: { id: "c-0", name: "", hex: "", images: product.images || [] },
+            storage: st,
+            price: (product.storage_prices && product.storage_prices[st]) || product.price,
+            old_price: product.old_price,
+            stock: product.stock_status === "out_of_stock" ? 0 : 10,
+            sku: product.code ? `${product.code}-${st}` : `${product.slug}-${st.toLowerCase()}`,
+            image: product.images?.[0],
+            gallery: product.images || [],
+            status: "active",
+          });
+        });
+      } else {
+        list.push({
+          id: `v-default`,
+          color: "",
+          colorObj: { id: "c-0", name: "", hex: "", images: product.images || [] },
+          storage: "Standard",
+          price: product.price || 0,
+          old_price: product.old_price || null,
+          stock: product.stock_status === "out_of_stock" ? 0 : 10,
+          sku: product.code || product.slug,
+          image: product.images?.[0],
+          gallery: product.images || [],
+          status: "active",
+        });
+      }
+      return list;
+    }
 
     if (product.variant_combos && product.variant_combos.length > 0) {
       product.variant_combos.forEach((combo, idx) => {
@@ -171,7 +223,7 @@ export default function ProductDetailClient({
 
   // Selected Color Name
   const [selectedColor, setSelectedColor] = useState<string>(
-    colorVariants[0]?.name || "Standard"
+    colorVariants[0]?.name || ""
   );
 
   // Sync selectedColor if colorVariants list changes
@@ -183,19 +235,21 @@ export default function ProductDetailClient({
 
   // Active Color Object
   const selectedColorObj = useMemo(() => {
+    if (colorVariants.length === 0) return null;
     return (
       colorVariants.find((c) => c.name === selectedColor) ||
       colorVariants[0] ||
-      { id: "c-0", name: "Standard", hex: "#000000", images: product.images || [] }
+      null
     );
-  }, [colorVariants, selectedColor, product.images]);
+  }, [colorVariants, selectedColor]);
 
   // Available variants for current selected color ONLY
   const availableVariantsForColor = useMemo(() => {
+    if (colorVariants.length === 0) return normalizedVariants.filter((v) => v.status !== "inactive");
     return normalizedVariants.filter(
       (v) => v.color === selectedColor && v.status !== "inactive"
     );
-  }, [normalizedVariants, selectedColor]);
+  }, [normalizedVariants, selectedColor, colorVariants]);
 
   // Selected Storage Option
   const [selectedStorage, setSelectedStorage] = useState<string | null>(() => {
@@ -289,7 +343,7 @@ export default function ProductDetailClient({
         if (!list.includes(img)) list.push(img);
       });
     }
-    if (selectedColorObj.images && selectedColorObj.images.length > 0) {
+    if (selectedColorObj?.images && selectedColorObj.images.length > 0) {
       selectedColorObj.images.forEach((img) => {
         if (!list.includes(img)) list.push(img);
       });
@@ -350,6 +404,9 @@ export default function ProductDetailClient({
       ram: selectedVariant.ram,
       storage: selectedVariant.storage,
       sku: currentSku,
+      allow_cod: product.allow_cod !== false,
+      allow_card: product.allow_card !== false,
+      allow_whatsapp: product.allow_whatsapp !== false,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
     });
@@ -373,6 +430,9 @@ export default function ProductDetailClient({
       ram: selectedVariant.ram,
       storage: selectedVariant.storage,
       sku: currentSku,
+      allow_cod: product.allow_cod !== false,
+      allow_card: product.allow_card !== false,
+      allow_whatsapp: product.allow_whatsapp !== false,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
     });
@@ -453,7 +513,7 @@ export default function ProductDetailClient({
           {/* Left Column: Image Gallery (Updates dynamically per color & variant) */}
           <div className="lg:col-span-6">
             <ProductGallery
-              key={selectedVariant?.id || selectedColorObj.id}
+              key={selectedVariant?.id || selectedColorObj?.id || product.id}
               images={activeImages}
               name={product.name}
               discount={discountPercent}
@@ -812,10 +872,15 @@ export default function ProductDetailClient({
                     <Banknote className="w-4 h-4 text-black shrink-0" />
                     <span>Cash on Delivery</span>
                   </div>
-                ) : (
-                  <div className="flex items-center gap-2.5 text-amber-800">
-                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
+                ) : product.allow_card !== false ? (
+                  <div className="flex items-center gap-2.5 text-blue-700">
+                    <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
                     <span className="font-bold">Card / Online Payment</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 text-emerald-700">
+                    <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                    <span className="font-bold">WhatsApp Direct Order</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2.5">

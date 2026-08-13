@@ -47,6 +47,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       quantity: 1,
       color: product.colors?.[0],
       storage: product.storage_options?.[0],
+      allow_cod: product.allow_cod !== false,
+      allow_card: product.allow_card !== false,
+      allow_whatsapp: product.allow_whatsapp !== false,
     });
 
     setAdded(true);

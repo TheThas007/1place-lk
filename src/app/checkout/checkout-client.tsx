@@ -108,9 +108,42 @@ export default function CheckoutClient() {
   }, []);
 
   // Computations
+  const itemsToUse = useMemo(() => {
+    return checkoutItems.length > 0 ? checkoutItems : cart;
+  }, [checkoutItems, cart]);
+
+  const isCodAllowed = useMemo(() => {
+    if (!itemsToUse || itemsToUse.length === 0) return true;
+    return itemsToUse.every((item) => item.allow_cod !== false);
+  }, [itemsToUse]);
+
+  const isCardAllowed = useMemo(() => {
+    if (!itemsToUse || itemsToUse.length === 0) return true;
+    return itemsToUse.every((item) => item.allow_card !== false);
+  }, [itemsToUse]);
+
+  const isWhatsappAllowed = useMemo(() => {
+    if (!itemsToUse || itemsToUse.length === 0) return true;
+    return itemsToUse.every((item) => item.allow_whatsapp !== false);
+  }, [itemsToUse]);
+
+  // Sync active paymentMethod if current selection is disabled
+  useEffect(() => {
+    if (paymentMethod === "cod" && !isCodAllowed) {
+      if (isCardAllowed) setPaymentMethod("payhere");
+      else if (isWhatsappAllowed) setPaymentMethod("whatsapp");
+    } else if (paymentMethod === "payhere" && !isCardAllowed) {
+      if (isCodAllowed) setPaymentMethod("cod");
+      else if (isWhatsappAllowed) setPaymentMethod("whatsapp");
+    } else if (paymentMethod === "whatsapp" && !isWhatsappAllowed) {
+      if (isCodAllowed) setPaymentMethod("cod");
+      else if (isCardAllowed) setPaymentMethod("payhere");
+    }
+  }, [isCodAllowed, isCardAllowed, isWhatsappAllowed, paymentMethod]);
+
   const subtotal = useMemo(() => {
-    return checkoutItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
-  }, [checkoutItems]);
+    return itemsToUse.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  }, [itemsToUse]);
 
   const deliveryFee = deliveryOption === "pickup" ? 0 : 450;
   const codFee = paymentMethod === "cod" ? codFeeAmount : 0;
@@ -576,76 +609,88 @@ export default function CheckoutClient() {
 
               <div className="space-y-3">
                 {/* PayHere */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("payhere")}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
-                    paymentMethod === "payhere"
-                      ? "border-black bg-[#FAFAFA] ring-1 ring-black"
-                      : "border-[#EAEAEA] bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "payhere" ? "border-black bg-black text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "payhere" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                {isCardAllowed && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("payhere")}
+                    className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
+                      paymentMethod === "payhere"
+                        ? "border-black bg-[#FAFAFA] ring-1 ring-black"
+                        : "border-[#EAEAEA] bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
+                        paymentMethod === "payhere" ? "border-black bg-black text-white" : "border-gray-300"
+                      }`}>
+                        {paymentMethod === "payhere" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-black">Pay Online with PayHere</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Visa, Mastercard, Genie, EzCash & Bank Cards</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-black">Pay Online with PayHere</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Visa, Mastercard, Genie, EzCash & Bank Cards</p>
-                    </div>
-                  </div>
-                  <span className="text-xs font-bold text-black bg-gray-100 px-2.5 py-1 rounded-md">PayHere</span>
-                </button>
+                    <span className="text-xs font-bold text-black bg-gray-100 px-2.5 py-1 rounded-md">PayHere</span>
+                  </button>
+                )}
 
                 {/* Cash on Delivery */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("cod")}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
-                    paymentMethod === "cod"
-                      ? "border-black bg-[#FAFAFA] ring-1 ring-black"
-                      : "border-[#EAEAEA] bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "cod" ? "border-black bg-black text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "cod" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                {isCodAllowed && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("cod")}
+                    className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
+                      paymentMethod === "cod"
+                        ? "border-black bg-[#FAFAFA] ring-1 ring-black"
+                        : "border-[#EAEAEA] bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
+                        paymentMethod === "cod" ? "border-black bg-black text-white" : "border-gray-300"
+                      }`}>
+                        {paymentMethod === "cod" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-black">Cash on Delivery (COD)</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Pay in cash when your order arrives (+ Rs. {codFeeAmount} fee)</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-black">Cash on Delivery (COD)</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Pay in cash when your order arrives (+ Rs. {codFeeAmount} fee)</p>
-                    </div>
-                  </div>
-                  <Banknote className="w-5 h-5 text-black shrink-0" />
-                </button>
+                    <Banknote className="w-5 h-5 text-black shrink-0" />
+                  </button>
+                )}
 
                 {/* WhatsApp Order */}
-                <button
-                  type="button"
-                  onClick={() => setPaymentMethod("whatsapp")}
-                  className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
-                    paymentMethod === "whatsapp"
-                      ? "border-black bg-[#FAFAFA] ring-1 ring-black"
-                      : "border-[#EAEAEA] bg-white hover:border-gray-300"
-                  }`}
-                >
-                  <div className="flex items-start gap-3">
-                    <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
-                      paymentMethod === "whatsapp" ? "border-black bg-black text-white" : "border-gray-300"
-                    }`}>
-                      {paymentMethod === "whatsapp" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                {isWhatsappAllowed && (
+                  <button
+                    type="button"
+                    onClick={() => setPaymentMethod("whatsapp")}
+                    className={`w-full p-4 rounded-2xl border text-left flex items-start justify-between gap-4 transition-all ${
+                      paymentMethod === "whatsapp"
+                        ? "border-black bg-[#FAFAFA] ring-1 ring-black"
+                        : "border-[#EAEAEA] bg-white hover:border-gray-300"
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className={`w-4 h-4 rounded-full border mt-1 flex items-center justify-center shrink-0 ${
+                        paymentMethod === "whatsapp" ? "border-black bg-black text-white" : "border-gray-300"
+                      }`}>
+                        {paymentMethod === "whatsapp" && <div className="w-1.5 h-1.5 rounded-full bg-white" />}
+                      </div>
+                      <div>
+                        <p className="font-bold text-sm text-black">Order via WhatsApp</p>
+                        <p className="text-xs text-gray-500 mt-0.5">Send order direct to Street Mobile support desk</p>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-bold text-sm text-black">Order via WhatsApp</p>
-                      <p className="text-xs text-gray-500 mt-0.5">Send order direct to Street Mobile support desk</p>
-                    </div>
-                  </div>
-                  <MessageCircle className="w-5 h-5 text-black shrink-0" />
-                </button>
+                    <MessageCircle className="w-5 h-5 text-black shrink-0" />
+                  </button>
+                )}
+
+                {!isCardAllowed && !isCodAllowed && !isWhatsappAllowed && (
+                  <p className="text-xs text-red-500 font-bold p-3.5 bg-red-50 border border-red-200 rounded-xl">
+                    No active payment methods configured for these items. Please contact support.
+                  </p>
+                )}
               </div>
             </div>
 
