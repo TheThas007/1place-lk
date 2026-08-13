@@ -202,7 +202,7 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
                 className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-[11px] outline-none"
               >
                 <option value="product_categories">Product Categories</option>
-                <option value="phones">Phone Brands</option>
+                <option value="phones">Smartphones & Devices</option>
                 <option value="accessories">Accessories</option>
                 <option value="other">Other</option>
               </select>

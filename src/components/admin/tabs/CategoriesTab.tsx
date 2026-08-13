@@ -17,23 +17,67 @@ export default function CategoriesTab({
   onEdit,
   onDelete,
 }: CategoriesTabProps) {
+  const [isFixing, setIsFixing] = React.useState(false);
+  const [fixMessage, setFixMessage] = React.useState<string | null>(null);
+
+  const handleFixClassification = async () => {
+    if (!confirm("This will safely check all products in database and separate mixed Category (Smartphones, Watches, Laptops) & Brand (Apple, Samsung, Honor) fields. Proceed?")) return;
+    setIsFixing(true);
+    setFixMessage("Fixing product category & brand fields...");
+    try {
+      const res = await fetch("/api/admin/migrate-categories", { method: "POST" });
+      const data = await res.json();
+      if (data.success) {
+        setFixMessage(`✅ Success! Updated ${data.updatedCount || 0} products cleanly.`);
+        setTimeout(() => {
+          setFixMessage(null);
+          window.location.reload();
+        }, 3000);
+      } else {
+        alert("Failed to fix products: " + data.error);
+        setFixMessage(null);
+      }
+    } catch (e: any) {
+      alert("Error: " + e.message);
+      setFixMessage(null);
+    } finally {
+      setIsFixing(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-white">Brand & Categories Management</h3>
-          <p className="text-xs text-white/40 mt-0.5">
-            {categories.length} total categories
+          <h3 className="text-lg font-bold text-white">Product Categories Management</h3>
+          <p className="text-xs text-white/50 mt-0.5">
+            {categories.length} categories · Categories classify product types (Smartphones, Smart Watches, Laptops, Earbuds, Chargers, etc.). Genuine manufacturers (Apple, Samsung, Honor, etc.) are in the Brands tab.
           </p>
         </div>
-        <button
-          onClick={onAdd}
-          className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
-        >
-          <Plus className="w-4 h-4" />
-          Add Category
-        </button>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleFixClassification}
+            disabled={isFixing}
+            className="flex items-center gap-2 px-3.5 py-2.5 bg-blue-600/30 hover:bg-blue-600/50 text-blue-300 border border-blue-500/30 rounded-xl text-xs font-bold transition-all disabled:opacity-50"
+            title="Auto-separate mixed Category & Brand names on existing products"
+          >
+            {isFixing ? "Fixing..." : "⚡ Auto-Fix Mixed Category & Brands"}
+          </button>
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white text-slate-900 rounded-xl text-sm font-semibold hover:bg-white/90 transition-all active:scale-[0.98]"
+          >
+            <Plus className="w-4 h-4" />
+            Add Category
+          </button>
+        </div>
       </div>
+
+      {fixMessage && (
+        <div className="p-3.5 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-emerald-300 text-xs font-bold animate-in fade-in">
+          {fixMessage}
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {categories.map((cat) => (

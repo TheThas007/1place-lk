@@ -247,9 +247,16 @@ export default function ProductModal({
       setName(initialData.name || "");
       setCode(initialData.code || "");
       setSlug(initialData.slug || "");
-      const initCatId = initialData.category_id || categories[0]?.id || "";
+      // Initialize edit data
+      const initCatId = initialData?.category_id || categories[0]?.id || "";
       setCategoryId(initCatId);
-      setBrand(initialData.compatible_brands?.[0] || (initialData as any).brand || "Apple");
+      setBrand(
+        initialData?.brand_name ||
+        initialData?.brandName ||
+        initialData?.brand ||
+        initialData?.compatible_brands?.[0] ||
+        "Apple"
+      );
       setDescription(initialData.description || "");
       setShortDesc(initialData.delivery_info || "");
       setFeatured(!!initialData.featured);
@@ -375,7 +382,7 @@ export default function ProductModal({
       setHasStorageVariants(isPhone);
 
       setCategoryId(defaultCatId);
-      setBrand(defaultCatName);
+      setBrand("Apple");
       setDescription("");
       setShortDesc("");
       setFeatured(false);
