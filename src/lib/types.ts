@@ -208,6 +208,16 @@ export interface HeroSlide {
 
   heading_line_1?: string;
   heading_line_2?: string;
+  show_heading_line_1?: boolean;
+  show_heading_line_2?: boolean;
+  heading_line_1_color?: string;
+  headingLine1Color?: string;
+  heading_line_2_color?: string;
+  headingLine2Color?: string;
+  heading_line_1_size?: string;
+  heading_line_2_size?: string;
+  heading_line_1_weight?: string;
+  heading_line_2_weight?: string;
   show_badge?: boolean;
   show_description?: boolean;
   show_primary_button?: boolean;
@@ -229,7 +239,7 @@ export interface HeroSlide {
   text_align?: "left" | "center" | "right";
   content_horizontal_position?: "left" | "center" | "right";
   content_vertical_position?: "top" | "center" | "bottom";
-  content_max_width?: "500px" | "520px" | "570px" | "620px" | "720px" | "full";
+  content_max_width?: "500px" | "520px" | "570px" | "620px" | "700px" | "720px" | "full";
   desktop_heading_size?: string;
   tablet_heading_size?: string;
   mobile_heading_size?: string;

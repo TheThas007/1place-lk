@@ -77,22 +77,40 @@ export default function HeroSection() {
       ? "text-right items-end"
       : "text-left items-start";
 
-  // Max width (default 520px as per spec)
+  // Container Max Width (default min(700px, 48vw) on desktop)
   const maxWClass =
     currentSlide.content_max_width === "500px"
       ? "max-w-[500px]"
+      : currentSlide.content_max_width === "520px"
+      ? "max-w-[520px]"
       : currentSlide.content_max_width === "570px"
       ? "max-w-[570px]"
       : currentSlide.content_max_width === "620px"
       ? "max-w-[620px]"
-      : currentSlide.content_max_width === "720px"
-      ? "max-w-[720px]"
       : currentSlide.content_max_width === "full"
       ? "max-w-full"
-      : "max-w-[520px]";
+      : "max-w-[700px] lg:w-[min(700px,48vw)]";
 
-  // Construct heading text or line 1 & line 2
-  const hasTwoLines = Boolean(currentSlide.heading_line_1 || currentSlide.heading_line_2);
+  // Heading Line 1 & Line 2 Extraction & Safe Fallbacks
+  const line1Text = currentSlide.heading_line_1 !== undefined
+    ? currentSlide.heading_line_1
+    : (currentSlide.heading ? currentSlide.heading.split(". ")[0] + (currentSlide.heading.includes(". ") ? "." : "") : "Latest Smartphones.");
+
+  const line2Text = currentSlide.heading_line_2 !== undefined
+    ? currentSlide.heading_line_2
+    : (currentSlide.heading && currentSlide.heading.includes(". ") ? currentSlide.heading.split(". ").slice(1).join(". ") : "Ultimate Performance.");
+
+  const showLine1 = currentSlide.show_heading_line_1 !== false && Boolean(line1Text);
+  const showLine2 = currentSlide.show_heading_line_2 !== false && Boolean(line2Text);
+
+  const line1Color = currentSlide.heading_line_1_color || currentSlide.headingLine1Color || currentSlide.heading_color || "#FFFFFF";
+  const line2Color = currentSlide.heading_line_2_color || currentSlide.headingLine2Color || currentSlide.heading_color || "#FFFFFF";
+
+  const line1Size = currentSlide.heading_line_1_size || currentSlide.desktop_heading_size || "clamp(46px, 4vw, 68px)";
+  const line2Size = currentSlide.heading_line_2_size || currentSlide.desktop_heading_size || "clamp(46px, 4vw, 68px)";
+
+  const line1Weight = currentSlide.heading_line_1_weight || currentSlide.font_weight || "800";
+  const line2Weight = currentSlide.heading_line_2_weight || currentSlide.font_weight || "800";
 
   return (
     <section
@@ -114,7 +132,7 @@ export default function HeroSection() {
           {/* Desktop Background Image */}
           <img
             src={desktopBg}
-            alt={currentSlide.alt || currentSlide.heading || "Hero Banner"}
+            alt={currentSlide.alt || line1Text || "Hero Banner"}
             className="hidden lg:block w-full h-full object-cover"
             style={{
               objectPosition: currentSlide.desktop_image_position || "center",
@@ -123,7 +141,7 @@ export default function HeroSection() {
           {/* Mobile Background Image */}
           <img
             src={mobileBg}
-            alt={currentSlide.alt || currentSlide.heading || "Hero Banner"}
+            alt={currentSlide.alt || line1Text || "Hero Banner"}
             className="lg:hidden w-full h-full object-cover"
             style={{
               objectPosition: currentSlide.mobile_image_position || "center",
@@ -171,26 +189,31 @@ export default function HeroSection() {
                 </div>
               )}
 
-              {/* 2. Main Heading (clamp 48px-72px, 800 weight, line-height 1.02, letter-spacing -0.04em, max 2 lines, 18px bottom margin) */}
-              <h1
-                className="text-[36px] sm:text-[48px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-extrabold leading-[1.02] tracking-[-0.04em] drop-shadow-xl line-clamp-2 hyphens-none break-normal mb-[18px]"
-                style={{
-                  color: currentSlide.heading_color || "#FFFFFF",
-                  fontWeight: currentSlide.font_weight || "800",
-                }}
-              >
-                {hasTwoLines ? (
-                  <>
-                    {currentSlide.heading_line_1}
-                    {currentSlide.heading_line_2 && (
-                      <>
-                        <br />
-                        {currentSlide.heading_line_2}
-                      </>
-                    )}
-                  </>
-                ) : (
-                  currentSlide.heading || "Premium Mobile Experience."
+              {/* 2. Main Dual-Line Heading (No Line Clamp, No Truncation, Independent Colors for Line 1 & Line 2) */}
+              <h1 className="flex flex-col mb-[18px] w-full break-normal whitespace-normal overflow-visible">
+                {showLine1 && (
+                  <span
+                    className="block leading-[1.02] tracking-[-0.04em] drop-shadow-xl break-normal whitespace-normal hyphens-none"
+                    style={{
+                      color: line1Color,
+                      fontSize: line1Size,
+                      fontWeight: line1Weight,
+                    }}
+                  >
+                    {line1Text}
+                  </span>
+                )}
+                {showLine2 && (
+                  <span
+                    className="block leading-[1.02] tracking-[-0.04em] drop-shadow-xl break-normal whitespace-normal hyphens-none mt-1 sm:mt-1.5"
+                    style={{
+                      color: line2Color,
+                      fontSize: line2Size,
+                      fontWeight: line2Weight,
+                    }}
+                  >
+                    {line2Text}
+                  </span>
                 )}
               </h1>
 

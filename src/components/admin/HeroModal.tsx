@@ -40,6 +40,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [showBadge, setShowBadge] = useState(true);
   const [headingLine1, setHeadingLine1] = useState("");
   const [headingLine2, setHeadingLine2] = useState("");
+  const [showHeadingLine1, setShowHeadingLine1] = useState(true);
+  const [showHeadingLine2, setShowHeadingLine2] = useState(true);
+  const [headingLine1Color, setHeadingLine1Color] = useState("#FFFFFF");
+  const [headingLine2Color, setHeadingLine2Color] = useState("#FFFFFF");
+  const [headingLine1Size, setHeadingLine1Size] = useState("clamp(46px, 4vw, 68px)");
+  const [headingLine2Size, setHeadingLine2Size] = useState("clamp(46px, 4vw, 68px)");
+  const [headingLine1Weight, setHeadingLine1Weight] = useState("800");
+  const [headingLine2Weight, setHeadingLine2Weight] = useState("800");
   const [showDescription, setShowDescription] = useState(true);
   const [showPrimaryButton, setShowPrimaryButton] = useState(true);
 
@@ -60,10 +68,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
   const [contentHorizontalPosition, setContentHorizontalPosition] = useState<"left" | "center" | "right">("left");
   const [contentVerticalPosition, setContentVerticalPosition] = useState<"top" | "center" | "bottom">("center");
-  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "520px" | "570px" | "620px" | "720px" | "full">("520px");
-  const [desktopHeadingSize, setDesktopHeadingSize] = useState("clamp(48px, 4.2vw, 72px)");
-  const [tabletHeadingSize, setTabletHeadingSize] = useState("54px");
-  const [mobileHeadingSize, setMobileHeadingSize] = useState("40px");
+  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "520px" | "570px" | "620px" | "700px" | "720px" | "full">("700px");
+  const [desktopHeadingSize, setDesktopHeadingSize] = useState("clamp(46px, 4vw, 68px)");
+  const [tabletHeadingSize, setTabletHeadingSize] = useState("52px");
+  const [mobileHeadingSize, setMobileHeadingSize] = useState("38px");
   const [fontFamily, setFontFamily] = useState("Manrope");
   const [fontWeight, setFontWeight] = useState("800");
   const [lineHeight, setLineHeight] = useState("1.02");
@@ -86,8 +94,16 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setAlt(slide.alt || "");
       setCampaignLabel(slide.campaign_label || "NEW ARRIVAL");
       setHeading(slide.heading || slide.alt || "");
-      setHeadingLine1(slide.heading_line_1 || "");
-      setHeadingLine2(slide.heading_line_2 || "");
+      setHeadingLine1(slide.heading_line_1 || "Latest Smartphones.");
+      setHeadingLine2(slide.heading_line_2 || "Ultimate Performance.");
+      setShowHeadingLine1(slide.show_heading_line_1 ?? true);
+      setShowHeadingLine2(slide.show_heading_line_2 ?? true);
+      setHeadingLine1Color(slide.heading_line_1_color || slide.headingLine1Color || slide.heading_color || "#FFFFFF");
+      setHeadingLine2Color(slide.heading_line_2_color || slide.headingLine2Color || slide.heading_color || "#FFFFFF");
+      setHeadingLine1Size(slide.heading_line_1_size || "clamp(46px, 4vw, 68px)");
+      setHeadingLine2Size(slide.heading_line_2_size || "clamp(46px, 4vw, 68px)");
+      setHeadingLine1Weight(slide.heading_line_1_weight || "800");
+      setHeadingLine2Weight(slide.heading_line_2_weight || "800");
       setDescription(slide.description || "");
       setPromoText(slide.promo_text || "");
       setPrimaryButtonText(slide.primary_button_text || "Shop Now");
@@ -121,10 +137,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign(slide.text_align || "left");
       setContentHorizontalPosition(slide.content_horizontal_position || "left");
       setContentVerticalPosition(slide.content_vertical_position || "center");
-      setContentMaxWidth(slide.content_max_width || "520px");
-      setDesktopHeadingSize(slide.desktop_heading_size || "clamp(48px, 4.2vw, 72px)");
-      setTabletHeadingSize(slide.tablet_heading_size || "54px");
-      setMobileHeadingSize(slide.mobile_heading_size || "40px");
+      setContentMaxWidth(slide.content_max_width || "700px");
+      setDesktopHeadingSize(slide.desktop_heading_size || "clamp(46px, 4vw, 68px)");
+      setTabletHeadingSize(slide.tablet_heading_size || "52px");
+      setMobileHeadingSize(slide.mobile_heading_size || "38px");
       setFontFamily(slide.font_family || "Manrope");
       setFontWeight(slide.font_weight || "800");
       setLineHeight(slide.line_height || "1.02");
@@ -136,9 +152,17 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setMobilePreview("");
       setAlt("");
       setCampaignLabel("NEW ARRIVAL");
-      setHeading("");
-      setHeadingLine1("");
-      setHeadingLine2("");
+      setHeading("Latest Smartphones. Ultimate Performance.");
+      setHeadingLine1("Latest Smartphones.");
+      setHeadingLine2("Ultimate Performance.");
+      setShowHeadingLine1(true);
+      setShowHeadingLine2(true);
+      setHeadingLine1Color("#FFFFFF");
+      setHeadingLine2Color("#FFFFFF");
+      setHeadingLine1Size("clamp(46px, 4vw, 68px)");
+      setHeadingLine2Size("clamp(46px, 4vw, 68px)");
+      setHeadingLine1Weight("800");
+      setHeadingLine2Weight("800");
       setDescription("");
       setPromoText("");
       setPrimaryButtonText("Shop Now");
@@ -172,10 +196,10 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setTextAlign("left");
       setContentHorizontalPosition("left");
       setContentVerticalPosition("center");
-      setContentMaxWidth("520px");
-      setDesktopHeadingSize("clamp(48px, 4.2vw, 72px)");
-      setTabletHeadingSize("54px");
-      setMobileHeadingSize("40px");
+      setContentMaxWidth("700px");
+      setDesktopHeadingSize("clamp(46px, 4vw, 68px)");
+      setTabletHeadingSize("52px");
+      setMobileHeadingSize("38px");
       setFontFamily("Manrope");
       setFontWeight("800");
       setLineHeight("1.02");
@@ -235,6 +259,16 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         heading: computedHeading,
         heading_line_1: headingLine1.trim(),
         heading_line_2: headingLine2.trim(),
+        show_heading_line_1: showHeadingLine1,
+        show_heading_line_2: showHeadingLine2,
+        heading_line_1_color: headingLine1Color,
+        headingLine1Color: headingLine1Color,
+        heading_line_2_color: headingLine2Color,
+        headingLine2Color: headingLine2Color,
+        heading_line_1_size: headingLine1Size,
+        heading_line_2_size: headingLine2Size,
+        heading_line_1_weight: headingLine1Weight,
+        heading_line_2_weight: headingLine2Weight,
         description: description.trim(),
         promo_text: promoText.trim(),
         primary_button_text: primaryButtonText.trim() || "Shop Now",
@@ -776,27 +810,90 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
               </div>
             </div>
 
-            {/* Heading Lines */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs font-bold text-white/80 mb-1">Heading Line 1</label>
+            {/* Heading Lines Section with Independent Colors */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-white/10">
+              {/* Heading Line 1 Control Box */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white/90 flex items-center gap-1.5">
+                    Heading Line 1
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-white/70 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showHeadingLine1}
+                      onChange={(e) => setShowHeadingLine1(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                    />
+                    Enable Line 1
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={headingLine1}
                   onChange={(e) => setHeadingLine1(e.target.value)}
-                  placeholder="e.g. Premium Mobile"
-                  className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                  placeholder="e.g. Latest Smartphones."
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 1 Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={headingLine1Color}
+                      onChange={(e) => setHeadingLine1Color(e.target.value)}
+                      className="w-8 h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={headingLine1Color}
+                      onChange={(e) => setHeadingLine1Color(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono uppercase"
+                    />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-bold text-white/80 mb-1">Heading Line 2</label>
+
+              {/* Heading Line 2 Control Box */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl space-y-3">
+                <div className="flex items-center justify-between">
+                  <label className="text-xs font-bold text-white/90 flex items-center gap-1.5">
+                    Heading Line 2
+                  </label>
+                  <label className="flex items-center gap-1.5 text-xs font-medium text-white/70 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={showHeadingLine2}
+                      onChange={(e) => setShowHeadingLine2(e.target.checked)}
+                      className="w-3.5 h-3.5 accent-emerald-500 rounded"
+                    />
+                    Enable Line 2
+                  </label>
+                </div>
                 <input
                   type="text"
                   value={headingLine2}
                   onChange={(e) => setHeadingLine2(e.target.value)}
-                  placeholder="e.g. Experience."
-                  className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
+                  placeholder="e.g. Ultimate Performance."
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-bold focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
+                <div>
+                  <label className="block text-[11px] font-semibold text-white/70 mb-1">Line 2 Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={headingLine2Color}
+                      onChange={(e) => setHeadingLine2Color(e.target.value)}
+                      className="w-8 h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer shrink-0"
+                    />
+                    <input
+                      type="text"
+                      value={headingLine2Color}
+                      onChange={(e) => setHeadingLine2Color(e.target.value)}
+                      className="w-full px-3 py-1.5 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono uppercase"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 
