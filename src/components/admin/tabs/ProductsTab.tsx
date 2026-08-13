@@ -93,13 +93,15 @@ export default function ProductsTab({
   // 1. Standardize / Clean product classification helper
   const getProductCategory = (p: Product): string => {
     const rawCat = (p.category_name || p.categoryName || (p as any).category || "").trim();
+    // Strip emojis
+    const cleanCat = rawCat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
     const name = p.name.toLowerCase();
 
-    // If rawCat matches known brand, infer real category from name
-    const rawCatLower = rawCat.toLowerCase();
+    // If cleanCat matches known brand, infer real category from name
+    const rawCatLower = cleanCat.toLowerCase();
     const isBrandAsCat = STANDARD_BRANDS.some((b) => b.toLowerCase() === rawCatLower);
 
-    if (isBrandAsCat || !rawCat || rawCat === "General") {
+    if (isBrandAsCat || !cleanCat || cleanCat === "General") {
       if (name.includes("iphone") || name.includes("galaxy") || name.includes("phone") || name.includes("5g") || name.includes("redmi note")) return "Smartphones";
       if (name.includes("headphone") || name.includes("headset")) return "Headphones";
       if (name.includes("buds") || name.includes("earbuds") || name.includes("tws") || name.includes("airpods")) return "Earbuds & TWS";
@@ -113,7 +115,7 @@ export default function ProductsTab({
       if (name.includes("macbook") || name.includes("laptop")) return "Laptops & MacBooks";
     }
 
-    return rawCat || "Smartphones";
+    return cleanCat || "Smartphones";
   };
 
   const getProductBrand = (p: Product): string => {

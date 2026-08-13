@@ -107,28 +107,19 @@ const DEFAULT_BRANDS = [
 ];
 
 const DEFAULT_PRODUCT_CATEGORIES: Category[] = [
-  { id: "cat-smartphones", name: "📱 Smartphones", slug: "smartphones", icon: "📱", image_url: "", sort_order: 1, group: "product_categories" },
-  { id: "cat-laptops", name: "💻 Laptops & MacBooks", slug: "laptops", icon: "💻", image_url: "", sort_order: 2, group: "product_categories" },
-  { id: "cat-watches", name: "⌚ Smart Watches", slug: "smart-watches", icon: "⌚", image_url: "", sort_order: 3, group: "product_categories" },
-  { id: "cat-earbuds", name: "🎧 Earbuds & TWS", slug: "earbuds", icon: "🎧", image_url: "", sort_order: 4, group: "product_categories" },
-  { id: "cat-headphones", name: "🎧 Headphones", slug: "headphones", icon: "🎧", image_url: "", sort_order: 5, group: "product_categories" },
-  { id: "cat-adapter", name: "🔌 Adapter", slug: "adapter", icon: "🔌", image_url: "", sort_order: 6, group: "product_categories" },
-  { id: "cat-bag", name: "🎒 Bag", slug: "bag", icon: "🎒", image_url: "", sort_order: 7, group: "product_categories" },
-  { id: "cat-battery", name: "🔋 Battery", slug: "battery", icon: "🔋", image_url: "", sort_order: 8, group: "product_categories" },
-  { id: "cat-cables", name: "🔌 Cable", slug: "cables", icon: "🔌", image_url: "", sort_order: 9, group: "product_categories" },
-  { id: "cat-display", name: "🖥️ Display", slug: "display", icon: "🖥️", image_url: "", sort_order: 10, group: "product_categories" },
-  { id: "cat-gimble", name: "📹 Gimble", slug: "gimble", icon: "📹", image_url: "", sort_order: 11, group: "product_categories" },
-  { id: "cat-hub", name: "🔌 HUB", slug: "hub", icon: "🔌", image_url: "", sort_order: 12, group: "product_categories" },
-  { id: "cat-keyboard", name: "⌨️ Keyboard", slug: "keyboard", icon: "⌨️", image_url: "", sort_order: 13, group: "product_categories" },
-  { id: "cat-mouse", name: "🖱️ Mouse", slug: "mouse", icon: "🖱️", image_url: "", sort_order: 14, group: "product_categories" },
-  { id: "cat-tablets", name: "📱 Tab", slug: "tablets", icon: "📱", image_url: "", sort_order: 15, group: "product_categories" },
-  { id: "cat-otg", name: "🔌 OTG", slug: "otg", icon: "🔌", image_url: "", sort_order: 16, group: "product_categories" },
-  { id: "cat-powerbanks", name: "🔋 Power Bank", slug: "power-banks", icon: "🔋", image_url: "", sort_order: 17, group: "product_categories" },
-  { id: "cat-projector", name: "📹 Projector", slug: "projector", icon: "📹", image_url: "", sort_order: 18, group: "product_categories" },
-  { id: "cat-studiolight", name: "💡 Studio Light", slug: "studio-light", icon: "💡", image_url: "", sort_order: 19, group: "product_categories" },
-  { id: "cat-router", name: "📡 Router", slug: "router", icon: "📡", image_url: "", sort_order: 20, group: "product_categories" },
-  { id: "cat-selfiestick", name: "🤳 Selfie Stick", slug: "selfie-stick", icon: "🤳", image_url: "", sort_order: 21, group: "product_categories" },
-  { id: "cat-smarthomecamera", name: "📹 Smart Home Camera", slug: "smart-home-camera", icon: "📹", image_url: "", sort_order: 22, group: "product_categories" },
+  { id: "cat-smartphones", name: "Smartphones", slug: "smartphones", icon: "📱", image_url: "", sort_order: 1, group: "product_categories" },
+  { id: "cat-laptops", name: "Laptops & MacBooks", slug: "laptops", icon: "💻", image_url: "", sort_order: 2, group: "product_categories" },
+  { id: "cat-watches", name: "Smart Watches", slug: "smart-watches", icon: "⌚", image_url: "", sort_order: 3, group: "product_categories" },
+  { id: "cat-earbuds", name: "Earbuds & TWS", slug: "earbuds", icon: "🎧", image_url: "", sort_order: 4, group: "product_categories" },
+  { id: "cat-headphones", name: "Headphones", slug: "headphones", icon: "🎧", image_url: "", sort_order: 5, group: "product_categories" },
+  { id: "cat-adapter", name: "Chargers & Adapters", slug: "chargers-adapters", icon: "🔌", image_url: "", sort_order: 6, group: "product_categories" },
+  { id: "cat-cables", name: "Charging Cables", slug: "charging-cables", icon: "🔌", image_url: "", sort_order: 7, group: "product_categories" },
+  { id: "cat-powerbanks", name: "Power Banks", slug: "power-banks", icon: "🔋", image_url: "", sort_order: 8, group: "product_categories" },
+  { id: "cat-cases", name: "Phone Cases", slug: "phone-cases", icon: "📱", image_url: "", sort_order: 9, group: "product_categories" },
+  { id: "cat-screen-protectors", name: "Screen Protectors", slug: "screen-protectors", icon: "🛡️", image_url: "", sort_order: 10, group: "product_categories" },
+  { id: "cat-accessories", name: "Mobile Accessories", slug: "mobile-accessories", icon: "🎧", image_url: "", sort_order: 11, group: "product_categories" },
+  { id: "cat-tablets", name: "Tablets", slug: "tablets", icon: "📱", image_url: "", sort_order: 12, group: "product_categories" },
+  { id: "cat-speakers", name: "Speakers", slug: "speakers", icon: "🔊", image_url: "", sort_order: 13, group: "product_categories" },
 ];
 
 function sanitizeForFirestore(obj: any): any {
@@ -268,8 +259,21 @@ export default function ProductModal({
       setName(initialData.name || "");
       setCode(initialData.code || "");
       setSlug(initialData.slug || "");
-      // Initialize edit data
-      const initCatId = initialData?.category_id || categories[0]?.id || "";
+      // Initialize edit category data flexibly matching mergedCategories
+      const rawCatId = initialData?.category_id || (initialData as any)?.categoryId || "";
+      const rawCatName = (initialData?.category_name || (initialData as any)?.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+
+      const matchedCategory = mergedCategories.find((c) => {
+        const cClean = c.name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+        return (
+          c.id === rawCatId ||
+          c.slug === rawCatId ||
+          c.slug === initialData?.category_slug ||
+          cClean.toLowerCase() === rawCatName.toLowerCase()
+        );
+      });
+
+      const initCatId = matchedCategory ? matchedCategory.id : (mergedCategories[0]?.id || "cat-smartphones");
       setCategoryId(initCatId);
       setBrand(
         initialData?.brand_name ||
@@ -636,17 +640,19 @@ export default function ProductModal({
       setIsSubmitting(true);
 
       const finalCategoryObj = mergedCategories.find((c) => c.id === categoryId);
-      const finalCategoryName = isCustomCategory
+      const rawCatName = isCustomCategory
         ? customCategoryName.trim()
         : (finalCategoryObj?.name || "Smartphones");
 
-      const finalCategoryId = isCustomCategory
-        ? customCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-        : (categoryId || mergedCategories[0]?.id || "cat-smartphones");
-
-      const finalBrand = isCustomBrand ? customBrandName.trim() : (brand.trim() || "Other");
-      const finalBrandSlug = finalBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      // Strip emoji prefix from category name for database consistency
+      const finalCategoryName = rawCatName.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim() || "Smartphones";
       const finalCategorySlug = finalCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const finalCategoryId = isCustomCategory
+        ? `cat-${finalCategorySlug}`
+        : (finalCategoryObj?.id || `cat-${finalCategorySlug}`);
+
+      const finalBrand = isCustomBrand ? customBrandName.trim() : (brand.trim() || "Apple");
+      const finalBrandSlug = finalBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
       // Save Custom Category or Brand to Firestore Catalog Collections if new
       if (isCustomCategory && customCategoryName.trim()) {
