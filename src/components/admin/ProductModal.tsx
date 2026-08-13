@@ -129,8 +129,22 @@ const DEFAULT_PRODUCT_CATEGORIES: Category[] = [
   { id: "cat-router", name: "📡 Router", slug: "router", icon: "📡", image_url: "", sort_order: 20, group: "product_categories" },
   { id: "cat-selfiestick", name: "🤳 Selfie Stick", slug: "selfie-stick", icon: "🤳", image_url: "", sort_order: 21, group: "product_categories" },
   { id: "cat-smarthomecamera", name: "📹 Smart Home Camera", slug: "smart-home-camera", icon: "📹", image_url: "", sort_order: 22, group: "product_categories" },
-  { id: "cat-stand", name: "📐 Stand", slug: "stand", icon: "📐", image_url: "", sort_order: 23, group: "product_categories" },
 ];
+
+function sanitizeForFirestore(obj: any): any {
+  if (obj === undefined) return null;
+  if (obj === null || typeof obj !== "object") return obj;
+  if (Array.isArray(obj)) {
+    return obj.map((item) => sanitizeForFirestore(item));
+  }
+  const cleaned: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      cleaned[key] = sanitizeForFirestore(val);
+    }
+  }
+  return cleaned;
+}
 
 export default function ProductModal({
   isOpen,
@@ -763,10 +777,12 @@ export default function ProductModal({
         created_at: initialData?.created_at || new Date().toISOString(),
       };
 
+      const cleanedPayload = sanitizeForFirestore(productPayload);
+
       if (initialData?.id) {
-        await updateDoc(doc(db, "products", initialData.id), productPayload);
+        await updateDoc(doc(db, "products", initialData.id), cleanedPayload);
       } else {
-        await addDoc(collection(db, "products"), productPayload);
+        await addDoc(collection(db, "products"), cleanedPayload);
       }
 
       setHasUnsavedChanges(false);
