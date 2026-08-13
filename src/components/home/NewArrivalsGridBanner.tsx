@@ -23,7 +23,7 @@ export interface FeaturedGridBannerData {
 }
 
 const DEFAULT_BANNER: FeaturedGridBannerData = {
-  enabled: true,
+  enabled: false,
   title: "iPhone 16 Pro Max",
   tagline: "Titanium design. A18 Pro chip. Unmatched camera capabilities.",
   badgeText: "HOT DEAL",
@@ -50,17 +50,17 @@ export default function NewArrivalsGridBanner() {
             const data = snap.data() as FeaturedGridBannerData;
             setBanner(data);
           } else {
-            setBanner(DEFAULT_BANNER);
+            setBanner({ ...DEFAULT_BANNER, enabled: false });
           }
         },
         (err) => {
           console.warn("FeaturedGridBanner Firestore read error:", err);
-          setBanner(DEFAULT_BANNER);
+          setBanner({ ...DEFAULT_BANNER, enabled: false });
         }
       );
     } catch (e) {
       console.warn("FeaturedGridBanner setup error:", e);
-      setBanner(DEFAULT_BANNER);
+      setBanner({ ...DEFAULT_BANNER, enabled: false });
     }
 
     return () => {

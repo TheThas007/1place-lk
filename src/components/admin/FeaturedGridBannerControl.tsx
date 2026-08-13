@@ -108,7 +108,16 @@ export default function FeaturedGridBannerControl({ products }: FeaturedGridBann
           </span>
           <button
             type="button"
-            onClick={() => setBannerData({ ...bannerData, enabled: !bannerData.enabled })}
+            onClick={async () => {
+              const nextState = !bannerData.enabled;
+              const updated = { ...bannerData, enabled: nextState };
+              setBannerData(updated);
+              try {
+                await setDoc(doc(db, "settings", "featured_grid_banner"), updated, { merge: true });
+              } catch (e) {
+                console.error("Error toggling banner status:", e);
+              }
+            }}
             className={`w-12 h-6 rounded-full transition-colors relative p-1 ${
               bannerData.enabled ? "bg-amber-400" : "bg-white/20"
             }`}
