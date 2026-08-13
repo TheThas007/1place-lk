@@ -2,9 +2,9 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, Heart, Check, MessageCircle } from "lucide-react";
+import { ShoppingBag, Heart, Check } from "lucide-react";
 import { Product } from "@/lib/types";
-import { formatPrice, generateWhatsAppUrl, announceToScreenReader } from "@/lib/utils";
+import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 
@@ -73,26 +73,28 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   return (
     <div
-      className={`group relative bg-white border border-gray-100 rounded-[22px] overflow-hidden flex flex-col justify-between h-full shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 ${className}`}
+      className={`group relative bg-white border border-neutral-200/70 rounded-2xl overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:border-neutral-400 hover:shadow-sm ${className}`}
     >
-      <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-black rounded-[22px]">
-        
-        {/* ── 1. Image Section (Light neutral-grey background #F7F7F7) ── */}
-        <div className="relative aspect-square bg-[#F7F7F7] p-5 flex items-center justify-center overflow-hidden rounded-t-[22px]">
+      <Link
+        href={`/products/${product.slug}`}
+        className="block flex-1 flex flex-col h-full focus:outline-none rounded-2xl"
+      >
+        {/* ── 1. Image Container (Pure subtle background #FAFAFA, sharp zoom) ── */}
+        <div className="relative aspect-square bg-[#FAFAFA] p-6 flex items-center justify-center overflow-hidden rounded-t-2xl">
           
           {/* Top-Left Sale & Stock Badges */}
           <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
             {hasDiscount && (
-              <span className="bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-sm animate-pulse">
-                SALE
+              <span className="bg-black text-white text-[10px] font-black px-2.5 py-0.5 rounded-md uppercase tracking-wider shadow-2xs">
+                -{discountPercent}% OFF
               </span>
             )}
             {isOutOfStock ? (
-              <span className="bg-black/70 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm">
+              <span className="bg-neutral-800/90 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
                 Sold Out
               </span>
             ) : isLowStock ? (
-              <span className="bg-amber-500 text-white text-[10px] font-semibold px-2.5 py-0.5 rounded-full shadow-sm animate-pulse">
+              <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-md">
                 Low Stock
               </span>
             ) : null}
@@ -103,94 +105,89 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             type="button"
             onClick={handleToggleWishlist}
             aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-            className="absolute top-3 right-3 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200/80 flex items-center justify-center text-gray-700 hover:scale-110 active:scale-95 transition-all shadow-sm"
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200/80 flex items-center justify-center text-neutral-600 hover:scale-110 active:scale-95 transition-all shadow-2xs"
           >
             <Heart
-              className={`w-4 h-4 transition-colors ${
-                isWishlisted ? "fill-red-500 text-red-500 border-none" : "text-gray-500 hover:text-gray-900"
+              className={`w-3.5 h-3.5 transition-colors ${
+                isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-500 hover:text-neutral-900"
               }`}
             />
           </button>
 
-          {/* Centred Product Image */}
+          {/* Product Image with smooth Apple hover zoom */}
           {mainImage ? (
             <img
               src={mainImage}
               alt={product.name}
+              loading="lazy"
               onError={() => setImageError(true)}
-              className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
+              className="w-full h-full object-contain mix-blend-multiply transition-transform duration-500 ease-out group-hover:scale-105"
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-gray-300">
+            <div className="w-full h-full flex items-center justify-center text-neutral-300">
               <ShoppingBag className="w-10 h-10 opacity-30" />
             </div>
           )}
         </div>
 
-        {/* ── 2. Product Details Section (Pure-white background #FFFFFF) ── */}
-        <div className="bg-white p-4 sm:p-5 flex-1 flex flex-col justify-between">
+        {/* ── 2. Details Section ── */}
+        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white">
           <div>
-            {/* Brand / Category Name */}
-            <span className="text-[10px] font-bold uppercase tracking-widest text-gray-400 mb-1.5 block">
-              {product.category_name || "SMARTPHONES"}
+            {/* Category Name */}
+            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 block mb-1">
+              {product.category_name || "STREET MOBILE"}
             </span>
 
-            {/* Product Title (Strict 2 lines height) */}
-            <h3 className="font-bold text-sm sm:text-base text-gray-900 line-clamp-2 leading-snug group-hover:text-gray-600 transition-colors min-h-[2.5rem] mb-2">
+            {/* Product Title */}
+            <h3 className="font-bold text-sm sm:text-base text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors min-h-[2.5rem] mb-2">
               {product.name}
             </h3>
           </div>
 
           {/* ── 3. Price & Action Section ── */}
-          <div className="pt-3 border-t border-gray-100 mt-auto">
+          <div className="pt-3 border-t border-neutral-100 mt-auto">
             
-            {/* Price Container */}
+            {/* Pricing Hierarchy */}
             <div className="flex items-center flex-wrap gap-2 mb-3">
-              <span className="font-black text-base sm:text-lg text-gray-900">
+              <span className="font-black text-base sm:text-lg text-neutral-900">
                 {formatPrice(product.price)}
               </span>
               {hasDiscount && (
-                <span className="text-xs text-gray-400 line-through font-medium">
+                <span className="text-xs text-neutral-400 line-through font-medium">
                   {formatPrice(product.old_price!)}
-                </span>
-              )}
-              {hasDiscount && (
-                <span className="ml-auto text-[11px] font-black text-red-600 bg-red-50 px-2 py-0.5 rounded-md animate-pulse">
-                  {discountPercent}% OFF
                 </span>
               )}
             </div>
 
-            {/* ── 4. Add to Bag Pill Button ── */}
+            {/* Full-width Black Add to Bag Button */}
             <button
               type="button"
               disabled={isOutOfStock}
               onClick={handleAddToCart}
-              className={`w-full py-3 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-sm ${
+              className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs ${
                 isOutOfStock
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
                   : added
                   ? "bg-emerald-600 text-white"
-                  : "bg-black text-white hover:bg-gray-800"
+                  : "bg-black text-white hover:bg-neutral-800"
               }`}
               aria-label={`Add ${product.name} to shopping bag`}
             >
               {added ? (
                 <>
                   <Check className="w-4 h-4" />
-                  <span>Added to Bag</span>
+                  <span>Added</span>
                 </>
               ) : isOutOfStock ? (
                 <span>Sold Out</span>
               ) : (
                 <>
-                  <ShoppingBag className="w-4 h-4 text-white" />
+                  <ShoppingBag className="w-4 h-4" />
                   <span>Add to Bag</span>
                 </>
               )}
             </button>
           </div>
-
         </div>
       </Link>
     </div>

@@ -2,108 +2,287 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Tag, ArrowRight, Check } from "lucide-react";
-import { OfferBanner } from "@/lib/types";
-import { getOfferBanners } from "@/lib/firestore-client";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { useToast } from "@/components/ui/ToastProvider";
 
+export interface CampaignPopupSettings {
+  enabled: boolean;
+  pageTargeting: "all" | "homepage" | "products";
+  frequency: "once_per_session" | "once_per_day" | "every_visit";
+  delaySeconds: number;
+  imageUrl?: string;
+  badgeText?: string;
+  headline?: string;
+  highlightText?: string;
+  description?: string;
+  couponCode?: string;
+  discountText?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  colorTheme?: "luxury_dark" | "gold_glow" | "clean_white" | "deep_purple";
+  startDate?: string;
+  endDate?: string;
+}
+
+const DEFAULT_POPUP: CampaignPopupSettings = {
+  enabled: false,
+  pageTargeting: "all",
+  frequency: "once_per_session",
+  delaySeconds: 2,
+  imageUrl: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1000&auto=format&fit=crop",
+  badgeText: "SPECIAL PROMO",
+  headline: "GET LKR 1,500 OFF",
+  highlightText: "YOUR FIRST ORDER!",
+  description: "Use coupon code STREET10 at checkout to unlock exclusive discount on genuine smartphones & accessories.",
+  couponCode: "STREET10",
+  discountText: "LKR 1,500 OFF",
+  buttonText: "Claim Discount Now",
+  buttonUrl: "/products",
+  colorTheme: "luxury_dark",
+};
+
 export default function CampaignPopup() {
-  const [banner, setBanner] = useState<OfferBanner | null>(null);
+  const [popup, setPopup] = useState<CampaignPopupSettings | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
+  const pathname = usePathname();
   const { showToast } = useToast();
 
+  // Listen to Firestore real-time settings
   useEffect(() => {
-    async function loadPopup() {
-      try {
-        const banners = await getOfferBanners("popup_campaign");
-        if (banners.length > 0) {
-          const pop = banners[0];
-          setBanner(pop);
-          // Check session storage frequency
-          const key = `popup_shown_${pop.id}`;
-          if (!sessionStorage.getItem(key)) {
-            const timer = setTimeout(() => {
-              setIsOpen(true);
-              sessionStorage.setItem(key, "true");
-            }, 3000);
-            return () => clearTimeout(timer);
+    let unsubscribe: () => void;
+    try {
+      const popupRef = doc(db, "settings", "campaign_popup");
+      unsubscribe = onSnapshot(
+        popupRef,
+        (snap) => {
+          if (snap.exists()) {
+            setPopup(snap.data() as CampaignPopupSettings);
+          } else {
+            setPopup(DEFAULT_POPUP);
           }
+        },
+        (err) => {
+          console.warn("CampaignPopup Firestore error:", err);
+          setPopup(DEFAULT_POPUP);
         }
-      } catch (err) {
-        console.error("Failed to load popup banner:", err);
-      }
+      );
+    } catch (e) {
+      console.warn("CampaignPopup setup error:", e);
+      setPopup(DEFAULT_POPUP);
     }
-    loadPopup();
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
   }, []);
+
+  // Evaluate trigger conditions when popup settings load or pathname changes
+  useEffect(() => {
+    if (!popup || !popup.enabled) {
+      setIsOpen(false);
+      return;
+    }
+
+    // 1. Page Targeting Check
+    if (popup.pageTargeting === "homepage" && pathname !== "/") {
+      setIsOpen(false);
+      return;
+    }
+    if (popup.pageTargeting === "products" && !pathname.startsWith("/products")) {
+      setIsOpen(false);
+      return;
+    }
+
+    // 2. Date Range Schedule Check
+    const now = new Date().getTime();
+    if (popup.startDate && new Date(popup.startDate).getTime() > now) {
+      setIsOpen(false);
+      return;
+    }
+    if (popup.endDate && new Date(popup.endDate).getTime() < now) {
+      setIsOpen(false);
+      return;
+    }
+
+    // 3. Frequency Control Check
+    const storageKey = `sm_popup_dismissed_${popup.headline || "default"}`;
+    if (popup.frequency === "once_per_session") {
+      if (sessionStorage.getItem(storageKey)) return;
+    } else if (popup.frequency === "once_per_day") {
+      const lastDismissed = localStorage.getItem(storageKey);
+      if (lastDismissed && now - Number(lastDismissed) < 86400000) return;
+    }
+
+    // 4. Trigger delay timer
+    const delayMs = (popup.delaySeconds || 2) * 1000;
+    const timer = setTimeout(() => {
+      setIsOpen(true);
+    }, delayMs);
+
+    return () => clearTimeout(timer);
+  }, [popup, pathname]);
+
+  // Keyboard Escape listener
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        handleClose();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
+  const handleClose = () => {
+    setIsOpen(false);
+    if (!popup) return;
+    const storageKey = `sm_popup_dismissed_${popup.headline || "default"}`;
+    if (popup.frequency === "once_per_session") {
+      sessionStorage.setItem(storageKey, "true");
+    } else if (popup.frequency === "once_per_day") {
+      localStorage.setItem(storageKey, String(new Date().getTime()));
+    }
+  };
 
   const handleCopyCoupon = (code: string) => {
     navigator.clipboard.writeText(code);
     setCopied(true);
-    showToast(`Coupon ${code} copied!`, "success");
+    showToast(`Coupon code '${code}' copied!`, "success");
     setTimeout(() => setCopied(false), 3000);
   };
 
-  if (!banner || !isOpen) return null;
+  if (!popup || !popup.enabled || !isOpen) return null;
+
+  const themeStyles = {
+    luxury_dark: "bg-zinc-950 border-white/15 text-white",
+    gold_glow: "bg-gradient-to-b from-zinc-950 via-zinc-900 to-amber-950/60 border-amber-500/40 text-white",
+    clean_white: "bg-white border-neutral-200 text-black shadow-2xl",
+    deep_purple: "bg-gradient-to-b from-zinc-950 via-slate-950 to-purple-950/70 border-purple-500/40 text-white",
+  };
+
+  const isLight = popup.colorTheme === "clean_white";
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-[140] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+      <div
+        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) handleClose();
+        }}
+      >
         <motion.div
           initial={{ opacity: 0, scale: 0.9, y: 20 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          className="relative w-full max-w-md bg-zinc-950 border border-white/15 rounded-3xl overflow-hidden shadow-2xl p-6 text-white text-center"
+          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+          className={`relative w-full max-w-lg border rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-8 ${
+            themeStyles[popup.colorTheme || "luxury_dark"]
+          }`}
         >
+          {/* Prominent Close Button */}
           <button
-            onClick={() => setIsOpen(false)}
-            className="absolute top-4 right-4 p-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors"
+            type="button"
+            onClick={handleClose}
+            aria-label="Close popup"
+            className="absolute top-4 right-4 z-20 w-9 h-9 rounded-full bg-black/40 hover:bg-black/80 text-white/80 hover:text-white border border-white/20 flex items-center justify-center backdrop-blur-md transition-all active:scale-90"
           >
-            <X className="w-4 h-4" />
+            <X className="w-5 h-5" />
           </button>
 
-          {banner.desktopImage && (
-            <div className="w-full h-40 rounded-2xl overflow-hidden mb-5 bg-black border border-white/10">
-              <img src={banner.desktopImage} alt={banner.headline} className="w-full h-full object-cover" />
+          {/* Banner Graphic Image */}
+          {popup.imageUrl && (
+            <div className="w-full h-44 sm:h-52 rounded-2xl overflow-hidden mb-6 bg-black border border-white/10 relative shadow-inner">
+              <img
+                src={popup.imageUrl}
+                alt={popup.headline || "Promotional Campaign"}
+                className="w-full h-full object-cover object-center"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
             </div>
           )}
 
-          {banner.badgeText && (
-            <span className="inline-block px-3 py-0.5 rounded-full bg-amber-400 text-black text-[10px] font-extrabold uppercase mb-2">
-              {banner.badgeText}
-            </span>
-          )}
+          {/* Badge & Discount Tag */}
+          <div className="flex items-center gap-2 mb-3">
+            {popup.badgeText && (
+              <span
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse ${
+                  isLight ? "bg-black text-white" : "bg-amber-400 text-black"
+                }`}
+              >
+                <Sparkles className="w-3 h-3" />
+                {popup.badgeText}
+              </span>
+            )}
 
-          <h3 className="text-xl font-bold">
-            {banner.headline} <span className="text-amber-400">{banner.highlightText}</span>
+            {popup.discountText && (
+              <span className="px-2.5 py-1 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider">
+                {popup.discountText}
+              </span>
+            )}
+          </div>
+
+          {/* Headline */}
+          <h3 className={`text-xl sm:text-2xl font-black tracking-tight leading-snug ${isLight ? "text-black" : "text-white"}`}>
+            {popup.headline}{" "}
+            {popup.highlightText && (
+              <span className={isLight ? "text-amber-600" : "text-amber-400"}>
+                {popup.highlightText}
+              </span>
+            )}
           </h3>
 
-          {banner.description && (
-            <p className="text-xs text-zinc-400 mt-2 leading-relaxed">{banner.description}</p>
+          {/* Description */}
+          {popup.description && (
+            <p className={`text-xs sm:text-sm mt-2 leading-relaxed ${isLight ? "text-neutral-600" : "text-neutral-300"}`}>
+              {popup.description}
+            </p>
           )}
 
-          {banner.couponCode && (
-            <div className="mt-4">
+          {/* Coupon Code 1-Click Copy Box */}
+          {popup.couponCode && (
+            <div className="mt-5">
               <button
-                onClick={() => handleCopyCoupon(banner.couponCode!)}
-                className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-white/10 border border-white/20 text-xs font-mono font-bold text-amber-400 hover:bg-white/15 transition-colors"
+                type="button"
+                onClick={() => handleCopyCoupon(popup.couponCode!)}
+                className={`w-full flex items-center justify-between py-3 px-4 rounded-xl border text-xs font-mono font-bold transition-all shadow-sm ${
+                  isLight
+                    ? "bg-neutral-100 border-neutral-300 text-black hover:bg-neutral-200"
+                    : "bg-white/10 border-white/20 text-amber-400 hover:bg-white/15"
+                }`}
               >
-                <Tag className="w-4 h-4" /> CODE: {banner.couponCode}
-                {copied ? <Check className="w-4 h-4 text-emerald-400 ml-1" /> : <span className="text-[10px] text-white/50">(Tap to copy)</span>}
+                <div className="flex items-center gap-2">
+                  <Tag className="w-4 h-4 text-amber-400" />
+                  <span>COUPON CODE: <span className="font-extrabold uppercase text-white">{popup.couponCode}</span></span>
+                </div>
+                {copied ? (
+                  <span className="text-emerald-400 text-[11px] font-sans font-bold flex items-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> Copied!
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-white/60 font-sans">Tap to copy</span>
+                )}
               </button>
             </div>
           )}
 
-          {banner.primaryCtaText && (
+          {/* CTA Button */}
+          {popup.buttonText && (
             <div className="mt-5">
               <Link
-                href={banner.primaryCtaUrl || "/products"}
-                onClick={() => setIsOpen(false)}
-                className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-white text-black font-bold text-xs hover:bg-zinc-200 transition-colors shadow-lg"
+                href={popup.buttonUrl || "/products"}
+                onClick={handleClose}
+                className={`w-full flex items-center justify-center gap-2 py-3.5 rounded-xl font-extrabold text-xs sm:text-sm transition-all shadow-xl hover:scale-[1.02] active:scale-95 ${
+                  isLight
+                    ? "bg-black text-white hover:bg-neutral-800"
+                    : "bg-white text-black hover:bg-amber-400 hover:text-black"
+                }`}
               >
-                {banner.primaryCtaText} <ArrowRight className="w-4 h-4" />
+                <span>{popup.buttonText}</span>
+                <ArrowRight className="w-4 h-4" />
               </Link>
             </div>
           )}
