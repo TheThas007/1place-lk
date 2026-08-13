@@ -127,40 +127,21 @@ export default function SearchOverlay() {
         {/* Content Area */}
         <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 overflow-y-auto custom-scrollbar">
           {query.trim() === "" ? (
-            <div className="space-y-8">
-              {/* Popular Searches */}
+            <div className="space-y-8 py-4">
+              {/* Quick Category Navigation */}
               <div>
                 <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4 flex items-center gap-2">
-                  <TrendingUp className="w-3.5 h-3.5" />
-                  Popular Searches
-                </h3>
-                <div className="flex flex-wrap gap-2.5">
-                  {POPULAR_SEARCHES.map((item) => (
-                    <button
-                      key={item}
-                      onClick={() => setQuery(item)}
-                      className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs sm:text-sm font-medium transition-all"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Quick Links */}
-              <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4 flex items-center gap-2">
-                  <Package className="w-3.5 h-3.5" />
-                  Product Categories
+                  <Package className="w-3.5 h-3.5 text-blue-400" />
+                  Browse Categories
                 </h3>
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {[
-                    { label: "Smartphones", href: "/category/smartphones" },
-                    { label: "Smart Watches", href: "/category/smart-watches" },
-                    { label: "Speakers", href: "/category/speakers" },
-                    { label: "Earbuds & TWS", href: "/category/earbuds" },
-                    { label: "Chargers & Adapters", href: "/category/chargers-adapters" },
-                    { label: "All Catalog", href: "/products" },
+                    { label: "Smartphones", href: "/products?category=smartphones" },
+                    { label: "Smart Watches", href: "/products?category=smart-watches" },
+                    { label: "Laptops & MacBooks", href: "/products?category=laptops" },
+                    { label: "Earbuds & TWS", href: "/products?category=earbuds" },
+                    { label: "Chargers & Adapters", href: "/products?category=chargers-adapters" },
+                    { label: "All Catalog Products", href: "/products" },
                   ].map((cat) => (
                     <Link
                       key={cat.label}
@@ -177,107 +158,76 @@ export default function SearchOverlay() {
             </div>
           ) : (
             <div className="space-y-6">
-              {!hasAnyResults ? (
-                <div className="py-12 text-center">
-                  <p className="text-white/60 text-sm">No results found matching "{query}"</p>
+              {filteredProducts.length === 0 ? (
+                <div className="py-12 text-center space-y-3">
+                  <Package className="w-10 h-10 text-white/20 mx-auto" />
+                  <p className="text-white/60 text-sm">No products found matching "{query}"</p>
+                  <Link
+                    href="/products"
+                    onClick={() => setIsOpen(false)}
+                    className="inline-block px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all"
+                  >
+                    Browse All Store Products →
+                  </Link>
                 </div>
               ) : (
-                <>
-                  {/* Category Matches */}
-                  {filteredCategories.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-emerald-400 mb-2 flex items-center gap-1.5">
-                        <Package className="w-3.5 h-3.5" /> Matching Categories
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {filteredCategories.map((c) => (
-                          <Link
-                            key={c.id}
-                            href={`/category/${c.slug}`}
-                            onClick={() => setIsOpen(false)}
-                            className="p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-between transition-all"
-                          >
-                            <span className="text-xs font-bold text-white">{c.name}</span>
-                            <span className="text-[10px] text-emerald-300 font-mono">Category →</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                <div>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60">
+                      Matching Products ({filteredProducts.length})
+                    </h4>
+                    <Link
+                      href={`/products?search=${encodeURIComponent(query)}`}
+                      onClick={() => setIsOpen(false)}
+                      className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-bold"
+                    >
+                      View All Results <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
 
-                  {/* Brand Matches */}
-                  {filteredBrands.length > 0 && (
-                    <div>
-                      <h4 className="text-xs font-extrabold uppercase tracking-wider text-blue-400 mb-2 flex items-center gap-1.5">
-                        <Tag className="w-3.5 h-3.5" /> Matching Brands
-                      </h4>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
-                        {filteredBrands.map((b) => (
-                          <Link
-                            key={b.id}
-                            href={`/brand/${b.slug}`}
-                            onClick={() => setIsOpen(false)}
-                            className="p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 flex items-center justify-between transition-all"
-                          >
-                            <span className="text-xs font-bold text-white">{b.name}</span>
-                            <span className="text-[10px] text-blue-300 font-mono">Brand →</span>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
+                  <div className="space-y-2.5">
+                    {filteredProducts.map((product) => {
+                      const cleanCatName = (product.category_name || product.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+                      const cleanBrand = (product.brand_name || product.brandName || product.brand || "").trim();
 
-                  {/* Product Matches */}
-                  {filteredProducts.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60">
-                          Matching Products ({filteredProducts.length})
-                        </h4>
+                      return (
                         <Link
-                          href={`/products?search=${encodeURIComponent(query)}`}
+                          key={product.id}
+                          href={`/products/${product.slug || product.id}`}
                           onClick={() => setIsOpen(false)}
-                          className="text-xs text-blue-400 hover:underline flex items-center gap-1"
+                          className="flex items-center gap-4 p-3 sm:p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all group"
                         >
-                          View All <ArrowRight className="w-3 h-3" />
+                          <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-white/10 p-1 flex items-center justify-center">
+                            {product.images?.[0] ? (
+                              <img
+                                src={product.images[0]}
+                                alt={product.name}
+                                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                              />
+                            ) : (
+                              <Package className="w-6 h-6 text-gray-400" />
+                            )}
+                          </div>
+
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-blue-300 transition-colors truncate">
+                              {product.name}
+                            </h4>
+                            <div className="flex items-center gap-2 text-[11px] text-white/50 mt-1 font-medium">
+                              {cleanCatName && <span>{cleanCatName}</span>}
+                              {cleanBrand && cleanBrand !== "Other" && <span>• {cleanBrand}</span>}
+                              {product.code && <span className="font-mono text-white/40">• {product.code}</span>}
+                            </div>
+                          </div>
+
+                          <div className="text-right shrink-0">
+                            <span className="text-xs sm:text-sm font-black text-white">{formatPrice(product.price)}</span>
+                          </div>
                         </Link>
-                      </div>
-
-                      <div className="space-y-2.5">
-                        {filteredProducts.map((product) => (
-                          <Link
-                            key={product.id}
-                            href={`/products/${product.slug || product.id}`}
-                            onClick={() => setIsOpen(false)}
-                            className="flex items-center gap-4 p-3 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all group"
-                          >
-                            <div className="w-12 h-12 rounded-xl bg-white/10 shrink-0 overflow-hidden border border-white/10">
-                              {product.images?.[0] && (
-                                <img
-                                  src={product.images[0]}
-                                  alt={product.name}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform"
-                                />
-                              )}
-                            </div>
-
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-xs sm:text-sm font-bold text-white truncate">{product.name}</h4>
-                              <div className="flex items-center gap-2 text-[10px] text-white/50 mt-0.5 font-mono">
-                                <span>{product.category_name || product.categoryName || "Category"}</span>
-                                {product.brand_name && <span>• {product.brand_name}</span>}
-                              </div>
-                            </div>
-
-                            <div className="text-right shrink-0">
-                              <span className="text-xs sm:text-sm font-black text-white">{formatPrice(product.price)}</span>
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-                    </div>
-                  )}
-                </>
+                      );
+                    })}
+                  </div>
+                </div>
               )}
             </div>
           )}
