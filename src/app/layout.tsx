@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter, Outfit, Playfair_Display } from "next/font/google";
+import { Inter, Outfit, Manrope } from "next/font/google";
 import "./globals.css";
 
 import Header from "@/components/layout/header";
@@ -27,9 +27,10 @@ const outfit = Outfit({
   display: "swap",
 });
 
-const playfair = Playfair_Display({
+const manrope = Manrope({
   subsets: ["latin"],
-  variable: "--font-playfair",
+  variable: "--font-manrope",
+  weight: ["400", "500", "600", "700", "800"],
   display: "swap",
 });
 
@@ -67,7 +68,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${inter.variable} ${outfit.variable} ${playfair.variable}`}
+      className={`h-full antialiased ${inter.variable} ${outfit.variable} ${manrope.variable}`}
     >
       <head>
         <Script src="https://www.payhere.lk/lib/payhere.js" strategy="lazyOnload" />
