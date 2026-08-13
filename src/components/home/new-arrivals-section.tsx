@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag, Eye, Heart, Check, Sparkles } from "lucide-react";
 import { Product } from "@/lib/types";
@@ -9,6 +9,7 @@ import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import QuickViewModal from "@/components/ui/QuickViewModal";
+import NewArrivalsGridBanner from "./NewArrivalsGridBanner";
 
 export default function NewArrivalsSection({ initialProducts }: { initialProducts?: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
@@ -151,7 +152,7 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
 
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {filteredProducts.map((product) => {
+          {filteredProducts.map((product, idx) => {
             const isWishlisted = isInWishlist(product.id);
             const isOutOfStock = product.stock_status === "out_of_stock";
             const isLowStock = product.stock_status === "low_stock";
@@ -168,136 +169,138 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
             const mainImage = product.images?.[0] || "/placeholder-phone.webp";
 
             return (
-              <div
-                key={product.id}
-                className="group relative bg-white border border-neutral-200/90 rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md hover:border-black hover:-translate-y-1 transition-all duration-300 h-full"
-              >
-                {/* Image Section */}
-                <div className="relative aspect-square bg-[#F7F7F8] p-5 flex items-center justify-center overflow-hidden rounded-t-2xl">
-                  
-                  {/* Badges */}
-                  <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
-                    <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
-                      NEW
-                    </span>
-                    {hasDiscount && (
-                      <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                        -{discountPercent}%
-                      </span>
-                    )}
-                    {isOutOfStock ? (
-                      <span className="bg-neutral-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Sold Out
-                      </span>
-                    ) : isLowStock ? (
-                      <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                        Low Stock
-                      </span>
-                    ) : null}
-                  </div>
-
-                  {/* Top-Right Buttons (Wishlist & Quick View) */}
-                  <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-                    <button
-                      type="button"
-                      onClick={() => toggleWishlist(product.id)}
-                      aria-label="Wishlist"
-                      className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
-                    >
-                      <Heart
-                        className={`w-4 h-4 ${isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-600"}`}
-                      />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => setQuickViewProduct(product)}
-                      aria-label="Quick View"
-                      className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
-                      title="Quick View"
-                    >
-                      <Eye className="w-4 h-4 text-neutral-600" />
-                    </button>
-                  </div>
-
-                  {/* Centered Image */}
-                  <Link href={`/products/${product.slug}`} className="w-full h-full flex items-center justify-center">
-                    <img
-                      src={mainImage}
-                      alt={product.name}
-                      loading="lazy"
-                      className="max-h-full max-w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-                      }}
-                    />
-                  </Link>
-                </div>
-
-                {/* Details Section */}
-                <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white">
-                  <div>
-                    <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 block mb-1">
-                      {product.category_name || "STREET MOBILE"}
-                    </span>
-
-                    <Link href={`/products/${product.slug}`} className="block">
-                      <h3 className="font-bold text-sm sm:text-base text-[#090909] line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors min-h-[2.5rem] mb-2">
-                        {product.name}
-                      </h3>
-                    </Link>
-
-                    {product.warranty && (
-                      <span className="text-[11px] text-neutral-500 font-medium block mb-2">
-                        🛡️ {product.warranty}
-                      </span>
-                    )}
-                  </div>
-
-                  {/* Price & Action Button */}
-                  <div className="pt-3 border-t border-neutral-100 mt-auto">
-                    <div className="flex items-center flex-wrap gap-2 mb-3">
-                      <span className="font-black text-base sm:text-lg text-[#090909]">
-                        {formatPrice(product.price)}
+              <React.Fragment key={product.id}>
+                {idx === 2 && <NewArrivalsGridBanner />}
+                <div
+                  className="group relative bg-white border border-neutral-200/90 rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md hover:border-black hover:-translate-y-1 transition-all duration-300 h-full"
+                >
+                  {/* Image Section */}
+                  <div className="relative aspect-square bg-[#F7F7F8] p-5 flex items-center justify-center overflow-hidden rounded-t-2xl">
+                    
+                    {/* Badges */}
+                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
+                      <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
+                        NEW
                       </span>
                       {hasDiscount && (
-                        <span className="text-xs text-neutral-400 line-through font-medium">
-                          {formatPrice(product.old_price!)}
+                        <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                          -{discountPercent}%
+                        </span>
+                      )}
+                      {isOutOfStock ? (
+                        <span className="bg-neutral-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Sold Out
+                        </span>
+                      ) : isLowStock ? (
+                        <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
+                          Low Stock
+                        </span>
+                      ) : null}
+                    </div>
+
+                    {/* Top-Right Buttons (Wishlist & Quick View) */}
+                    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
+                      <button
+                        type="button"
+                        onClick={() => toggleWishlist(product.id)}
+                        aria-label="Wishlist"
+                        className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
+                      >
+                        <Heart
+                          className={`w-4 h-4 ${isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-600"}`}
+                        />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setQuickViewProduct(product)}
+                        aria-label="Quick View"
+                        className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
+                        title="Quick View"
+                      >
+                        <Eye className="w-4 h-4 text-neutral-600" />
+                      </button>
+                    </div>
+
+                    {/* Centered Image */}
+                    <Link href={`/products/${product.slug}`} className="w-full h-full flex items-center justify-center">
+                      <img
+                        src={mainImage}
+                        alt={product.name}
+                        loading="lazy"
+                        className="max-h-full max-w-full object-contain mix-blend-multiply transition-transform duration-500 group-hover:scale-105"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                        }}
+                      />
+                    </Link>
+                  </div>
+
+                  {/* Details Section */}
+                  <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white">
+                    <div>
+                      <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 block mb-1">
+                        {product.category_name || "STREET MOBILE"}
+                      </span>
+
+                      <Link href={`/products/${product.slug}`} className="block">
+                        <h3 className="font-bold text-sm sm:text-base text-[#090909] line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors min-h-[2.5rem] mb-2">
+                          {product.name}
+                        </h3>
+                      </Link>
+
+                      {product.warranty && (
+                        <span className="text-[11px] text-neutral-500 font-medium block mb-2">
+                          🛡️ {product.warranty}
                         </span>
                       )}
                     </div>
 
-                    {/* Add to Bag Button */}
-                    <button
-                      type="button"
-                      disabled={isOutOfStock}
-                      onClick={(e) => handleAddToCart(e, product)}
-                      className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs ${
-                        isOutOfStock
-                          ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                          : addedMap[product.id]
-                          ? "bg-emerald-600 text-white"
-                          : "bg-black text-white hover:bg-neutral-800"
-                      }`}
-                    >
-                      {addedMap[product.id] ? (
-                        <>
-                          <Check className="w-4 h-4" />
-                          <span>Added</span>
-                        </>
-                      ) : isOutOfStock ? (
-                        <span>Sold Out</span>
-                      ) : (
-                        <>
-                          <ShoppingBag className="w-4 h-4" />
-                          <span>Add to Bag</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                    {/* Price & Action Button */}
+                    <div className="pt-3 border-t border-neutral-100 mt-auto">
+                      <div className="flex items-center flex-wrap gap-2 mb-3">
+                        <span className="font-black text-base sm:text-lg text-[#090909]">
+                          {formatPrice(product.price)}
+                        </span>
+                        {hasDiscount && (
+                          <span className="text-xs text-neutral-400 line-through font-medium">
+                            {formatPrice(product.old_price!)}
+                          </span>
+                        )}
+                      </div>
 
+                      {/* Add to Bag Button */}
+                      <button
+                        type="button"
+                        disabled={isOutOfStock}
+                        onClick={(e) => handleAddToCart(e, product)}
+                        className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs ${
+                          isOutOfStock
+                            ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                            : addedMap[product.id]
+                            ? "bg-emerald-600 text-white"
+                            : "bg-black text-white hover:bg-neutral-800"
+                        }`}
+                      >
+                        {addedMap[product.id] ? (
+                          <>
+                            <Check className="w-4 h-4" />
+                            <span>Added</span>
+                          </>
+                        ) : isOutOfStock ? (
+                          <span>Sold Out</span>
+                        ) : (
+                          <>
+                            <ShoppingBag className="w-4 h-4" />
+                            <span>Add to Bag</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+
+                  </div>
                 </div>
-              </div>
+              </React.Fragment>
             );
           })}
         </div>

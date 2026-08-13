@@ -1,11 +1,13 @@
 "use client";
 
 import React, { useState } from "react";
-import { OfferBanner, BannerStatus, BannerPlacement } from "@/lib/types";
+import { OfferBanner, BannerStatus, BannerPlacement, Product } from "@/lib/types";
 import { Sparkles, Plus, Search, Edit, Trash2, Copy, Eye, Tag, Calendar, Monitor, Smartphone, Layers, CheckCircle2, PauseCircle, Clock, Archive } from "lucide-react";
+import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
 
 interface BannersTabProps {
   banners: OfferBanner[];
+  products?: Product[];
   onAdd: () => void;
   onEdit: (banner: OfferBanner) => void;
   onDelete: (id: string) => void;
@@ -15,6 +17,7 @@ interface BannersTabProps {
 
 export default function BannersTab({
   banners,
+  products = [],
   onAdd,
   onEdit,
   onDelete,
@@ -56,7 +59,10 @@ export default function BannersTab({
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* ── Featured Grid Banner Manager (New Arrivals 2-Column Card) ── */}
+      <FeaturedGridBannerControl products={products} />
+
       {/* Top Header & Search Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>

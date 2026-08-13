@@ -1051,6 +1051,7 @@ function DashboardContent() {
       {activeTab === "banners" && (
         <BannersTab
           banners={banners}
+          products={products}
           onAdd={() => {
             setEditingBanner(null);
             setIsBannerModalOpen(true);
