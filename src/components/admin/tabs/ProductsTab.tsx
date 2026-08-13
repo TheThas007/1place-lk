@@ -144,6 +144,30 @@ export default function ProductsTab({
     return "Other";
   };
 
+  // Dynamically extract all unique categories across existing products & standard presets
+  const dynamicCategories = useMemo(() => {
+    const set = new Set<string>(STANDARD_CATEGORIES);
+    products.forEach((p) => {
+      const cat = getProductCategory(p);
+      if (cat && cat.trim()) {
+        set.add(cat.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
+  // Dynamically extract all unique brands across existing products & standard presets
+  const dynamicBrands = useMemo(() => {
+    const set = new Set<string>(STANDARD_BRANDS);
+    products.forEach((p) => {
+      const brand = getProductBrand(p);
+      if (brand && brand.trim() && brand !== "Standard") {
+        set.add(brand.trim());
+      }
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
+
   // 2. Filter products based on search, separate Category dropdown, and separate Brand dropdown
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
@@ -425,10 +449,10 @@ export default function ProductsTab({
             <select
               value={selectedCategoryFilter}
               onChange={(e) => setSelectedCategoryFilter(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-blue-500"
+              className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-blue-500 cursor-pointer"
             >
-              <option value="all">📁 All Categories (Product Types)</option>
-              {STANDARD_CATEGORIES.map((cat) => (
+              <option value="all">📁 All Categories ({dynamicCategories.length})</option>
+              {dynamicCategories.map((cat) => (
                 <option key={cat} value={cat}>📁 {cat}</option>
               ))}
             </select>
@@ -439,10 +463,10 @@ export default function ProductsTab({
             <select
               value={selectedBrandFilter}
               onChange={(e) => setSelectedBrandFilter(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500"
+              className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-bold text-amber-400 focus:outline-none focus:border-amber-500 cursor-pointer"
             >
-              <option value="all">🏷️ All Brands (Manufacturers)</option>
-              {STANDARD_BRANDS.map((b) => (
+              <option value="all">🏷️ All Brands ({dynamicBrands.length})</option>
+              {dynamicBrands.map((b) => (
                 <option key={b} value={b}>🏷️ {b}</option>
               ))}
             </select>
