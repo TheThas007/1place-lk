@@ -298,6 +298,11 @@ export interface OfferBanner {
   bannerHeightDesktop?: number;
   sectionSpacing?: number;
 
+  additionalImages?: string[];
+  textAnimationMode?: "pulse" | "marquee" | "glow" | "bounce" | "fade" | "none";
+  showAnnouncementTicker?: boolean;
+  announcementText?: string;
+
   created_at?: string;
   updated_at?: string;
 }

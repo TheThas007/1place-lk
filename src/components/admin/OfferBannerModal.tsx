@@ -478,7 +478,7 @@ export default function OfferBannerModal({
 
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-xs font-medium text-white/70">Desktop Image *</label>
+                      <label className="block text-xs font-medium text-white/70">Primary Slide Image (Image 1) *</label>
                       <label className="cursor-pointer text-[11px] text-amber-400 hover:underline flex items-center gap-1 font-semibold">
                         <ImageIcon className="w-3.5 h-3.5" /> Upload File
                         <input
@@ -499,6 +499,63 @@ export default function OfferBannerModal({
                       onChange={(e) => setFormData({ ...formData, desktopImage: e.target.value })}
                       className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50"
                     />
+                  </div>
+
+                  {/* ── Multi-Slide Image Gallery (Image 2, Image 3, Image 4) ── */}
+                  <div className="p-4 bg-zinc-900 border border-white/10 rounded-2xl space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider">
+                        📸 Additional Slide Images (Image 2, Image 3, Image 4)
+                      </label>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const currentExtra = formData.additionalImages || [];
+                          setFormData({ ...formData, additionalImages: [...currentExtra, ""] });
+                        }}
+                        className="px-2.5 py-1 bg-amber-400 text-black text-[11px] font-bold rounded-lg hover:bg-amber-300 transition-colors"
+                      >
+                        + Add Slide Image
+                      </button>
+                    </div>
+                    <p className="text-[11px] text-white/50">
+                      Add 2, 3 or more slide image URLs. The website offer banner will automatically slide through all images!
+                    </p>
+
+                    <div className="space-y-2">
+                      {(formData.additionalImages || []).map((imgUrl, idx) => (
+                        <div key={idx} className="flex items-center gap-2">
+                          <span className="text-[10px] font-bold text-white/40 w-12 shrink-0">Slide {idx + 2}</span>
+                          <input
+                            type="text"
+                            placeholder="Paste image URL (e.g. https://...)"
+                            value={imgUrl}
+                            onChange={(e) => {
+                              const raw = e.target.value;
+                              const updated = [...(formData.additionalImages || [])];
+                              if (raw.includes(",") || raw.includes("\n") || raw.includes(";")) {
+                                const parts = raw.split(/[\n,;]+/).map((u) => u.trim()).filter(Boolean);
+                                updated.splice(idx, 1, ...parts);
+                              } else {
+                                updated[idx] = raw;
+                              }
+                              setFormData({ ...formData, additionalImages: updated });
+                            }}
+                            className="flex-1 px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-amber-400"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = (formData.additionalImages || []).filter((_, i) => i !== idx);
+                              setFormData({ ...formData, additionalImages: updated });
+                            }}
+                            className="p-2 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
 
                   <div>
@@ -590,20 +647,56 @@ export default function OfferBannerModal({
                     />
                   </div>
 
-                  <div>
-                    <div className="flex justify-between text-xs font-medium text-white/70 mb-1">
-                      <span>Overlay Darkening</span>
-                      <span>{formData.overlayOpacity || 40}%</span>
+                  {/* ── Text Animation & Announcement Ticker Options ── */}
+                  <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-3">
+                    <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4" /> Text Animations & Announcement Ticker
+                    </h4>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-white/80 mb-1">Text Animation Style</label>
+                        <select
+                          value={formData.textAnimationMode || "glow"}
+                          onChange={(e) => setFormData({ ...formData, textAnimationMode: e.target.value as any })}
+                          className="w-full px-3.5 py-2.5 bg-zinc-900 border border-amber-400/30 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400 font-bold"
+                        >
+                          <option value="glow">✨ Gold Glow & Pulse</option>
+                          <option value="pulse">⚡ Pulse Highlight</option>
+                          <option value="bounce">💥 Gentle Spring Bounce</option>
+                          <option value="marquee">🚀 Scrolling Marquee</option>
+                          <option value="none">Standard Static Text</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-xs font-medium text-white/80 mb-1">Show Top Announcement Bar</label>
+                        <button
+                          type="button"
+                          onClick={() => setFormData({ ...formData, showAnnouncementTicker: !formData.showAnnouncementTicker })}
+                          className={`w-full py-2.5 px-3 rounded-xl border text-xs font-bold transition-all ${
+                            formData.showAnnouncementTicker
+                              ? "bg-amber-400 border-amber-400 text-black shadow-md"
+                              : "bg-white/5 border-white/10 text-white/50 hover:text-white"
+                          }`}
+                        >
+                          {formData.showAnnouncementTicker ? "⚡ Announcement Bar: ENABLED" : "Disabled"}
+                        </button>
+                      </div>
                     </div>
-                    <input
-                      type="range"
-                      min={0}
-                      max={90}
-                      step={5}
-                      value={formData.overlayOpacity || 40}
-                      onChange={(e) => setFormData({ ...formData, overlayOpacity: Number(e.target.value) })}
-                      className="w-full accent-amber-400"
-                    />
+
+                    {formData.showAnnouncementTicker && (
+                      <div>
+                        <label className="block text-xs font-medium text-white/80 mb-1">Top Ticker Bar Text</label>
+                        <input
+                          type="text"
+                          placeholder="e.g. 🔥 SPECIAL OFFER: Islandwide Delivery + Free Warranty on all Orders!"
+                          value={formData.announcementText || ""}
+                          onChange={(e) => setFormData({ ...formData, announcementText: e.target.value })}
+                          className="w-full px-3.5 py-2.5 bg-zinc-900 border border-amber-400/30 rounded-xl text-xs text-white focus:outline-none focus:border-amber-400"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
