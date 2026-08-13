@@ -43,16 +43,24 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [descriptionColor, setDescriptionColor] = useState("#D1D5DB");
   const [buttonTextColor, setButtonTextColor] = useState("#000000");
   const [buttonBgColor, setButtonBgColor] = useState("#FFFFFF");
+  const [secondaryButtonTextColor, setSecondaryButtonTextColor] = useState("#FFFFFF");
+  const [secondaryButtonBgColor, setSecondaryButtonBgColor] = useState("rgba(255,255,255,0.1)");
+  const [secondaryButtonBorderColor, setSecondaryButtonBorderColor] = useState("rgba(255,255,255,0.25)");
   const [overlayColor, setOverlayColor] = useState("#000000");
   const [overlayOpacity, setOverlayOpacity] = useState<number>(40);
   const [desktopImagePosition, setDesktopImagePosition] = useState("center");
   const [mobileImagePosition, setMobileImagePosition] = useState("center");
 
+  const [textAlign, setTextAlign] = useState<"left" | "center" | "right">("left");
+  const [contentHorizontalPosition, setContentHorizontalPosition] = useState<"left" | "center" | "right">("left");
+  const [contentVerticalPosition, setContentVerticalPosition] = useState<"top" | "center" | "bottom">("center");
+  const [contentMaxWidth, setContentMaxWidth] = useState<"500px" | "620px" | "720px" | "full">("620px");
+
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
   const [desktopPreview, setDesktopPreview] = useState<string>("");
   const [mobilePreview, setMobilePreview] = useState<string>("");
-  const [previewDevice, setPreviewDevice] = useState<"desktop" | "mobile">("desktop");
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
 
   const [saving, setSaving] = useState(false);
 
@@ -84,10 +92,18 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setDescriptionColor(slide.description_color || "#D1D5DB");
       setButtonTextColor(slide.button_text_color || "#000000");
       setButtonBgColor(slide.button_bg_color || "#FFFFFF");
+      setSecondaryButtonTextColor(slide.secondary_button_text_color || "#FFFFFF");
+      setSecondaryButtonBgColor(slide.secondary_button_bg_color || "rgba(255,255,255,0.1)");
+      setSecondaryButtonBorderColor(slide.secondary_button_border_color || "rgba(255,255,255,0.25)");
       setOverlayColor(slide.overlay_color || "#000000");
       setOverlayOpacity(slide.overlay_opacity ?? 40);
       setDesktopImagePosition(slide.desktop_image_position || "center");
       setMobileImagePosition(slide.mobile_image_position || "center");
+
+      setTextAlign(slide.text_align || "left");
+      setContentHorizontalPosition(slide.content_horizontal_position || "left");
+      setContentVerticalPosition(slide.content_vertical_position || "center");
+      setContentMaxWidth(slide.content_max_width || "620px");
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -115,10 +131,18 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setDescriptionColor("#D1D5DB");
       setButtonTextColor("#000000");
       setButtonBgColor("#FFFFFF");
+      setSecondaryButtonTextColor("#FFFFFF");
+      setSecondaryButtonBgColor("rgba(255,255,255,0.1)");
+      setSecondaryButtonBorderColor("rgba(255,255,255,0.25)");
       setOverlayColor("#000000");
       setOverlayOpacity(40);
       setDesktopImagePosition("center");
       setMobileImagePosition("center");
+
+      setTextAlign("left");
+      setContentHorizontalPosition("left");
+      setContentVerticalPosition("center");
+      setContentMaxWidth("620px");
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -187,10 +211,17 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         description_color: descriptionColor,
         button_text_color: buttonTextColor,
         button_bg_color: buttonBgColor,
+        secondary_button_text_color: secondaryButtonTextColor,
+        secondary_button_bg_color: secondaryButtonBgColor,
+        secondary_button_border_color: secondaryButtonBorderColor,
         overlay_color: overlayColor,
         overlay_opacity: Number(overlayOpacity) ?? 40,
         desktop_image_position: desktopImagePosition,
         mobile_image_position: mobileImagePosition,
+        text_align: textAlign,
+        content_horizontal_position: contentHorizontalPosition,
+        content_vertical_position: contentVerticalPosition,
+        content_max_width: contentMaxWidth,
       });
 
       onClose();
@@ -533,6 +564,62 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   <option value="bottom">Bottom</option>
                   <option value="left">Left</option>
                   <option value="right">Right</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Content Layout & Alignment Controls */}
+            <div className="pt-3 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Text Align</label>
+                <select
+                  value={textAlign}
+                  onChange={(e) => setTextAlign(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="left">Left (Default)</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Content Horiz Position</label>
+                <select
+                  value={contentHorizontalPosition}
+                  onChange={(e) => setContentHorizontalPosition(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="left">Left (Default)</option>
+                  <option value="center">Center</option>
+                  <option value="right">Right</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Content Vert Position</label>
+                <select
+                  value={contentVerticalPosition}
+                  onChange={(e) => setContentVerticalPosition(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="center">Center (Default)</option>
+                  <option value="top">Top</option>
+                  <option value="bottom">Bottom</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Content Max Width</label>
+                <select
+                  value={contentMaxWidth}
+                  onChange={(e) => setContentMaxWidth(e.target.value as any)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
+                >
+                  <option value="620px">620px (Apple Style)</option>
+                  <option value="500px">500px (Compact)</option>
+                  <option value="720px">720px (Wide)</option>
+                  <option value="full">Full Width</option>
                 </select>
               </div>
             </div>

@@ -213,10 +213,17 @@ export interface HeroSlide {
   description_color?: string;
   button_text_color?: string;
   button_bg_color?: string;
+  secondary_button_text_color?: string;
+  secondary_button_bg_color?: string;
+  secondary_button_border_color?: string;
   overlay_color?: string;
   overlay_opacity?: number; // 0 to 100
   desktop_image_position?: string;
   mobile_image_position?: string;
+  text_align?: "left" | "center" | "right";
+  content_horizontal_position?: "left" | "center" | "right";
+  content_vertical_position?: "top" | "center" | "bottom";
+  content_max_width?: "500px" | "620px" | "720px" | "full";
 }
 
 export interface ProductBanner {

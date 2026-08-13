@@ -4,63 +4,11 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
-import { generateWhatsAppUrl } from "@/lib/utils";
 import { getHeroSlides } from "@/lib/firestore-client";
 import { HeroSlide } from "@/lib/types";
 
-/* ─── Default Fallback Hero Slides ─── */
-const defaultHeroSlides: HeroSlide[] = [
-  {
-    id: "default-1",
-    image_url: "/hero-slide-1.png",
-    desktop_image_url: "/hero-slide-1.png",
-    mobile_image_url: "/hero-slide-1.png",
-    alt: "Premium Mobile Experience",
-    campaign_label: "YOUR TRUSTED STORE IN VAVUNIYA",
-    heading: "Premium Mobile Experience.",
-    description: "Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.",
-    primary_button_text: "Shop Now",
-    primary_button_url: "/products",
-    show_secondary_button: true,
-    secondary_button_text: "Contact Us",
-    secondary_button_url: generateWhatsAppUrl(),
-    sort_order: 1,
-    active: true,
-  },
-  {
-    id: "default-2",
-    image_url: "/hero-slide-2.png",
-    desktop_image_url: "/hero-slide-2.png",
-    mobile_image_url: "/hero-slide-2.png",
-    alt: "Latest Smartphones Collection",
-    campaign_label: "FLAGSHIP SMARTPHONES",
-    heading: "Genuine & Sealed Phones.",
-    description: "Official Sri Lankan Warranty on Apple, Samsung, Xiaomi & Vivo devices.",
-    primary_button_text: "Explore Phones",
-    primary_button_url: "/products?category=smartphones",
-    show_secondary_button: false,
-    sort_order: 2,
-    active: true,
-  },
-  {
-    id: "default-3",
-    image_url: "/hero-slide-3.png",
-    desktop_image_url: "/hero-slide-3.png",
-    mobile_image_url: "/hero-slide-3.png",
-    alt: "Mobile Accessories Display",
-    campaign_label: "AUTHENTIC ACCESSORIES",
-    heading: "High Performance Audio & Accessories.",
-    description: "Earbuds, fast chargers, power banks and protective cases at unbeatable prices.",
-    primary_button_text: "View Accessories",
-    primary_button_url: "/products?category=accessories",
-    show_secondary_button: false,
-    sort_order: 3,
-    active: true,
-  },
-];
-
 export default function HeroSection() {
-  const [slides, setSlides] = useState<HeroSlide[]>(defaultHeroSlides);
+  const [slides, setSlides] = useState<HeroSlide[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
 
@@ -73,7 +21,7 @@ export default function HeroSection() {
           setSlides(activeOnly);
         }
       } catch (err) {
-        console.warn("Failed to load hero slides from DB:", err);
+        console.warn("Failed to load hero slides from Firestore:", err);
       }
     }
     loadSlides();
@@ -88,6 +36,10 @@ export default function HeroSection() {
     return () => clearInterval(timer);
   }, [slides.length, isPaused]);
 
+  if (slides.length === 0) {
+    return null; // Silent clean render when no active slides in DB
+  }
+
   const handlePrev = () => {
     setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
@@ -96,14 +48,45 @@ export default function HeroSection() {
     setCurrentIndex((prev) => (prev + 1) % slides.length);
   };
 
-  const currentSlide = slides[currentIndex] || slides[0] || defaultHeroSlides[0];
+  const currentSlide = slides[currentIndex] || slides[0];
 
-  const desktopBg = currentSlide.desktop_image_url || currentSlide.image_url || "/hero-slide-1.png";
+  const desktopBg = currentSlide.desktop_image_url || currentSlide.image_url;
   const mobileBg  = currentSlide.mobile_image_url || currentSlide.image_url || desktopBg;
+
+  // Layout alignment helpers
+  const horizAlignClass =
+    currentSlide.content_horizontal_position === "center"
+      ? "justify-center"
+      : currentSlide.content_horizontal_position === "right"
+      ? "justify-end"
+      : "justify-start";
+
+  const vertAlignClass =
+    currentSlide.content_vertical_position === "top"
+      ? "items-start pt-16"
+      : currentSlide.content_vertical_position === "bottom"
+      ? "items-end pb-16"
+      : "items-center";
+
+  const textAlignClass =
+    currentSlide.text_align === "center"
+      ? "text-center items-center"
+      : currentSlide.text_align === "right"
+      ? "text-right items-end"
+      : "text-left items-start";
+
+  const maxWClass =
+    currentSlide.content_max_width === "500px"
+      ? "max-w-[500px]"
+      : currentSlide.content_max_width === "720px"
+      ? "max-w-[720px]"
+      : currentSlide.content_max_width === "full"
+      ? "max-w-full"
+      : "max-w-[620px]";
 
   return (
     <section
-      className="relative w-full w-screen max-w-full h-[520px] sm:h-[580px] md:h-[620px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
+      className="relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[500px] max-h-[850px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -120,7 +103,7 @@ export default function HeroSection() {
           {/* Desktop Background Image */}
           <img
             src={desktopBg}
-            alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
+            alt={currentSlide.alt || currentSlide.heading || "Hero Banner"}
             className="hidden lg:block w-full h-full object-cover"
             style={{
               objectPosition: currentSlide.desktop_image_position || "center",
@@ -129,7 +112,7 @@ export default function HeroSection() {
           {/* Mobile Background Image */}
           <img
             src={mobileBg}
-            alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
+            alt={currentSlide.alt || currentSlide.heading || "Hero Banner"}
             className="lg:hidden w-full h-full object-cover"
             style={{
               objectPosition: currentSlide.mobile_image_position || "center",
@@ -145,31 +128,28 @@ export default function HeroSection() {
             }}
           />
 
-          {/* Soft Left Side Shadow Gradient for Text Legibility */}
+          {/* Gradual Left-to-Right Dark Overlay (Keeps right image clear & bright) */}
           <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 to-transparent z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 
-      {/* ── Ambient Backlight Glow ── */}
-      <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none z-10" />
-
-      {/* ── Content Container ── */}
-      <div className="relative z-20 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full py-10 sm:py-14 lg:py-16">
-        <div className="max-w-2xl text-left">
+      {/* ── Aligned Content Container (Matches max 1400px Navbar) ── */}
+      <div className={`relative z-20 max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full h-full flex ${vertAlignClass} ${horizAlignClass}`}>
+        <div className={`${maxWClass} flex flex-col ${textAlignClass} w-full`}>
 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, y: 18 }}
+              initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -18 }}
+              exit={{ opacity: 0, y: -16 }}
               transition={{ duration: 0.45, ease: "easeOut" }}
-              className="space-y-3.5"
+              className={`flex flex-col ${textAlignClass} w-full`}
             >
-              {/* Campaign Label Badge */}
+              {/* 1. Small Premium Badge (12px, 16px bottom margin) */}
               {currentSlide.campaign_label && (
                 <div
-                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg backdrop-blur-md"
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-[12px] font-bold uppercase tracking-wider shadow-lg backdrop-blur-md mb-4 shrink-0"
                   style={{
                     color: currentSlide.badge_text_color || "#FFFFFF",
                     backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.15)",
@@ -180,57 +160,66 @@ export default function HeroSection() {
                 </div>
               )}
 
-              {/* Slide Heading */}
+              {/* 2. Main Heading (clamp 42px-72px, line-height 0.98-1.05, max 2 lines, 20px bottom margin) */}
               {currentSlide.heading && (
                 <h1
-                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.08] tracking-tight drop-shadow-lg"
+                  className="text-[36px] sm:text-[48px] md:text-[56px] lg:text-[64px] xl:text-[72px] font-black leading-[1.02] tracking-tight drop-shadow-xl line-clamp-2 hyphens-none break-normal mb-5"
                   style={{ color: currentSlide.heading_color || "#FFFFFF" }}
                 >
                   {currentSlide.heading}
                 </h1>
               )}
 
-              {/* Promo Price Highlight */}
+              {/* Promo Price Tag */}
               {currentSlide.promo_text && (
-                <div className="inline-block px-3 py-1 bg-red-600 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-md shadow-lg">
+                <div className="inline-block px-3 py-1 bg-red-600 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-md shadow-lg mb-4">
                   {currentSlide.promo_text}
                 </div>
               )}
 
-              {/* Description */}
+              {/* 3. Description (17px-20px, max 2 lines, 30px spacing before buttons) */}
               {currentSlide.description && (
                 <p
-                  className="text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-medium drop-shadow-sm"
+                  className="text-[16px] sm:text-[18px] lg:text-[20px] leading-[1.6] font-medium drop-shadow-md line-clamp-2 hyphens-none break-normal mb-[30px]"
                   style={{ color: currentSlide.description_color || "#D1D5DB" }}
                 >
                   {currentSlide.description}
                 </p>
               )}
 
-              {/* Action Buttons */}
-              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+              {/* 4. Compact Premium CTA Buttons */}
+              <div className={`flex flex-col sm:flex-row items-center gap-3.5 w-full sm:w-auto ${
+                currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
+              }`}>
+                {/* Primary Compact CTA (Height 54px, Padding 28px, Radius 14px) */}
                 {currentSlide.primary_button_text && (
                   <Link
                     href={currentSlide.primary_button_url || "/products"}
-                    className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[14px] font-medium text-base shadow-xl transition-all flex items-center justify-center gap-3 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0"
                     style={{
                       color: currentSlide.button_text_color || "#000000",
                       backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
                     }}
                   >
                     <span>{currentSlide.primary_button_text}</span>
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
                   </Link>
                 )}
 
+                {/* Secondary CTA (Height 54px, Padding 28px, Radius 14px, Transparent with Border) */}
                 {currentSlide.show_secondary_button && currentSlide.secondary_button_url && (
                   <a
                     href={currentSlide.secondary_button_url}
                     target={currentSlide.secondary_button_url.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    className="group w-full sm:w-auto h-[54px] px-[28px] rounded-[14px] font-medium text-base border transition-all flex items-center justify-center gap-3 cursor-pointer hover:scale-[1.02] active:scale-95 shrink-0 backdrop-blur-md"
+                    style={{
+                      color: currentSlide.secondary_button_text_color || "#FFFFFF",
+                      backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
+                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
+                    }}
                   >
-                    <MessageCircle className="w-4 h-4 text-emerald-400" />
+                    <MessageCircle className="w-5 h-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
                     <span>{currentSlide.secondary_button_text || "Contact Us"}</span>
                   </a>
                 )}
@@ -248,31 +237,31 @@ export default function HeroSection() {
             type="button"
             onClick={handlePrev}
             aria-label="Previous Slide"
-            className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
           >
-            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronLeft className="w-6 h-6" />
           </button>
           <button
             type="button"
             onClick={handleNext}
             aria-label="Next Slide"
-            className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
           >
-            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
+            <ChevronRight className="w-6 h-6" />
           </button>
         </>
       )}
 
       {/* ── Pagination Dots ── */}
       {slides.length > 1 && (
-        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
+        <div className="absolute bottom-5 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
           {slides.map((_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setCurrentIndex(idx)}
               className={`h-2 rounded-full transition-all duration-300 ${
-                currentIndex === idx ? "w-7 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
+                currentIndex === idx ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />
