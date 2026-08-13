@@ -99,8 +99,17 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const defaultWishlistContext: WishlistContextType = {
+  wishlist: [],
+  toggleWishlist: () => {},
+  isInWishlist: () => false,
+  clearWishlist: () => {},
+};
+
 export function useWishlist() {
   const ctx = useContext(WishlistContext);
-  if (!ctx) throw new Error("useWishlist must be used inside WishlistProvider");
+  if (!ctx) {
+    return defaultWishlistContext;
+  }
   return ctx;
 }

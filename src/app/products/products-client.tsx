@@ -13,7 +13,6 @@ import {
   ChevronUp,
 } from "lucide-react";
 import { Product, Category } from "@/lib/types";
-import ShopBannerLive from "@/components/products/ShopBannerLive";
 import ProductCard from "@/components/products/ProductCard";
 
 /* ─────────────────────────────────────────────────────────────
@@ -984,11 +983,6 @@ export default function ProductsClient({
 
       {/* ── Main Content ── */}
       <div className="max-w-7xl mx-auto px-4 lg:px-6 pb-20">
-
-        {/* Dynamic Offer Banner (Controlled via Admin Panel) */}
-        <div className="mb-8">
-          <ShopBannerLive />
-        </div>
 
         {/* Toolbar — sort removed to sidebar, only shows count + mobile filter trigger */}
         <div className="flex items-center justify-between border-b border-neutral-100 pb-4 mb-6">
