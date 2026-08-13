@@ -16,6 +16,7 @@ import {
   Plus,
   ArrowRight,
   Banknote,
+  CreditCard,
 } from "lucide-react";
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
@@ -805,10 +806,17 @@ export default function ProductDetailClient({
                   <ShieldCheck className="w-4 h-4 text-black shrink-0" />
                   <span className="font-bold">{product.warranty || "Genuine Warranty"}</span>
                 </div>
-                <div className="flex items-center gap-2.5">
-                  <Banknote className="w-4 h-4 text-black shrink-0" />
-                  <span>Cash on Delivery</span>
-                </div>
+                {product.allow_cod !== false ? (
+                  <div className="flex items-center gap-2.5">
+                    <Banknote className="w-4 h-4 text-black shrink-0" />
+                    <span>Cash on Delivery</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 text-amber-800">
+                    <CreditCard className="w-4 h-4 text-amber-600 shrink-0" />
+                    <span className="font-bold">Card / Online Payment</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2.5">
                   <Truck className="w-4 h-4 text-black shrink-0" />
                   <span>{product.delivery_info || "Express Delivery Sri Lanka"}</span>

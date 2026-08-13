@@ -30,7 +30,7 @@ import {
 } from "lucide-react";
 import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
+import { addDoc, updateDoc, doc, collection, setDoc } from "firebase/firestore";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
@@ -181,7 +181,8 @@ export default function ProductModal({
   const [metaTitle, setMetaTitle] = useState("");
   const [metaDescription, setMetaDescription] = useState("");
 
-  // Specifications Key-Value Pairs
+  // General Product Image Gallery (For non-color accessories or product-level images)
+  const [generalImages, setGeneralImages] = useState<string[]>([]);
   const [specRows, setSpecRows] = useState<{ key: string; value: string }[]>([]);
 
   // Colours List
@@ -278,6 +279,9 @@ export default function ProductModal({
       setAllowCard(initialData.allow_card !== false);
       setAllowWhatsapp(initialData.allow_whatsapp !== false);
       setDeliveryInfo(initialData.delivery_info || "1-3 Business Days Islandwide Courier Delivery");
+      setMetaTitle((initialData as any).meta_title || (initialData as any).metaTitle || "");
+      setMetaDescription((initialData as any).meta_description || (initialData as any).metaDescription || "");
+      setGeneralImages(initialData.images || []);
 
       // Feature Flags detection
       const catNameOrId = initialData.category_name || initialData.category_id || "";
@@ -398,6 +402,9 @@ export default function ProductModal({
       setAllowCod(true);
       setAllowCard(true);
       setAllowWhatsapp(true);
+      setMetaTitle("");
+      setMetaDescription("");
+      setGeneralImages(["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"]);
 
       setSpecRows([
         { key: "Display", value: '6.7" Super AMOLED 120Hz' },
@@ -537,20 +544,27 @@ export default function ProductModal({
   // Auto Generate Variant Combinations Matrix
   const handleGenerateCombinations = () => {
     const activeColors = colorVariants.filter((c) => c.active !== false);
+
+    if (hasColorVariants && activeColors.length === 0) {
+      alert("Please add at least one color in Tab 2 (Media & Colours) before auto-generating color variants.");
+      return;
+    }
+
+    const storagePresets = hasStorageVariants ? ["128GB", "256GB", "512GB"] : [""];
     const newCombos: ProductVariantCombo[] = [];
 
-    activeColors.forEach((col) => {
-      PRESET_STORAGE.slice(1, 3).forEach((st) => {
-        ["Physical SIM + eSIM", "eSIM Only (USA)"].forEach((sim) => {
-          const skuStr = `${brand.slice(0, 3).toUpperCase()}-${col.name.slice(0, 3).toUpperCase()}-${st}-${sim.includes("eSIM Only") ? "ESIM" : "PHYS"}`;
+    if (hasColorVariants) {
+      activeColors.forEach((col) => {
+        storagePresets.forEach((st) => {
+          const skuStr = `${brand.slice(0, 3).toUpperCase()}-${col.name.slice(0, 3).toUpperCase()}${st ? `-${st}` : ""}`;
           newCombos.push({
             id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             color_id: col.id,
             color_name: col.name,
             color_hex: col.hex || getColorCSS(col.name),
-            ram: "8GB",
+            ram: st ? "8GB" : "",
             storage: st,
-            sim_type: sim,
+            sim_type: "Physical SIM + eSIM",
             sku: skuStr,
             price: basePrice || 150000,
             old_price: baseOldPrice,
@@ -564,10 +578,36 @@ export default function ProductModal({
           });
         });
       });
-    });
+    } else if (hasStorageVariants) {
+      storagePresets.forEach((st) => {
+        const skuStr = `${brand.slice(0, 3).toUpperCase()}-${st}`;
+        newCombos.push({
+          id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+          color_name: "Standard",
+          color_hex: "#000000",
+          ram: "8GB",
+          storage: st,
+          sim_type: "Standard",
+          sku: skuStr,
+          price: basePrice || 150000,
+          old_price: baseOldPrice,
+          stock_quantity: 10,
+          reserved_stock: 0,
+          available_stock: 10,
+          low_stock_threshold: 3,
+          status: "active",
+          warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
+        });
+      });
+    }
 
-    setVariantCombos(newCombos);
-    setHasUnsavedChanges(true);
+    if (newCombos.length > 0) {
+      setVariantCombos(newCombos);
+      setHasUnsavedChanges(true);
+      alert(`Successfully generated ${newCombos.length} variant combinations!`);
+    } else {
+      alert("No variants could be generated. Make sure Color or Storage options are enabled.");
+    }
   };
 
   // Save Product Handler
@@ -594,16 +634,59 @@ export default function ProductModal({
       const finalBrandSlug = finalBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const finalCategorySlug = finalCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-      // Compute Total Stock from active variants
-      const totalVariantStock = variantCombos.reduce((s, v) => s + (v.stock_quantity || 0), 0);
+      // Save Custom Category or Brand to Firestore Catalog Collections if new
+      if (isCustomCategory && customCategoryName.trim()) {
+        try {
+          const catSlug = customCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          await setDoc(doc(db, "categories", `cat-${catSlug}`), {
+            id: `cat-${catSlug}`,
+            name: customCategoryName.trim(),
+            slug: catSlug,
+            icon: "📱",
+            image_url: "",
+            sort_order: 99,
+            status: "active",
+            show_on_homepage: true,
+            show_in_selector: true,
+            group: "product_categories",
+          }, { merge: true });
+        } catch (err) {
+          console.warn("Failed to save custom category to catalog:", err);
+        }
+      }
+
+      if (isCustomBrand && customBrandName.trim()) {
+        try {
+          const bSlug = customBrandName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          await setDoc(doc(db, "brands", `brand-${bSlug}`), {
+            id: `brand-${bSlug}`,
+            name: customBrandName.trim(),
+            slug: bSlug,
+            logo_url: "",
+            sort_order: 99,
+            status: "active",
+            show_on_homepage: true,
+          }, { merge: true });
+        } catch (err) {
+          console.warn("Failed to save custom brand to catalog:", err);
+        }
+      }
+
+      // Compute Total Stock from active variants or default stock
+      const totalVariantStock = variantCombos.length > 0
+        ? variantCombos.reduce((s, v) => s + (v.stock_quantity || 0), 0)
+        : 10;
       const isOutOfStock = totalVariantStock === 0;
 
-      // Extract all gallery images
-      const allImages: string[] = [];
+      // Combine general product images and color-specific images
+      const allImages: string[] = [...generalImages];
       colorVariants.forEach((c) => {
-        if (c.images) allImages.push(...c.images);
+        if (c.images && c.images.length > 0) allImages.push(...c.images);
       });
-      const finalImages = allImages.length > 0 ? Array.from(new Set(allImages)) : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"];
+      const cleanImages = allImages.map((u) => u.trim()).filter(Boolean);
+      const finalImages = cleanImages.length > 0
+        ? Array.from(new Set(cleanImages))
+        : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"];
 
       // First active price
       const primaryPrice = variantCombos[0]?.price || basePrice || 0;
@@ -672,6 +755,10 @@ export default function ProductModal({
         allow_cod: allowCod,
         allow_card: allowCard,
         allow_whatsapp: allowWhatsapp,
+        meta_title: metaTitle.trim(),
+        metaTitle: metaTitle.trim(),
+        meta_description: metaDescription.trim(),
+        metaDescription: metaDescription.trim(),
         compatible_brands: [finalBrand],
         created_at: initialData?.created_at || new Date().toISOString(),
       };
@@ -1168,11 +1255,61 @@ export default function ProductModal({
             <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
               <div>
                 <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
-                  Colour Variants & Dedicated Image Galleries
+                  Product Media & Image Galleries
                 </h3>
                 <p className="text-xs text-gray-500 mt-1">
-                  Add custom colours. Each colour has its own dedicated cover image and gallery thumbnails that update live when selected by customers.
+                  Upload multiple product images for general view, as well as color-specific gallery thumbnails.
                 </p>
+              </div>
+
+              {/* ── General Product Gallery Images (Always available for accessories and all products) ── */}
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-blue-600" />
+                      General Product Gallery Images ({generalImages.filter(Boolean).length} Images)
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Enter 2, 3 or more image URLs for this product (One URL per line). Essential for accessories or general product photos.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="space-y-2 text-xs">
+                  <textarea
+                    rows={4}
+                    value={generalImages.join("\n")}
+                    onChange={(e) => {
+                      const urls = e.target.value.split("\n").map((u) => u.trim());
+                      setGeneralImages(urls);
+                      setHasUnsavedChanges(true);
+                    }}
+                    placeholder="https://images.unsplash.com/photo-...\nhttps://images.unsplash.com/photo-..."
+                    className="w-full p-3 bg-white border border-gray-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
+                  />
+                </div>
+
+                {/* Previews */}
+                <div className="flex flex-wrap gap-2.5 pt-1">
+                  {generalImages.filter(Boolean).map((img, i) => (
+                    <div key={i} className="relative group w-16 h-16 bg-white border border-gray-200 rounded-xl overflow-hidden p-1 shadow-2xs">
+                      <img src={img} alt={`Preview ${i + 1}`} className="w-full h-full object-contain" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updated = generalImages.filter((_, idx) => idx !== i);
+                          setGeneralImages(updated);
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                        title="Remove image"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
               </div>
 
               {!hasColorVariants ? (
@@ -1884,28 +2021,35 @@ export default function ProductModal({
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 7 && (
             <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
-              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">SEO & Publishing</h3>
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">SEO & Publishing Settings</h3>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-gray-700 mb-1">SEO Title Tag</label>
+                  <label className="block font-bold text-gray-700 mb-1">Custom SEO Title Tag</label>
                   <input
                     type="text"
-                    value={metaTitle || name}
-                    onChange={(e) => setMetaTitle(e.target.value)}
-                    placeholder="STREET MOBILE - Buy Phone Online"
-                    className="w-full px-3.5 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium"
+                    value={metaTitle}
+                    onChange={(e) => {
+                      setMetaTitle(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
+                    placeholder={name || "STREET MOBILE - Buy Phone Online"}
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
+                  <p className="text-[11px] text-gray-400 mt-1">Leaves default product name if empty, or type custom text to override.</p>
                 </div>
 
                 <div>
                   <label className="block font-bold text-gray-700 mb-1">Meta Description</label>
                   <textarea
                     rows={3}
-                    value={metaDescription || shortDesc}
-                    onChange={(e) => setMetaDescription(e.target.value)}
-                    placeholder="Short SEO snippet for Google search..."
-                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium resize-none"
+                    value={metaDescription}
+                    onChange={(e) => {
+                      setMetaDescription(e.target.value);
+                      setHasUnsavedChanges(true);
+                    }}
+                    placeholder={shortDesc || "Short SEO snippet for Google search..."}
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-900 outline-none focus:border-blue-500 resize-none text-xs"
                   />
                 </div>
               </div>

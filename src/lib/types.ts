@@ -59,6 +59,10 @@ export interface Product {
   tags?: string[];
   status?: "active" | "draft" | "inactive";
   show_on_homepage?: boolean;
+  meta_title?: string;
+  metaTitle?: string;
+  meta_description?: string;
+  metaDescription?: string;
 }
 
 export interface Brand {
