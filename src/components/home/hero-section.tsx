@@ -1,267 +1,246 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence, Variants, useMotionValue } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
-import dynamic from "next/dynamic";
-import { ArrowRight, MessageCircle } from "lucide-react";
+import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { generateWhatsAppUrl } from "@/lib/utils";
 import { getHeroSlides } from "@/lib/firestore-client";
-import WebGLGuard from "@/components/ui/WebGLGuard";
-import MagneticButton from "@/components/ui/magnetic-button";
-
-// Dynamic import of 3D Canvas component to prevent SSR issues
-const DynamicScrollDissolveReveal = dynamic(
-  () => import("@/components/ui/scroll-dissolve-reveal").then((mod) => mod.ScrollDissolveReveal),
-  { ssr: false }
-);
+import { HeroSlide } from "@/lib/types";
 
 /* ─── Default Fallback Hero Slides ─── */
-const defaultHeroSlides = [
-  { src: "/hero-slide-1.png", alt: "Premium Mobile Store Interior" },
-  { src: "/hero-slide-2.png", alt: "Latest Smartphones Collection" },
-  { src: "/hero-slide-3.png", alt: "Mobile Accessories Display" },
-  { src: "/hero-slide-4.png", alt: "Premium Phone Experience" },
+const defaultHeroSlides: HeroSlide[] = [
+  {
+    id: "default-1",
+    image_url: "/hero-slide-1.png",
+    desktop_image_url: "/hero-slide-1.png",
+    mobile_image_url: "/hero-slide-1.png",
+    alt: "Premium Mobile Experience",
+    campaign_label: "YOUR TRUSTED STORE IN VAVUNIYA",
+    heading: "Premium Mobile Experience.",
+    description: "Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.",
+    primary_button_text: "Shop Now",
+    primary_button_url: "/products",
+    show_secondary_button: true,
+    secondary_button_text: "Contact Us",
+    secondary_button_url: generateWhatsAppUrl(),
+    sort_order: 1,
+    active: true,
+  },
+  {
+    id: "default-2",
+    image_url: "/hero-slide-2.png",
+    desktop_image_url: "/hero-slide-2.png",
+    mobile_image_url: "/hero-slide-2.png",
+    alt: "Latest Smartphones Collection",
+    campaign_label: "FLAGSHIP SMARTPHONES",
+    heading: "Genuine & Sealed Phones.",
+    description: "Official Sri Lankan Warranty on Apple, Samsung, Xiaomi & Vivo devices.",
+    primary_button_text: "Explore Phones",
+    primary_button_url: "/products?category=smartphones",
+    show_secondary_button: false,
+    sort_order: 2,
+    active: true,
+  },
+  {
+    id: "default-3",
+    image_url: "/hero-slide-3.png",
+    desktop_image_url: "/hero-slide-3.png",
+    mobile_image_url: "/hero-slide-3.png",
+    alt: "Mobile Accessories Display",
+    campaign_label: "AUTHENTIC ACCESSORIES",
+    heading: "High Performance Audio & Accessories.",
+    description: "Earbuds, fast chargers, power banks and protective cases at unbeatable prices.",
+    primary_button_text: "View Accessories",
+    primary_button_url: "/products?category=accessories",
+    show_secondary_button: false,
+    sort_order: 3,
+    active: true,
+  },
 ];
 
-/* ─── Static Desktop Hero Fallback (Rendered when WebGL is unavailable/disabled) ─── */
-function DesktopHeroContent() {
-  return (
-    <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10 w-full pt-[100px] pb-16 lg:pt-[110px] lg:pb-24 flex justify-between items-center pointer-events-auto">
-      <div className="max-w-4xl text-left">
-        <div>
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 backdrop-blur-md border border-white/10 text-xs font-medium mb-8 text-white shadow-xl hover:bg-white/10 transition-colors duration-300">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Your Trusted Store in Vavuniya
-          </div>
-        </div>
-
-        <div className="mb-6">
-          <h1 className="leading-[1.02] tracking-tight text-left">
-            <span
-              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-black text-white tracking-tight drop-shadow-[0_10px_30px_rgba(255,255,255,0.12)]"
-              style={{ fontFamily: "var(--font-outfit), sans-serif" }}
-            >
-              Premium Mobile
-            </span>
-            <span
-              className="block text-4xl sm:text-5xl md:text-6xl lg:text-7xl xl:text-8xl font-serif italic mt-2 bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent drop-shadow-md"
-              style={{ fontFamily: "var(--font-playfair), serif" }}
-            >
-              Experience.
-            </span>
-          </h1>
-        </div>
-
-        <p className="text-[#6B7280] font-[400] md:font-[500] text-[20px] md:text-[22px] leading-[1.8] mb-10 max-w-[620px]">
-          Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.
-        </p>
-
-        <div className="flex flex-col sm:flex-row items-center justify-start gap-5 w-full sm:w-auto pointer-events-auto">
-          {/* Primary CTA */}
-          <MagneticButton className="w-full sm:w-auto pointer-events-auto">
-            <Link
-              href="/products"
-              className="group relative z-10 w-full flex items-center justify-center gap-3 bg-white text-black px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_8px_24px_rgba(255,255,255,0.15)] active:scale-[0.98] pointer-events-auto cursor-pointer"
-            >
-              Shop Now
-              <ArrowRight className="w-5 h-5 transition-transform duration-300 group-hover:translate-x-1" />
-            </Link>
-          </MagneticButton>
-
-          {/* Secondary CTA */}
-          <MagneticButton className="w-full sm:w-auto pointer-events-auto">
-            <a
-              href={generateWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="group relative w-full flex items-center justify-center gap-3 bg-white/5 backdrop-blur-md border border-white/10 text-white px-8 py-4 rounded-[16px] font-[500] text-lg transition-all duration-500 hover:-translate-y-1 hover:bg-white/10 hover:shadow-[0_8px_24px_rgba(255,255,255,0.05)] active:scale-[0.98] pointer-events-auto cursor-pointer"
-            >
-              <MessageCircle className="w-5 h-5 text-emerald-400 transition-transform duration-300 group-hover:scale-110" />
-              Contact Us
-            </a>
-          </MagneticButton>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function StaticDesktopHeroFallback({ bgImage }: { bgImage: string }) {
-  return (
-    <div className="relative w-full min-h-screen bg-black overflow-hidden flex items-center justify-center">
-      {/* Static Background Image with Gradient Overlays */}
-      <div className="absolute inset-0 z-0">
-        <img
-          src={bgImage}
-          alt="Street Mobile Store"
-          className="w-full h-full object-cover opacity-35"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/80 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/40" />
-      </div>
-
-      <DesktopHeroContent />
-    </div>
-  );
-}
-
 export default function HeroSection() {
-  const [slides, setSlides] = useState<Array<{ src: string; alt: string }>>(defaultHeroSlides);
-  const [currentSlide, setCurrentSlide] = useState(0);
-
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-
-  const handleMouseMove = (e: React.MouseEvent) => {
-    const { clientX, clientY } = e;
-    const target = e.currentTarget as HTMLElement;
-    const rect = target.getBoundingClientRect();
-    const x = clientX - rect.left - rect.width / 2;
-    const y = clientY - rect.top - rect.height / 2;
-    mouseX.set(x);
-    mouseY.set(y);
-  };
+  const [slides, setSlides] = useState<HeroSlide[]>(defaultHeroSlides);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isPaused, setIsPaused] = useState(false);
 
   useEffect(() => {
-    async function loadDynamicSlides() {
+    async function loadSlides() {
       try {
         const fetched = await getHeroSlides();
-        const activeSlides = fetched
-          .filter((s) => s.active !== false)
-          .map((s) => ({
-            src: s.image_url,
-            alt: s.alt || "Street Mobile Banner",
-          }));
-        if (activeSlides.length > 0) {
-          setSlides(activeSlides);
-          setCurrentSlide(0);
+        const activeOnly = fetched.filter((s) => s.active !== false);
+        if (activeOnly.length > 0) {
+          setSlides(activeOnly);
         }
       } catch (err) {
-        console.error("Failed to load hero slides from DB:", err);
+        console.warn("Failed to load hero slides from DB:", err);
       }
     }
-    loadDynamicSlides();
+    loadSlides();
   }, []);
 
-  // Auto-slide effect for mobile hero carousel
+  // Auto-play interval (5 seconds)
   useEffect(() => {
-    if (slides.length <= 1) return;
-    const interval = setInterval(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [slides.length]);
+    if (slides.length <= 1 || isPaused) return;
+    const timer = setInterval(() => {
+      setCurrentIndex((prev) => (prev + 1) % slides.length);
+    }, 5000);
+    return () => clearInterval(timer);
+  }, [slides.length, isPaused]);
 
-  const primaryBg = slides[0]?.src || defaultHeroSlides[0].src;
+  const handlePrev = () => {
+    setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
+  };
+
+  const handleNext = () => {
+    setCurrentIndex((prev) => (prev + 1) % slides.length);
+  };
+
+  const currentSlide = slides[currentIndex] || slides[0] || defaultHeroSlides[0];
+
+  const desktopBg = currentSlide.desktop_image_url || currentSlide.image_url || "/hero-slide-1.png";
+  const mobileBg  = currentSlide.mobile_image_url || currentSlide.image_url || desktopBg;
 
   return (
-    <>
-      {/* ── MOBILE HERO SECTION (Slide Transition Carousel) ── */}
-      <section className="lg:hidden relative w-full min-h-[580px] bg-black overflow-hidden flex flex-col justify-between pt-24 pb-12 px-4">
-        {/* Sliding Background Image Carousel */}
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentSlide}
-            initial={{ opacity: 0, x: 80 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -80 }}
-            transition={{ duration: 0.6, ease: "easeInOut" }}
-            className="absolute inset-0 z-0"
-          >
-            <img
-              src={slides[currentSlide]?.src || defaultHeroSlides[0].src}
-              alt={slides[currentSlide]?.alt || "Hero Banner"}
-              className="w-full h-full object-cover object-center opacity-45"
-            />
-            <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-black/30 z-10" />
-          </motion.div>
-        </AnimatePresence>
+    <section
+      className="relative w-full min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] bg-black overflow-hidden flex items-center justify-center text-white"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+    >
+      {/* ── Background Carousel Layer ── */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentSlide.id || currentIndex}
+          initial={{ opacity: 0, scale: 1.05 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.7, ease: "easeOut" }}
+          className="absolute inset-0 z-0"
+        >
+          {/* Desktop Background Image */}
+          <img
+            src={desktopBg}
+            alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
+            className="hidden lg:block w-full h-full object-cover object-center opacity-40"
+          />
+          {/* Mobile Background Image */}
+          <img
+            src={mobileBg}
+            alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
+            className="lg:hidden w-full h-full object-cover object-center opacity-45"
+          />
 
-        {/* Mobile Content Overlay */}
-        <div className="relative z-20 max-w-xl mx-auto my-auto text-left py-6">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/15 text-[11px] font-medium text-white mb-5 shadow-lg">
-            <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-            Your Trusted Store in Vavuniya
-          </div>
+          {/* Luxury Gradient Overlays for perfect legibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black via-black/75 to-transparent z-10" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black via-transparent to-black/30 z-10" />
+        </motion.div>
+      </AnimatePresence>
 
-          <h1 className="text-4xl sm:text-5xl font-black text-white leading-[1.05] tracking-tight mb-4">
-            <span className="block font-sans">Premium Mobile</span>
-            <span className="block font-serif italic text-slate-300">Experience.</span>
-          </h1>
+      {/* ── Ambient Backlight Glow ── */}
+      <div className="absolute top-1/2 left-1/3 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 blur-[140px] rounded-full pointer-events-none z-10" />
 
-          <p className="text-gray-300 text-base leading-relaxed mb-8 max-w-sm">
-            Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life.
-          </p>
+      {/* ── Content Container ── */}
+      <div className="relative z-20 max-w-[1440px] mx-auto px-4 lg:px-8 w-full pt-24 pb-16 lg:pt-32 lg:pb-24">
+        <div className="max-w-2xl text-left">
 
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Link
-              href="/products"
-              className="w-full flex items-center justify-center gap-2 bg-white text-black py-3.5 px-6 rounded-2xl font-bold text-base shadow-xl active:scale-95 transition-all"
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentIndex}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ duration: 0.5, ease: "easeOut" }}
+              className="space-y-4"
             >
-              Shop Now
-              <ArrowRight className="w-4 h-4" />
-            </Link>
-            <a
-              href={generateWhatsAppUrl()}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="w-full flex items-center justify-center gap-2 bg-white/10 backdrop-blur-md border border-white/20 text-white py-3.5 px-6 rounded-2xl font-bold text-base active:scale-95 transition-all"
-            >
-              <MessageCircle className="w-5 h-5 text-emerald-400" />
-              Contact Us
-            </a>
-          </div>
+              {/* Campaign Label Badge */}
+              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
+                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                <span>{currentSlide.campaign_label || "YOUR TRUSTED STORE IN VAVUNIYA"}</span>
+              </div>
+
+              {/* Slide Heading */}
+              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-white drop-shadow-md">
+                {currentSlide.heading || "Premium Mobile Experience."}
+              </h1>
+
+              {/* Promo Price Highlight */}
+              {currentSlide.promo_text && (
+                <div className="inline-block px-3 py-1 bg-red-600 text-white font-extrabold text-xs sm:text-sm uppercase tracking-wider rounded-md shadow-lg">
+                  {currentSlide.promo_text}
+                </div>
+              )}
+
+              {/* Description */}
+              <p className="text-neutral-300 text-sm sm:text-lg md:text-xl leading-relaxed max-w-xl font-medium">
+                {currentSlide.description || "Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life."}
+              </p>
+
+              {/* Action Buttons */}
+              <div className="pt-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
+                <Link
+                  href={currentSlide.primary_button_url || "/products"}
+                  className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-black px-7 py-3.5 sm:py-4 rounded-xl font-bold text-base hover:bg-neutral-100 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                >
+                  <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+                  <ArrowRight className="w-5 h-5" />
+                </Link>
+
+                {currentSlide.show_secondary_button && currentSlide.secondary_button_url && (
+                  <a
+                    href={currentSlide.secondary_button_url}
+                    target={currentSlide.secondary_button_url.startsWith("http") ? "_blank" : "_self"}
+                    rel="noopener noreferrer"
+                    className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 text-white px-7 py-3.5 sm:py-4 rounded-xl font-bold text-base hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
+                  >
+                    <MessageCircle className="w-5 h-5 text-emerald-400" />
+                    <span>{currentSlide.secondary_button_text || "Contact Us"}</span>
+                  </a>
+                )}
+              </div>
+            </motion.div>
+          </AnimatePresence>
+
         </div>
-
-        {/* Mobile Slide Dot Indicators */}
-        {slides.length > 1 && (
-          <div className="relative z-20 flex items-center justify-center gap-2 pt-4">
-            {slides.map((_, idx) => (
-              <button
-                key={idx}
-                onClick={() => setCurrentSlide(idx)}
-                className={`h-1.5 rounded-full transition-all duration-300 ${
-                  currentSlide === idx ? "w-6 bg-white" : "w-1.5 bg-white/30"
-                }`}
-                aria-label={`Go to slide ${idx + 1}`}
-              />
-            ))}
-          </div>
-        )}
-      </section>
-
-      {/* ── DESKTOP HERO SECTION (WebGL Guard + Dynamic Scroll Dissolve) ── */}
-      <div className="hidden lg:block">
-        <WebGLGuard fallback={<StaticDesktopHeroFallback bgImage={primaryBg} />}>
-          <DynamicScrollDissolveReveal
-            images={slides.slice(0, 4).map((s) => s.src)}
-            containerClassName="h-[400vh]"
-          >
-            <div
-              className="relative w-full h-full flex items-center justify-center overflow-hidden"
-              onMouseMove={handleMouseMove}
-            >
-              {/* Ambient brand color backlight */}
-              <div className="absolute top-1/2 left-2/3 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[130px] rounded-full pointer-events-none z-0" />
-
-              {/* Left side blur and dark overlay for text readability */}
-              <div
-                className="absolute inset-y-0 left-0 w-full lg:w-[68%] bg-gradient-to-r from-black via-black/80 to-transparent backdrop-blur-[6px] z-10 pointer-events-none"
-                style={{
-                  maskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-                  WebkitMaskImage: "linear-gradient(to right, black 65%, transparent 100%)",
-                }}
-              />
-
-              {/* Bottom gradient */}
-              <div className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-black/60 to-transparent z-10 pointer-events-none" />
-
-              <DesktopHeroContent />
-            </div>
-          </DynamicScrollDissolveReveal>
-        </WebGLGuard>
       </div>
-    </>
+
+      {/* ── Navigation Arrows (Visible on desktop hover) ── */}
+      {slides.length > 1 && (
+        <>
+          <button
+            type="button"
+            onClick={handlePrev}
+            aria-label="Previous Slide"
+            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+          >
+            <ChevronLeft className="w-6 h-6" />
+          </button>
+          <button
+            type="button"
+            onClick={handleNext}
+            aria-label="Next Slide"
+            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+          >
+            <ChevronRight className="w-6 h-6" />
+          </button>
+        </>
+      )}
+
+      {/* ── Pagination Dots ── */}
+      {slides.length > 1 && (
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
+          {slides.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={() => setCurrentIndex(idx)}
+              className={`h-2 rounded-full transition-all duration-300 ${
+                currentIndex === idx ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
+              }`}
+              aria-label={`Go to slide ${idx + 1}`}
+            />
+          ))}
+        </div>
+      )}
+    </section>
   );
 }

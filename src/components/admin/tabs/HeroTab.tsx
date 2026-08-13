@@ -9,9 +9,10 @@ interface HeroTabProps {
   onAdd: () => void;
   onEdit: (slide: HeroSlide) => void;
   onDelete: (id: string) => void;
+  onToggleStatus?: (id: string, active: boolean) => void;
 }
 
-export default function HeroTab({ slides, onAdd, onEdit, onDelete }: HeroTabProps) {
+export default function HeroTab({ slides, onAdd, onEdit, onDelete, onToggleStatus }: HeroTabProps) {
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -61,17 +62,26 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete }: HeroTabProp
                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+                
+                {/* Active Toggle Badge */}
                 <div className="absolute top-3 left-3">
-                  {slide.active !== false ? (
-                    <span className="px-2.5 py-1 rounded-full bg-emerald-500/80 text-white backdrop-blur-md text-[10px] font-bold flex items-center gap-1">
-                      <CheckCircle2 className="w-3 h-3" /> Active
-                    </span>
-                  ) : (
-                    <span className="px-2.5 py-1 rounded-full bg-zinc-700/80 text-white backdrop-blur-md text-[10px] font-bold flex items-center gap-1">
-                      <XCircle className="w-3 h-3" /> Hidden
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => onToggleStatus?.(slide.id, slide.active === false)}
+                    className="cursor-pointer transition-transform active:scale-95"
+                  >
+                    {slide.active !== false ? (
+                      <span className="px-2.5 py-1 rounded-full bg-emerald-500 text-white backdrop-blur-md text-[10px] font-bold flex items-center gap-1 shadow-md hover:bg-emerald-400">
+                        <CheckCircle2 className="w-3 h-3" /> Active
+                      </span>
+                    ) : (
+                      <span className="px-2.5 py-1 rounded-full bg-zinc-700 text-white/70 backdrop-blur-md text-[10px] font-bold flex items-center gap-1 hover:bg-zinc-600">
+                        <XCircle className="w-3 h-3" /> Hidden
+                      </span>
+                    )}
+                  </button>
                 </div>
+
                 <div className="absolute top-3 right-3 px-2 py-0.5 rounded bg-black/70 backdrop-blur-md text-[10px] text-white/80 font-mono font-bold">
                   Order #{slide.sort_order ?? 1}
                 </div>
@@ -80,7 +90,7 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete }: HeroTabProp
               {/* Info Body */}
               <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white truncate">{slide.alt || "Hero Banner Slide"}</h4>
+                  <h4 className="text-sm font-bold text-white truncate">{slide.heading || slide.alt || "Hero Banner Slide"}</h4>
                   <p className="text-xs text-white/40 mt-1 truncate">{slide.image_url}</p>
                 </div>
 

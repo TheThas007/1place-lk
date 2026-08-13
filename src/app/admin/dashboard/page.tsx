@@ -495,19 +495,35 @@ function DashboardContent() {
 
   const handleSaveHeroSlide = async (slideData: Partial<HeroSlide>) => {
     try {
-      if (editingHeroSlide && editingHeroSlide.id) {
-        await updateDoc(doc(db, "hero_slides", editingHeroSlide.id), slideData);
-        setHeroSlides((prev) => prev.map((s) => (s.id === editingHeroSlide.id ? ({ ...s, ...slideData } as HeroSlide) : s)));
-      } else {
-        const docRef = await addDoc(collection(db, "hero_slides"), slideData);
-        setHeroSlides((prev) => [...prev, { ...slideData, id: docRef.id } as HeroSlide]);
-      }
+      const slideId = editingHeroSlide?.id || `hero-${Date.now()}`;
+      const payload = { ...slideData, id: slideId, updated_at: new Date().toISOString() };
+      await setDoc(doc(db, "hero_slides", slideId), payload, { merge: true });
+
+      setHeroSlides((prev) => {
+        const exists = prev.some((s) => s.id === slideId);
+        if (exists) {
+          return prev.map((s) => (s.id === slideId ? ({ ...s, ...payload } as HeroSlide) : s));
+        }
+        return [...prev, payload as HeroSlide];
+      });
+
       setIsHeroModalOpen(false);
       setEditingHeroSlide(null);
       refreshData();
-    } catch (e) {
+    } catch (e: any) {
       console.error("Error saving hero slide:", e);
-      alert("Failed to save hero slide");
+      alert(`Failed to save hero slide: ${e?.message || "Check network/permissions"}`);
+    }
+  };
+
+  const handleToggleHeroSlideStatus = async (id: string, active: boolean) => {
+    try {
+      if (id) {
+        await setDoc(doc(db, "hero_slides", id), { active }, { merge: true });
+        setHeroSlides((prev) => prev.map((s) => (s.id === id ? { ...s, active } : s)));
+      }
+    } catch (e) {
+      console.error("Error toggling hero slide status:", e);
     }
   };
 
@@ -1081,6 +1097,7 @@ function DashboardContent() {
             setIsHeroModalOpen(true);
           }}
           onDelete={handleDeleteHeroSlide}
+          onToggleStatus={handleToggleHeroSlideStatus}
         />
       )}
 

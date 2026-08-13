@@ -363,13 +363,12 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
               />
             </div>
             <div>
-              <label className="block text-xs font-bold text-white/70 mb-1">Heading *</label>
+              <label className="block text-xs font-bold text-white/70 mb-1">Heading</label>
               <input
                 type="text"
-                required
                 value={heading}
                 onChange={(e) => setHeading(e.target.value)}
-                placeholder="e.g. iPhone 16 Pro Max"
+                placeholder="e.g. Premium Mobile Experience"
                 className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
               />
             </div>
