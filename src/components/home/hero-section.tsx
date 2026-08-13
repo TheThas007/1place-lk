@@ -103,7 +103,7 @@ export default function HeroSection() {
 
   return (
     <section
-      className="relative w-full min-h-[620px] lg:min-h-[720px] xl:min-h-[780px] bg-black overflow-hidden flex items-center justify-center text-white"
+      className="relative w-full h-[480px] sm:h-[540px] md:h-[600px] lg:h-[650px] xl:h-[700px] bg-black overflow-hidden flex items-center justify-center text-white"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
@@ -111,57 +111,78 @@ export default function HeroSection() {
       <AnimatePresence mode="wait">
         <motion.div
           key={currentSlide.id || currentIndex}
-          initial={{ opacity: 0, scale: 1.05 }}
+          initial={{ opacity: 0, scale: 1.03 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.98 }}
-          transition={{ duration: 0.7, ease: "easeOut" }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
           className="absolute inset-0 z-0"
         >
-          {/* Desktop Background Image (Full Visibility & High Clarity) */}
+          {/* Desktop Background Image */}
           <img
             src={desktopBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="hidden lg:block w-full h-full object-cover object-center opacity-100"
+            className="hidden lg:block w-full h-full object-cover object-center"
           />
           {/* Mobile Background Image */}
           <img
             src={mobileBg}
             alt={currentSlide.alt || currentSlide.heading || "Hero Slide"}
-            className="lg:hidden w-full h-full object-cover object-center opacity-100"
+            className="lg:hidden w-full h-full object-cover object-center"
           />
 
-          {/* Gentle Gradient Overlay for Readability while keeping image bright */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-black/20 z-10" />
+          {/* Dynamic Admin Custom Overlay Color & Opacity */}
+          <div
+            className="absolute inset-0 z-10 transition-all duration-500"
+            style={{
+              backgroundColor: currentSlide.overlay_color || "#000000",
+              opacity: (currentSlide.overlay_opacity ?? 35) / 100,
+            }}
+          />
+
+          {/* Soft Left Side Shadow Gradient for Text Legibility */}
+          <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent z-10 pointer-events-none" />
         </motion.div>
       </AnimatePresence>
 
       {/* ── Ambient Backlight Glow ── */}
-      <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none z-10" />
+      <div className="absolute top-1/2 left-1/4 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-emerald-500/10 blur-[150px] rounded-full pointer-events-none z-10" />
 
       {/* ── Content Container ── */}
-      <div className="relative z-20 max-w-[1440px] mx-auto px-4 lg:px-8 w-full pt-24 pb-16 lg:pt-32 lg:pb-24">
+      <div className="relative z-20 max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-12 w-full py-10 sm:py-14 lg:py-16">
         <div className="max-w-2xl text-left">
 
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 18 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-4"
+              exit={{ opacity: 0, y: -18 }}
+              transition={{ duration: 0.45, ease: "easeOut" }}
+              className="space-y-3.5"
             >
               {/* Campaign Label Badge */}
-              <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-xs font-semibold text-white shadow-xl">
-                <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
-                <span>{currentSlide.campaign_label || "YOUR TRUSTED STORE IN VAVUNIYA"}</span>
-              </div>
+              {currentSlide.campaign_label && (
+                <div
+                  className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg backdrop-blur-md"
+                  style={{
+                    color: currentSlide.badge_text_color || "#FFFFFF",
+                    backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.15)",
+                  }}
+                >
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-400 animate-pulse" />
+                  <span>{currentSlide.campaign_label}</span>
+                </div>
+              )}
 
               {/* Slide Heading */}
-              <h1 className="text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black leading-[1.05] tracking-tight text-white drop-shadow-md">
-                {currentSlide.heading || "Premium Mobile Experience."}
-              </h1>
+              {currentSlide.heading && (
+                <h1
+                  className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black leading-[1.08] tracking-tight drop-shadow-lg"
+                  style={{ color: currentSlide.heading_color || "#FFFFFF" }}
+                >
+                  {currentSlide.heading}
+                </h1>
+              )}
 
               {/* Promo Price Highlight */}
               {currentSlide.promo_text && (
@@ -171,28 +192,39 @@ export default function HeroSection() {
               )}
 
               {/* Description */}
-              <p className="text-neutral-300 text-sm sm:text-lg md:text-xl leading-relaxed max-w-xl font-medium">
-                {currentSlide.description || "Latest Smartphones. Best Prices. Professional Service. Everything you need for your digital life."}
-              </p>
+              {currentSlide.description && (
+                <p
+                  className="text-sm sm:text-base md:text-lg leading-relaxed max-w-xl font-medium drop-shadow-sm"
+                  style={{ color: currentSlide.description_color || "#D1D5DB" }}
+                >
+                  {currentSlide.description}
+                </p>
+              )}
 
               {/* Action Buttons */}
-              <div className="pt-4 flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto">
-                <Link
-                  href={currentSlide.primary_button_url || "/products"}
-                  className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white text-black px-7 py-3.5 sm:py-4 rounded-xl font-bold text-base hover:bg-neutral-100 hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
-                >
-                  <span>{currentSlide.primary_button_text || "Shop Now"}</span>
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
+              <div className="pt-2 flex flex-col sm:flex-row items-center gap-3 w-full sm:w-auto">
+                {currentSlide.primary_button_text && (
+                  <Link
+                    href={currentSlide.primary_button_url || "/products"}
+                    className="w-full sm:w-auto flex items-center justify-center gap-2.5 px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base hover:scale-[1.02] active:scale-95 transition-all shadow-xl"
+                    style={{
+                      color: currentSlide.button_text_color || "#000000",
+                      backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
+                    }}
+                  >
+                    <span>{currentSlide.primary_button_text}</span>
+                    <ArrowRight className="w-4 h-4" />
+                  </Link>
+                )}
 
                 {currentSlide.show_secondary_button && currentSlide.secondary_button_url && (
                   <a
                     href={currentSlide.secondary_button_url}
                     target={currentSlide.secondary_button_url.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="w-full sm:w-auto flex items-center justify-center gap-3 bg-white/10 backdrop-blur-md border border-white/20 text-white px-7 py-3.5 sm:py-4 rounded-xl font-bold text-base hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
+                    className="w-full sm:w-auto flex items-center justify-center gap-2.5 bg-white/10 backdrop-blur-md border border-white/20 text-white px-6 py-3.5 rounded-xl font-bold text-sm sm:text-base hover:bg-white/20 hover:scale-[1.02] active:scale-95 transition-all"
                   >
-                    <MessageCircle className="w-5 h-5 text-emerald-400" />
+                    <MessageCircle className="w-4 h-4 text-emerald-400" />
                     <span>{currentSlide.secondary_button_text || "Contact Us"}</span>
                   </a>
                 )}
@@ -203,38 +235,38 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* ── Navigation Arrows (Visible on desktop hover) ── */}
+      {/* ── Navigation Arrows ── */}
       {slides.length > 1 && (
         <>
           <button
             type="button"
             onClick={handlePrev}
             aria-label="Previous Slide"
-            className="absolute left-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute left-3 sm:left-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
           >
-            <ChevronLeft className="w-6 h-6" />
+            <ChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
           <button
             type="button"
             onClick={handleNext}
             aria-label="Next Slide"
-            className="absolute right-4 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
+            className="absolute right-3 sm:right-5 top-1/2 -translate-y-1/2 z-30 w-10 h-10 sm:w-11 sm:h-11 rounded-full bg-black/50 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black transition-all shadow-xl cursor-pointer"
           >
-            <ChevronRight className="w-6 h-6" />
+            <ChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
           </button>
         </>
       )}
 
       {/* ── Pagination Dots ── */}
       {slides.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
           {slides.map((_, idx) => (
             <button
               key={idx}
               type="button"
               onClick={() => setCurrentIndex(idx)}
               className={`h-2 rounded-full transition-all duration-300 ${
-                currentIndex === idx ? "w-8 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
+                currentIndex === idx ? "w-7 bg-white" : "w-2 bg-white/40 hover:bg-white/70"
               }`}
               aria-label={`Go to slide ${idx + 1}`}
             />

@@ -37,6 +37,15 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [sortOrder, setSortOrder] = useState<number>(1);
   const [active, setActive] = useState(true);
 
+  const [badgeTextColor, setBadgeTextColor] = useState("#FFFFFF");
+  const [badgeBgColor, setBadgeBgColor] = useState("#10B981");
+  const [headingColor, setHeadingColor] = useState("#FFFFFF");
+  const [descriptionColor, setDescriptionColor] = useState("#D1D5DB");
+  const [buttonTextColor, setButtonTextColor] = useState("#000000");
+  const [buttonBgColor, setButtonBgColor] = useState("#FFFFFF");
+  const [overlayColor, setOverlayColor] = useState("#000000");
+  const [overlayOpacity, setOverlayOpacity] = useState<number>(40);
+
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
   const [desktopPreview, setDesktopPreview] = useState<string>("");
@@ -65,6 +74,16 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setExpiryDate(slide.expiry_date || "");
       setSortOrder(slide.sort_order ?? 1);
       setActive(slide.active ?? true);
+
+      // Custom Styling
+      setBadgeTextColor(slide.badge_text_color || "#FFFFFF");
+      setBadgeBgColor(slide.badge_bg_color || "#10B981");
+      setHeadingColor(slide.heading_color || "#FFFFFF");
+      setDescriptionColor(slide.description_color || "#D1D5DB");
+      setButtonTextColor(slide.button_text_color || "#000000");
+      setButtonBgColor(slide.button_bg_color || "#FFFFFF");
+      setOverlayColor(slide.overlay_color || "#000000");
+      setOverlayOpacity(slide.overlay_opacity ?? 40);
     } else {
       setImageUrl("");
       setMobileImageUrl("");
@@ -84,6 +103,16 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setExpiryDate("");
       setSortOrder(1);
       setActive(true);
+
+      // Default Custom Styling
+      setBadgeTextColor("#FFFFFF");
+      setBadgeBgColor("#10B981");
+      setHeadingColor("#FFFFFF");
+      setDescriptionColor("#D1D5DB");
+      setButtonTextColor("#000000");
+      setButtonBgColor("#FFFFFF");
+      setOverlayColor("#000000");
+      setOverlayOpacity(40);
     }
     setDesktopFile(null);
     setMobileFile(null);
@@ -144,6 +173,16 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         expiry_date: expiryDate,
         sort_order: Number(sortOrder) || 1,
         active,
+
+        // Custom Styling
+        badge_text_color: badgeTextColor,
+        badge_bg_color: badgeBgColor,
+        heading_color: headingColor,
+        description_color: descriptionColor,
+        button_text_color: buttonTextColor,
+        button_bg_color: buttonBgColor,
+        overlay_color: overlayColor,
+        overlay_opacity: Number(overlayOpacity) ?? 40,
       });
 
       onClose();
@@ -212,50 +251,72 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
               </div>
             </div>
 
-            {/* Live Banner Box (Minimal B&W Style) */}
-            <div className={`relative w-full rounded-2xl overflow-hidden bg-white border border-white/20 shadow-xl transition-all ${
-              previewDevice === "mobile" ? "aspect-[9/10] max-w-xs mx-auto" : "aspect-[16/7]"
+            {/* Live Banner Box */}
+            <div className={`relative w-full rounded-2xl overflow-hidden bg-black border border-white/20 shadow-xl transition-all ${
+              previewDevice === "mobile" ? "aspect-[9/10] max-w-xs mx-auto" : "aspect-[21/9]"
             }`}>
-              <div className="absolute inset-0 p-6 sm:p-8 flex flex-col justify-between z-10 bg-gradient-to-r from-white via-white/90 to-transparent">
-                <div className="max-w-md">
+              {/* Background Image */}
+              <img
+                src={currentPreviewImage}
+                alt="Banner preview"
+                className="absolute inset-0 w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/hero-slide-1.png";
+                }}
+              />
+
+              {/* Overlay with custom opacity */}
+              <div
+                className="absolute inset-0 z-10 transition-colors"
+                style={{
+                  backgroundColor: overlayColor,
+                  opacity: overlayOpacity / 100,
+                }}
+              />
+
+              {/* Text Layer */}
+              <div className="relative z-20 p-6 sm:p-8 h-full flex flex-col justify-center">
+                <div className="max-w-md space-y-2">
                   {campaignLabel && (
-                    <span className="inline-block px-3 py-1 bg-black text-white text-[10px] font-black uppercase tracking-wider rounded-md mb-3">
+                    <span
+                      className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-md"
+                      style={{ color: badgeTextColor, backgroundColor: badgeBgColor }}
+                    >
                       {campaignLabel}
                     </span>
                   )}
-                  <h4 className="text-lg sm:text-2xl font-black text-black leading-tight tracking-tight mb-2">
+                  <h4
+                    className="text-lg sm:text-2xl font-black leading-tight tracking-tight drop-shadow-md"
+                    style={{ color: headingColor }}
+                  >
                     {heading || "Banner Heading"}
                   </h4>
-                  <p className="text-xs sm:text-sm text-neutral-600 line-clamp-2 mb-3">
+                  <p
+                    className="text-xs sm:text-sm line-clamp-2 font-medium"
+                    style={{ color: descriptionColor }}
+                  >
                     {description || "Supporting campaign text description goes here."}
                   </p>
                   {promoText && (
-                    <span className="text-xs font-bold text-red-600 block mb-4">
+                    <span className="text-xs font-bold text-red-500 block">
                       {promoText}
                     </span>
                   )}
-                  <div className="flex items-center gap-2">
-                    <span className="px-4 py-2 bg-black text-white text-xs font-bold rounded-xl shadow-sm">
+                  <div className="flex items-center gap-2 pt-2">
+                    <span
+                      className="px-4 py-2 text-xs font-bold rounded-xl shadow-sm"
+                      style={{ color: buttonTextColor, backgroundColor: buttonBgColor }}
+                    >
                       {primaryButtonText || "Shop Now"}
                     </span>
                     {showSecondaryButton && (
-                      <span className="px-4 py-2 border border-neutral-300 text-black text-xs font-bold rounded-xl">
+                      <span className="px-4 py-2 border border-white/30 text-white text-xs font-bold rounded-xl bg-black/30 backdrop-blur-md">
                         {secondaryButtonText || "View Product"}
                       </span>
                     )}
                   </div>
                 </div>
               </div>
-
-              {/* Product Background / Cutout Image */}
-              <img
-                src={currentPreviewImage}
-                alt="Banner preview"
-                className="absolute right-0 top-0 bottom-0 w-1/2 object-contain object-right p-4 mix-blend-multiply opacity-90"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/hero-slide-1.png";
-                }}
-              />
             </div>
           </div>
 
@@ -282,6 +343,157 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   <p className="truncate font-medium">{p.label}</p>
                 </button>
               ))}
+            </div>
+          </div>
+
+          {/* Custom Text Colors & Overlay Controls */}
+          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+            <h4 className="text-xs font-bold uppercase tracking-wider text-white/80 flex items-center gap-2">
+              <Sliders className="w-3.5 h-3.5 text-emerald-400" /> Custom Colors & Overlay Controls
+            </h4>
+
+            {/* Colors Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Badge Text</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={badgeTextColor}
+                    onChange={(e) => setBadgeTextColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={badgeTextColor}
+                    onChange={(e) => setBadgeTextColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Badge Background</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={badgeBgColor}
+                    onChange={(e) => setBadgeBgColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={badgeBgColor}
+                    onChange={(e) => setBadgeBgColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Heading Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={headingColor}
+                    onChange={(e) => setHeadingColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={headingColor}
+                    onChange={(e) => setHeadingColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Description Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={descriptionColor}
+                    onChange={(e) => setDescriptionColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={descriptionColor}
+                    onChange={(e) => setDescriptionColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Button Text</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={buttonTextColor}
+                    onChange={(e) => setButtonTextColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Button Background</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={buttonBgColor}
+                    onChange={(e) => setButtonBgColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={buttonBgColor}
+                    onChange={(e) => setButtonBgColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">Overlay Color</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="color"
+                    value={overlayColor}
+                    onChange={(e) => setOverlayColor(e.target.value)}
+                    className="w-8 h-8 rounded border-0 cursor-pointer bg-transparent"
+                  />
+                  <input
+                    type="text"
+                    value={overlayColor}
+                    onChange={(e) => setOverlayColor(e.target.value)}
+                    className="w-full px-2 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-[11px]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/70 mb-1">
+                  Overlay Opacity ({overlayOpacity}%)
+                </label>
+                <input
+                  type="range"
+                  min={0}
+                  max={100}
+                  step={5}
+                  value={overlayOpacity}
+                  onChange={(e) => setOverlayOpacity(Number(e.target.value))}
+                  className="w-full accent-emerald-500 cursor-pointer mt-2"
+                />
+              </div>
             </div>
           </div>
 

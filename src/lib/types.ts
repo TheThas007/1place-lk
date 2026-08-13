@@ -205,6 +205,16 @@ export interface HeroSlide {
   secondary_button_url?: string;
   start_date?: string;
   expiry_date?: string;
+
+  // Custom Styling & Overlay Controls
+  badge_text_color?: string;
+  badge_bg_color?: string;
+  heading_color?: string;
+  description_color?: string;
+  button_text_color?: string;
+  button_bg_color?: string;
+  overlay_color?: string;
+  overlay_opacity?: number; // 0 to 100
 }
 
 export interface ProductBanner {
