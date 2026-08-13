@@ -21,6 +21,7 @@ import {
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
 import CompleteYourSetup from "@/components/products/CompleteYourSetup";
+import SameBrandProducts from "@/components/products/SameBrandProducts";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { getColorCSS, isLightColor } from "@/lib/color-utils";
@@ -924,7 +925,10 @@ export default function ProductDetailClient({
           </div>
         </div>
 
-        {/* ── 4. Intelligent Recommendations ("Complete Your Setup") ── */}
+        {/* ── 4. Same Brand Recommendations ("More from Brand") ── */}
+        <SameBrandProducts currentProduct={product} allProducts={allProducts} />
+
+        {/* ── 5. Intelligent Recommendations ("Complete Your Setup") ── */}
         <CompleteYourSetup currentProduct={product} allProducts={allProducts} />
       </div>
     </div>
