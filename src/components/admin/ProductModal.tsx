@@ -27,6 +27,7 @@ import {
   CreditCard,
   Sliders,
   CheckCircle2,
+  Image as ImageIcon,
 } from "lucide-react";
 import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog } from "@/lib/types";
 import { db } from "@/lib/firebase";
@@ -1284,54 +1285,108 @@ export default function ProductModal({
                 </p>
               </div>
 
-              {/* ── General Product Gallery Images (Always available for accessories and all products) ── */}
+              {/* ── General Product Gallery Images (Multi-Slot Upload & Auto-Split Paste) ── */}
               <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
                     <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
                       <Upload className="w-4 h-4 text-blue-600" />
-                      General Product Gallery Images ({generalImages.filter(Boolean).length} Images)
+                      General Product Gallery Images ({generalImages.filter((u) => u && u.trim()).length} Active Images)
                     </h4>
                     <p className="text-xs text-gray-500 mt-0.5">
-                      Enter 2, 3 or more image URLs for this product (One URL per line). Essential for accessories or general product photos.
+                      Upload or enter 2, 3, 4 or more image URLs for this product. You can paste comma-separated or newline-separated URLs into any slot!
                     </p>
                   </div>
-                </div>
 
-                <div className="space-y-2 text-xs">
-                  <textarea
-                    rows={4}
-                    value={generalImages.join("\n")}
-                    onChange={(e) => {
-                      const urls = e.target.value.split("\n").map((u) => u.trim());
-                      setGeneralImages(urls);
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setGeneralImages([...generalImages, ""]);
                       setHasUnsavedChanges(true);
                     }}
-                    placeholder="https://images.unsplash.com/photo-...\nhttps://images.unsplash.com/photo-..."
-                    className="w-full p-3 bg-white border border-gray-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
-                  />
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
+                  >
+                    <Plus className="w-3.5 h-3.5" /> Add Image Slot
+                  </button>
                 </div>
 
-                {/* Previews */}
-                <div className="flex flex-wrap gap-2.5 pt-1">
-                  {generalImages.filter(Boolean).map((img, i) => (
-                    <div key={i} className="relative group w-16 h-16 bg-white border border-gray-200 rounded-xl overflow-hidden p-1 shadow-2xs">
-                      <img src={img} alt={`Preview ${i + 1}`} className="w-full h-full object-contain" />
+                {/* Individual Image Input Slots */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+                  {(generalImages.length > 0 ? generalImages : ["", "", "", ""]).map((imgUrl, i) => (
+                    <div key={i} className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3 shadow-2xs">
+                      {/* Thumbnail Preview */}
+                      <div className="w-12 h-12 shrink-0 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-0.5 relative">
+                        {imgUrl && imgUrl.trim() ? (
+                          <img src={imgUrl.trim()} alt={`Image ${i + 1}`} className="w-full h-full object-contain" />
+                        ) : (
+                          <ImageIcon className="w-5 h-5 text-gray-300" />
+                        )}
+                      </div>
+
+                      {/* URL Input */}
+                      <div className="flex-1 min-w-0">
+                        <label className="block text-[10px] font-extrabold text-gray-500 mb-0.5 uppercase tracking-wider">
+                          Product Image {i + 1}
+                        </label>
+                        <input
+                          type="text"
+                          value={imgUrl}
+                          onChange={(e) => {
+                            const raw = e.target.value;
+                            // Support auto-split if pasting comma, semicolon, or newline separated URLs
+                            if (raw.includes(",") || raw.includes("\n") || raw.includes(";")) {
+                              const parts = raw.split(/[\n,;]+/).map((u) => u.trim()).filter(Boolean);
+                              const updated = [...generalImages];
+                              updated.splice(i, 1, ...parts);
+                              setGeneralImages(updated);
+                            } else {
+                              const updated = [...generalImages];
+                              updated[i] = raw;
+                              setGeneralImages(updated);
+                            }
+                            setHasUnsavedChanges(true);
+                          }}
+                          placeholder="Paste image URL (e.g. https://i.postimg.cc/...)"
+                          className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono text-gray-800 outline-none focus:border-blue-500"
+                        />
+                      </div>
+
+                      {/* Remove Button */}
                       <button
                         type="button"
                         onClick={() => {
                           const updated = generalImages.filter((_, idx) => idx !== i);
-                          setGeneralImages(updated);
+                          setGeneralImages(updated.length > 0 ? updated : [""]);
                           setHasUnsavedChanges(true);
                         }}
-                        className="absolute top-1 right-1 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
-                        title="Remove image"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Remove image slot"
                       >
-                        <X className="w-3 h-3" />
+                        <Trash2 className="w-4 h-4" />
                       </button>
                     </div>
                   ))}
                 </div>
+
+                {/* Bulk Paste / Edit Toggle */}
+                <details className="text-xs group pt-1">
+                  <summary className="font-bold text-gray-600 cursor-pointer hover:text-blue-600 select-none">
+                    ⚡ Bulk Paste / Raw URL Editor (Comma or Newline Separated)
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    <textarea
+                      rows={3}
+                      value={generalImages.join("\n")}
+                      onChange={(e) => {
+                        const urls = e.target.value.split(/[\n,;]+/).map((u) => u.trim());
+                        setGeneralImages(urls);
+                        setHasUnsavedChanges(true);
+                      }}
+                      placeholder="Paste multiple URLs (One per line or separated by commas)"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
+                    />
+                  </div>
+                </details>
               </div>
 
               {!hasColorVariants ? (
