@@ -82,7 +82,7 @@ export default function RootLayout({
                 <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
                 <AnnouncementBar />
                 <Header />
-                <main className="flex-1 pt-[100px] lg:pt-[110px] pb-16 lg:pb-0">
+                <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
                   {children}
                 </main>
                 <Footer />

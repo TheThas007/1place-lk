@@ -9,10 +9,21 @@ import {
 } from "lucide-react";
 import { db } from "@/lib/firebase";
 import { collection, addDoc } from "firebase/firestore";
-import { Review } from "@/lib/types";
+import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { DiagonalCarousel } from "@/components/ui/diagonal-carousel";
 
 const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VaDlUUfK0IBhEDemlN2A";
+
+const validateUrl = (url?: string, fallbackUrl: string = "https://www.google.com/maps/search/Street+Mobile+Vavuniya") => {
+  if (!url || typeof url !== "string") return fallbackUrl;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url;
+    }
+  } catch {}
+  return fallbackUrl;
+};
 
 /* ─── Avatar gradients ─── */
 const AVATAR_GRADIENTS = [
@@ -58,8 +69,18 @@ function CountUp({ to, duration = 1.2 }: { to: number; duration?: number }) {
   return <>{val}</>;
 }
 
-export default function ReviewsClient({ initialReviews }: { initialReviews: Review[] }) {
+export default function ReviewsClient({
+  initialReviews,
+  googleSettings,
+}: {
+  initialReviews: Review[];
+  googleSettings?: GoogleReviewsSettings;
+}) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
+  const mainGoogleUrl = validateUrl(googleSettings?.view_all_reviews_url, "https://www.google.com/maps/search/Street+Mobile+Vavuniya");
+  const overallRatingVal = googleSettings?.overall_rating ? googleSettings.overall_rating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "4.9");
+  const totalCountVal = googleSettings?.total_reviews_count || reviews.length || 250;
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -207,7 +228,7 @@ export default function ReviewsClient({ initialReviews }: { initialReviews: Revi
                 </motion.button>
 
                 <motion.a
-                  href="https://www.google.com/maps/search/Street+Mobile+Vavuniya"
+                  href={mainGoogleUrl}
                   target="_blank" rel="noopener noreferrer"
                   whileHover={{ scale: 1.04, y: -2 }}
                   whileTap={{ scale: 0.97 }}
@@ -234,7 +255,7 @@ export default function ReviewsClient({ initialReviews }: { initialReviews: Revi
             >
               <div className="bg-white border border-gray-100 rounded-3xl p-8 shadow-2xl shadow-gray-200/80 min-w-[300px]">
                 <div className="flex items-end gap-4 mb-7">
-                  <div className="text-7xl font-black text-gray-950 leading-none">{avgRating}</div>
+                  <div className="text-7xl font-black text-gray-950 leading-none">{overallRatingVal}</div>
                   <div className="pb-2">
                     <div className="flex gap-1 mb-1.5">
                       {[1, 2, 3, 4, 5].map((s) => (
@@ -249,7 +270,7 @@ export default function ReviewsClient({ initialReviews }: { initialReviews: Revi
                       ))}
                     </div>
                     <p className="text-xs text-gray-400 font-medium">
-                      <CountUp to={reviews.length} /> verified reviews
+                      <CountUp to={totalCountVal} /> verified reviews
                     </p>
                   </div>
                 </div>
@@ -435,7 +456,12 @@ export default function ReviewsClient({ initialReviews }: { initialReviews: Revi
             <DiagonalCarousel
               items={visibleReviews.map((review, index) => ({
                 content: (
-                  <div className="relative w-full h-[320px] bg-white border border-gray-100 rounded-3xl p-7 text-left group hover:border-gray-200 shadow-xl shadow-gray-200/50 transition-all duration-500 overflow-hidden flex flex-col">
+                  <a
+                    href={validateUrl(review.google_url, mainGoogleUrl)}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="relative w-full h-[320px] bg-white border border-gray-100 rounded-3xl p-7 text-left group hover:border-gray-200 shadow-xl shadow-gray-200/50 transition-all duration-500 overflow-hidden flex flex-col cursor-pointer"
+                  >
                     {/* Glow top border */}
                     <div className="absolute top-0 left-8 right-8 h-px bg-gradient-to-r from-transparent via-yellow-400/0 to-transparent group-hover:via-yellow-400/60 transition-all duration-500 rounded-full" />
       
@@ -470,28 +496,26 @@ export default function ReviewsClient({ initialReviews }: { initialReviews: Revi
       
                     {/* Author */}
                     <div className="flex items-center gap-3 shrink-0">
-                      <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${avatarGradient(review.author_name)} flex items-center justify-center shrink-0 shadow-md`}>
+                      <div className={`w-10 h-10 rounded-full bg-gradient-to-tr ${avatarGradient(review.author_name || "Google")} flex items-center justify-center shrink-0 shadow-md`}>
                         {review.author_photo ? (
                           <img src={review.author_photo} alt={review.author_name} className="w-full h-full object-cover rounded-full" />
                         ) : (
                           <span className="font-bold text-sm text-white">
-                            {review.author_name.charAt(0).toUpperCase()}
+                            {review.author_name ? review.author_name.charAt(0).toUpperCase() : "G"}
                           </span>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="font-semibold text-sm text-gray-900 truncate">{review.author_name}</div>
                         <div className="text-xs text-gray-400">
-                          {new Date(review.review_date).toLocaleDateString("en-IN", {
-                            day: "numeric", month: "short", year: "numeric",
-                          })}
+                          {review.review_date}
                         </div>
                       </div>
                       <div className="flex items-center gap-1 text-emerald-500 shrink-0">
                         <CheckCircle2 className="w-4 h-4" />
                       </div>
                     </div>
-                  </div>
+                  </a>
                 )
               }))}
               slideSize={340}

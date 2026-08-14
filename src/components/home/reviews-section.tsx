@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useMemo, useRef, useEffect, useCallback } from "react";
-import { Star, ChevronLeft, ChevronRight, CheckCircle2, Quote, ExternalLink, Edit3 } from "lucide-react";
-import { Review } from "@/lib/types";
+import { Star, ChevronLeft, ChevronRight, CheckCircle2, Quote, ExternalLink, Edit3, Sparkles } from "lucide-react";
+import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
 
 const DEFAULT_REVIEWS: Review[] = [
@@ -14,6 +14,8 @@ const DEFAULT_REVIEWS: Review[] = [
     text: "Best mobile shop in Vavuniya! Bought my new iPhone here with original warranty and got an unbeatable price. The customer service and after-sales support are top notch.",
     review_date: "2026-02-10",
     visible: true,
+    featured: true,
+    google_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   },
   {
     id: "g-rev-2",
@@ -23,6 +25,8 @@ const DEFAULT_REVIEWS: Review[] = [
     text: "Fixed my display glass within 45 minutes! Original display replacement with clean finish. Very transparent pricing and polite staff. Highly recommended for phone repairs.",
     review_date: "2026-01-28",
     visible: true,
+    featured: true,
+    google_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   },
   {
     id: "g-rev-3",
@@ -32,6 +36,7 @@ const DEFAULT_REVIEWS: Review[] = [
     text: "Purchased Apple AirPods and a fast charger. Genuine products guaranteed. Smooth experience and quick response on WhatsApp inquiries.",
     review_date: "2026-01-15",
     visible: true,
+    google_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   },
   {
     id: "g-rev-4",
@@ -41,6 +46,7 @@ const DEFAULT_REVIEWS: Review[] = [
     text: "Excellent service and quick repair work. They replaced my phone battery in no time with genuine battery and warranty. 10/10 service in town!",
     review_date: "2025-12-20",
     visible: true,
+    google_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   },
   {
     id: "g-rev-5",
@@ -50,6 +56,7 @@ const DEFAULT_REVIEWS: Review[] = [
     text: "Great collection of accessories and smartphones. The staff guided me very well to select the best phone within my budget.",
     review_date: "2025-12-05",
     visible: true,
+    google_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   },
 ];
 
@@ -76,13 +83,35 @@ function GoogleIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
+const validateUrl = (url?: string, fallbackUrl?: string) => {
+  if (!url || typeof url !== "string") return fallbackUrl || siteSettings.google_maps_link;
+  try {
+    const parsed = new URL(url);
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url;
+    }
+  } catch {}
+  return fallbackUrl || siteSettings.google_maps_link;
+};
+
+export default function ReviewsSection({
+  reviews,
+  settings,
+}: {
+  reviews: Review[];
+  settings?: GoogleReviewsSettings;
+}) {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [expandedCards, setExpandedCards] = useState<Record<string, boolean>>({});
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Combine passed reviews with fallback reviews if needed
+  const mainViewAllUrl = validateUrl(settings?.view_all_reviews_url, siteSettings.google_maps_link);
+  const mainWriteReviewUrl = validateUrl(settings?.write_review_url, siteSettings.google_maps_link);
+  const overallRating = settings?.overall_rating || 4.9;
+  const totalReviewsCount = settings?.total_reviews_count || 250;
+
+  // Combine passed reviews with fallback reviews
   const displayReviews = useMemo(() => {
     const list = Array.isArray(reviews) && reviews.length > 0 ? reviews : DEFAULT_REVIEWS;
     const seen = new Set<string>();
@@ -96,7 +125,9 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
 
   const totalReviews = displayReviews.length;
 
-  const toggleExpand = (id: string) => {
+  const toggleExpand = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
     setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
@@ -124,7 +155,6 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
     scrollToCard(nextIdx);
   }, [activeIndex, totalReviews, scrollToCard]);
 
-  // Sync scroll position with activeIndex
   const handleScroll = () => {
     if (!scrollRef.current) return;
     const container = scrollRef.current;
@@ -136,7 +166,6 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
     }
   };
 
-  // Auto-slide every 6 seconds unless paused or reduced motion
   useEffect(() => {
     if (isPaused || totalReviews <= 1) return;
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -152,17 +181,17 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
   return (
     <section
       className="py-12 sm:py-16 bg-black text-white overflow-hidden border-t border-white/10 relative"
-      aria-label="Customer Reviews Section"
+      aria-label="Google Customer Reviews Section"
     >
       <div className="max-w-[1240px] mx-auto px-4 sm:px-6 lg:px-8">
         
         {/* ── Section Header ── */}
         <div className="text-center mb-8 sm:mb-12">
-          {/* Eyebrow badge */}
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-white/[0.06] border border-white/10 mb-3.5">
+          {/* Official Google Branding Eyebrow */}
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/[0.06] border border-white/10 mb-4 shadow-sm">
             <GoogleIcon className="w-4 h-4 shrink-0" />
-            <span className="text-[11px] font-bold uppercase tracking-[0.18em] text-white/80">
-              VERIFIED GOOGLE REVIEWS
+            <span className="text-xs font-extrabold uppercase tracking-[0.16em] text-white/90">
+              REVIEWS FROM GOOGLE
             </span>
           </div>
 
@@ -171,27 +200,28 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
             Loved by Customers Across Sri Lanka
           </h2>
 
-          {/* Subheading Rating Line */}
+          {/* Overall Rating Line */}
           <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-white/80 mb-6">
-            <span className="text-[#FFB800] font-extrabold text-lg">4.9 ★</span>
+            <span className="text-[#FFB800] font-black text-xl">{overallRating.toFixed(1)} ★</span>
             <span className="text-white/40">•</span>
-            <span>Based on 250+ Verified Google Reviews</span>
+            <span>Based on {totalReviewsCount}+ Verified Google Reviews</span>
           </div>
 
           {/* Action Buttons */}
           <div className="flex flex-wrap items-center justify-center gap-3">
             <a
-              href={siteSettings.google_maps_link}
+              href={mainViewAllUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-white/20 bg-white/10 hover:bg-white hover:text-black text-white text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md active:scale-95 group"
             >
+              <GoogleIcon className="w-4 h-4" />
               <span>View All Google Reviews</span>
               <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
 
             <a
-              href={siteSettings.google_maps_link}
+              href={mainWriteReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center justify-center gap-2 px-6 py-2.5 rounded-full border border-[#FFB800]/40 bg-[#FFB800]/10 hover:bg-[#FFB800] hover:text-black text-[#FFB800] text-xs sm:text-sm font-semibold transition-all duration-300 shadow-md active:scale-95 group"
@@ -218,22 +248,21 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
           >
             {displayReviews.map((review) => {
               const safeRating = Math.min(5, Math.max(1, review.rating || 5));
-              const displayDate = review.review_date
-                ? new Date(review.review_date).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "Verified Customer";
+              const displayDate = review.review_date || "Verified Google Review";
               const isExpanded = !!expandedCards[review.id];
               const isLongText = review.text.length > 150;
+              const cardTargetUrl = validateUrl(review.google_url, mainViewAllUrl);
 
               return (
-                <div
+                <a
                   key={review.id}
-                  className="w-[88%] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] shrink-0 snap-start bg-[#090909] border border-[#242424] hover:border-white/30 rounded-[28px] p-6 sm:p-7 shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_40px_rgba(0,0,0,0.9)] hover:-translate-y-1.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col justify-between group relative overflow-hidden min-h-[290px] sm:min-h-[310px]"
+                  href={cardTargetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  aria-label={`Read Google review by ${review.author_name}`}
+                  className="w-[88%] sm:w-[calc(50%-12px)] lg:w-[calc(33.333%-16px)] shrink-0 snap-start bg-[#090909] border border-[#242424] hover:border-amber-400/50 rounded-[28px] p-6 sm:p-7 shadow-[0_10px_30px_rgba(0,0,0,0.6)] hover:shadow-[0_20px_40px_rgba(255,184,0,0.1)] hover:-translate-y-1.5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] flex flex-col justify-between group relative overflow-hidden min-h-[290px] sm:min-h-[310px] cursor-pointer"
                 >
-                  {/* Top: Stars + Verified Badge */}
+                  {/* Top: Stars + Badges */}
                   <div>
                     <div className="flex items-center justify-between gap-2 mb-4">
                       <div className="flex items-center gap-1">
@@ -242,9 +271,17 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                         ))}
                       </div>
 
-                      <div className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-                        <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                        <span>Verified Customer</span>
+                      <div className="flex items-center gap-1.5">
+                        {review.featured && (
+                          <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                            <Sparkles className="w-3 h-3 text-amber-400" />
+                            Featured
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold tracking-wider uppercase bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                          <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                          <span>Google Review</span>
+                        </span>
                       </div>
                     </div>
 
@@ -256,7 +293,8 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                       </p>
                       {isLongText && (
                         <button
-                          onClick={() => toggleExpand(review.id)}
+                          type="button"
+                          onClick={(e) => toggleExpand(review.id, e)}
                           className="mt-2 text-xs font-semibold text-[#FFB800] hover:underline focus:outline-none"
                         >
                           {isExpanded ? "Show less" : "Read more"}
@@ -265,7 +303,7 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                     </div>
                   </div>
 
-                  {/* Bottom: Customer Info */}
+                  {/* Bottom: Reviewer Profile + Google Icon + Link indicator */}
                   <div className="pt-4 mt-4 border-t border-[#242424] flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       {/* Avatar */}
@@ -278,14 +316,14 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                           />
                         ) : (
                           <span className="font-bold text-xs text-white">
-                            {review.author_name ? review.author_name.charAt(0).toUpperCase() : "C"}
+                            {review.author_name ? review.author_name.charAt(0).toUpperCase() : "G"}
                           </span>
                         )}
                       </div>
 
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <h3 className="font-semibold text-sm text-white truncate">
+                          <h3 className="font-semibold text-sm text-white truncate group-hover:text-amber-300 transition-colors">
                             {review.author_name}
                           </h3>
                           <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
@@ -293,17 +331,19 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                         <p className="text-xs text-white/50">{displayDate}</p>
                       </div>
                     </div>
+
+                    <ExternalLink className="w-4 h-4 text-white/30 group-hover:text-amber-400 transition-colors shrink-0" />
                   </div>
-                </div>
+                </a>
               );
             })}
           </div>
 
-          {/* ── Carousel Arrows & Pagination Dots ── */}
+          {/* ── Carousel Controls ── */}
           <div className="flex items-center justify-between mt-8">
-            {/* Arrows */}
             <div className="flex items-center gap-2">
               <button
+                type="button"
                 onClick={handlePrev}
                 aria-label="Previous review"
                 className="w-10 h-10 rounded-full border border-white/20 bg-white/5 hover:bg-white hover:text-black text-white transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/40"
@@ -311,6 +351,7 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
                 <ChevronLeft className="w-5 h-5" />
               </button>
               <button
+                type="button"
                 onClick={handleNext}
                 aria-label="Next review"
                 className="w-10 h-10 rounded-full border border-white/20 bg-white/5 hover:bg-white hover:text-black text-white transition-all duration-300 flex items-center justify-center shadow-lg active:scale-95 focus:outline-none focus:ring-2 focus:ring-white/40"
@@ -319,18 +360,18 @@ export default function ReviewsSection({ reviews }: { reviews: Review[] }) {
               </button>
             </div>
 
-            {/* Pagination Dots */}
             <div className="flex items-center gap-1.5" role="tablist" aria-label="Review pagination">
               {displayReviews.map((_, idx) => (
                 <button
                   key={idx}
+                  type="button"
                   onClick={() => scrollToCard(idx)}
                   role="tab"
                   aria-selected={idx === activeIndex}
                   aria-label={`Go to slide ${idx + 1}`}
                   className={`h-2 rounded-full transition-all duration-300 ${
                     idx === activeIndex
-                      ? "w-7 bg-white"
+                      ? "w-7 bg-[#FFB800]"
                       : "w-2 bg-white/20 hover:bg-white/40"
                   }`}
                 />

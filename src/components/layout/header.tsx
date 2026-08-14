@@ -42,14 +42,32 @@ export default function Header() {
 
   const categoriesRef = useRef<HTMLDivElement>(null);
   const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const headerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
   const { itemCount } = useCart();
   const { wishlist } = useWishlist();
 
-  const handleHomeClick = () => {
-    document.cookie = "sm_home_pref=true; path=/; max-age=86400";
-  };
+
+
+  // ── ResizeObserver: dynamically update --navbar-height CSS variable ──
+  useEffect(() => {
+    const el = headerRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(([entry]) => {
+      const h = entry.contentRect.height;
+      if (h > 0) {
+        document.documentElement.style.setProperty("--navbar-height", `${h}px`);
+      }
+    });
+    observer.observe(el);
+    // Set initial value immediately
+    const initialH = el.getBoundingClientRect().height;
+    if (initialH > 0) {
+      document.documentElement.style.setProperty("--navbar-height", `${initialH}px`);
+    }
+    return () => observer.disconnect();
+  }, []);
 
   useEffect(() => {
     async function loadCats() {
@@ -149,11 +167,13 @@ export default function Header() {
   return (
     <>
       <motion.header
+        ref={headerRef}
+        data-site-header
         initial={{ y: -100, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.1 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-all duration-500",
+          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-all duration-500 mb-0",
           isScrolled ? "border-white/30 shadow-[0_4px_40px_rgba(0,0,0,0.8)]" : "border-white/20"
         )}
       >
@@ -170,11 +190,11 @@ export default function Header() {
           <div
             className={cn(
               "flex items-center justify-between transition-all duration-300",
-              isScrolled ? "h-16 lg:h-16" : "h-[100px] lg:h-[110px]"
+              isScrolled ? "h-14 lg:h-14" : "h-16 lg:h-[72px]"
             )}
           >
             {/* Logo */}
-            <Link href="/" onClick={handleHomeClick} className="flex items-center shrink-0 group">
+            <Link href="/" className="flex items-center shrink-0 group">
               <motion.div
                 className="relative flex items-center"
                 whileHover={{ scale: 1.04 }}
@@ -187,8 +207,8 @@ export default function Header() {
                   className={cn(
                     "h-auto object-contain transition-all duration-300",
                     isScrolled
-                      ? "w-[100px] sm:w-[120px] lg:w-[140px]"
-                      : "w-[130px] sm:w-[160px] lg:w-[200px]"
+                      ? "w-[90px] sm:w-[100px] lg:w-[120px]"
+                      : "w-[100px] sm:w-[120px] lg:w-[150px]"
                   )}
                   onError={(e) => {
                     (e.target as HTMLImageElement).style.display = "none";
@@ -213,7 +233,6 @@ export default function Header() {
               {/* 1. Home Link */}
               <Link
                 href="/"
-                onClick={handleHomeClick}
                 className={cn(
                   "relative px-4 py-2 rounded-lg text-[13px] font-medium transition-all duration-300 group",
                   pathname === "/" ? "text-white" : "text-white/50 hover:text-white"
@@ -558,10 +577,7 @@ export default function Header() {
                 {/* Mobile Link 1: Home */}
                 <Link
                   href="/"
-                  onClick={() => {
-                    setIsMobileMenuOpen(false);
-                    handleHomeClick();
-                  }}
+                  onClick={() => setIsMobileMenuOpen(false)}
                   className={cn(
                     "flex items-center justify-between px-4 py-3.5 rounded-xl text-sm font-medium transition-all mb-1 group min-h-[44px]",
                     pathname === "/"

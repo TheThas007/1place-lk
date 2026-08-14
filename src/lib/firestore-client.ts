@@ -1,6 +1,6 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, getDoc, query, where, limit } from "firebase/firestore";
-import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner, Brand } from "./types";
+import { Product, Category, Review, Banner, GalleryImage, HeroSlide, ProductBanner, UiSettings, OfferBanner, Brand, TickerSettings, GoogleReviewsSettings } from "./types";
 import { products as fallbackProducts, categories as fallbackCategories, reviews as fallbackReviews, fallbackOfferBanners, siteSettings, DEFAULT_BRANDS } from "./data";
 import { cache } from "react";
 
@@ -31,34 +31,80 @@ export const getProducts = cache(async (): Promise<Product[]> => {
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
 
 export const getCategories = cache(async (): Promise<Category[]> => {
+  const catMap = new Map<string, Category>();
+
+  // Initialize with fallback categories
+  fallbackCategories.forEach((c) => {
+    catMap.set(c.id || c.slug, c);
+  });
+
   try {
     const q = query(collection(db, "categories"));
     const snapshot = await getDocs(q);
-    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Category));
-    if (docs.length > 0) {
-      const cleanDocs = docs.filter(c => {
-        const cName = (c.name || "").toLowerCase();
-        const cSlug = (c.slug || "").toLowerCase();
-        return !KNOWN_BRAND_NAMES.some(b => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
-      });
-      if (cleanDocs.length > 0) return cleanDocs;
-    }
+    snapshot.docs.forEach((d) => {
+      const data = d.data() as Category;
+      const id = d.id;
+      const key = id || data.slug || data.name;
+      const existing = catMap.get(key) || catMap.get(id);
+      catMap.set(key, { ...existing, ...data, id });
+    });
   } catch (e) {
-    console.warn("Offline/Error fetching categories, returning fallbacks:", e);
+    console.warn("Offline/Error fetching categories:", e);
   }
-  return fallbackCategories;
+
+  const docs = Array.from(catMap.values());
+  const cleanDocs = docs.filter((c) => {
+    const cName = (c.name || "").toLowerCase();
+    const cSlug = (c.slug || "").toLowerCase();
+    return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+  });
+
+  return cleanDocs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 });
 
 export const getBrands = cache(async (): Promise<Brand[]> => {
+  const brandMap = new Map<string, Brand>();
+
+  // Initialize with default brands
+  DEFAULT_BRANDS.forEach((b) => {
+    brandMap.set(b.id, b);
+  });
+
   try {
     const q = query(collection(db, "brands"));
     const snapshot = await getDocs(q);
-    const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Brand));
-    if (docs.length > 0) return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    snapshot.docs.forEach((d) => {
+      const data = d.data() as Brand;
+      const id = d.id;
+      const existing = brandMap.get(id) || brandMap.get(data.id);
+      brandMap.set(id, { ...existing, ...data, id });
+    });
   } catch (e) {
-    console.warn("Offline/Error fetching brands, returning fallbacks:", e);
+    console.warn("Offline/Error fetching brands:", e);
   }
-  return DEFAULT_BRANDS;
+
+  const result = Array.from(brandMap.values());
+  return result.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+});
+
+export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {
+  overall_rating: 4.9,
+  total_reviews_count: 250,
+  write_review_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya/@8.7514,80.4971,17z/",
+  view_all_reviews_url: "https://www.google.com/maps/place/Street+Mobile+Vavuniya/@8.7514,80.4971,17z/",
+};
+
+export const getGoogleReviewsSettings = cache(async (): Promise<GoogleReviewsSettings> => {
+  try {
+    const docRef = doc(db, "settings", "google_reviews");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...docSnap.data() } as GoogleReviewsSettings;
+    }
+  } catch (e) {
+    console.warn("Offline/Error fetching google reviews settings:", e);
+  }
+  return DEFAULT_GOOGLE_REVIEWS_SETTINGS;
 });
 
 export const getReviews = cache(async (): Promise<Review[]> => {
@@ -66,7 +112,9 @@ export const getReviews = cache(async (): Promise<Review[]> => {
     const q = query(collection(db, "reviews"));
     const snapshot = await getDocs(q);
     const docs = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id } as Review));
-    if (docs.length > 0) return docs;
+    if (docs.length > 0) {
+      return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    }
   } catch (e) {
     console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
   }
@@ -185,4 +233,33 @@ export const getUiSettings = cache(async (): Promise<UiSettings> => {
     // Return empty fallback silently when offline or reconnecting
   }
   return {};
+});
+
+const DEFAULT_TICKER: TickerSettings = {
+  enabled: true,
+  messages: [
+    { id: "t1", text: "Genuine Products with Warranty", icon: "ShieldCheck", active: true, sort_order: 0 },
+    { id: "t2", text: "Islandwide Delivery Available", icon: "Truck", active: true, sort_order: 1 },
+    { id: "t3", text: "Secure Online Payments", icon: "Lock", active: true, sort_order: 2 },
+    { id: "t4", text: "Visit Street Mobile — Vavuniya", icon: "MapPin", active: true, sort_order: 3 },
+    { id: "t5", text: "Latest Smartphones & Accessories", icon: "Smartphone", active: true, sort_order: 4 },
+  ],
+  text_color: "#FFFFFF",
+  bg_color: "#000000",
+  speed: "normal",
+  direction: "rtl",
+  pause_on_hover: true,
+};
+
+export const getTickerSettings = cache(async (): Promise<TickerSettings> => {
+  try {
+    const docRef = doc(db, "settings", "ticker");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      return { ...DEFAULT_TICKER, ...docSnap.data() } as TickerSettings;
+    }
+  } catch {
+    // Silent fallback
+  }
+  return DEFAULT_TICKER;
 });

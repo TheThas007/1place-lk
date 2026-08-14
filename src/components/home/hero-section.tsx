@@ -137,10 +137,19 @@ export default function HeroSection() {
     return lower.includes("whatsapp") || lower.includes("wa.me") || lower.includes("api.whatsapp");
   };
 
+  const heroHeight = "calc(100svh - var(--navbar-height) - var(--ticker-height))";
+  const heroHeightFallback = "calc(100vh - var(--navbar-height) - var(--ticker-height))";
+
   return (
     <section
-      className="group relative w-full w-screen max-w-full h-[520px] sm:h-[600px] md:h-[650px] lg:h-[calc(100vh-80px)] min-h-[520px] max-h-[880px] bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
-      style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
+      className="group relative w-full w-screen max-w-full bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
+      style={{
+        fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
+        height: heroHeight,
+        minHeight: heroHeight,
+        // @ts-expect-error -- fallback for browsers without svh support
+        "--hero-h-fallback": heroHeightFallback,
+      }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >

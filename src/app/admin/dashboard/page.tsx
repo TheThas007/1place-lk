@@ -47,8 +47,9 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide } from "@/lib/types";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings } from "@/lib/types";
 import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts } from "@/lib/data";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -56,12 +57,16 @@ import ProductModal from "@/components/admin/ProductModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import OfferBannerModal from "@/components/admin/OfferBannerModal";
 import HeroModal from "@/components/admin/HeroModal";
+import GalleryModal from "@/components/admin/GalleryModal";
+import ReviewModal from "@/components/admin/ReviewModal";
 import OrdersTab from "@/components/admin/tabs/OrdersTab";
 import BannersTab from "@/components/admin/tabs/BannersTab";
 import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
 import ProductsTab from "@/components/admin/tabs/ProductsTab";
 import HeroTab from "@/components/admin/tabs/HeroTab";
 import BrandsTab from "@/components/admin/tabs/BrandsTab";
+import GalleryTab from "@/components/admin/tabs/GalleryTab";
+import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
 
 type Tab =
   | "overview"
@@ -96,6 +101,7 @@ function DashboardContent() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
+  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -149,6 +155,13 @@ function DashboardContent() {
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
 
+  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
+  const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
+
+  const [googleReviewsSettings, setGoogleReviewsSettings] = useState<GoogleReviewsSettings>(DEFAULT_GOOGLE_REVIEWS_SETTINGS);
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState<Review | null>(null);
+
   // Stock Filter & Quick Stock Addition States
   const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "in_stock">("all");
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
@@ -167,7 +180,13 @@ function DashboardContent() {
       // Categories
       const catSnap = await getDocs(collection(db, "categories"));
       const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
-      setCategories(catList.length > 0 ? catList : fallbackCategories);
+      const catMap = new Map<string, Category>();
+      fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
+      catList.forEach((c) => {
+        const key = c.id || c.slug;
+        catMap.set(key, { ...catMap.get(key), ...c, id: key });
+      });
+      setCategories(Array.from(catMap.values()));
 
       // Orders
       const ordSnap = await getDocs(collection(db, "orders"));
@@ -178,7 +197,14 @@ function DashboardContent() {
       // Reviews
       const revSnap = await getDocs(collection(db, "reviews"));
       const revList = revSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+      revList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setReviews(revList);
+
+      // Google Reviews Settings
+      const googleSnap = await getDoc(doc(db, "settings", "google_reviews"));
+      if (googleSnap.exists()) {
+        setGoogleReviewsSettings({ ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...googleSnap.data() });
+      }
 
       // Banners (Guaranteed 100% Unique Keys)
       const banSnap = await getDocs(collection(db, "offer_banners"));
@@ -214,6 +240,11 @@ function DashboardContent() {
       const heroSnap = await getDocs(collection(db, "hero_slides"));
       const heroList = heroSnap.docs.map((d) => ({ id: d.id, ...d.data() } as HeroSlide));
       setHeroSlides(heroList);
+
+      // Gallery Images
+      const galSnap = await getDocs(collection(db, "gallery"));
+      const galList = galSnap.docs.map((d) => ({ id: d.id, ...d.data() } as GalleryImage));
+      setGalleryImages(galList);
 
       // Users / Customers
       const userSnap = await getDocs(collection(db, "users"));
@@ -537,6 +568,76 @@ function DashboardContent() {
       console.error("Error deleting hero slide:", e);
     }
     setHeroSlides((prev) => prev.filter((s) => s.id !== id));
+  };
+
+  const handleDeleteGalleryImage = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this gallery image?")) return;
+    try {
+      if (id) {
+        await deleteDoc(doc(db, "gallery", id));
+      }
+    } catch (e) {
+      console.error("Error deleting gallery image:", e);
+      alert("Failed to delete gallery image");
+    }
+    setGalleryImages((prev) => prev.filter((img) => img.id !== id));
+  };
+
+  const handleDeleteReview = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this Google review?")) return;
+    try {
+      if (id) {
+        await deleteDoc(doc(db, "reviews", id));
+      }
+    } catch (e) {
+      console.error("Error deleting review:", e);
+      alert("Failed to delete review");
+    }
+    setReviews((prev) => prev.filter((r) => r.id !== id));
+  };
+
+  const handleToggleReviewVisibility = async (id: string, currentVisible: boolean) => {
+    try {
+      const nextVal = !currentVisible;
+      await updateDoc(doc(db, "reviews", id), { visible: nextVal });
+      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, visible: nextVal } : r)));
+    } catch (e) {
+      console.error("Error toggling review visibility:", e);
+    }
+  };
+
+  const handleToggleReviewFeatured = async (id: string, currentFeatured: boolean) => {
+    try {
+      const nextVal = !currentFeatured;
+      await updateDoc(doc(db, "reviews", id), { featured: nextVal });
+      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, featured: nextVal } : r)));
+    } catch (e) {
+      console.error("Error toggling review featured:", e);
+    }
+  };
+
+  const handleReorderReview = async (id: string, direction: "up" | "down") => {
+    const index = reviews.findIndex((r) => r.id === id);
+    if (index === -1) return;
+    const targetIdx = direction === "up" ? index - 1 : index + 1;
+    if (targetIdx < 0 || targetIdx >= reviews.length) return;
+
+    const newReviews = [...reviews];
+    const temp = newReviews[index];
+    newReviews[index] = newReviews[targetIdx];
+    newReviews[targetIdx] = temp;
+
+    const updated = newReviews.map((r, i) => ({ ...r, sort_order: i }));
+    setReviews(updated);
+
+    try {
+      await Promise.all([
+        updateDoc(doc(db, "reviews", updated[index].id), { sort_order: updated[index].sort_order }),
+        updateDoc(doc(db, "reviews", updated[targetIdx].id), { sort_order: updated[targetIdx].sort_order }),
+      ]);
+    } catch (e) {
+      console.error("Error updating review order:", e);
+    }
   };
 
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
@@ -1034,29 +1135,27 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 4: CATEGORIES & BRANDS TAB
+          TAB 4: CATEGORIES TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "categories" && (
-        <div className="space-y-10">
-          <CategoriesTab
-            categories={categories}
-            onAdd={() => {
-              setEditingCategory(null);
-              setIsCategoryModalOpen(true);
-            }}
-            onEdit={(cat: Category) => {
-              setEditingCategory(cat);
-              setIsCategoryModalOpen(true);
-            }}
-            onDelete={handleDeleteCategory}
-          />
-
-          <div className="border-t border-white/10 pt-10">
-            <BrandsTab products={products} />
-          </div>
-        </div>
+        <CategoriesTab
+          categories={categories}
+          products={products}
+          onAdd={() => {
+            setEditingCategory(null);
+            setIsCategoryModalOpen(true);
+          }}
+          onEdit={(cat: Category) => {
+            setEditingCategory(cat);
+            setIsCategoryModalOpen(true);
+          }}
+          onDelete={handleDeleteCategory}
+        />
       )}
 
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 4B: BRANDS TAB
+      ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "brands" && (
         <BrandsTab products={products} />
       )}
@@ -1098,6 +1197,24 @@ function DashboardContent() {
           }}
           onDelete={handleDeleteHeroSlide}
           onToggleStatus={handleToggleHeroSlideStatus}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5C: STORE GALLERY TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "gallery" && (
+        <GalleryTab
+          images={galleryImages}
+          onAdd={() => {
+            setEditingGalleryImage(null);
+            setIsGalleryModalOpen(true);
+          }}
+          onEdit={(image: GalleryImage) => {
+            setEditingGalleryImage(image);
+            setIsGalleryModalOpen(true);
+          }}
+          onDelete={handleDeleteGalleryImage}
         />
       )}
 
@@ -1312,36 +1429,23 @@ function DashboardContent() {
           TAB 10: REVIEWS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "reviews" && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-extrabold text-white">Customer Reviews ({reviews.length})</h1>
-            <p className="text-xs text-white/50">Approve, edit or feature customer reviews on the website homepage</p>
-          </div>
-
-          <div className="space-y-4">
-            {reviews.map((r: any) => (
-              <div key={r.id} className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 font-bold flex items-center justify-center text-sm">
-                      {(r.author_name || r.name || "Customer").charAt(0)}
-                    </div>
-                    <div>
-                      <h4 className="font-bold text-sm text-white">{r.author_name || r.name || "Customer"}</h4>
-                      <p className="text-[11px] text-white/40">{r.role || "Verified Buyer"}</p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(r.rating || 5)].map((_, idx) => (
-                      <Star key={idx} className="w-4 h-4 fill-amber-400" />
-                    ))}
-                  </div>
-                </div>
-                <p className="text-xs text-white/80 leading-relaxed italic">"{r.text || r.comment || "Great product and excellent service!"}"</p>
-              </div>
-            ))}
-          </div>
-        </div>
+        <ReviewsTab
+          reviews={reviews}
+          settings={googleReviewsSettings}
+          onAdd={() => {
+            setEditingReview(null);
+            setIsReviewModalOpen(true);
+          }}
+          onEdit={(review: Review) => {
+            setEditingReview(review);
+            setIsReviewModalOpen(true);
+          }}
+          onDelete={handleDeleteReview}
+          onToggleVisibility={handleToggleReviewVisibility}
+          onToggleFeatured={handleToggleReviewFeatured}
+          onReorder={handleReorderReview}
+          onSaveSettings={(newSettings) => setGoogleReviewsSettings(newSettings)}
+        />
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -1534,6 +1638,7 @@ function DashboardContent() {
           refreshData();
         }}
         initialData={editingCategory}
+        existingCategories={categories}
       />
 
       {/* Offer Banner Modal */}
@@ -1550,6 +1655,28 @@ function DashboardContent() {
         onClose={() => setIsHeroModalOpen(false)}
         onSave={handleSaveHeroSlide}
         slide={editingHeroSlide}
+      />
+
+      {/* Gallery Modal */}
+      <GalleryModal
+        isOpen={isGalleryModalOpen}
+        onClose={() => setIsGalleryModalOpen(false)}
+        onSave={() => {
+          setIsGalleryModalOpen(false);
+          refreshData();
+        }}
+        initialData={editingGalleryImage}
+      />
+
+      {/* Review Modal */}
+      <ReviewModal
+        isOpen={isReviewModalOpen}
+        onClose={() => setIsReviewModalOpen(false)}
+        onSave={() => {
+          setIsReviewModalOpen(false);
+          refreshData();
+        }}
+        initialData={editingReview}
       />
 
       {/* Quick Add Stock Modal */}

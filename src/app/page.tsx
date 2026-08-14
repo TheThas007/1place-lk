@@ -1,4 +1,5 @@
 import HeroSection from "@/components/home/hero-section";
+import AnnouncementTicker from "@/components/home/announcement-ticker";
 import TrustIndicators from "@/components/home/trust-indicators";
 import CategoriesSection from "@/components/home/categories-section";
 import NewArrivalsSection from "@/components/home/new-arrivals-section";
@@ -9,20 +10,23 @@ import ReviewsSection from "@/components/home/reviews-section";
 import GallerySection from "@/components/home/gallery-section";
 import StoreLocation from "@/components/home/store-location";
 import CampaignPlacement from "@/components/ui/CampaignPlacement";
+import HomeScrollReset from "@/components/home/HomeScrollReset";
 
-import { getCategories, getProducts, getReviews, getGalleryImages, getUiSettings } from "@/lib/firestore-client";
+import { getCategories, getBrands, getProducts, getReviews, getGalleryImages, getUiSettings, getGoogleReviewsSettings } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
 
 export const revalidate = 60; // Revalidate cache every 60s for high performance
 
 export default async function HomePage() {
-  const [categories, products, reviews, galleryImages, uiSettings] = await Promise.all([
+  const [categories, brands, products, reviews, galleryImages, uiSettings, googleReviewsSettings] = await Promise.all([
     getCategories(),
+    getBrands(),
     getProducts(),
     getReviews(),
     getGalleryImages(),
     getUiSettings(),
+    getGoogleReviewsSettings(),
   ]);
 
   const jsonLd = {
@@ -67,6 +71,7 @@ export default async function HomePage() {
 
   return (
     <>
+      <HomeScrollReset />
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
@@ -74,11 +79,14 @@ export default async function HomePage() {
       {/* 3. Premium hero banner slider */}
       <HeroSection />
 
-      {/* 5. Shop by Category */}
-      <CategoriesSection categories={categories} />
+      {/* 4. Announcement Ticker */}
+      <AnnouncementTicker />
 
-      {/* 6. New Arrivals */}
+      {/* 5. New Arrivals */}
       <NewArrivalsSection initialProducts={products} />
+
+      {/* 6. Shop by Brand */}
+      <CategoriesSection categories={categories} brands={brands} />
 
       {/* 7. Featured Mobile Phones */}
       <FeaturedProducts />
@@ -93,13 +101,13 @@ export default async function HomePage() {
       <TrustIndicators />
 
       {/* 9B. Shop by Category (Carousel Slider) */}
-      <ShopByCategoryCarousel />
+      <ShopByCategoryCarousel categories={categories} />
 
       {/* 10. Brand/service benefits & Store Gallery */}
       <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
 
       {/* 11. Google customer reviews */}
-      <ReviewsSection reviews={reviews} />
+      <ReviewsSection reviews={reviews} settings={googleReviewsSettings} />
 
       {/* 12. Newsletter & Store Location */}
       <StoreLocation />

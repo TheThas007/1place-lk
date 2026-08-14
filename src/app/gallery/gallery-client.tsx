@@ -3,8 +3,20 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { X, ZoomIn, Camera, Wrench, Users, LayoutGrid, ChevronLeft, ChevronRight, ImageIcon } from "lucide-react";
+import { X, ZoomIn, Camera, Wrench, Users, LayoutGrid, ChevronLeft, ChevronRight, ImageIcon, ExternalLink, Play } from "lucide-react";
 import { GalleryImage } from "@/lib/types";
+import { getPlatformMeta } from "@/components/admin/tabs/GalleryTab";
+
+function validateUrl(url?: string): string | null {
+  if (!url || typeof url !== "string" || !url.trim()) return null;
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url.trim();
+    }
+  } catch {}
+  return null;
+}
 
 /* ─── Animation variants ─── */
 const containerVariants: Variants = {
@@ -15,7 +27,7 @@ const cardVariants: Variants = {
   hidden: { opacity: 0, scale: 0.92, y: 24 },
   show: {
     opacity: 1, scale: 1, y: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as [number,number,number,number] },
+    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as [number, number, number, number] },
   },
 };
 
@@ -39,18 +51,27 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
 
-  const filtered = activeFilter === "all"
-    ? images
-    : images.filter((img) => img.category === activeFilter);
+  // Filter out hidden items
+  const visibleImages = images.filter((img) => img.visible !== false);
 
-  const openLightbox = (idx: number) => {
+  const filtered = activeFilter === "all"
+    ? visibleImages
+    : visibleImages.filter((img) => img.category === activeFilter);
+
+  const openLightbox = (idx: number, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
     setLightboxIdx(idx);
     document.body.style.overflow = "hidden";
   };
+
   const closeLightbox = useCallback(() => {
     setLightboxIdx(null);
     document.body.style.overflow = "";
   }, []);
+
   const prevImg = useCallback(() => setLightboxIdx((i) => (i !== null ? (i - 1 + filtered.length) % filtered.length : 0)), [filtered.length]);
   const nextImg = useCallback(() => setLightboxIdx((i) => (i !== null ? (i + 1) % filtered.length : 0)), [filtered.length]);
 
@@ -92,7 +113,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-violet-50 to-fuchsia-50 border border-violet-200/70 text-violet-700 text-xs font-bold uppercase tracking-widest mb-7 shadow-sm"
             >
               <Camera className="w-3.5 h-3.5" />
-              Our Gallery
+              Our Gallery &amp; Social Posts
               <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-pulse" />
             </motion.div>
 
@@ -121,7 +142,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
               transition={{ delay: 0.25, duration: 0.6 }}
               className="text-gray-500 text-lg leading-relaxed max-w-md"
             >
-              Take a look inside our store, repair center, and the happy customers we serve every day.
+              Explore photos and videos from our shop, repair lab, and social media reels.
             </motion.p>
 
             <motion.div
@@ -131,10 +152,9 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
               className="flex flex-wrap gap-3 mt-8"
             >
               {[
-                { label: `${images.length} Photos`,  color: "bg-violet-50 text-violet-700 border-violet-200/70" },
-                { label: "Shop Tour",                 color: "bg-blue-50 text-blue-700 border-blue-200/70" },
-                { label: "Repair Lab",                color: "bg-orange-50 text-orange-700 border-orange-200/70" },
-                { label: "Our Customers",             color: "bg-emerald-50 text-emerald-700 border-emerald-200/70" },
+                { label: `${visibleImages.length} Gallery Items`, color: "bg-violet-50 text-violet-700 border-violet-200/70" },
+                { label: "Instagram & TikTok Linkable", color: "bg-pink-50 text-pink-700 border-pink-200/70" },
+                { label: "Shop & Repair Lab", color: "bg-blue-50 text-blue-700 border-blue-200/70" },
               ].map((chip) => (
                 <span key={chip.label} className={`px-3.5 py-1.5 rounded-full text-xs font-bold border ${chip.color} shadow-sm`}>
                   {chip.label}
@@ -173,7 +193,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
             </motion.button>
           ))}
           <span className="ml-auto text-xs text-gray-300 font-medium whitespace-nowrap pl-4">
-            {filtered.length} photo{filtered.length !== 1 ? "s" : ""}
+            {filtered.length} item{filtered.length !== 1 ? "s" : ""}
           </span>
         </div>
       </section>
@@ -190,18 +210,18 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
             <div className="w-20 h-20 rounded-3xl bg-gray-50 border border-gray-100 flex items-center justify-center mb-5">
               <ImageIcon className="w-9 h-9 text-gray-300" />
             </div>
-            <h3 className="text-xl font-black text-gray-900 mb-2">No Images Yet</h3>
+            <h3 className="text-xl font-black text-gray-900 mb-2">No Items Found</h3>
             <p className="text-gray-400 text-sm max-w-xs">
               {activeFilter === "all"
                 ? "We're updating our gallery. Check back soon!"
-                : `No "${activeFilter}" images yet.`}
+                : `No "${activeFilter}" items yet.`}
             </p>
             {activeFilter !== "all" && (
               <button
                 onClick={() => setActiveFilter("all")}
                 className="mt-6 px-6 py-2.5 bg-gray-950 text-white rounded-xl text-sm font-semibold hover:bg-gray-800 transition-all"
               >
-                View All Photos
+                View All Items
               </button>
             )}
           </motion.div>
@@ -218,41 +238,50 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
               {filtered.map((img, idx) => {
                 const gradClass = CATEGORY_COLORS[img.category] || "from-gray-500 to-gray-600";
                 const ratio = RATIOS[idx % RATIOS.length];
+                const validPostUrl = validateUrl(img.post_url);
+                const platformMeta = getPlatformMeta(img.platform, img.post_url);
+                const cardTitle = img.title || img.caption || "Gallery Item";
+
                 return (
                   <motion.div key={img.id || idx} variants={cardVariants} className="break-inside-avoid">
-                    <div
-                      onClick={() => openLightbox(idx)}
-                      className="group relative overflow-hidden rounded-2xl cursor-zoom-in shadow-sm hover:shadow-2xl hover:shadow-gray-300/60 transition-all duration-500"
-                    >
-                      <div className={`relative ${ratio} overflow-hidden bg-gray-100`}>
-                        <img
-                          src={img.image_url}
-                          alt={img.caption || `Gallery image ${idx + 1}`}
-                          className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110"
-                        />
-                        {/* Dark scrim */}
-                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/28 transition-colors duration-400" />
-                        {/* Top accent bar */}
-                        <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradClass} scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500`} />
-                        {/* Category badge */}
-                        {img.category && (
-                          <div className="absolute top-3.5 left-3.5">
-                            <span className={`px-3 py-1 rounded-full bg-gradient-to-r ${gradClass} text-white text-[10px] font-bold uppercase tracking-widest shadow-lg`}>
-                              {img.category}
-                            </span>
-                          </div>
-                        )}
-                        {/* Zoom icon */}
-                        <div className="absolute top-3.5 right-3.5 w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md border border-white/25 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300 scale-75 group-hover:scale-100">
-                          <ZoomIn className="w-[18px] h-[18px] text-white" />
+                    <div className="group relative overflow-hidden rounded-2xl shadow-sm hover:shadow-2xl hover:shadow-gray-300/60 transition-all duration-500">
+                      
+                      {/* Card Click Wrapper */}
+                      {validPostUrl ? (
+                        <a
+                          href={validPostUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          aria-label={`${platformMeta?.label || "View Post"}: ${cardTitle}`}
+                          className="block relative cursor-pointer"
+                        >
+                          <GalleryCardInner
+                            img={img}
+                            idx={idx}
+                            ratio={ratio}
+                            gradClass={gradClass}
+                            platformMeta={platformMeta}
+                            validPostUrl={validPostUrl}
+                            cardTitle={cardTitle}
+                            onLightboxOpen={(e) => openLightbox(idx, e)}
+                          />
+                        </a>
+                      ) : (
+                        <div
+                          onClick={() => openLightbox(idx)}
+                          className="block relative cursor-zoom-in"
+                        >
+                          <GalleryCardInner
+                            img={img}
+                            idx={idx}
+                            ratio={ratio}
+                            gradClass={gradClass}
+                            platformMeta={platformMeta}
+                            validPostUrl={null}
+                            cardTitle={cardTitle}
+                          />
                         </div>
-                        {/* Caption */}
-                        {img.caption && (
-                          <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/75 via-black/20 to-transparent translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-400">
-                            <p className="text-white text-sm font-semibold leading-tight">{img.caption}</p>
-                          </div>
-                        )}
-                      </div>
+                      )}
                     </div>
                   </motion.div>
                 );
@@ -263,7 +292,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
       </section>
 
       {/* ══════════════════════════════════════════
-          LIGHTBOX
+          LIGHTBOX MODAL
       ══════════════════════════════════════════ */}
       <AnimatePresence>
         {lightboxIdx !== null && filtered[lightboxIdx] && (
@@ -274,25 +303,31 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
             onClick={closeLightbox}
           >
             {/* Counter */}
-            <div className="absolute top-5 left-1/2 -translate-x-1/2 text-white/40 text-xs font-mono tracking-widest z-20">
+            <div className="absolute top-5 left-1/2 -translate-x-1/2 text-white/50 text-xs font-mono tracking-widest z-20">
               {lightboxIdx + 1} / {filtered.length}
             </div>
+
             {/* Close */}
             <button
+              type="button"
               onClick={closeLightbox}
               className="absolute top-4 right-4 z-20 w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-all"
             >
               <X className="w-5 h-5" />
             </button>
+
             {/* Prev */}
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); prevImg(); }}
               className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-all"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
+
             {/* Next */}
             <button
+              type="button"
               onClick={(e) => { e.stopPropagation(); nextImg(); }}
               className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-all"
             >
@@ -309,29 +344,64 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                 className="relative max-w-5xl max-h-[88vh] w-full flex flex-col items-center gap-4"
                 onClick={(e) => e.stopPropagation()}
               >
-                <img
-                  src={filtered[lightboxIdx].image_url}
-                  alt={filtered[lightboxIdx].caption || "Gallery image"}
-                  className="max-h-[80vh] max-w-full w-auto h-auto rounded-2xl object-contain shadow-2xl"
-                />
-                {filtered[lightboxIdx].caption && (
-                  <div className="flex items-center gap-3">
-                    {filtered[lightboxIdx].category && (
-                      <span className={`px-3 py-1 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[filtered[lightboxIdx].category] || "from-gray-500 to-gray-600"} text-white text-[10px] font-bold uppercase tracking-widest`}>
-                        {filtered[lightboxIdx].category}
-                      </span>
+                {/* Media Container */}
+                <div className="max-h-[75vh] max-w-full overflow-hidden rounded-2xl border border-white/10 shadow-2xl flex items-center justify-center">
+                  {filtered[lightboxIdx].video_url ? (
+                    <video
+                      src={filtered[lightboxIdx].video_url}
+                      controls
+                      autoPlay
+                      className="max-h-[75vh] max-w-full w-auto h-auto rounded-2xl"
+                    />
+                  ) : (
+                    <img
+                      src={filtered[lightboxIdx].image_url}
+                      alt={filtered[lightboxIdx].title || filtered[lightboxIdx].caption || "Gallery item"}
+                      className="max-h-[75vh] max-w-full w-auto h-auto rounded-2xl object-contain"
+                    />
+                  )}
+                </div>
+
+                {/* Details Bar & Social Link Button */}
+                <div className="w-full flex flex-col sm:flex-row items-center justify-between gap-3 bg-white/5 border border-white/10 p-4 rounded-2xl backdrop-blur-md">
+                  <div className="min-w-0 text-center sm:text-left">
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                      {filtered[lightboxIdx].category && (
+                        <span className={`px-2.5 py-0.5 rounded-full bg-gradient-to-r ${CATEGORY_COLORS[filtered[lightboxIdx].category] || "from-gray-500 to-gray-600"} text-white text-[10px] font-bold uppercase tracking-widest`}>
+                          {filtered[lightboxIdx].category}
+                        </span>
+                      )}
+                      {filtered[lightboxIdx].title && (
+                        <h4 className="font-bold text-sm text-white truncate">{filtered[lightboxIdx].title}</h4>
+                      )}
+                    </div>
+                    {filtered[lightboxIdx].caption && (
+                      <p className="text-white/70 text-xs font-normal line-clamp-2">{filtered[lightboxIdx].caption}</p>
                     )}
-                    <p className="text-white/70 text-sm font-medium">{filtered[lightboxIdx].caption}</p>
                   </div>
-                )}
+
+                  {/* Direct Social Link Button in Lightbox */}
+                  {validateUrl(filtered[lightboxIdx].post_url) && (
+                    <a
+                      href={validateUrl(filtered[lightboxIdx].post_url)!}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95"
+                    >
+                      <span>{getPlatformMeta(filtered[lightboxIdx].platform, filtered[lightboxIdx].post_url)?.label || "View Original Post"}</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </a>
+                  )}
+                </div>
               </motion.div>
             </AnimatePresence>
 
-            {/* Filmstrip dots */}
-            <div className="absolute bottom-5 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
+            {/* Dots */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-20">
               {filtered.map((_, i) => (
                 <button
                   key={i}
+                  type="button"
                   onClick={(e) => { e.stopPropagation(); setLightboxIdx(i); }}
                   className={`rounded-full transition-all duration-300 ${
                     i === lightboxIdx ? "w-6 h-2 bg-white" : "w-2 h-2 bg-white/30 hover:bg-white/50"
@@ -342,6 +412,92 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Inner Card Component ─── */
+function GalleryCardInner({
+  img,
+  idx,
+  ratio,
+  gradClass,
+  platformMeta,
+  validPostUrl,
+  cardTitle,
+  onLightboxOpen,
+}: {
+  img: GalleryImage;
+  idx: number;
+  ratio: string;
+  gradClass: string;
+  platformMeta: any;
+  validPostUrl: string | null;
+  cardTitle: string;
+  onLightboxOpen?: (e: React.MouseEvent) => void;
+}) {
+  return (
+    <div className={`relative ${ratio} overflow-hidden bg-gray-100`}>
+      <img
+        src={img.image_url}
+        alt={cardTitle}
+        className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-110"
+      />
+
+      {/* Scrim Overlay */}
+      <div className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-colors duration-300" />
+
+      {/* Top Accent Gradient Bar */}
+      <div className={`absolute top-0 left-0 right-0 h-1 bg-gradient-to-r ${gradClass} scale-x-0 group-hover:scale-x-100 origin-left transition-transform duration-500`} />
+
+      {/* Category Badge (Top Left) */}
+      {img.category && (
+        <div className="absolute top-3.5 left-3.5 z-10">
+          <span className={`px-3 py-1 rounded-full bg-gradient-to-r ${gradClass} text-white text-[10px] font-bold uppercase tracking-widest shadow-lg`}>
+            {img.category}
+          </span>
+        </div>
+      )}
+
+      {/* Social Platform Premium Badge (Top Right) */}
+      {platformMeta && (
+        <div className={`absolute top-3.5 right-3.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-xl flex items-center gap-1 z-10 ${platformMeta.badgeBg}`}>
+          <span>{platformMeta.icon}</span>
+          <span>{platformMeta.name}</span>
+        </div>
+      )}
+
+      {/* Hover Action Overlay */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center p-4 text-center z-20">
+        <div className="w-11 h-11 rounded-2xl bg-white/20 backdrop-blur-md border border-white/30 flex items-center justify-center mb-2 shadow-2xl scale-75 group-hover:scale-100 transition-transform duration-300">
+          {validPostUrl ? (
+            <ExternalLink className="w-5 h-5 text-white" />
+          ) : (
+            <ZoomIn className="w-5 h-5 text-white" />
+          )}
+        </div>
+        <span className="text-white text-xs font-black uppercase tracking-wider">
+          {validPostUrl ? (platformMeta?.label || "View Post") : "Open Lightbox"}
+        </span>
+
+        {/* Secondary Lightbox trigger button if link is present */}
+        {validPostUrl && onLightboxOpen && (
+          <button
+            type="button"
+            onClick={onLightboxOpen}
+            className="mt-3 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-colors"
+          >
+            Zoom Photo 🔍
+          </button>
+        )}
+      </div>
+
+      {/* Bottom Caption Overlay */}
+      {img.caption && (
+        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 pointer-events-none">
+          <p className="text-white text-sm font-semibold leading-tight line-clamp-1">{img.caption}</p>
+        </div>
+      )}
     </div>
   );
 }

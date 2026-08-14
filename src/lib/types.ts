@@ -70,8 +70,13 @@ export interface Brand {
   name: string;
   slug: string;
   logo_url?: string;
+  logo_alt_text?: string;
   description?: string;
+  product_group?: "smartphones" | "laptops" | "accessories" | "audio" | "other";
+  link_destination?: string;
+  monochrome?: boolean;
   sort_order?: number;
+  mobile_sort_order?: number;
   status?: "active" | "inactive";
   show_on_homepage?: boolean;
   product_count?: number;
@@ -147,7 +152,12 @@ export interface Category {
   slug: string;
   icon: string;
   image_url: string;
+  hover_icon_url?: string;
+  icon_alt_text?: string;
+  link_destination?: string;
+  target_category_id?: string;
   sort_order: number;
+  mobile_sort_order?: number;
   description?: string;
   product_count?: number;
   group?: "phones" | "product_categories" | "accessories" | "other";
@@ -165,14 +175,29 @@ export interface Review {
   text: string;
   review_date: string;
   visible: boolean;
+  google_url?: string;
+  featured?: boolean;
+  sort_order?: number;
+}
+
+export interface GoogleReviewsSettings {
+  overall_rating: number;
+  total_reviews_count: number;
+  write_review_url: string;
+  view_all_reviews_url: string;
 }
 
 export interface GalleryImage {
   id: string;
   image_url: string;
+  video_url?: string;
+  title?: string;
   caption: string;
   category: "shop" | "repairs" | "customers";
   sort_order: number;
+  platform?: "instagram" | "tiktok" | "facebook" | "youtube" | "other" | "none";
+  post_url?: string;
+  visible?: boolean;
 }
 
 export interface Banner {
@@ -459,4 +484,27 @@ export interface CashFlowTransaction {
   description: string;
   date: string;
   createdAt: string;
+}
+
+// ==========================================
+// ANNOUNCEMENT TICKER
+// ==========================================
+
+export interface TickerMessage {
+  id: string;
+  text: string;
+  icon?: string; // lucide icon name
+  active: boolean;
+  sort_order: number;
+}
+
+export interface TickerSettings {
+  enabled: boolean;
+  messages: TickerMessage[];
+  text_color: string;
+  bg_color: string;
+  speed: "slow" | "normal" | "fast";
+  direction: "rtl" | "ltr";
+  pause_on_hover: boolean;
+  updated_at?: string;
 }

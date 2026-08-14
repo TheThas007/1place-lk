@@ -2,6 +2,24 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ── Responsive Navbar Height Variable (ResizeObserver overrides dynamically) ── */
+:root {
+  --navbar-height: 74px;
+  --ticker-height: 0px;
+}
+
+@media (max-width: 1024px) {
+  :root {
+    --navbar-height: 66px;
+  }
+}
+
+@media (max-width: 640px) {
+  :root {
+    --navbar-height: 66px;
+  }
+}
+
 /* Hide public site layout elements when in admin panel */
 body:has([data-admin-root]) header,
 body:has([data-admin-root]) footer,
@@ -378,4 +396,27 @@ body {
   html {
     @apply font-sans;
   }
+}
+
+/* ── Announcement Ticker Marquee ── */
+@keyframes ticker-scroll {
+  0% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.ticker-marquee {
+  animation: ticker-scroll 30s linear infinite;
+  will-change: transform;
+}
+
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }

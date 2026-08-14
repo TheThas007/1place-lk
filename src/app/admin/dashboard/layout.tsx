@@ -26,6 +26,8 @@ import {
   Menu,
   X,
   Smartphone,
+  Images,
+  Tag,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -35,9 +37,11 @@ import ProductModal from "@/components/admin/ProductModal";
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
-  { id: "categories", label: "Brand & Categories", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
+  { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
+  { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
+  { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
   { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
   { id: "inventory", label: "Inventory", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },

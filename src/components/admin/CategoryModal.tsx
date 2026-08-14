@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Upload, Loader2, Link as LinkIcon, Eye } from "lucide-react";
+import { X, Upload, Loader2, Link as LinkIcon, Eye, Sparkles, Image as ImageIcon, Check, AlertCircle, Copy } from "lucide-react";
 import { Category } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { addDoc, updateDoc, doc, collection } from "firebase/firestore";
+import { doc, setDoc } from "firebase/firestore";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 
 interface CategoryModalProps {
@@ -12,14 +12,59 @@ interface CategoryModalProps {
   onClose: () => void;
   onSave: () => void;
   initialData?: Category | null;
+  existingCategories?: Category[];
 }
 
-export default function CategoryModal({ isOpen, onClose, onSave, initialData }: CategoryModalProps) {
+const ICON_PRESETS = [
+  { icon: "📱", label: "Smartphones" },
+  { icon: "📞", label: "Feature Phones" },
+  { icon: "💻", label: "Laptops" },
+  { icon: "⌚", label: "Smart Watches" },
+  { icon: "🎧", label: "Earbuds & Audio" },
+  { icon: "🔋", label: "Power Banks" },
+  { icon: "🔌", label: "Chargers & Cables" },
+  { icon: "🛡️", label: "Cases & Protection" },
+  { icon: "🔧", label: "Repair Services" },
+  { icon: "🎮", label: "Gaming Devices" },
+  { icon: "📷", label: "Cameras & Memory" },
+  { icon: "🔊", label: "Bluetooth Speakers" },
+];
+
+function validateImageUrl(url?: string): { isValid: boolean; error?: string } {
+  if (!url || typeof url !== "string" || !url.trim()) {
+    return { isValid: true };
+  }
+  const cleanUrl = url.trim();
+  if (!cleanUrl.startsWith("https://") && !cleanUrl.startsWith("http://")) {
+    return { isValid: false, error: "URL must start with https:// or http://" };
+  }
+  if (cleanUrl.includes(".html") || cleanUrl.includes("wikipedia.org") || cleanUrl.includes("amazon.com/dp")) {
+    return { isValid: false, error: "Please enter a direct image/SVG URL ending in .png, .svg, .webp or .jpg (not an HTML webpage)." };
+  }
+  try {
+    new URL(cleanUrl);
+    return { isValid: true };
+  } catch {
+    return { isValid: false, error: "Invalid URL format." };
+  }
+}
+
+export default function CategoryModal({
+  isOpen,
+  onClose,
+  onSave,
+  initialData,
+  existingCategories = [],
+}: CategoryModalProps) {
   const [formData, setFormData] = useState<Partial<Category>>({
     name: "",
     slug: "",
-    icon: "",
+    icon: "📱",
     image_url: "",
+    hover_icon_url: "",
+    icon_alt_text: "",
+    link_destination: "",
+    target_category_id: "",
     sort_order: 0,
     group: "product_categories",
     status: "active",
@@ -27,14 +72,23 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
     show_on_homepage: true,
     description: "",
   });
+
+  const [iconSourceMode, setIconSourceMode] = useState<"file" | "url">("url");
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string>("");
+  const [imageError, setImageError] = useState<string>("");
+  const [urlValidationError, setUrlValidationError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (initialData) {
       setFormData({
         ...initialData,
+        icon: initialData.icon || "📱",
+        hover_icon_url: initialData.hover_icon_url || "",
+        icon_alt_text: initialData.icon_alt_text || `${initialData.name} Icon`,
+        link_destination: initialData.link_destination || `/categories/${initialData.slug}`,
+        target_category_id: initialData.target_category_id || initialData.id || "",
         status: initialData.status ?? "active",
         show_in_selector: initialData.show_in_selector ?? true,
         show_on_homepage: initialData.show_on_homepage ?? true,
@@ -45,8 +99,12 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       setFormData({
         name: "",
         slug: "",
-        icon: "",
+        icon: "📱",
         image_url: "",
+        hover_icon_url: "",
+        icon_alt_text: "",
+        link_destination: "",
+        target_category_id: "",
         sort_order: 0,
         group: "product_categories",
         status: "active",
@@ -57,27 +115,58 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
       setImagePreview("");
     }
     setImageFile(null);
+    setImageError("");
+    setUrlValidationError("");
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setImageError("");
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
+      if (file.size > 307200) { // 300 KB limit
+        setImageError("File exceeds recommended 300 KB limit. Please compress image.");
+        return;
+      }
       setImageFile(file);
       setImagePreview(URL.createObjectURL(file));
-      setFormData({ ...formData, image_url: "" });
+      setFormData((prev) => ({ ...prev, image_url: "" }));
+    }
+  };
+
+  const handleUrlInputChange = (url: string) => {
+    setFormData((prev) => ({ ...prev, image_url: url }));
+    if (!imageFile) setImagePreview(url);
+
+    const val = validateImageUrl(url);
+    if (!val.isValid) {
+      setUrlValidationError(val.error || "Invalid URL");
+    } else {
+      setUrlValidationError("");
+      setImageError("");
     }
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-    setFormData({ ...formData, name, slug: formData.slug || slug });
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      slug: prev.slug || slug,
+      icon_alt_text: prev.icon_alt_text || `${name} Icon`,
+      link_destination: prev.link_destination || `/categories/${slug}`,
+    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (urlValidationError) {
+      alert("Please fix the image URL error before saving.");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -87,212 +176,377 @@ export default function CategoryModal({ isOpen, onClose, onSave, initialData }: 
         finalImageUrl = await uploadImageWithFallback(imageFile, "categories");
       }
 
-      if (!finalImageUrl) {
-        finalImageUrl = "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=600&auto=format&fit=crop";
-      }
+      const slugVal = formData.slug ? formData.slug.trim() : formData.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "category";
 
-      const categoryData = {
-        ...formData,
+      const categoryData: Omit<Category, "id"> = {
+        name: formData.name ? formData.name.trim() : "Category",
+        slug: slugVal,
+        icon: formData.icon || "📱",
         image_url: finalImageUrl,
+        hover_icon_url: formData.hover_icon_url ? formData.hover_icon_url.trim() : "",
+        icon_alt_text: formData.icon_alt_text ? formData.icon_alt_text.trim() : `${formData.name} Icon`,
+        link_destination: formData.link_destination ? formData.link_destination.trim() : `/categories/${slugVal}`,
+        target_category_id: formData.target_category_id || "",
+        sort_order: Number(formData.sort_order) || 0,
+        mobile_sort_order: Number(formData.sort_order) || 0,
+        group: (formData.group as any) || "product_categories",
         status: formData.status || "active",
         show_in_selector: formData.show_in_selector !== false,
         show_on_homepage: formData.show_on_homepage !== false,
-        description: formData.description || "",
+        description: formData.description ? formData.description.trim() : "",
       };
 
-      if (initialData && initialData.id) {
-        await updateDoc(doc(db, "categories", initialData.id), categoryData);
-      } else {
-        await addDoc(collection(db, "categories"), categoryData);
-      }
+      const targetId = initialData?.id || `cat-${slugVal}`;
+      await setDoc(doc(db, "categories", targetId), { ...categoryData, id: targetId }, { merge: true });
 
       onSave();
       onClose();
     } catch (error) {
       console.error("Error saving category:", error);
-      alert("Failed to save category.");
+      alert("Failed to save category. Please check connection.");
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-white/10 rounded-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar">
-        <div className="sticky top-0 bg-slate-900/90 backdrop-blur border-b border-white/10 p-5 flex items-center justify-between z-10">
-          <h2 className="text-lg font-bold text-white">
-            {initialData ? "Edit Category" : "Add Category"}
-          </h2>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg text-white/60 hover:text-white transition-colors">
+    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl text-white">
+        
+        {/* Modal Header (Dark Theme) */}
+        <div className="sticky top-0 bg-[#0F172A]/95 backdrop-blur border-b border-white/10 p-6 flex items-center justify-between z-10">
+          <div>
+            <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-extrabold text-[10px] uppercase tracking-wider border border-blue-500/20">
+              SHOP BY CATEGORY MANAGER
+            </span>
+            <h2 className="text-xl font-extrabold text-white mt-1">
+              {initialData ? `Edit Category: ${initialData.name}` : "Add Homepage Category"}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-xl text-white/50 hover:text-white transition-colors"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSave} className="p-6 space-y-5">
-          {/* Live Homepage Category Card Preview */}
-          <div className="text-center pb-2">
-            <p className="text-xs font-semibold text-white/60 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
-              <Eye className="w-3.5 h-3.5 text-emerald-400" /> Homepage Card Preview
+        <form onSubmit={handleSave} className="p-6 space-y-6">
+          
+          {/* Live Card Preview */}
+          <div className="bg-black/30 border border-white/10 rounded-2xl p-4 text-center">
+            <p className="text-[11px] font-extrabold text-white/50 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
+              <Eye className="w-3.5 h-3.5 text-blue-400" /> Live Homepage Category Preview
             </p>
-            <div className="max-w-[180px] mx-auto p-4 rounded-2xl border border-neutral-200 bg-white shadow-sm flex flex-col items-center gap-3">
-              <div className="w-16 h-16 bg-neutral-50 rounded-xl p-2 flex items-center justify-center overflow-hidden">
+            <div className="max-w-[190px] mx-auto p-4 rounded-2xl border border-white/10 bg-white/5 shadow-lg flex flex-col items-center gap-3">
+              <div className="w-16 h-16 bg-black/40 rounded-2xl p-2 flex items-center justify-center overflow-hidden border border-white/10 shadow-inner">
                 {imagePreview ? (
-                  <img src={imagePreview} alt="Preview" className="w-full h-full object-contain mix-blend-multiply" />
+                  <img
+                    src={imagePreview}
+                    alt={formData.icon_alt_text || "Preview"}
+                    className="w-full h-full object-contain"
+                    onError={() => setImageError("Image failed to load. Check URL or upload a valid file.")}
+                  />
                 ) : (
-                  <span className="text-2xl">{formData.icon || "📱"}</span>
+                  <span className="text-3xl">{formData.icon || "📱"}</span>
                 )}
               </div>
-              <span className="text-xs font-bold text-neutral-900 truncate w-full text-center">
-                {formData.name || "Category Name"}
-              </span>
+              <div className="text-center w-full">
+                <span className="text-xs font-black text-white truncate block">
+                  {formData.name || "Category Name"}
+                </span>
+                <span className="text-[10px] text-white/40 font-mono block truncate">
+                  {formData.link_destination || `/categories/${formData.slug || "slug"}`}
+                </span>
+              </div>
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          {/* Category Display Name & Slug */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Category Name *</label>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Category Display Name *
+              </label>
               <input
                 required
                 type="text"
+                placeholder="e.g. Smart Watches"
                 value={formData.name || ""}
                 onChange={handleNameChange}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Slug *</label>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Category Slug *
+              </label>
               <input
                 required
                 type="text"
+                placeholder="smart-watches"
                 value={formData.slug || ""}
                 onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:ring-2 focus:ring-emerald-500 outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
               />
             </div>
           </div>
 
-          <div>
-            <label className="block text-xs font-medium text-white/70 mb-1.5">Description</label>
-            <input
-              type="text"
-              value={formData.description || ""}
-              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              placeholder="Find the best mobile phones and accessories."
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs focus:ring-2 focus:ring-emerald-500 outline-none"
-            />
+          {/* Link Destination & Target Product Category */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Link Destination URL
+              </label>
+              <input
+                type="text"
+                placeholder="/categories/smart-watches"
+                value={formData.link_destination || ""}
+                onChange={(e) => setFormData({ ...formData, link_destination: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Linked Product Category Filter
+              </label>
+              <select
+                value={formData.target_category_id || ""}
+                onChange={(e) => setFormData({ ...formData, target_category_id: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-xs font-semibold outline-none focus:border-blue-500"
+              >
+                <option value="" className="bg-[#0F172A] text-white">-- Match Catalog Category --</option>
+                {existingCategories.map((c) => (
+                  <option key={c.id || c.slug} value={c.id || c.slug} className="bg-[#0F172A] text-white">
+                    {c.name} ({c.slug})
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3">
+          {/* Icon Source Selector: Upload File or Image URL */}
+          <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-blue-400" /> Icon Source Selector
+              </h4>
+              
+              {/* Tab Selector */}
+              <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setIconSourceMode("file")}
+                  className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
+                    iconSourceMode === "file" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setIconSourceMode("url")}
+                  className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
+                    iconSourceMode === "url" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Image URL
+                </button>
+              </div>
+            </div>
+
+            {/* File Upload Mode */}
+            {iconSourceMode === "file" && (
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  id="categoryIconUpload"
+                  accept="image/svg+xml,image/png,image/webp,image/jpeg"
+                  onChange={handleImageFileChange}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="categoryIconUpload"
+                  className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
+                >
+                  <Upload className="w-4 h-4 text-blue-400" /> Upload SVG, PNG, WebP or JPG
+                </label>
+                <div className="text-[11px] text-white/50 space-y-1">
+                  <p>• Recommended Size: <strong>256 × 256 px</strong> (Square 1:1 ratio)</p>
+                  <p>• Recommended Format: <strong>SVG or transparent WebP</strong></p>
+                  <p>• Maximum File Size: <strong>300 KB</strong></p>
+                </div>
+              </div>
+            )}
+
+            {/* Direct Image URL Mode */}
+            {iconSourceMode === "url" && (
+              <div className="space-y-2">
+                <label className="block text-[11px] font-bold text-white/70">Direct HTTPS Image / SVG URL</label>
+                <div className="relative">
+                  <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                  <input
+                    type="url"
+                    placeholder="https://example.com/icons/smartwatches.svg"
+                    value={formData.image_url || ""}
+                    onChange={(e) => handleUrlInputChange(e.target.value)}
+                    className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono outline-none focus:border-blue-500"
+                  />
+                </div>
+                {urlValidationError && (
+                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {urlValidationError}
+                  </p>
+                )}
+              </div>
+            )}
+
+            {imageError && (
+              <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
+                <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {imageError}
+              </p>
+            )}
+
+            {/* Emoji Presets Quick Apply */}
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Status</label>
-              <select
-                value={formData.status || "active"}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as "active" | "inactive" })}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-xs outline-none"
-              >
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-              </select>
+              <p className="text-[11px] font-bold text-white/50 mb-1.5">Emoji Icon Presets:</p>
+              <div className="grid grid-cols-4 sm:grid-cols-6 gap-2">
+                {ICON_PRESETS.map((preset) => (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    onClick={() => {
+                      setImageFile(null);
+                      setFormData({ ...formData, icon: preset.icon });
+                    }}
+                    className={`rounded-xl border p-2 flex flex-col items-center gap-1 text-center transition-all ${
+                      formData.icon === preset.icon && !formData.image_url
+                        ? "bg-blue-600/30 border-blue-500 text-white"
+                        : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                    }`}
+                  >
+                    <span className="text-xl">{preset.icon}</span>
+                    <span className="text-[9px] font-bold truncate w-full">{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Optional Hover Icon URL & Alt Text */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Optional Hover Icon URL
+              </label>
+              <input
+                type="url"
+                placeholder="https://example.com/hover-icon.svg"
+                value={formData.hover_icon_url || ""}
+                onChange={(e) => setFormData({ ...formData, hover_icon_url: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
+              />
             </div>
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Group</label>
-              <select
-                value={formData.group || "product_categories"}
-                onChange={(e) => setFormData({ ...formData, group: e.target.value as any })}
-                className="w-full bg-slate-800 border border-white/10 rounded-xl px-3 py-2 text-white text-[11px] outline-none"
-              >
-                <option value="product_categories">Product Categories</option>
-                <option value="phones">Smartphones & Devices</option>
-                <option value="accessories">Accessories</option>
-                <option value="other">Other</option>
-              </select>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Icon Alt Text
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Smart Watches Icon"
+                value={formData.icon_alt_text || ""}
+                onChange={(e) => setFormData({ ...formData, icon_alt_text: e.target.value })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
+              />
             </div>
+          </div>
+
+          {/* Display Order & Status */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
-              <label className="block text-xs font-medium text-white/70 mb-1.5">Sort Order</label>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Desktop Order
+              </label>
               <input
                 type="number"
                 value={formData.sort_order || 0}
                 onChange={(e) => setFormData({ ...formData, sort_order: Number(e.target.value) })}
-                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
               />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Mobile Order
+              </label>
+              <input
+                type="number"
+                value={formData.mobile_sort_order ?? formData.sort_order ?? 0}
+                onChange={(e) => setFormData({ ...formData, mobile_sort_order: Number(e.target.value) })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                Status
+              </label>
+              <select
+                value={formData.status || "active"}
+                onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none"
+              >
+                <option value="active" className="bg-[#0F172A] text-white">Active</option>
+                <option value="inactive" className="bg-[#0F172A] text-white">Inactive</option>
+              </select>
             </div>
           </div>
 
           {/* Display Toggles */}
-          <div className="space-y-3">
+          <div className="space-y-2">
             <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
               <div>
-                <p className="text-xs font-bold text-white">Show on Homepage</p>
-                <p className="text-[11px] text-white/40">Display in Shop by Category homepage section</p>
+                <p className="text-xs font-bold text-white">Show on Homepage Carousel</p>
+                <p className="text-[11px] text-white/50">Display in Shop by Category section</p>
               </div>
               <input
                 type="checkbox"
                 checked={formData.show_on_homepage !== false}
                 onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
-                className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
               />
             </div>
 
             <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
               <div>
-                <p className="text-xs font-bold text-white">Show in Category Selector Bar</p>
-                <p className="text-[11px] text-white/40">Display in circular category filter bar on Shop page</p>
+                <p className="text-xs font-bold text-white">Show in Circular Filter Bar</p>
+                <p className="text-[11px] text-white/50">Display in top filter bar on Shop page</p>
               </div>
               <input
                 type="checkbox"
                 checked={formData.show_in_selector !== false}
                 onChange={(e) => setFormData({ ...formData, show_in_selector: e.target.checked })}
-                className="w-4 h-4 accent-emerald-500 rounded cursor-pointer"
+                className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
               />
             </div>
           </div>
 
-          {/* Image / Icon */}
-          <div className="space-y-3">
-            <label className="block text-xs font-bold text-white/70">Category Image (PNG / WebP / SVG)</label>
-            <div className="flex items-center gap-4">
-              <input
-                type="file"
-                id="categoryImgUpload"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="hidden"
-              />
-              <label
-                htmlFor="categoryImgUpload"
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center gap-2"
-              >
-                <Upload className="w-3.5 h-3.5 text-emerald-400" /> Upload Image
-              </label>
-              <input
-                type="url"
-                placeholder="Or image URL (https://...)"
-                value={formData.image_url || ""}
-                onChange={(e) => {
-                  setFormData({ ...formData, image_url: e.target.value });
-                  if (!imageFile) setImagePreview(e.target.value);
-                }}
-                className="flex-1 bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="sticky bottom-0 bg-slate-900 pt-3 pb-1 border-t border-white/10 flex justify-end gap-3">
+          {/* Action Footer */}
+          <div className="sticky bottom-0 bg-[#0F172A] pt-4 pb-2 border-t border-white/10 flex justify-end gap-3">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 rounded-xl font-medium text-white/70 hover:text-white hover:bg-white/10 text-xs transition-colors"
+              className="px-5 py-2.5 rounded-xl font-bold text-xs text-white/60 hover:bg-white/10 text-white transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isLoading}
-              className="flex items-center gap-2 px-5 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl font-bold text-xs transition-colors disabled:opacity-50"
+              className="flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-bold text-xs transition-colors disabled:opacity-50 shadow-md"
             >
               {isLoading ? (
                 <>
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Saving...
+                  <Loader2 className="w-4 h-4 animate-spin" /> Saving...
                 </>
               ) : (
                 "Save Category"

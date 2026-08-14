@@ -16,17 +16,12 @@ export default function MobileNav() {
   // Hide bottom nav on admin and checkout routes
   if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) return null;
 
-  const handleHomeClick = () => {
-    document.cookie = "sm_home_pref=true; path=/; max-age=86400";
-  };
-
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 safe-bottom">
       <div className="grid grid-cols-5 items-center h-14 sm:h-16 px-1">
         {/* Home */}
         <Link
           href="/"
-          onClick={handleHomeClick}
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
             pathname === "/" ? "text-white font-semibold" : "text-white/40 hover:text-white/80"

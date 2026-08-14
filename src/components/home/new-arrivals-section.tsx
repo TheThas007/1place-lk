@@ -13,7 +13,6 @@ import NewArrivalsGridBanner from "./NewArrivalsGridBanner";
 
 export default function NewArrivalsSection({ initialProducts }: { initialProducts?: Product[] }) {
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
-  const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
@@ -52,24 +51,6 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
     const merged = Array.from(new Set([...markedNew, ...sortedLatest]));
     return merged.slice(0, 10);
   }, [products]);
-
-  // Dynamic Category Tabs generated from available new arrival products
-  const categoryTabs = useMemo(() => {
-    const set = new Set<string>();
-    set.add("All");
-    newArrivalProducts.forEach((p) => {
-      if (p.category_name) set.add(p.category_name);
-    });
-    return Array.from(set);
-  }, [newArrivalProducts]);
-
-  // Filtered Products for selected Category Tab
-  const filteredProducts = useMemo(() => {
-    if (selectedCategory === "All") return newArrivalProducts;
-    return newArrivalProducts.filter(
-      (p) => p.category_name?.toLowerCase() === selectedCategory.toLowerCase()
-    );
-  }, [newArrivalProducts, selectedCategory]);
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -127,32 +108,9 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
           </Link>
         </div>
 
-        {/* Dynamic Category Filter Tabs */}
-        {categoryTabs.length > 1 && (
-          <div className="flex items-center gap-2 overflow-x-auto pb-4 mb-6 custom-scrollbar">
-            {categoryTabs.map((tab) => {
-              const isActive = selectedCategory === tab;
-              return (
-                <button
-                  key={tab}
-                  type="button"
-                  onClick={() => setSelectedCategory(tab)}
-                  className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all ${
-                    isActive
-                      ? "bg-black text-white shadow-xs"
-                      : "bg-white text-neutral-600 border border-neutral-200 hover:border-neutral-400"
-                  }`}
-                >
-                  {tab}
-                </button>
-              );
-            })}
-          </div>
-        )}
-
         {/* Product Cards Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-5">
-          {filteredProducts.map((product, idx) => {
+          {newArrivalProducts.map((product, idx) => {
             const isWishlisted = isInWishlist(product.id);
             const isOutOfStock = product.stock_status === "out_of_stock";
             const isLowStock = product.stock_status === "low_stock";

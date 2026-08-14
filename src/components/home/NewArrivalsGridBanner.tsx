@@ -2,41 +2,39 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import { ArrowRight, Sparkles, Tag, ShoppingBag } from "lucide-react";
 import { doc, onSnapshot } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { formatPrice } from "@/lib/utils";
 
-export interface FeaturedGridBannerData {
+export interface NewArrivalsPromotionalBannerData {
   enabled: boolean;
-  productId?: string;
   title?: string;
-  tagline?: string;
-  badgeText?: string;
+  desktop_banner_url?: string;
+  mobile_banner_url?: string;
+  destination_type?: "product" | "category" | "external" | "none";
+  destination_id?: string;
+  destination_url?: string;
+  start_date?: string;
+  expiry_date?: string;
+
+  // Legacy fields fallback
   customImage?: string;
-  customPrice?: number;
-  customOldPrice?: number;
-  buttonText?: string;
   buttonUrl?: string;
-  backgroundColor?: "luxury_black" | "deep_gradient" | "gold_accent" | "clean_white";
 }
 
-const DEFAULT_BANNER: FeaturedGridBannerData = {
-  enabled: false,
-  title: "iPhone 16 Pro Max",
-  tagline: "Titanium design. A18 Pro chip. Unmatched camera capabilities.",
-  badgeText: "HOT DEAL",
-  customImage: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800&auto=format&fit=crop",
-  customPrice: 389000,
-  customOldPrice: 425000,
-  buttonText: "Shop Offer Now",
-  buttonUrl: "/products",
-  backgroundColor: "luxury_black",
-};
+function validateUrl(url?: string): string | null {
+  if (!url || typeof url !== "string" || !url.trim()) return null;
+  try {
+    const parsed = new URL(url.trim());
+    if (parsed.protocol === "http:" || parsed.protocol === "https:") {
+      return url.trim();
+    }
+  } catch {}
+  return null;
+}
 
 export default function NewArrivalsGridBanner() {
-  const [banner, setBanner] = useState<FeaturedGridBannerData | null>(null);
+  const [banner, setBanner] = useState<NewArrivalsPromotionalBannerData | null>(null);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let unsubscribe: () => void;
@@ -46,21 +44,24 @@ export default function NewArrivalsGridBanner() {
       unsubscribe = onSnapshot(
         bannerRef,
         (snap) => {
+          setLoaded(true);
           if (snap.exists()) {
-            const data = snap.data() as FeaturedGridBannerData;
+            const data = snap.data() as NewArrivalsPromotionalBannerData;
             setBanner(data);
           } else {
-            setBanner({ ...DEFAULT_BANNER, enabled: false });
+            setBanner({ enabled: false });
           }
         },
         (err) => {
-          console.warn("FeaturedGridBanner Firestore read error:", err);
-          setBanner({ ...DEFAULT_BANNER, enabled: false });
+          console.warn("NewArrivalsGridBanner Firestore read error:", err);
+          setLoaded(true);
+          setBanner({ enabled: false });
         }
       );
     } catch (e) {
-      console.warn("FeaturedGridBanner setup error:", e);
-      setBanner({ ...DEFAULT_BANNER, enabled: false });
+      console.warn("NewArrivalsGridBanner setup error:", e);
+      setLoaded(true);
+      setBanner({ enabled: false });
     }
 
     return () => {
@@ -68,121 +69,91 @@ export default function NewArrivalsGridBanner() {
     };
   }, []);
 
+  if (!loaded) {
+    // Skeleton state to prevent cumulative layout shift (CLS)
+    return (
+      <div className="col-span-1 md:col-span-2 rounded-2xl bg-neutral-200 animate-pulse aspect-[4/3] md:aspect-auto h-full min-h-[220px]" />
+    );
+  }
+
   if (!banner || banner.enabled === false) {
     return null;
   }
 
-  const hasDiscount =
-    banner.customOldPrice &&
-    banner.customPrice &&
-    banner.customOldPrice > banner.customPrice;
+  // Date schedule checking
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (banner.start_date && todayStr < banner.start_date) {
+    return null;
+  }
+  if (banner.expiry_date && todayStr > banner.expiry_date) {
+    return null;
+  }
 
-  const discountPercent = hasDiscount
-    ? Math.round(((banner.customOldPrice! - banner.customPrice!) / banner.customOldPrice!) * 100)
-    : 0;
+  const desktopImage = banner.desktop_banner_url || banner.customImage || "";
+  const mobileImage = banner.mobile_banner_url || desktopImage;
 
-  const bgStyles = {
-    luxury_black: "bg-gradient-to-br from-zinc-950 via-black to-zinc-900 border border-white/15 text-white",
-    deep_gradient: "bg-gradient-to-br from-neutral-900 via-slate-900 to-black border border-white/15 text-white",
-    gold_accent: "bg-gradient-to-br from-zinc-950 via-zinc-900 to-amber-950/60 border border-amber-500/30 text-white",
-    clean_white: "bg-white border border-neutral-200 text-black shadow-md",
-  };
+  if (!desktopImage && !mobileImage) {
+    return null;
+  }
 
-  const isLight = banner.backgroundColor === "clean_white";
+  const titleText = banner.title || "New Arrivals Special Offer Banner";
+  const rawDestUrl = banner.destination_url || banner.buttonUrl || "";
+  const isExternal = banner.destination_type === "external" || (rawDestUrl.startsWith("http://") || rawDestUrl.startsWith("https://"));
 
-  return (
-    <div
-      className={`col-span-1 md:col-span-2 rounded-2xl overflow-hidden relative p-6 sm:p-7 flex flex-col sm:flex-row items-center justify-between gap-6 group hover:shadow-2xl transition-all duration-500 ${
-        bgStyles[banner.backgroundColor || "luxury_black"]
-      }`}
-    >
-      {/* Background Ambient Glow */}
-      {!isLight && (
-        <div className="absolute -top-24 -left-24 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl pointer-events-none group-hover:bg-amber-500/20 transition-all duration-700" />
-      )}
+  const validExternalUrl = isExternal ? validateUrl(rawDestUrl) : null;
 
-      {/* Left Column: Content */}
-      <div className="flex-1 min-w-0 z-10 flex flex-col justify-between h-full">
-        <div>
-          {/* Badge */}
-          <div className="flex items-center gap-2 mb-3">
-            <span
-              className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider shadow-sm animate-pulse ${
-                isLight
-                  ? "bg-black text-white"
-                  : "bg-amber-400 text-black"
-              }`}
-            >
-              <Sparkles className="w-3 h-3" />
-              {banner.badgeText || "FEATURED OFFER"}
-            </span>
-
-            {hasDiscount && (
-              <span className="px-2.5 py-0.5 rounded-full bg-red-600 text-white text-[10px] font-black">
-                -{discountPercent}% OFF
-              </span>
-            )}
-          </div>
-
-          {/* Title */}
-          <h3 className={`text-xl sm:text-2xl font-black tracking-tight leading-snug line-clamp-2 mb-1.5 ${isLight ? "text-black" : "text-white"}`}>
-            {banner.title || "Featured Product"}
-          </h3>
-
-          {/* Tagline */}
-          {banner.tagline && (
-            <p className={`text-xs sm:text-sm line-clamp-2 mb-4 ${isLight ? "text-neutral-600" : "text-neutral-300"}`}>
-              {banner.tagline}
-            </p>
-          )}
-        </div>
-
-        {/* Pricing & CTA */}
-        <div className="pt-2">
-          {banner.customPrice ? (
-            <div className="flex items-baseline gap-2 mb-4">
-              <span className={`text-lg sm:text-xl font-black ${isLight ? "text-black" : "text-amber-400"}`}>
-                {formatPrice(banner.customPrice)}
-              </span>
-              {banner.customOldPrice && banner.customOldPrice > banner.customPrice && (
-                <span className={`text-xs line-through ${isLight ? "text-neutral-400" : "text-neutral-500"}`}>
-                  {formatPrice(banner.customOldPrice)}
-                </span>
-              )}
-            </div>
-          ) : null}
-
-          <Link
-            href={banner.buttonUrl || "/products"}
-            className={`inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl text-xs sm:text-sm font-bold transition-all shadow-md group-hover:scale-105 active:scale-95 ${
-              isLight
-                ? "bg-black text-white hover:bg-neutral-800"
-                : "bg-white text-black hover:bg-amber-400 hover:text-black"
-            }`}
-          >
-            <span>{banner.buttonText || "Shop Now"}</span>
-            <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-          </Link>
-        </div>
-      </div>
-
-      {/* Right Column: Product Image */}
-      <div className="w-full sm:w-48 md:w-56 aspect-square shrink-0 z-10 flex items-center justify-center relative p-2">
-        {banner.customImage ? (
-          <img
-            src={banner.customImage}
-            alt={banner.title || "Featured Offer"}
-            className="w-full h-full object-contain filter drop-shadow-xl group-hover:scale-105 transition-transform duration-500"
-            onError={(e) => {
-              (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-            }}
-          />
-        ) : (
-          <div className="w-full h-full rounded-xl bg-white/10 flex items-center justify-center text-white/30">
-            <ShoppingBag className="w-12 h-12" />
-          </div>
+  const BannerContent = () => (
+    <div className="relative w-full h-full min-h-[200px] sm:min-h-[240px] md:min-h-full rounded-2xl overflow-hidden bg-neutral-900 group shadow-sm hover:shadow-xl transition-all duration-500">
+      <picture className="w-full h-full block">
+        {/* Mobile Banner Image for screens under md (768px) */}
+        {mobileImage && (
+          <source media="(max-width: 767px)" srcSet={mobileImage} />
         )}
-      </div>
+        {/* Desktop Banner Image */}
+        <img
+          src={desktopImage || mobileImage}
+          alt={titleText}
+          loading="lazy"
+          className="w-full h-full object-cover rounded-2xl transition-transform duration-700 group-hover:scale-[1.02]"
+          onError={(e) => {
+            (e.target as HTMLImageElement).style.display = "none";
+          }}
+        />
+      </picture>
     </div>
+  );
+
+  // Render clickable wrapper based on destination_type
+  if (banner.destination_type === "none" || (!rawDestUrl && !validExternalUrl)) {
+    return (
+      <div className="col-span-1 md:col-span-2 h-full">
+        <BannerContent />
+      </div>
+    );
+  }
+
+  if (isExternal && validExternalUrl) {
+    return (
+      <a
+        href={validExternalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={titleText}
+        className="col-span-1 md:col-span-2 h-full block cursor-pointer"
+      >
+        <BannerContent />
+      </a>
+    );
+  }
+
+  // Internal route (Product or Category page)
+  return (
+    <Link
+      href={rawDestUrl || "/products"}
+      aria-label={titleText}
+      className="col-span-1 md:col-span-2 h-full block cursor-pointer"
+    >
+      <BannerContent />
+    </Link>
   );
 }

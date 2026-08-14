@@ -1,34 +1,82 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Brand, Product } from "@/lib/types";
 import { getBrandsFromDb, saveBrandToDb, deleteBrandFromDb } from "@/lib/firestore-brands";
-import { Plus, Edit, Trash2, Tag, Search, RefreshCw, CheckCircle, AlertCircle, ShieldCheck } from "lucide-react";
-import { MigrationAuditResult } from "@/lib/migration-audit";
+import { Plus, Edit, Trash2, Tag, Search, Eye, ArrowUp, ArrowDown, Copy, EyeOff, Upload, Link as LinkIcon, Sparkles, Image as ImageIcon, AlertCircle, ShieldAlert, AlertTriangle } from "lucide-react";
+import { uploadImageWithFallback } from "@/lib/upload-utils";
+import { db } from "@/lib/firebase";
+import { doc, setDoc, addDoc, collection } from "firebase/firestore";
+
+const BRAND_LOGO_PRESETS = [
+  { name: "Apple", logo: "https://cdn.simpleicons.org/apple/000000" },
+  { name: "Samsung", logo: "https://cdn.simpleicons.org/samsung/000000" },
+  { name: "Xiaomi / Redmi", logo: "https://cdn.simpleicons.org/xiaomi/000000" },
+  { name: "Vivo", logo: "https://cdn.simpleicons.org/vivo/000000" },
+  { name: "Oppo", logo: "https://cdn.simpleicons.org/oppo/000000" },
+  { name: "Realme", logo: "https://cdn.simpleicons.org/realme/000000" },
+  { name: "Honor", logo: "https://cdn.simpleicons.org/honor/000000" },
+  { name: "Google Pixel", logo: "https://cdn.simpleicons.org/google/000000" },
+  { name: "OnePlus", logo: "https://cdn.simpleicons.org/oneplus/000000" },
+  { name: "JBL", logo: "https://cdn.simpleicons.org/jbl/000000" },
+  { name: "Anker", logo: "https://cdn.simpleicons.org/anker/000000" },
+  { name: "Baseus", logo: "https://cdn.simpleicons.org/baseus/000000" },
+  { name: "UGREEN", logo: "https://cdn.simpleicons.org/ugreen/000000" },
+  { name: "Hoco", logo: "https://icon.horse/icon/hocotech.com" },
+  { name: "Joyroom", logo: "https://icon.horse/icon/joyroom.com" },
+  { name: "Oraimo", logo: "https://icon.horse/icon/oraimo.com" },
+];
+
+function validateImageUrl(url?: string): { isValid: boolean; error?: string } {
+  if (!url || typeof url !== "string" || !url.trim()) {
+    return { isValid: true };
+  }
+  const cleanUrl = url.trim();
+  if (!cleanUrl.startsWith("https://") && !cleanUrl.startsWith("http://")) {
+    return { isValid: false, error: "URL must start with https:// or http://" };
+  }
+  if (cleanUrl.includes(".html") || cleanUrl.includes("wikipedia.org") || cleanUrl.includes("amazon.com/dp")) {
+    return { isValid: false, error: "Please enter a direct logo/SVG URL ending in .png, .svg, .webp or .jpg (not an HTML webpage)." };
+  }
+  try {
+    new URL(cleanUrl);
+    return { isValid: true };
+  } catch {
+    return { isValid: false, error: "Invalid URL format." };
+  }
+}
 
 export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const [brands, setBrands] = useState<Brand[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [groupFilter, setGroupFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-
-  // Migration state
-  const [auditResults, setAuditResults] = useState<MigrationAuditResult[] | null>(null);
-  const [isAuditing, setIsAuditing] = useState(false);
-  const [isMigrating, setIsMigrating] = useState(false);
-  const [migrationStatus, setMigrationStatus] = useState<string | null>(null);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [deleteWarningBrand, setDeleteWarningBrand] = useState<{ brand: Brand; linkedCount: number } | null>(null);
 
   // Form State
   const [formData, setFormData] = useState<Partial<Brand>>({
     name: "",
     slug: "",
     logo_url: "",
+    logo_alt_text: "",
     description: "",
+    product_group: "smartphones",
+    link_destination: "",
+    monochrome: false,
     sort_order: 1,
     status: "active",
     show_on_homepage: true,
   });
+
+  const [logoSourceMode, setLogoSourceMode] = useState<"file" | "url">("url");
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [logoPreview, setLogoPreview] = useState<string>("");
+  const [logoError, setLogoError] = useState<string>("");
+  const [urlValidationError, setUrlValidationError] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
 
   const fetchBrands = async () => {
     setLoading(true);
@@ -49,363 +97,829 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const handleOpenModal = (brand?: Brand) => {
     if (brand) {
       setEditingBrand(brand);
-      setFormData(brand);
+      setFormData({
+        ...brand,
+        logo_alt_text: brand.logo_alt_text || `${brand.name} Logo`,
+        product_group: brand.product_group || "smartphones",
+        link_destination: brand.link_destination || `/products?brand=${brand.slug}`,
+      });
+      setLogoPreview(brand.logo_url || "");
     } else {
       setEditingBrand(null);
       setFormData({
         name: "",
         slug: "",
         logo_url: "",
+        logo_alt_text: "",
         description: "",
+        product_group: "smartphones",
+        link_destination: "",
+        monochrome: false,
         sort_order: brands.length + 1,
         status: "active",
         show_on_homepage: true,
       });
+      setLogoPreview("");
     }
+    setLogoFile(null);
+    setLogoError("");
+    setUrlValidationError("");
     setIsModalOpen(true);
+  };
+
+  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setLogoError("");
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.size > 307200) { // 300 KB limit
+        setLogoError("Logo file exceeds recommended 300 KB limit. Please compress logo.");
+        return;
+      }
+      setLogoFile(file);
+      setLogoPreview(URL.createObjectURL(file));
+      setFormData((prev) => ({ ...prev, logo_url: "" }));
+    }
+  };
+
+  const handleUrlInputChange = (url: string) => {
+    setFormData((prev) => ({ ...prev, logo_url: url }));
+    if (!logoFile) setLogoPreview(url);
+
+    const val = validateImageUrl(url);
+    if (!val.isValid) {
+      setUrlValidationError(val.error || "Invalid URL");
+    } else {
+      setUrlValidationError("");
+      setLogoError("");
+    }
+  };
+
+  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const name = e.target.value;
+    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+    setFormData((prev) => ({
+      ...prev,
+      name,
+      slug: prev.slug || slug,
+      logo_alt_text: prev.logo_alt_text || `${name} Logo`,
+      link_destination: prev.link_destination || `/products?brand=${slug}`,
+    }));
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name) {
+    if (!formData.name || !formData.name.trim()) {
       alert("Please provide a brand name");
       return;
     }
+    if (urlValidationError) {
+      alert("Please fix the logo URL error before saving.");
+      return;
+    }
+
+    setIsSaving(true);
     try {
-      await saveBrandToDb(formData);
+      let finalLogoUrl = formData.logo_url || "";
+
+      if (logoFile) {
+        finalLogoUrl = await uploadImageWithFallback(logoFile, "brands");
+      }
+
+      const slugVal = formData.slug ? formData.slug.trim() : formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+      await saveBrandToDb({
+        ...formData,
+        slug: slugVal,
+        logo_url: finalLogoUrl,
+        logo_alt_text: formData.logo_alt_text ? formData.logo_alt_text.trim() : `${formData.name} Logo`,
+        link_destination: formData.link_destination ? formData.link_destination.trim() : `/products?brand=${slugVal}`,
+        product_group: formData.product_group || "smartphones",
+      });
+
       setIsModalOpen(false);
       fetchBrands();
     } catch (err) {
       console.error("Failed to save brand:", err);
       alert("Error saving brand");
+    } finally {
+      setIsSaving(false);
     }
   };
 
-  const handleDelete = async (id: string, name: string) => {
+  const handleToggleVisibility = async (b: Brand) => {
+    const nextState = b.show_on_homepage !== false ? false : true;
+    try {
+      await saveBrandToDb({ ...b, show_on_homepage: nextState });
+      fetchBrands();
+    } catch (e) {
+      console.error("Error toggling brand visibility:", e);
+    }
+  };
+
+  const handleReorder = async (index: number, direction: "up" | "down") => {
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    if (targetIndex < 0 || targetIndex >= filteredBrands.length) return;
+
+    const currentBrand = filteredBrands[index];
+    const targetBrand = filteredBrands[targetIndex];
+
+    const currentOrder = currentBrand.sort_order || index;
+    const targetOrder = targetBrand.sort_order || targetIndex;
+
+    try {
+      await saveBrandToDb({ ...currentBrand, sort_order: targetOrder });
+      await saveBrandToDb({ ...targetBrand, sort_order: currentOrder });
+      fetchBrands();
+    } catch (e) {
+      console.error("Reorder error:", e);
+    }
+  };
+
+  const handleDuplicate = async (b: Brand) => {
+    const dupName = `${b.name} (Copy)`;
+    const dupSlug = `${b.slug}-copy-${Date.now().toString().slice(-4)}`;
+    try {
+      await saveBrandToDb({
+        ...b,
+        id: "",
+        name: dupName,
+        slug: dupSlug,
+        sort_order: (b.sort_order || 0) + 1,
+      });
+      fetchBrands();
+    } catch (e) {
+      console.error("Duplicate error:", e);
+    }
+  };
+
+  const triggerDeleteCheck = (b: Brand) => {
     const assignedCount = products.filter(
-      p => (p.brand_id === id || p.brandId === id || p.brand?.toLowerCase() === name.toLowerCase())
+      p => (p.brand_id === b.id || p.brandId === b.id || p.brand?.toLowerCase() === b.name.toLowerCase())
     ).length;
 
     if (assignedCount > 0) {
-      alert(`Cannot delete brand '${name}' because ${assignedCount} product(s) are currently assigned to it. Please reassign products first.`);
-      return;
-    }
-
-    if (confirm(`Are you sure you want to delete brand '${name}'?`)) {
-      await deleteBrandFromDb(id);
-      fetchBrands();
-    }
-  };
-
-  const runMigrationAudit = async () => {
-    setIsAuditing(true);
-    try {
-      const res = await fetch("/api/admin/migrate-categories");
-      const data = await res.json();
-      if (data.success) {
-        setAuditResults(data.auditResults);
+      setDeleteWarningBrand({ brand: b, linkedCount: assignedCount });
+    } else {
+      if (confirm(`Are you sure you want to delete brand '${b.name}'?`)) {
+        deleteBrandFromDb(b.id).then(() => fetchBrands());
       }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setIsAuditing(false);
     }
   };
 
-  const executeMigration = async () => {
-    if (!confirm("This will safely update product classification (category & brand fields) in Firestore. Products, prices, stock, and URLs will remain preserved. Proceed?")) return;
-    setIsMigrating(true);
-    setMigrationStatus("Applying migration in Firestore...");
-    try {
-      const res = await fetch("/api/admin/migrate-categories", { method: "POST" });
-      const data = await res.json();
-      if (data.success) {
-        setMigrationStatus(`Migration complete! ${data.updatedCount} products updated.`);
-        fetchBrands();
-        setTimeout(() => setMigrationStatus(null), 5000);
-      } else {
-        alert("Migration failed: " + data.error);
-      }
-    } catch (e: any) {
-      alert("Migration failed: " + e.message);
-    } finally {
-      setIsMigrating(false);
-    }
-  };
+  const filteredBrands = useMemo(() => {
+    return brands
+      .filter((b) => {
+        const q = searchQuery.toLowerCase();
+        const matchesSearch =
+          b.name.toLowerCase().includes(q) ||
+          b.slug.toLowerCase().includes(q);
 
-  const filteredBrands = brands.filter(b => b.name.toLowerCase().includes(search.toLowerCase()));
+        if (!matchesSearch) return false;
+        if (groupFilter !== "all" && (b.product_group || "smartphones") !== groupFilter) return false;
+
+        return true;
+      })
+      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }, [brands, searchQuery, groupFilter]);
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between sm:items-center gap-4">
+    <div className="space-y-6 text-white">
+      
+      {/* Top Header (Dark Theme) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
         <div>
-          <h2 className="text-xl font-bold text-white flex items-center gap-2">
-            <Tag className="w-5 h-5 text-blue-400" />
-            Brand & Manufacturer Management
-          </h2>
-          <p className="text-xs text-white/50 mt-1">
-            Manage genuine brand manufacturers (Apple, Samsung, JBL, LENYES, Anker, etc.) separately from product types.
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-wider mb-2 border border-blue-500/20">
+            <Tag className="w-3.5 h-3.5 text-blue-400" />
+            <span>HOMEPAGE NAVIGATION</span>
+          </div>
+          <h3 className="text-2xl font-black text-white tracking-tight">Shop by Brand Manager</h3>
+          <p className="text-xs text-white/50 font-medium mt-0.5">
+            Manage, reorder, and group genuine brand logos (Apple, Samsung, Xiaomi, Vivo, Oppo, JBL, Anker, Baseus, etc.) displayed across your store.
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 shrink-0">
           <button
-            onClick={runMigrationAudit}
-            disabled={isAuditing}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all border border-white/10"
+            type="button"
+            onClick={() => setShowPreviewModal(true)}
+            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-bold transition-all border border-white/10 shadow-xs"
           >
-            <RefreshCw className={`w-4 h-4 text-amber-400 ${isAuditing ? "animate-spin" : ""}`} />
-            Audit Legacy Data
+            <Eye className="w-4 h-4 text-blue-400" />
+            Live Brand Strip Preview
           </button>
-
+          
           <button
+            type="button"
             onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2.5 rounded-xl font-bold text-xs transition-all shadow-md"
+            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-bold transition-all shadow-md active:scale-95"
           >
             <Plus className="w-4 h-4" />
-            Add Brand
+            Add Brand Logo
           </button>
         </div>
       </div>
 
-      {/* Migration Status Toast */}
-      {migrationStatus && (
-        <div className="p-4 bg-emerald-500/20 border border-emerald-500/40 rounded-2xl flex items-center gap-3 text-emerald-300 text-xs font-bold animate-in fade-in">
-          <CheckCircle className="w-5 h-5 shrink-0" />
-          <span>{migrationStatus}</span>
+      {/* Filter & Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-md">
+        <div className="relative flex-1 max-w-md">
+          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <input
+            type="text"
+            placeholder="Search brand by name or slug..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+          />
+        </div>
+
+        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
+          {[
+            { id: "all", label: "All Groups" },
+            { id: "smartphones", label: "Smartphones" },
+            { id: "laptops", label: "Laptops" },
+            { id: "accessories", label: "Accessories" },
+            { id: "audio", label: "Audio" },
+          ].map((f) => (
+            <button
+              key={f.id}
+              type="button"
+              onClick={() => setGroupFilter(f.id)}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                groupFilter === f.id
+                  ? "bg-blue-600 text-white shadow-xs"
+                  : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Clean Admin Brand Logo Cards Grid (Dark Theme) */}
+      {loading ? (
+        <div className="p-12 text-center text-xs font-bold text-white/40">Loading brands catalog...</div>
+      ) : filteredBrands.length === 0 ? (
+        <div className="p-12 text-center rounded-3xl bg-[#0F172A] border border-white/10 space-y-3">
+          <p className="text-white/50 text-sm font-semibold">No matching brands found.</p>
+          <button
+            onClick={() => handleOpenModal()}
+            className="px-5 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all"
+          >
+            + Create New Brand
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+          {filteredBrands.map((b, idx) => {
+            const assignedCount = products.filter(
+              p => (p.brand_id === b.id || p.brandId === b.id || p.brand?.toLowerCase() === b.name.toLowerCase())
+            ).length;
+
+            return (
+              <div
+                key={b.id || idx}
+                className={`bg-[#0F172A] border rounded-2xl p-5 transition-all shadow-md hover:border-white/20 relative flex flex-col justify-between ${
+                  b.show_on_homepage !== false ? "border-white/10" : "border-white/5 bg-[#0F172A]/50 opacity-60"
+                }`}
+              >
+                {/* Top Section */}
+                <div className="flex items-start gap-4">
+                  
+                  {/* Brand Logo Container */}
+                  <div className={`w-24 h-12 rounded-xl border border-white/10 bg-white/5 p-2 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group ${
+                    b.monochrome ? "grayscale" : ""
+                  }`}>
+                    {b.logo_url ? (
+                      <img
+                        src={b.logo_url}
+                        alt={b.logo_alt_text || b.name}
+                        className="w-full h-full object-contain filter invert brightness-200"
+                      />
+                    ) : (
+                      <span className="font-black text-sm text-blue-400">{b.name.slice(0, 3).toUpperCase()}</span>
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <h4 className="text-sm font-extrabold text-white truncate">{b.name}</h4>
+                      <span className="text-[10px] font-mono font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
+                        Order #{b.sort_order ?? idx}
+                      </span>
+                    </div>
+
+                    <p className="text-xs text-white/40 font-mono truncate">
+                      /{b.slug}
+                    </p>
+
+                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
+                        {assignedCount} Products
+                      </span>
+
+                      <span className="px-2 py-0.5 rounded-md bg-white/5 text-white/70 text-[10px] font-bold capitalize">
+                        {b.product_group || "smartphones"}
+                      </span>
+
+                      {b.show_on_homepage !== false ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
+                          Homepage
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">
+                          Hidden
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Bottom Action Footer */}
+                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                  
+                  {/* Reorder Buttons */}
+                  <div className="flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => handleReorder(idx, "up")}
+                      disabled={idx === 0}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Move Up"
+                    >
+                      <ArrowUp className="w-3.5 h-3.5" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleReorder(idx, "down")}
+                      disabled={idx === filteredBrands.length - 1}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      title="Move Down"
+                    >
+                      <ArrowDown className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => handleToggleVisibility(b)}
+                      className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
+                        b.show_on_homepage !== false
+                          ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
+                          : "bg-white/5 text-white/40 hover:bg-white/10 text-white"
+                      }`}
+                      title={b.show_on_homepage !== false ? "Hide from Homepage" : "Show on Homepage"}
+                    >
+                      {b.show_on_homepage !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleDuplicate(b)}
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors"
+                      title="Duplicate Brand"
+                    >
+                      <Copy className="w-3.5 h-3.5" />
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => handleOpenModal(b)}
+                      className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30"
+                      title="Edit Brand"
+                    >
+                      <Edit className="w-3.5 h-3.5" /> Edit
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => triggerDeleteCheck(b)}
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors"
+                      title="Delete Brand"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
 
-      {/* Audit Preview Section */}
-      {auditResults && (
-        <div className="p-5 bg-slate-900 border border-white/10 rounded-2xl space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Category & Brand Migration Audit Preview ({auditResults.length} Products)
-            </h3>
+      {/* Safety Deletion Warning Modal (Dark Theme) */}
+      {deleteWarningBrand && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
+            <div className="flex items-center gap-3 text-red-400 border-b border-white/10 pb-3">
+              <ShieldAlert className="w-6 h-6 shrink-0" />
+              <h3 className="font-extrabold text-lg text-white">Deletion Blocked</h3>
+            </div>
 
-            <div className="flex items-center gap-3">
+            <p className="text-xs text-white/70 leading-relaxed">
+              Cannot delete brand <strong>&quot;{deleteWarningBrand.brand.name}&quot;</strong> because{" "}
+              <span className="font-extrabold text-white">{deleteWarningBrand.linkedCount} product(s)</span> are currently assigned to it.
+            </p>
+
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs space-y-1">
+              <p className="font-bold flex items-center gap-1.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Recommended Safer Alternative:
+              </p>
+              <p className="text-[11px] text-amber-300/80">
+                Hide this brand from the homepage brand strip instead of deleting to keep product listings safe.
+              </p>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
               <button
-                onClick={() => setAuditResults(null)}
-                className="text-xs text-white/50 hover:text-white"
+                type="button"
+                onClick={() => setDeleteWarningBrand(null)}
+                className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:bg-white/10 text-white"
               >
-                Dismiss
+                Close
               </button>
               <button
-                onClick={executeMigration}
-                disabled={isMigrating}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md"
+                type="button"
+                onClick={async () => {
+                  await handleToggleVisibility(deleteWarningBrand.brand);
+                  setDeleteWarningBrand(null);
+                }}
+                className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md"
               >
-                {isMigrating ? "Applying..." : "Apply Data Migration"}
+                Hide From Homepage Instead
               </button>
             </div>
           </div>
-
-          <div className="max-h-60 overflow-y-auto border border-white/10 rounded-xl">
-            <table className="w-full text-left text-xs text-white">
-              <thead className="bg-white/5 border-b border-white/10 text-white/60">
-                <tr>
-                  <th className="p-2.5">Product</th>
-                  <th className="p-2.5">Legacy Cat</th>
-                  <th className="p-2.5">New Category</th>
-                  <th className="p-2.5">New Brand</th>
-                  <th className="p-2.5">Confidence</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5 font-mono">
-                {auditResults.map(r => (
-                  <tr key={r.productId} className="hover:bg-white/5">
-                    <td className="p-2.5 font-bold font-sans">{r.productName}</td>
-                    <td className="p-2.5 text-amber-300">{r.originalCategory}</td>
-                    <td className="p-2.5 text-emerald-400 font-bold">{r.suggestedCategoryName}</td>
-                    <td className="p-2.5 text-blue-400 font-bold">{r.suggestedBrandName}</td>
-                    <td className="p-2.5">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                        r.confidence === "HIGH" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-300"
-                      }`}>
-                        {r.confidence}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
         </div>
       )}
 
-      {/* Brands Catalog Table */}
-      <div className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden shadow-xl">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <div className="relative w-full max-w-sm">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-            <input
-              type="text"
-              placeholder="Search brands..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full bg-black/50 border border-white/10 rounded-xl pl-9 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
-            />
-          </div>
-        </div>
-
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-white">
-            <thead className="bg-white/5 border-b border-white/10 text-white/60">
-              <tr>
-                <th className="px-5 py-3.5 font-bold">Brand Name</th>
-                <th className="px-5 py-3.5 font-bold">Slug</th>
-                <th className="px-5 py-3.5 font-bold">Products Assigned</th>
-                <th className="px-5 py-3.5 font-bold">Homepage</th>
-                <th className="px-5 py-3.5 font-bold">Status</th>
-                <th className="px-5 py-3.5 font-bold text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {loading ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-white/40 font-bold">Loading brands...</td>
-                </tr>
-              ) : filteredBrands.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="px-5 py-8 text-center text-white/40">No brands found.</td>
-                </tr>
-              ) : (
-                filteredBrands.map((b) => {
-                  const assignedCount = products.filter(
-                    p => (p.brand_id === b.id || p.brandId === b.id || p.brand?.toLowerCase() === b.name.toLowerCase())
-                  ).length;
-
-                  return (
-                    <tr key={b.id} className="hover:bg-white/5 transition-colors">
-                      <td className="px-5 py-3.5 font-bold text-white flex items-center gap-3">
-                        {b.logo_url ? (
-                          <img src={b.logo_url} alt={b.name} className="w-6 h-6 object-contain bg-white/10 p-0.5 rounded" />
-                        ) : (
-                          <div className="w-6 h-6 rounded bg-blue-600/30 text-blue-400 font-black flex items-center justify-center text-[10px]">
-                            {b.name.slice(0, 2).toUpperCase()}
-                          </div>
-                        )}
-                        <span>{b.name}</span>
-                      </td>
-                      <td className="px-5 py-3.5 font-mono text-white/60">{b.slug}</td>
-                      <td className="px-5 py-3.5 font-bold text-emerald-400 font-mono">
-                        {assignedCount} Products
-                      </td>
-                      <td className="px-5 py-3.5">
-                        {b.show_on_homepage !== false ? (
-                          <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-bold text-[10px]">Visible</span>
-                        ) : (
-                          <span className="px-2 py-0.5 rounded bg-white/10 text-white/40 font-bold text-[10px]">Hidden</span>
-                        )}
-                      </td>
-                      <td className="px-5 py-3.5">
-                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                          b.status !== "inactive" ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
-                        }`}>
-                          {b.status || "active"}
-                        </span>
-                      </td>
-                      <td className="px-5 py-3.5 text-right">
-                        <div className="flex items-center justify-end gap-2">
-                          <button
-                            onClick={() => handleOpenModal(b)}
-                            className="p-1.5 bg-white/5 hover:bg-white/10 text-white/60 hover:text-white rounded-lg transition-colors"
-                          >
-                            <Edit className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => handleDelete(b.id, b.name)}
-                            className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg transition-colors"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Add / Edit Modal */}
+      {/* Add / Edit Brand Modal (Dark Theme) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/20 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
-            <h3 className="text-base font-extrabold flex items-center gap-2 border-b border-white/10 pb-3">
-              <Tag className="w-4 h-4 text-blue-400" />
-              {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Create Brand"}
-            </h3>
-
-            <form onSubmit={handleSave} className="space-y-4 text-xs">
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl text-white">
+            
+            {/* Modal Header */}
+            <div className="sticky top-0 bg-[#0F172A]/95 backdrop-blur border-b border-white/10 p-6 flex items-center justify-between z-10">
               <div>
-                <label className="block font-bold text-white/80 mb-1">Brand Name *</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Samsung, Apple, JBL"
-                  value={formData.name || ""}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value, slug: e.target.value.toLowerCase().replace(/[^a-z0-9]+/g, "-") })}
-                  className="w-full bg-white/5 border border-white/10 p-2.5 rounded-xl font-bold text-white outline-none focus:border-blue-500 text-xs"
-                  required
-                />
+                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-extrabold text-[10px] uppercase tracking-wider border border-blue-500/20">
+                  SHOP BY BRAND MANAGER
+                </span>
+                <h2 className="text-xl font-extrabold text-white mt-1">
+                  {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add Brand Logo"}
+                </h2>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIsModalOpen(false)}
+                className="p-2 hover:bg-white/10 rounded-xl text-white/50 hover:text-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSave} className="p-6 space-y-6">
+              
+              {/* Live Preview Card */}
+              <div className="bg-black/30 border border-white/10 rounded-2xl p-4 text-center">
+                <p className="text-[11px] font-extrabold text-white/50 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
+                  <Eye className="w-3.5 h-3.5 text-blue-400" /> Live Brand Strip Preview
+                </p>
+                <div className="max-w-[200px] mx-auto p-4 rounded-2xl border border-white/10 bg-white/5 shadow-lg flex flex-col items-center gap-3">
+                  <div className={`w-28 h-14 bg-black/40 rounded-xl p-2 flex items-center justify-center overflow-hidden border border-white/10 shadow-inner ${
+                    formData.monochrome ? "grayscale" : ""
+                  }`}>
+                    {logoPreview ? (
+                      <img
+                        src={logoPreview}
+                        alt={formData.logo_alt_text || "Preview"}
+                        className="w-full h-full object-contain filter invert brightness-200"
+                      />
+                    ) : (
+                      <span className="text-base font-black text-blue-400">
+                        {formData.name ? formData.name.slice(0, 3).toUpperCase() : "LOGO"}
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-xs font-black text-white truncate block w-full text-center">
+                    {formData.name || "Brand Name"}
+                  </span>
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-white/80 mb-1">Logo URL (Optional)</label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={formData.logo_url || ""}
-                  onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 p-2.5 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
-                />
+              {/* Name & Slug */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Brand Name *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="e.g. Samsung"
+                    value={formData.name || ""}
+                    onChange={handleNameChange}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Brand Slug *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="samsung"
+                    value={formData.slug || ""}
+                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
+                  />
+                </div>
               </div>
 
-              <div>
-                <label className="block font-bold text-white/80 mb-1">Description (Optional)</label>
-                <textarea
-                  rows={2}
-                  placeholder="Genuine manufacturer overview..."
-                  value={formData.description || ""}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full bg-white/5 border border-white/10 p-2.5 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
-                />
+              {/* Product Group & Destination */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Product Group Grouping
+                  </label>
+                  <select
+                    value={formData.product_group || "smartphones"}
+                    onChange={(e) => setFormData({ ...formData, product_group: e.target.value as any })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold outline-none focus:border-blue-500"
+                  >
+                    <option value="smartphones" className="bg-[#0F172A] text-white">Smartphones &amp; Mobiles</option>
+                    <option value="laptops" className="bg-[#0F172A] text-white">Laptops &amp; Computers</option>
+                    <option value="accessories" className="bg-[#0F172A] text-white">Accessories &amp; Power</option>
+                    <option value="audio" className="bg-[#0F172A] text-white">Audio &amp; Speakers</option>
+                    <option value="other" className="bg-[#0F172A] text-white">Other Products</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Link Destination URL
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="/products?brand=samsung"
+                    value={formData.link_destination || ""}
+                    onChange={(e) => setFormData({ ...formData, link_destination: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
+                  />
+                </div>
               </div>
 
-              <div className="flex items-center justify-between p-3 bg-white/5 border border-white/10 rounded-xl">
-                <span className="font-bold text-white/80">Show on Homepage Brand Strip</span>
+              {/* Logo Source Selector: Upload File or Image URL */}
+              <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                <div className="flex items-center justify-between">
+                  <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-blue-400" /> Logo Source Selector
+                  </h4>
+                  
+                  <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
+                    <button
+                      type="button"
+                      onClick={() => setLogoSourceMode("file")}
+                      className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
+                        logoSourceMode === "file" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
+                      }`}
+                    >
+                      Upload File
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setLogoSourceMode("url")}
+                      className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
+                        logoSourceMode === "url" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
+                      }`}
+                    >
+                      Image URL
+                    </button>
+                  </div>
+                </div>
+
+                {logoSourceMode === "file" && (
+                  <div className="space-y-3">
+                    <input
+                      type="file"
+                      id="brandLogoUpload"
+                      accept="image/svg+xml,image/png,image/webp,image/jpeg"
+                      onChange={handleLogoFileChange}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="brandLogoUpload"
+                      className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <Upload className="w-4 h-4 text-blue-400" /> Upload SVG, PNG, WebP or JPG Logo
+                    </label>
+                    <div className="text-[11px] text-white/50 space-y-1">
+                      <p>• Recommended Size: <strong>400 × 200 px</strong> (2:1 ratio)</p>
+                      <p>• Recommended Format: <strong>SVG or transparent WebP</strong></p>
+                      <p>• Maximum File Size: <strong>300 KB</strong></p>
+                    </div>
+                  </div>
+                )}
+
+                {logoSourceMode === "url" && (
+                  <div className="space-y-2">
+                    <label className="block text-[11px] font-bold text-white/70">Direct HTTPS Logo / SVG URL</label>
+                    <div className="relative">
+                      <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+                      <input
+                        type="url"
+                        placeholder="https://cdn.simpleicons.org/samsung/000000"
+                        value={formData.logo_url || ""}
+                        onChange={(e) => handleUrlInputChange(e.target.value)}
+                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono outline-none focus:border-blue-500"
+                      />
+                    </div>
+                    {urlValidationError && (
+                      <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
+                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {urlValidationError}
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {logoError && (
+                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
+                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {logoError}
+                  </p>
+                )}
+
+                {/* Brand Logo Presets */}
+                <div>
+                  <p className="text-[11px] font-bold text-white/50 mb-1.5">Preset Brand Logos:</p>
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                    {BRAND_LOGO_PRESETS.map((preset) => (
+                      <button
+                        key={preset.name}
+                        type="button"
+                        onClick={() => {
+                          setLogoFile(null);
+                          setLogoPreview(preset.logo);
+                          setFormData({ ...formData, logo_url: preset.logo });
+                        }}
+                        className={`rounded-xl border p-2 flex items-center gap-2 text-left transition-all ${
+                          formData.logo_url === preset.logo
+                            ? "bg-blue-600/30 border-blue-500 text-white"
+                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                        }`}
+                      >
+                        <img src={preset.logo} alt={preset.name} className="w-5 h-5 rounded object-contain bg-white p-0.5" />
+                        <span className="text-[10px] font-bold truncate leading-tight">{preset.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Logo Alt Text & Monochrome option */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Logo Alt Text
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Samsung Brand Logo"
+                    value={formData.logo_alt_text || ""}
+                    onChange={(e) => setFormData({ ...formData, logo_alt_text: e.target.value })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
+                  <div>
+                    <p className="text-xs font-bold text-white">Monochrome Mode</p>
+                    <p className="text-[10px] text-white/50">Grayscale logo styling</p>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={formData.monochrome === true}
+                    onChange={(e) => setFormData({ ...formData, monochrome: e.target.checked })}
+                    className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Sort Order & Status */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Desktop Order
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.sort_order || 1}
+                    onChange={(e) => setFormData({ ...formData, sort_order: Number(e.target.value) })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Mobile Order
+                  </label>
+                  <input
+                    type="number"
+                    value={formData.mobile_sort_order ?? formData.sort_order ?? 1}
+                    onChange={(e) => setFormData({ ...formData, mobile_sort_order: Number(e.target.value) })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
+                    Status
+                  </label>
+                  <select
+                    value={formData.status || "active"}
+                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none"
+                  >
+                    <option value="active" className="bg-[#0F172A] text-white">Active</option>
+                    <option value="inactive" className="bg-[#0F172A] text-white">Inactive</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Homepage Strip Toggle */}
+              <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
+                <div>
+                  <p className="text-xs font-bold text-white">Show on Homepage Brand Strip</p>
+                  <p className="text-[11px] text-white/50">Display logo in homepage manufacturers grid</p>
+                </div>
                 <input
                   type="checkbox"
                   checked={formData.show_on_homepage !== false}
                   onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
-                  className="w-4 h-4 accent-blue-500 rounded cursor-pointer"
+                  className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
                 />
               </div>
 
-              <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+              {/* Action Footer */}
+              <div className="sticky bottom-0 bg-[#0F172A] pt-4 pb-2 border-t border-white/10 flex justify-end gap-3">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl"
+                  className="px-5 py-2.5 rounded-xl font-bold text-xs text-white/60 hover:bg-white/10 text-white transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-md"
+                  disabled={isSaving}
+                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50 shadow-md"
                 >
-                  {editingBrand ? "Update Brand" : "Save Brand"}
+                  {isSaving ? "Saving Brand..." : editingBrand ? "Update Brand" : "Save Brand"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
+
+      {/* Live Homepage Brand Strip Preview Modal (Dark Theme) */}
+      {showPreviewModal && (
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl text-white">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
+                <Eye className="w-5 h-5 text-blue-400" /> Live Homepage Brand Strip Preview
+              </h3>
+              <button onClick={() => setShowPreviewModal(false)} className="p-2 text-white/40 hover:text-white rounded-xl">
+                ✕
+              </button>
+            </div>
+
+            <div className="p-6 bg-black/40 rounded-3xl border border-white/10 space-y-6">
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">
+                HOMEPAGE BRAND MANUFACTURERS STRIP
+              </span>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
+                {filteredBrands.filter(b => b.show_on_homepage !== false).map((b) => (
+                  <div key={b.id} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
+                    <div className={`w-full h-10 rounded-xl bg-white/5 p-1 flex items-center justify-center overflow-hidden ${
+                      b.monochrome ? "grayscale" : ""
+                    }`}>
+                      {b.logo_url ? (
+                        <img src={b.logo_url} alt={b.name} className="w-full h-full object-contain filter invert brightness-200" />
+                      ) : (
+                        <span className="text-xs font-black text-white">{b.name}</span>
+                      )}
+                    </div>
+                    <span className="text-[11px] font-bold text-white/70 block truncate">{b.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }
