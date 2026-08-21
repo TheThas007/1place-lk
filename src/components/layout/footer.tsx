@@ -103,17 +103,17 @@ export default function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-14 items-start">
           
           {/* ── Column 1: Brand ── */}
-          <div data-reveal-item className="flex flex-col items-start max-w-[340px]">
+          <div data-reveal-item className="flex flex-col items-start max-w-[380px]">
             <Link
               href="/"
               className="inline-block group focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm select-none"
               style={{
                 width:
                   settings.logo_size === "small"
-                    ? "clamp(180px, 14vw, 220px)"
-                    : settings.logo_size === "medium"
                     ? "clamp(220px, 18vw, 270px)"
-                    : "clamp(260px, 22vw, 320px)",
+                    : settings.logo_size === "medium"
+                    ? "clamp(280px, 24vw, 360px)"
+                    : "clamp(340px, 30vw, 440px)",
                 height: "auto",
                 display: "block",
               }}
@@ -122,11 +122,11 @@ export default function Footer() {
                 src={settings.logo_url || "/logo.png"}
                 alt="Street Mobile"
                 loading="lazy"
-                className="w-full h-auto max-h-[85px] object-contain object-left block brightness-0 invert opacity-100 group-hover:opacity-95 transition-opacity"
+                className="w-full h-auto max-h-[110px] sm:max-h-[130px] object-contain object-left block brightness-0 invert opacity-100 group-hover:opacity-95 transition-opacity"
                 style={{
                   width: "100%",
                   height: "auto",
-                  maxHeight: "85px",
+                  maxHeight: "130px",
                   objectFit: "contain",
                   objectPosition: "left center",
                   display: "block",
