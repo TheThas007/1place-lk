@@ -72,6 +72,7 @@ import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsTab";
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import FooterTab from "@/components/admin/tabs/FooterTab";
+import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
 
 type Tab =
   | "overview"
@@ -92,7 +93,8 @@ type Tab =
   | "inventory"
   | "payments"
   | "analytics"
-  | "assistant";
+  | "assistant"
+  | "mobile";
 
 
 function DashboardContent() {
@@ -1367,6 +1369,14 @@ function DashboardContent() {
         <FooterTab
           onRefresh={refreshData}
         />
+      )}
+
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5G: MOBILE EXPERIENCE TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "mobile" && (
+        <MobileExperienceTab />
       )}
 
 

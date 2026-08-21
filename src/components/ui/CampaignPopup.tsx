@@ -32,7 +32,7 @@ const DEFAULT_POPUP: CampaignPopupSettings = {
   enabled: false,
   pageTargeting: "all",
   frequency: "once_per_session",
-  delaySeconds: 2,
+  delaySeconds: 7,
   imageUrl: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1000&auto=format&fit=crop",
   badgeText: "SPECIAL PROMO",
   headline: "GET LKR 1,500 OFF",
@@ -174,18 +174,20 @@ export default function CampaignPopup() {
 
   return (
     <AnimatePresence>
+      {/* ── Backdrop (full-screen) ── */}
       <div
-        className="fixed inset-0 z-[150] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto"
+        className="fixed inset-0 z-[150] flex flex-col justify-end md:justify-center md:items-center md:p-4 bg-black/80 backdrop-blur-md overflow-hidden"
         onClick={(e) => {
           if (e.target === e.currentTarget) handleClose();
         }}
       >
+        {/* Mobile Bottom Sheet / Desktop Modal */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.9, y: 20 }}
-          animate={{ opacity: 1, scale: 1, y: 0 }}
-          exit={{ opacity: 0, scale: 0.9, y: 20 }}
-          transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-          className={`relative w-full max-w-lg border rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-8 ${
+          initial={{ opacity: 0, y: "100%" }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: "100%" }}
+          transition={{ type: "spring", damping: 28, stiffness: 300 }}
+          className={`relative w-full md:max-w-lg border md:rounded-3xl rounded-t-3xl overflow-y-auto overflow-x-hidden shadow-2xl p-6 sm:p-8 max-h-[92vh] md:max-h-[88vh] pb-[calc(1.5rem+env(safe-area-inset-bottom))] md:pb-8 ${
             themeStyles[popup.colorTheme || "luxury_dark"]
           }`}
         >

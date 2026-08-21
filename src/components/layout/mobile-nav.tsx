@@ -7,14 +7,33 @@ import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { motion } from "framer-motion";
+import { useState, useEffect } from "react";
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
   const { wishlist } = useWishlist();
 
+  // Hide nav when virtual keyboard is open (prevents overlap with input fields)
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const vv = window.visualViewport;
+    if (!vv) return;
+
+    const handleResize = () => {
+      // If the viewport height shrinks by more than 150px, assume keyboard is open
+      const threshold = window.screen.height * 0.15;
+      setKeyboardOpen(window.screen.height - vv.height > threshold);
+    };
+
+    vv.addEventListener("resize", handleResize);
+    return () => vv.removeEventListener("resize", handleResize);
+  }, []);
+
   // Hide bottom nav on admin, checkout, and product detail pages (where sticky purchase bar is active)
   if (
+    keyboardOpen ||
     pathname.startsWith("/admin") ||
     pathname.startsWith("/checkout") ||
     (pathname.startsWith("/products/") && pathname !== "/products")
@@ -23,8 +42,11 @@ export default function MobileNav() {
   }
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 safe-bottom">
-      <div className="grid grid-cols-5 items-center h-14 sm:h-16 px-1">
+    <nav
+      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/10"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+    >
+      <div className="grid grid-cols-5 items-center h-[60px] px-1">
         {/* Home */}
         <Link
           href="/"

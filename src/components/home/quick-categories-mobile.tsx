@@ -2,16 +2,16 @@
 
 import React from "react";
 import Link from "next/link";
-import { 
-  Smartphone, 
-  Tablet, 
-  Watch, 
-  Headphones, 
-  Speaker, 
-  Zap, 
-  BatteryCharging, 
-  Laptop, 
-  Shield, 
+import {
+  Smartphone,
+  Tablet,
+  Watch,
+  Headphones,
+  Speaker,
+  Zap,
+  BatteryCharging,
+  Laptop,
+  Shield,
   Sparkles,
   Flame,
   Tag,
@@ -48,7 +48,7 @@ export default function QuickCategoriesMobile({ categories }: QuickCategoriesMob
 
   return (
     <section className="lg:hidden w-full bg-white border-b border-neutral-100 py-3.5 px-4">
-      
+
       {/* ── 1. Quick Discovery Shortcuts Row ── */}
       <div className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-2.5 mb-2.5 border-b border-neutral-100/80 -mx-4 px-4">
         <Link

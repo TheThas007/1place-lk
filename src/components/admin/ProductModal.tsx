@@ -662,7 +662,7 @@ export default function ProductModal({
       // Compute Total Stock from active variants or default stock
       const totalVariantStock = variantCombos.length > 0
         ? variantCombos.reduce((s, v) => s + (v.stock_quantity || 0), 0)
-        : 10;
+        : baseStock;
       const isOutOfStock = totalVariantStock === 0;
 
       // Combine general product images and color-specific images

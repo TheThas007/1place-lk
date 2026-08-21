@@ -372,8 +372,8 @@ export default function Header() {
                 </kbd>
               </button>
 
-              {/* Wishlist button */}
-              <div className="group/item relative flex items-center justify-center">
+              {/* Wishlist button – desktop only (mobile has bottom nav) */}
+              <div className="group/item relative items-center justify-center hidden md:flex">
                 <Link
                   href="/wishlist"
                   className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200 relative"
@@ -521,7 +521,12 @@ export default function Header() {
         </div>
 
         {/* ── Mobile Full-Width Search Row (Row 2 on screens < 768px) ── */}
-        <div className="md:hidden px-4 pb-2.5 pt-0.5">
+        <div 
+          className={cn(
+            "md:hidden px-4 transition-all duration-300 ease-in-out overflow-hidden origin-top",
+            isScrolled ? "h-0 opacity-0 pb-0 pt-0 mb-0" : "h-[44px] opacity-100 pb-2.5 pt-0.5"
+          )}
+        >
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
@@ -747,6 +752,10 @@ export default function Header() {
                 </Link>
 
                 <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-4 block mb-2 mt-1">
+                    Your Account
+                  </span>
+                  
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
@@ -769,6 +778,23 @@ export default function Header() {
                     )}
                   </button>
 
+                  <Link
+                    href="/orders"
+                    onClick={(e) => {
+                      if (!user) {
+                        e.preventDefault();
+                        setIsMobileMenuOpen(false);
+                        setAuthOpen(true);
+                      } else {
+                        setIsMobileMenuOpen(false);
+                      }
+                    }}
+                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                  >
+                    <Package className="w-4 h-4 text-emerald-400" />
+                    My Orders
+                  </Link>
+
                   <button
                     onClick={() => {
                       setIsMobileMenuOpen(false);
@@ -779,6 +805,36 @@ export default function Header() {
                     <User className="w-4 h-4" />
                     {user ? user.displayName || "Account" : "Sign In / Sign Up"}
                   </button>
+                </div>
+
+                <div className="mt-4 pt-4 border-t border-white/[0.06] space-y-1">
+                  <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-4 block mb-2 mt-1">
+                    Information
+                  </span>
+                  <Link
+                    href="/about"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-medium text-white/40 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                  >
+                    About Us
+                    <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                  </Link>
+                  <Link
+                    href="/terms"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-medium text-white/40 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                  >
+                    Terms & Conditions
+                    <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                  </Link>
+                  <Link
+                    href="/privacy"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="flex items-center justify-between px-4 py-2.5 rounded-xl text-xs font-medium text-white/40 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                  >
+                    Privacy Policy
+                    <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                  </Link>
                 </div>
               </nav>
 

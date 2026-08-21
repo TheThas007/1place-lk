@@ -105,86 +105,88 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
-      {/* 1. Premium hero banner slider */}
-      <HeroSection />
+      {/* Wrapping in flex-col for mobile reordering */}
+      <div className="flex flex-col">
+        {/* 1. Premium hero banner slider */}
+        <div className="order-1 md:order-none"><HeroSection /></div>
 
-      {/* Showcase position: Below Hero */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_hero" />
+        {/* Showcase position: Below Hero */}
+        <div className="order-2 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_hero" /></div>
 
-      {/* 2. Announcement Ticker */}
-      <AnnouncementTicker />
+        {/* Quick Mobile Categories & Discovery Shortcuts (Under 768px) */}
+        <div className="order-3 md:order-none"><QuickCategoriesMobile categories={categories} /></div>
 
-      {/* Quick Mobile Categories & Discovery Shortcuts (Under 768px) */}
-      <QuickCategoriesMobile categories={categories} />
+        {/* 2. Announcement Ticker */}
+        <div className="order-4 md:order-none"><AnnouncementTicker /></div>
 
-      {/* 3. New Arrivals */}
-      <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
+        {/* 3. New Arrivals */}
+        <div className="order-5 md:order-none"><NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} /></div>
 
-      {/* Showcase position: Below New Arrivals */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_new_arrivals" />
+        {/* Showcase position: Below New Arrivals */}
+        <div className="order-6 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_new_arrivals" /></div>
 
-      {/* Showcase position: Above Shop by Brand */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_brand" />
+        {/* Showcase position: Above Shop by Brand */}
+        <div className="order-7 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="above_brand" /></div>
 
-      {/* 4. Shop by Brand */}
-      <CategoriesSection categories={categories} brands={brands} />
+        {/* 4. Shop by Brand */}
+        <div className="order-8 md:order-none"><CategoriesSection categories={categories} brands={brands} /></div>
 
-      {/* Showcase position: Below Shop by Brand */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_brand" />
+        {/* Showcase position: Below Shop by Brand */}
+        <div className="order-9 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_brand" /></div>
 
-      {/* 5. Featured Mobile Phones */}
-      <FeaturedProducts
-        initialProducts={products}
-        initialVisible={uiSettings?.showFeaturedProducts !== false}
-      />
+        {/* 5. Featured Mobile Phones */}
+        <div className="order-10 md:order-none">
+          <FeaturedProducts
+            initialProducts={products}
+            initialVisible={uiSettings?.showFeaturedProducts !== false}
+          />
+        </div>
 
-      {/* Featured Collections (2-Column Editorial Grid) */}
-      <FeaturedCollections settings={featuredCollectionsSettings} />
+        {/* Featured Collections (2-Column Editorial Grid) */}
+        <div className="order-11 md:order-none"><FeaturedCollections settings={featuredCollectionsSettings} /></div>
 
-      {/* Showcase position: Below Featured Phones */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_featured_phones" />
+        {/* Showcase position: Below Featured Phones */}
+        <div className="order-12 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_featured_phones" /></div>
 
-      {/* 6. Mobile Accessories promotional banner */}
-      <CampaignPlacement placement="homepage_after_categories" />
+        {/* 6. Mobile Accessories promotional banner */}
+        <div className="order-13 md:order-none"><CampaignPlacement placement="homepage_after_categories" /></div>
 
-      {/* 7. Best Selling Products / Featured Accessories */}
-      <FeaturedAccessories />
+        {/* 7. Best Selling Products / Featured Accessories */}
+        <div className="order-14 md:order-none"><FeaturedAccessories /></div>
 
-      {/* Showcase position: Below Featured Accessories */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_featured_accessories" />
+        {/* Showcase position: Below Featured Accessories */}
+        <div className="order-15 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_featured_accessories" /></div>
 
-      {/* 8. Shop by Category (Carousel Slider) */}
-      <ShopByCategoryCarousel categories={categories} />
+        {/* 8. Shop by Category (Carousel Slider) */}
+        <div className="order-16 md:order-none"><ShopByCategoryCarousel categories={categories} /></div>
 
-      {/* Showcase position: Below Shop by Category */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_category" />
+        {/* Showcase position: Below Shop by Category */}
+        <div className="order-17 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_category" /></div>
 
-      {/* 9. Store Gallery (Life at Street Mobile) */}
-      <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
+        {/* 9. Store Gallery (Life at Street Mobile) */}
+        <div className="order-18 md:order-none"><GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} /></div>
 
-      {/* Showcase position: Below Life at Street Mobile */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
+        {/* Showcase position: Below Life at Street Mobile */}
+        <div className="order-19 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_gallery" /></div>
 
-      {/* 10. Google customer reviews */}
-      <ReviewsSection reviews={reviews} settings={googleReviewsSettings} />
+        {/* 10. Google customer reviews */}
+        <div className="order-20 md:order-none"><ReviewsSection reviews={reviews} settings={googleReviewsSettings} /></div>
 
-      {/* Showcase position: Below Google Reviews */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_reviews" />
+        {/* Showcase position: Below Google Reviews */}
+        <div className="order-21 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_reviews" /></div>
 
-      {/* Showcase position: Above Why Choose Street Mobile */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_why_choose" />
+        {/* Showcase position: Above Why Choose Street Mobile */}
+        <div className="order-22 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="above_why_choose" /></div>
 
-      {/* 11. Trust/service strip (Why Choose Street Mobile) */}
-      <TrustIndicators />
+        {/* 11. Trust/service strip (Why Choose Street Mobile) */}
+        <div className="order-23 md:order-none"><TrustIndicators /></div>
 
-      {/* Showcase position: Below Why Choose */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_why_choose" />
+        {/* Showcase position: Below Why Choose */}
+        <div className="order-24 md:order-none"><VisualProductShowcase settings={showcaseSettings} placement="below_why_choose" /></div>
 
-      {/* Showcase position: Above Store Location / Footer */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_location" />
-
-      {/* 12. Store Location & Contact */}
-      <StoreLocation />
+        {/* 12. Store Location & Contact */}
+        <div className="order-25 md:order-none"><StoreLocation /></div>
+      </div>
     </>
   );
 }

@@ -55,6 +55,7 @@ const SIDEBAR_ITEMS = [
   { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
   { id: "assistant", label: "Streetla Assistant", icon: Sparkles, href: "/admin/dashboard?tab=assistant" },
+  { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
   { id: "settings", label: "Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
 ];
 

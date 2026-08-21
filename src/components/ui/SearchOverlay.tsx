@@ -50,6 +50,46 @@ export default function SearchOverlay() {
     }
   }, [isOpen, products.length]);
 
+  // ── Search Aliases: map common shorthand to full terms ──
+  const SEARCH_ALIASES: Record<string, string[]> = {
+    "ip": ["iphone"],
+    "iph": ["iphone"],
+    "iphne": ["iphone"],
+    "ipone": ["iphone"],
+    "sam": ["samsung"],
+    "samsg": ["samsung"],
+    "samsng": ["samsung"],
+    "samsun": ["samsung"],
+    "earbud": ["earbuds", "tws"],
+    "ear bud": ["earbuds", "tws"],
+    "airpod": ["airpods"],
+    "macbk": ["macbook"],
+    "lap": ["laptop"],
+    "charg": ["charger", "chargers"],
+    "spkr": ["speaker"],
+    "headph": ["headphone", "headphones"],
+  };
+
+  // Simple fuzzy: checks if all chars of the query appear in-order within the target
+  function fuzzyMatch(target: string, query: string): boolean {
+    if (target.includes(query)) return true;
+    let qi = 0;
+    for (let i = 0; i < target.length && qi < query.length; i++) {
+      if (target[i] === query[qi]) qi++;
+    }
+    // Only count as fuzzy match if ≥70% of query chars matched (prevents too-loose matches)
+    return qi >= Math.ceil(query.length * 0.7) && query.length >= 3;
+  }
+
+  function matchesSearch(text: string, q: string, aliases: string[]): boolean {
+    const t = text.toLowerCase();
+    if (t.includes(q)) return true;
+    for (const alias of aliases) {
+      if (t.includes(alias)) return true;
+    }
+    return fuzzyMatch(t, q);
+  }
+
   useEffect(() => {
     if (!query.trim()) {
       setFilteredProducts([]);
@@ -58,26 +98,28 @@ export default function SearchOverlay() {
       return;
     }
     const q = query.toLowerCase().trim();
+    const aliases = SEARCH_ALIASES[q] || [];
 
-    // 1. Filter Products
+    // 1. Filter Products – typo-tolerant
     const matchedProducts = products.filter(
       (p) =>
-        p.name.toLowerCase().includes(q) ||
-        (p.code && p.code.toLowerCase().includes(q)) ||
-        (p.brand_name && p.brand_name.toLowerCase().includes(q)) ||
-        (p.category_name && p.category_name.toLowerCase().includes(q))
+        matchesSearch(p.name, q, aliases) ||
+        (p.code && matchesSearch(p.code, q, aliases)) ||
+        (p.brand_name && matchesSearch(p.brand_name, q, aliases)) ||
+        (p.category_name && matchesSearch(p.category_name, q, aliases)) ||
+        (p.tags && p.tags.some((tag) => matchesSearch(tag, q, aliases)))
     );
     setFilteredProducts(matchedProducts.slice(0, 5));
 
-    // 2. Filter Categories
+    // 2. Filter Categories – typo-tolerant
     const matchedCategories = categories.filter((c) =>
-      c.name.toLowerCase().includes(q) || c.slug.toLowerCase().includes(q)
+      matchesSearch(c.name, q, aliases) || matchesSearch(c.slug, q, aliases)
     );
     setFilteredCategories(matchedCategories.slice(0, 3));
 
-    // 3. Filter Brands
+    // 3. Filter Brands – typo-tolerant
     const matchedBrands = brands.filter((b) =>
-      b.name.toLowerCase().includes(q) || b.slug.toLowerCase().includes(q)
+      matchesSearch(b.name, q, aliases) || matchesSearch(b.slug, q, aliases)
     );
     setFilteredBrands(matchedBrands.slice(0, 3));
   }, [query, products, categories, brands]);
@@ -158,10 +200,10 @@ export default function SearchOverlay() {
             </div>
           ) : (
             <div className="space-y-6">
-              {filteredProducts.length === 0 ? (
+              {filteredProducts.length === 0 && filteredCategories.length === 0 && filteredBrands.length === 0 ? (
                 <div className="py-12 text-center space-y-3">
                   <Package className="w-10 h-10 text-white/20 mx-auto" />
-                  <p className="text-white/60 text-sm">No products found matching "{query}"</p>
+                  <p className="text-white/60 text-sm">No results found for &ldquo;{query}&rdquo;</p>
                   <Link
                     href="/products"
                     onClick={() => setIsOpen(false)}
@@ -171,63 +213,129 @@ export default function SearchOverlay() {
                   </Link>
                 </div>
               ) : (
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60">
-                      Matching Products ({filteredProducts.length})
-                    </h4>
-                    <Link
-                      href={`/products?search=${encodeURIComponent(query)}`}
-                      onClick={() => setIsOpen(false)}
-                      className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-bold"
-                    >
-                      View All Results <ArrowRight className="w-3.5 h-3.5" />
-                    </Link>
-                  </div>
-
-                  <div className="space-y-2.5">
-                    {filteredProducts.map((product) => {
-                      const cleanCatName = (product.category_name || product.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-                      const cleanBrand = (product.brand_name || product.brandName || product.brand || "").trim();
-
-                      return (
+                <>
+                  {/* Products */}
+                  {filteredProducts.length > 0 && (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60">
+                          Products ({filteredProducts.length})
+                        </h4>
                         <Link
-                          key={product.id}
-                          href={`/products/${product.slug || product.id}`}
+                          href={`/products?search=${encodeURIComponent(query)}`}
                           onClick={() => setIsOpen(false)}
-                          className="flex items-center gap-4 p-3 sm:p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all group"
+                          className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-bold"
                         >
-                          <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-white/10 p-1 flex items-center justify-center">
-                            {product.images?.[0] ? (
-                              <img
-                                src={product.images[0]}
-                                alt={product.name}
-                                className="w-full h-full object-contain group-hover:scale-105 transition-transform"
-                              />
-                            ) : (
-                              <Package className="w-6 h-6 text-gray-400" />
-                            )}
-                          </div>
-
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-blue-300 transition-colors truncate">
-                              {product.name}
-                            </h4>
-                            <div className="flex items-center gap-2 text-[11px] text-white/50 mt-1 font-medium">
-                              {cleanCatName && <span>{cleanCatName}</span>}
-                              {cleanBrand && cleanBrand !== "Other" && <span>• {cleanBrand}</span>}
-                              {product.code && <span className="font-mono text-white/40">• {product.code}</span>}
-                            </div>
-                          </div>
-
-                          <div className="text-right shrink-0">
-                            <span className="text-xs sm:text-sm font-black text-white">{formatPrice(product.price)}</span>
-                          </div>
+                          View All <ArrowRight className="w-3.5 h-3.5" />
                         </Link>
-                      );
-                    })}
-                  </div>
-                </div>
+                      </div>
+
+                      <div className="space-y-2.5">
+                        {filteredProducts.map((product) => {
+                          const cleanCatName = (product.category_name || product.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
+                          const cleanBrand = (product.brand_name || product.brandName || product.brand || "").trim();
+
+                          return (
+                            <Link
+                              key={product.id}
+                              href={`/products/${product.slug || product.id}`}
+                              onClick={() => setIsOpen(false)}
+                              className="flex items-center gap-4 p-3 sm:p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all group"
+                            >
+                              <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-white/10 p-1 flex items-center justify-center">
+                                {product.images?.[0] ? (
+                                  <img
+                                    src={product.images[0]}
+                                    alt={product.name}
+                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                                  />
+                                ) : (
+                                  <Package className="w-6 h-6 text-gray-400" />
+                                )}
+                              </div>
+
+                              <div className="flex-1 min-w-0">
+                                <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-blue-300 transition-colors truncate">
+                                  {product.name}
+                                </h4>
+                                <div className="flex items-center gap-2 text-[11px] text-white/50 mt-1 font-medium">
+                                  {cleanCatName && <span>{cleanCatName}</span>}
+                                  {cleanBrand && cleanBrand !== "Other" && <span>• {cleanBrand}</span>}
+                                  {product.code && <span className="font-mono text-white/40">• {product.code}</span>}
+                                </div>
+                              </div>
+
+                              <div className="text-right shrink-0">
+                                <span className="text-xs sm:text-sm font-black text-white">{formatPrice(product.price)}</span>
+                                {product.stock_status === "out_of_stock" && (
+                                  <span className="block text-[10px] text-amber-400 font-bold">Pre-Order</span>
+                                )}
+                              </div>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Categories & Brands when no product match or as supplement */}
+                  {(filteredCategories.length > 0 || filteredBrands.length > 0) && (
+                    <div className="space-y-3">
+                      {filteredCategories.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60 mb-3 flex items-center gap-2">
+                            <Tag className="w-3.5 h-3.5 text-blue-400" />
+                            Categories
+                          </h4>
+                          <div className="space-y-2">
+                            {filteredCategories.map((cat) => (
+                              <Link
+                                key={cat.id}
+                                href={`/products?category=${cat.slug}`}
+                                onClick={() => setIsOpen(false)}
+                                className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-medium transition-all group"
+                              >
+                                <span>{cat.name}</span>
+                                <ChevronRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 transition-transform" />
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      {filteredBrands.length > 0 && (
+                        <div>
+                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60 mb-3 flex items-center gap-2">
+                            <Tag className="w-3.5 h-3.5 text-emerald-400" />
+                            Brands
+                          </h4>
+                          <div className="space-y-2">
+                            {filteredBrands.map((brand) => (
+                              <Link
+                                key={brand.id}
+                                href={`/products?brand=${brand.slug}`}
+                                onClick={() => setIsOpen(false)}
+                                className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-medium transition-all group"
+                              >
+                                <span>{brand.name}</span>
+                                <ChevronRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 transition-transform" />
+                              </Link>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Always show View All link */}
+                  <Link
+                    href={`/products?search=${encodeURIComponent(query)}`}
+                    onClick={() => setIsOpen(false)}
+                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-white transition-all"
+                  >
+                    View all results for &ldquo;{query}&rdquo;
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                </>
               )}
             </div>
           )}

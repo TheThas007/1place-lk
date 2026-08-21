@@ -60,9 +60,33 @@ export default function StreetAssistant() {
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>("/streetla.png");
   const [assistantName, setAssistantName] = useState<string>("Streetla");
+  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Detect keyboard open on mobile
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth < 768) {
+        if (window.visualViewport && window.visualViewport.height < window.innerHeight * 0.75) {
+          setIsKeyboardOpen(true);
+        } else {
+          setIsKeyboardOpen(false);
+        }
+      } else {
+        setIsKeyboardOpen(false);
+      }
+    };
+    
+    window.visualViewport?.addEventListener('resize', handleResize);
+    window.addEventListener('resize', handleResize);
+    handleResize(); // Init
+    return () => {
+      window.visualViewport?.removeEventListener('resize', handleResize);
+      window.removeEventListener('resize', handleResize);
+    };
+  }, []);
 
   // Fetch live assistant settings from Firestore
   useEffect(() => {
@@ -307,7 +331,9 @@ export default function StreetAssistant() {
       {/* ════════════════════════════════════════════════════════════════
           1. FLOATING ASSISTANT LAUNCHER (Streetla Official Avatar)
       ════════════════════════════════════════════════════════════════ */}
-      <div className={`fixed z-50 flex items-center select-none ${
+      <div className={`fixed z-50 flex items-center select-none transition-all duration-300 ${
+        isKeyboardOpen && !isOpen ? "opacity-0 translate-y-10 pointer-events-none" : "opacity-100 translate-y-0"
+      } ${
         pathname?.startsWith("/products/") && pathname !== "/products"
           ? "bottom-16 lg:bottom-6 right-3 sm:right-6"
           : "bottom-20 lg:bottom-6 right-3 sm:right-6"

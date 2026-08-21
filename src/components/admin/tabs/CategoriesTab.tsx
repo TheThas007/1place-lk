@@ -236,7 +236,7 @@ export default function CategoriesTab({
 
   return (
     <div className="space-y-6 text-white animate-fadeIn">
-      
+
       {/* ── Top Header Banner ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
         <div>
@@ -257,22 +257,20 @@ export default function CategoriesTab({
           <div className="flex bg-white/5 p-1 rounded-2xl border border-white/10">
             <button
               onClick={() => setActiveSubTab("directory")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === "directory"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === "directory"
                   ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
                   : "text-white/60 hover:text-white"
-              }`}
+                }`}
             >
               <FolderTree className="w-4 h-4" />
               Category Directory ({cleanCategories.length})
             </button>
             <button
               onClick={() => setActiveSubTab("megamenu")}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-                activeSubTab === "megamenu"
+              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${activeSubTab === "megamenu"
                   ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
                   : "text-white/60 hover:text-white"
-              }`}
+                }`}
             >
               <Layers className="w-4 h-4" />
               Mega Menu Settings
@@ -296,7 +294,7 @@ export default function CategoriesTab({
       ══════════════════════════════════════════════════════════════════════ */}
       {activeSubTab === "directory" && (
         <div className="space-y-4">
-          
+
           {/* Filter Bar */}
           <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-[#0F172A] border border-white/10 rounded-2xl p-3">
             <div className="relative w-full sm:w-80">
@@ -316,11 +314,10 @@ export default function CategoriesTab({
                 <button
                   key={st}
                   onClick={() => setStatusFilter(st)}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${
-                    statusFilter === st
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold capitalize transition-all ${statusFilter === st
                       ? "bg-white/15 text-white border border-white/20"
                       : "text-white/40 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   {st === "menu" ? "Mega Menu Only" : st}
                 </button>
@@ -433,11 +430,10 @@ export default function CategoriesTab({
                         <button
                           type="button"
                           onClick={() => handleToggleMenu(cat)}
-                          className={`p-1.5 rounded-xl transition-all ${
-                            cat.show_in_menu !== false
+                          className={`p-1.5 rounded-xl transition-all ${cat.show_in_menu !== false
                               ? "bg-emerald-500/10 text-emerald-400 hover:bg-emerald-500/20"
                               : "bg-white/5 text-white/30 hover:text-white"
-                          }`}
+                            }`}
                           title="Toggle in Shop by Category Mega Menu"
                         >
                           {cat.show_in_menu !== false ? (
@@ -481,7 +477,7 @@ export default function CategoriesTab({
       ══════════════════════════════════════════════════════════════════════ */}
       {activeSubTab === "megamenu" && (
         <div className="space-y-6">
-          
+
           {/* Controls & Save Action */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
             <div>
@@ -515,7 +511,7 @@ export default function CategoriesTab({
 
           {/* Settings Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            
+
             {/* Column 1 Settings */}
             <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-white/10">
@@ -690,17 +686,15 @@ export default function CategoriesTab({
               <div className="flex items-center bg-white/5 p-1 rounded-xl border border-white/10">
                 <button
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    previewDevice === "desktop" ? "bg-white/20 text-white" : "text-white/50 hover:text-white"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${previewDevice === "desktop" ? "bg-white/20 text-white" : "text-white/50 hover:text-white"
+                    }`}
                 >
                   <Monitor className="w-3.5 h-3.5" /> Desktop View
                 </button>
                 <button
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${
-                    previewDevice === "mobile" ? "bg-white/20 text-white" : "text-white/50 hover:text-white"
-                  }`}
+                  className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-bold transition-all ${previewDevice === "mobile" ? "bg-white/20 text-white" : "text-white/50 hover:text-white"
+                    }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" /> Mobile View
                 </button>
@@ -711,7 +705,7 @@ export default function CategoriesTab({
             {previewDevice === "desktop" ? (
               <div className="bg-[#FFFFFF] border border-[#E5E5E7] rounded-2xl p-8 lg:p-10 shadow-lg text-black">
                 <div className="grid grid-cols-12 gap-8 items-start">
-                  
+
                   {/* Col 1 */}
                   <div className="col-span-5 flex flex-col space-y-2">
                     <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-3 block">

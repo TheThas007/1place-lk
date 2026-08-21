@@ -99,7 +99,7 @@ function FeatureCard({
         }}
         whileHover={prefersReducedMotion ? {} : { y: -2 }}
         transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative w-full h-full min-h-[310px] flex flex-col items-center text-center p-8 sm:p-[34px] rounded-[22px] cursor-pointer overflow-hidden
+        className="group relative w-full h-full min-h-[160px] sm:min-h-[310px] flex flex-col items-center justify-center text-center p-4 sm:p-[34px] rounded-[16px] sm:rounded-[22px] cursor-pointer overflow-hidden
           bg-white
           border border-black/[0.15]
           shadow-[0_2px_12px_rgba(0,0,0,0.03)]
@@ -108,42 +108,43 @@ function FeatureCard({
       >
         {/* Minimal Number Indicator */}
         <span
-          className="absolute top-5 right-5 text-[11px] font-mono font-medium text-gray-900/30 group-hover:text-gray-900/50 transition-colors select-none tracking-widest"
+          className="absolute top-3 right-3 sm:top-5 sm:right-5 text-[10px] sm:text-[11px] font-mono font-medium text-gray-900/30 group-hover:text-gray-900/50 transition-colors select-none tracking-widest"
           aria-hidden="true"
         >
           {feature.number}
         </span>
 
-        {/* ── 60×60 Icon Container with 24px Icon ── */}
+        {/* ── Icon Container ── */}
         <div
-          className="w-[60px] h-[60px] rounded-full flex items-center justify-center mb-5 border border-gray-900/10 bg-gray-50/80 transition-all duration-350 group-hover:bg-gray-900 group-hover:border-gray-900 group-hover:shadow-xs shrink-0"
+          className="w-[44px] h-[44px] sm:w-[60px] sm:h-[60px] rounded-full flex items-center justify-center mb-3 sm:mb-5 border border-gray-900/10 bg-gray-50/80 transition-all duration-350 group-hover:bg-gray-900 group-hover:border-gray-900 group-hover:shadow-xs shrink-0"
         >
           <motion.div
             animate={prefersReducedMotion ? {} : undefined}
             whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
             transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
           >
-            <Icon className="w-6 h-6 text-gray-900 transition-colors duration-350 group-hover:text-white" />
+            <Icon className="w-5 h-5 sm:w-6 sm:h-6 text-gray-900 transition-colors duration-350 group-hover:text-white" />
           </motion.div>
         </div>
 
         {/* ── 32px Thinner Divider Line ── */}
-        <div className="w-8 h-[1px] bg-gray-200 mb-4 rounded-full" />
+        <div className="w-6 h-[1px] sm:w-8 bg-gray-200 mb-2 sm:mb-4 rounded-full" />
 
         {/* ── Heading (18-20px Semibold) ── */}
-        <h3 className="font-semibold text-[18px] sm:text-[19px] mb-2 text-gray-900 tracking-tight leading-tight transition-colors duration-300">
+        <h3 className="font-semibold text-[13px] sm:text-[19px] mb-1 sm:mb-2 text-gray-900 tracking-tight leading-tight transition-colors duration-300">
           {feature.title}
         </h3>
 
-        {/* ── Body Copy (14-15px, 1.6 line height) ── */}
-        <p className="text-[14px] sm:text-[14.5px] text-gray-600 leading-[1.6] font-normal max-w-[240px] mx-auto mb-4 group-hover:text-gray-900 transition-colors duration-300">
+        {/* ── Body Copy (Hidden on mobile) ── */}
+        <p className="hidden sm:block text-[14px] sm:text-[14.5px] text-gray-600 leading-[1.6] font-normal max-w-[240px] mx-auto mb-4 group-hover:text-gray-900 transition-colors duration-300">
           {feature.description}
         </p>
 
         {/* ── CTA Link Aligned at Bottom ── */}
-        <div className="mt-auto pt-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors duration-300">
-          <span>Learn more</span>
-          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
+        <div className="mt-auto pt-1 sm:pt-2 flex items-center justify-center gap-1.5 text-[10px] sm:text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors duration-300">
+          <span className="hidden sm:inline">Learn more</span>
+          <span className="sm:hidden">Details</span>
+          <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
         </div>
       </motion.div>
     </motion.div>
@@ -161,7 +162,7 @@ export default function TrustIndicators() {
     <section
       ref={sectionRef}
       aria-label="Why Choose Street Mobile"
-      className="relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
+      className="relative py-12 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans border-t border-b border-neutral-100 sm:border-0"
     >
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
@@ -170,26 +171,26 @@ export default function TrustIndicators() {
           variants={sectionTitleVar}
           initial="hidden"
           animate={isInView ? "show" : "hidden"}
-          className="text-center mb-10 sm:mb-12"
+          className="text-center mb-8 sm:mb-12"
         >
-          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-900 tracking-wide uppercase mb-3.5 shadow-2xs">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-[10px] sm:text-xs font-semibold text-gray-900 tracking-wide uppercase mb-3.5 shadow-2xs">
             <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
             Why Choose Us
           </div>
-          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight leading-tight mb-3">
+          <h2 className="text-xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight leading-tight mb-2 sm:mb-3">
             Why Choose Street Mobile
           </h2>
-          <p className="text-gray-600 text-sm sm:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
+          <p className="text-gray-600 text-xs sm:text-base max-w-[600px] mx-auto leading-relaxed font-normal px-4 sm:px-0">
             Premium quality, professional service, and total peace of mind — every time.
           </p>
         </motion.div>
 
-        {/* 4 Cards Grid: 1 col on mobile, 2 cols on tablet, 4 cols on desktop */}
+        {/* 4 Cards Grid: 2 cols on mobile, 4 cols on desktop */}
         <motion.div
           variants={containerVar}
           initial="hidden"
           animate={isInView ? "show" : "hidden"}
-          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 auto-rows-fr"
+          className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6 auto-rows-fr"
         >
           {features.map((feature) => (
             <FeatureCard
