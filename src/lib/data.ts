@@ -42,8 +42,8 @@ export const siteSettings: SiteSettings = {
   instagram: "https://www.instagram.com/streetmobile.lk?utm_source=qr",
   tiktok: "https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9",
   business_hours: {
-    weekdays: "9:00 AM - 8:00 PM",
-    saturday: "9:00 AM - 8:00 PM",
+    weekdays: "9:00 AM - 9:00 PM",
+    saturday: "9:00 AM - 9:00 PM",
     sunday: "10:00 AM - 6:00 PM",
   },
 };

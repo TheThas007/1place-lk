@@ -14,7 +14,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
   welcome_message_si:
     "ආයුබෝවන්! මම Streetla 👋\nඔබට සුදුසුම දුරකථනය තෝරාගැනීමට, මිල ගණන් පරීක්ෂා කිරීමට, Order Track කිරීමට සහ වගකීම් විස්තර ලබාගැනීමට මට උදවු කළ හැක. අද ඔබට උදවු කරන්නේ කෙසේද?",
   supported_languages: ["en", "ta", "si"],
-  business_hours: "Monday – Saturday: 9:00 AM – 8:00 PM | Sunday: 10:00 AM – 6:00 PM",
+  business_hours: "Monday – Saturday: 9:00 AM – 9:00 PM | Sunday: 10:00 AM – 6:00 PM",
   offline_message:
     "Our showroom team is currently offline. You can leave your details or message us on WhatsApp, and our team will contact you during business hours.",
   phone: siteSettings.phone,

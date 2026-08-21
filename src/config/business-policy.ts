@@ -33,8 +33,8 @@ export const businessPolicyConfig: BusinessPolicyConfig = {
   googleMapsLink: siteSettings.google_maps_link || "https://maps.app.goo.gl/dvxBpsvxR86bGqar9",
   registrationNumber: "To be confirmed by Street Mobile",
   businessHours: {
-    weekdays: siteSettings.business_hours?.weekdays || "9:00 AM - 8:00 PM",
-    saturday: siteSettings.business_hours?.saturday || "9:00 AM - 8:00 PM",
+    weekdays: siteSettings.business_hours?.weekdays || "9:00 AM - 9:00 PM",
+    saturday: siteSettings.business_hours?.saturday || "9:00 AM - 9:00 PM",
     sunday: siteSettings.business_hours?.sunday || "10:00 AM - 6:00 PM",
   },
   lastUpdated: "August 9, 2026",
