@@ -1,10 +1,13 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Category, Brand } from "@/lib/types";
 import { DEFAULT_BRANDS } from "@/lib/data";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import ScrollReveal from "@/components/ui/ScrollReveal";
 
 type Tab = "phones" | "laptops" | "accessories";
 
@@ -16,39 +19,43 @@ interface CategoriesSectionProps {
 function BrandCard({ brand, index }: { brand: Brand; index: number }) {
   const [imgError, setImgError] = useState(false);
   const targetLink = brand.link_destination || `/products?brand=${encodeURIComponent(brand.slug || brand.name)}`;
+  const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
 
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25, delay: index * 0.03, ease: "easeOut" }}
+      transition={{ duration: 0.25, delay: index * 0.02, ease: "easeOut" }}
       className="h-full"
     >
       <Link
         href={targetLink}
-        className="group flex flex-col items-center justify-center p-6 rounded-2xl border border-neutral-200/80 bg-white hover:border-black hover:shadow-md transition-all duration-300 gap-3 text-center h-36 sm:h-40 w-full"
+        className="group flex flex-col items-center justify-between p-4 sm:p-5 rounded-2xl border border-neutral-200/80 bg-white hover:border-black hover:shadow-lg transition-all duration-300 gap-3 text-center min-h-[150px] sm:min-h-[170px] w-full"
       >
-        {/* Top Logo Section (400x200 2:1 container, object-fit contain, never cropped) */}
-        <div className="h-10 sm:h-12 w-full flex items-center justify-center">
-          {!imgError && brand.logo_url ? (
+        {/* Top Logo Container (Clean object-contain, no cropping for any aspect ratio) */}
+        <div className="h-16 sm:h-20 w-full flex items-center justify-center p-2 overflow-hidden">
+          {!imgError && logoUrl ? (
             <img
-              src={brand.logo_url}
+              src={logoUrl}
               alt={brand.logo_alt_text || `${brand.name} logo`}
-              className={`max-h-8 sm:max-h-9 max-w-[80%] object-contain transition-all duration-300 ${
-                brand.monochrome ? "grayscale" : "filter grayscale group-hover:grayscale-0 group-hover:scale-105"
+              loading="lazy"
+              className={`max-h-full max-w-full w-auto h-auto object-contain transition-all duration-300 ease-out ${
+                brand.monochrome
+                  ? "grayscale opacity-80 group-hover:opacity-100 group-hover:scale-105"
+                  : "filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
               }`}
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="text-xl sm:text-2xl font-black text-black font-mono tracking-tight">
+            <span className="text-xl sm:text-2xl font-black text-black font-mono tracking-tight select-none">
               {brand.name.slice(0, 3).toUpperCase()}
             </span>
           )}
         </div>
 
-        {/* Bottom Label Section */}
-        <span className="text-xs sm:text-sm font-semibold text-neutral-800 group-hover:text-black transition-colors">
+        {/* Bottom Brand Name */}
+        <span className="text-xs sm:text-sm font-bold text-neutral-800 group-hover:text-black transition-colors line-clamp-1">
           {brand.name}
         </span>
       </Link>
@@ -58,30 +65,62 @@ function BrandCard({ brand, index }: { brand: Brand; index: number }) {
 
 export default function CategoriesSection({ categories = [], brands = [] }: CategoriesSectionProps) {
   const [activeTab, setActiveTab] = useState<Tab>("phones");
+  const [liveBrands, setLiveBrands] = useState<Brand[]>(brands && brands.length > 0 ? brands : DEFAULT_BRANDS);
 
-  const sourceBrands = useMemo(() => {
-    return brands && brands.length > 0 ? brands : DEFAULT_BRANDS;
-  }, [brands]);
+  // Real-time Firestore sync: Any brand uploaded in admin reflects on homepage immediately
+  useEffect(() => {
+    try {
+      const q = query(collection(db, "brands"));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const brandMap = new Map<string, Brand>();
+            DEFAULT_BRANDS.forEach((b) => brandMap.set(b.id, b));
+            snapshot.docs.forEach((d) => {
+              const data = d.data() as Brand;
+              const id = d.id || data.id;
+              const existing = brandMap.get(id) || brandMap.get(data.id);
+              brandMap.set(id, { ...existing, ...data, id });
+            });
+            setLiveBrands(Array.from(brandMap.values()));
+          }
+        },
+        (err) => {
+          console.warn("Firestore brands onSnapshot warning:", err);
+        }
+      );
+      return () => unsubscribe();
+    } catch (e) {
+      console.warn("Failed to subscribe to brands collection:", e);
+    }
+  }, []);
 
   const visibleBrands = useMemo(() => {
-    return sourceBrands
+    return liveBrands
       .filter((b) => b.show_on_homepage !== false && b.status !== "inactive")
       .filter((b) => {
-        const group = (b.product_group || "smartphones") as string;
+        const group = (b.product_group || "smartphones").toLowerCase();
         if (activeTab === "phones") return group === "smartphones" || group === "phones";
         if (activeTab === "laptops") return group === "laptops";
         if (activeTab === "accessories") return group === "accessories" || group === "audio" || group === "other";
         return true;
       })
       .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [sourceBrands, activeTab]);
+  }, [liveBrands, activeTab]);
 
   return (
-    <section className="py-12 sm:py-16 bg-white border-b border-neutral-100">
+    <ScrollReveal
+      as="section"
+      id="categories-section"
+      stagger={0.05}
+      yOffset={20}
+      className="py-12 sm:py-16 bg-white border-b border-neutral-100 font-sans"
+    >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
 
         {/* Header Title & Subtitle */}
-        <div className="text-center mb-8 space-y-2">
+        <div data-reveal-item className="text-center mb-8 space-y-2">
           <h2 className="text-3xl sm:text-4xl font-black text-[#090909] tracking-tight">
             Shop by Brand
           </h2>
@@ -91,7 +130,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
         </div>
 
         {/* Tab Switcher */}
-        <div className="flex justify-center mb-10">
+        <div data-reveal-item className="flex justify-center mb-10">
           <div className="inline-flex items-center p-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/80 relative">
             {(["phones", "laptops", "accessories"] as Tab[]).map((t) => {
               const isActive = activeTab === t;
@@ -102,7 +141,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
                   key={t}
                   type="button"
                   onClick={() => setActiveTab(t)}
-                  className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 capitalize z-10 ${
+                  className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 capitalize z-10 cursor-pointer ${
                     isActive ? "text-white" : "text-neutral-600 hover:text-black"
                   }`}
                 >
@@ -139,7 +178,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
         </AnimatePresence>
 
         {/* View All Products Button */}
-        <div className="text-center mt-10">
+        <div data-reveal-item className="text-center mt-10">
           <Link
             href="/products"
             className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-neutral-200/80 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black hover:border-black transition-all duration-300 bg-white"
@@ -150,6 +189,6 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
         </div>
 
       </div>
-    </section>
+    </ScrollReveal>
   );
 }

@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
   ShieldCheck,
   Award,
@@ -11,6 +11,7 @@ import {
   ChevronDown,
   Check,
   ShoppingBag,
+  Heart,
   Star,
   Minus,
   Plus,
@@ -18,12 +19,16 @@ import {
   Banknote,
   CreditCard,
   MessageCircle,
+  Sparkles,
+  Calendar,
 } from "lucide-react";
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
-import CompleteYourSetup from "@/components/products/CompleteYourSetup";
+import CompatibleAccessories from "@/components/products/CompatibleAccessories";
 import SameBrandProducts from "@/components/products/SameBrandProducts";
+import PreOrderModal from "@/components/products/PreOrderModal";
 import { useCart } from "@/lib/cart-context";
+import { useWishlist } from "@/lib/wishlist-context";
 import { useAuth } from "@/lib/auth-context";
 import { getColorCSS, isLightColor } from "@/lib/color-utils";
 import { Product, ProductColor, ProductVariantCombo, WarrantyOption } from "@/lib/types";
@@ -53,8 +58,39 @@ export default function ProductDetailClient({
   allProducts?: Product[];
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
+
+  const { isInWishlist, toggleWishlist } = useWishlist();
+  const isWishlisted = isInWishlist(product.id);
+
+  // Pre-Order Modal State for out-of-stock devices
+  const [isPreOrderOpen, setIsPreOrderOpen] = useState(false);
+
+  // Check if product belongs to Mobile or Laptop category
+  const isMobileOrLaptop = useMemo(() => {
+    const cat = (product.category_name || product.categoryName || product.category_slug || product.categorySlug || product.category_id || "").toLowerCase();
+    const name = (product.name || "").toLowerCase();
+    const type = product.productType;
+    return (
+      type === "phone" ||
+      cat.includes("phone") ||
+      cat.includes("mobile") ||
+      cat.includes("smartphone") ||
+      cat.includes("laptop") ||
+      cat.includes("macbook") ||
+      cat.includes("ipad") ||
+      cat.includes("tablet") ||
+      name.includes("iphone") ||
+      name.includes("galaxy") ||
+      name.includes("macbook") ||
+      name.includes("pixel") ||
+      name.includes("xiaomi") ||
+      name.includes("redmi") ||
+      Boolean(product.hasStorageVariants)
+    );
+  }, [product]);
 
   // 1. Color Variants
   const colorVariants: ProductColor[] = useMemo(() => {
@@ -221,35 +257,45 @@ export default function ProductDetailClient({
     return list;
   }, [product, colorVariants]);
 
-  // Selected Color Name
-  const [selectedColor, setSelectedColor] = useState<string>(
-    colorVariants[0]?.name || ""
-  );
+  // User Chosen Color State (false on load to display default overview images)
+  const [hasUserChosenColor, setHasUserChosenColor] = useState<boolean>(false);
+  const [selectedColor, setSelectedColor] = useState<string>("");
 
-  // Sync selectedColor if colorVariants list changes
-  useEffect(() => {
-    if (colorVariants.length > 0 && !colorVariants.some((c) => c.name === selectedColor)) {
-      setSelectedColor(colorVariants[0].name);
+  const handleSelectColor = (colorName: string) => {
+    if (hasUserChosenColor && selectedColor.toLowerCase() === colorName.toLowerCase()) {
+      // Toggle back to default all-photos view
+      setHasUserChosenColor(false);
+      setSelectedColor("");
+    } else {
+      setSelectedColor(colorName);
+      setHasUserChosenColor(true);
     }
-  }, [colorVariants, selectedColor]);
+  };
 
-  // Active Color Object
+  const handleResetToAllPhotos = () => {
+    setHasUserChosenColor(false);
+    setSelectedColor("");
+  };
+
+  // Active Color Object (only active if user chose a color)
   const selectedColorObj = useMemo(() => {
-    if (colorVariants.length === 0) return null;
+    if (!hasUserChosenColor || !selectedColor || colorVariants.length === 0) return null;
     return (
-      colorVariants.find((c) => c.name === selectedColor) ||
-      colorVariants[0] ||
+      colorVariants.find((c) => c.name.toLowerCase() === selectedColor.toLowerCase()) ||
       null
     );
-  }, [colorVariants, selectedColor]);
+  }, [colorVariants, selectedColor, hasUserChosenColor]);
 
-  // Available variants for current selected color ONLY
+  // Available variants for current selected color ONLY (or all if no color chosen)
   const availableVariantsForColor = useMemo(() => {
-    if (colorVariants.length === 0) return normalizedVariants.filter((v) => v.status !== "inactive");
-    return normalizedVariants.filter(
-      (v) => v.color === selectedColor && v.status !== "inactive"
+    if (!hasUserChosenColor || !selectedColor || colorVariants.length === 0) {
+      return normalizedVariants.filter((v) => v.status !== "inactive");
+    }
+    const filtered = normalizedVariants.filter(
+      (v) => v.color.toLowerCase() === selectedColor.toLowerCase() && v.status !== "inactive"
     );
-  }, [normalizedVariants, selectedColor, colorVariants]);
+    return filtered.length > 0 ? filtered : normalizedVariants.filter((v) => v.status !== "inactive");
+  }, [normalizedVariants, selectedColor, colorVariants, hasUserChosenColor]);
 
   // Selected Storage Option
   const [selectedStorage, setSelectedStorage] = useState<string | null>(() => {
@@ -334,17 +380,28 @@ export default function ProductDetailClient({
 
   // Dynamic Image Gallery per selectedVariant & color
   const activeImages = useMemo(() => {
+    // If user has not picked a specific color, show default product images (starting with 1st overview image)
+    if (!hasUserChosenColor || !selectedColor) {
+      return product.images && product.images.length > 0
+        ? product.images
+        : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
+    }
+
+    // User picked a specific color -> show that color's specific images
     const list: string[] = [];
-    if (selectedVariant?.image) {
+    if (selectedColorObj?.cover_image) {
+      list.push(selectedColorObj.cover_image);
+    }
+    if (selectedColorObj?.images && selectedColorObj.images.length > 0) {
+      selectedColorObj.images.forEach((img) => {
+        if (!list.includes(img)) list.push(img);
+      });
+    }
+    if (selectedVariant?.image && !list.includes(selectedVariant.image)) {
       list.push(selectedVariant.image);
     }
     if (selectedVariant?.gallery && selectedVariant.gallery.length > 0) {
       selectedVariant.gallery.forEach((img) => {
-        if (!list.includes(img)) list.push(img);
-      });
-    }
-    if (selectedColorObj?.images && selectedColorObj.images.length > 0) {
-      selectedColorObj.images.forEach((img) => {
         if (!list.includes(img)) list.push(img);
       });
     }
@@ -353,7 +410,7 @@ export default function ProductDetailClient({
       : product.images && product.images.length > 0
       ? product.images
       : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
-  }, [selectedVariant, selectedColorObj, product.images]);
+  }, [hasUserChosenColor, selectedColor, selectedColorObj, selectedVariant, product.images]);
 
   // Quantity & Tab States
   const [quantity, setQuantity] = useState<number>(1);
@@ -386,12 +443,21 @@ export default function ProductDetailClient({
     ? Math.round(((currentVariantOldPrice - currentVariantPrice) / currentVariantOldPrice) * 100)
     : 0;
 
+  // Auto-open pre-order modal if ?book=true is in URL
+  useEffect(() => {
+    if (searchParams && searchParams.get("book") === "true" && isVariantOutOfStock && isMobileOrLaptop) {
+      setIsPreOrderOpen(true);
+    }
+  }, [searchParams, isVariantOutOfStock, isMobileOrLaptop]);
+
   const handleQuantityChange = (delta: number) => {
     setQuantity((prev) => Math.max(1, prev + delta));
   };
 
   const handleAddToCart = () => {
     if (isVariantOutOfStock || !selectedVariant) return;
+
+    const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
 
     addToCart({
       productId: product.id,
@@ -400,7 +466,7 @@ export default function ProductDetailClient({
       price: currentVariantPrice,
       image: activeImages[0] || product.images?.[0] || "",
       quantity: quantity,
-      color: selectedVariant.color,
+      color: finalColor,
       ram: selectedVariant.ram,
       storage: selectedVariant.storage,
       sku: currentSku,
@@ -419,6 +485,8 @@ export default function ProductDetailClient({
     if (isVariantOutOfStock || !selectedVariant) return;
     setBuyingNow(true);
 
+    const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
+
     addToCart({
       productId: product.id,
       variantId: selectedVariant.id,
@@ -426,7 +494,7 @@ export default function ProductDetailClient({
       price: currentVariantPrice,
       image: activeImages[0] || product.images?.[0] || "",
       quantity: quantity,
-      color: selectedVariant.color,
+      color: finalColor,
       ram: selectedVariant.ram,
       storage: selectedVariant.storage,
       sku: currentSku,
@@ -557,17 +625,17 @@ export default function ProductDetailClient({
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
                       isVariantOutOfStock
-                        ? "bg-red-500"
-                        : currentStock <= 5
-                        ? "bg-amber-500 animate-pulse"
+                        ? isMobileOrLaptop
+                          ? "bg-amber-500 animate-pulse"
+                          : "bg-red-500"
                         : "bg-emerald-500"
                     }`}
                   />
-                  <span>
+                  <span className={isVariantOutOfStock ? (isMobileOrLaptop ? "text-amber-700 font-bold" : "text-red-600 font-bold") : "text-emerald-700 font-bold"}>
                     {isVariantOutOfStock
-                      ? "Out of Stock"
-                      : currentStock <= 5
-                      ? `Low Stock — Only ${currentStock} Left`
+                      ? isMobileOrLaptop
+                        ? "Out of Stock — Available for Pre-Booking"
+                        : "Out of Stock"
                       : "In Stock & Ready to Ship"}
                   </span>
                 </div>
@@ -640,21 +708,34 @@ export default function ProductDetailClient({
                 <div className="mb-6">
                   <div className="flex items-center justify-between mb-2.5">
                     <label className="text-xs font-bold text-black uppercase tracking-wider">
-                      Colour: <span className="font-medium text-gray-600">{selectedColor}</span>
+                      Colour:{" "}
+                      <span className="font-semibold text-neutral-800">
+                        {hasUserChosenColor ? selectedColor : "Overview (Select a color to preview)"}
+                      </span>
                     </label>
+
+                    {hasUserChosenColor && (
+                      <button
+                        type="button"
+                        onClick={handleResetToAllPhotos}
+                        className="text-[11px] font-bold text-neutral-500 hover:text-black underline cursor-pointer"
+                      >
+                        View All Photos
+                      </button>
+                    )}
                   </div>
                   <div className="flex flex-wrap gap-3">
                     {colorVariants.map((c) => {
-                      const isSelected = selectedColor === c.name;
+                      const isSelected = hasUserChosenColor && selectedColor.toLowerCase() === c.name.toLowerCase();
                       const hexColor = c.hex || getColorCSS(c.name);
                       const light = isLightColor(hexColor);
                       return (
                         <button
                           key={c.id || c.name}
                           type="button"
-                          onClick={() => setSelectedColor(c.name)}
-                          title={c.name}
-                          className={`w-8 h-8 rounded-full relative flex items-center justify-center transition-all ${
+                          onClick={() => handleSelectColor(c.name)}
+                          title={`${c.name}${isSelected ? " (Selected - click again to reset)" : ""}`}
+                          className={`w-9 h-9 rounded-full relative flex items-center justify-center transition-all cursor-pointer ${
                             isSelected
                               ? "ring-2 ring-black ring-offset-2 scale-110 shadow-sm"
                               : "border border-gray-300 hover:scale-105"
@@ -812,24 +893,30 @@ export default function ProductDetailClient({
               </div>
 
               {/* ── Primary Action Buttons ── */}
-              <div className="flex flex-col sm:flex-row gap-3 mb-8">
+              <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-8">
                 {/* 1. Add to Bag */}
                 <button
                   type="button"
                   disabled={isVariantOutOfStock}
                   onClick={handleAddToCart}
-                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm border-2 border-black flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm border-2 flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
                     isVariantOutOfStock
                       ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                       : added
-                      ? "bg-emerald-600 border-emerald-600 text-white"
-                      : "bg-white text-black hover:bg-gray-50"
+                      ? "bg-emerald-600 border-emerald-600 text-white cursor-pointer"
+                      : "bg-white text-black border-black hover:bg-gray-50 cursor-pointer"
                   }`}
+                  title={isVariantOutOfStock ? "Out of stock - Cannot add to bag" : "Add to shopping bag"}
                 >
                   {added ? (
                     <>
                       <Check className="w-4 h-4" />
                       <span>Added to Bag!</span>
+                    </>
+                  ) : isVariantOutOfStock ? (
+                    <>
+                      <ShoppingBag className="w-4 h-4 opacity-40" />
+                      <span>Out of Stock</span>
                     </>
                   ) : (
                     <>
@@ -839,25 +926,56 @@ export default function ProductDetailClient({
                   )}
                 </button>
 
-                {/* 2. Buy Now */}
+                {/* 2. Buy Now or Pre-Order Button */}
+                {isVariantOutOfStock && isMobileOrLaptop ? (
+                  <button
+                    type="button"
+                    onClick={() => setIsPreOrderOpen(true)}
+                    className="flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Pre-Order / Book Device</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={isVariantOutOfStock || buyingNow}
+                    onClick={handleBuyNow}
+                    className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                      isVariantOutOfStock
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-black text-white hover:bg-gray-800 shadow-md cursor-pointer"
+                    }`}
+                  >
+                    {buyingNow ? (
+                      <span>Proceeding...</span>
+                    ) : (
+                      <>
+                        <span>Buy Now</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </>
+                    )}
+                  </button>
+                )}
+
+                {/* 3. Wishlist Button */}
                 <button
                   type="button"
-                  disabled={isVariantOutOfStock || buyingNow}
-                  onClick={handleBuyNow}
-                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
-                    isVariantOutOfStock
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-black text-white hover:bg-gray-800 shadow-md"
+                  onClick={() => toggleWishlist(product.id)}
+                  className={`py-4 px-5 rounded-full border-2 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 font-bold text-xs ${
+                    isWishlisted
+                      ? "bg-red-50 border-red-300 text-red-600"
+                      : "bg-white border-[#EAEAEA] text-neutral-700 hover:border-black hover:text-black"
                   }`}
+                  aria-label={isWishlisted ? "Remove from wishlist" : "Add to wishlist"}
+                  title={isWishlisted ? "In Wishlist" : "Add to Wishlist"}
                 >
-                  {buyingNow ? (
-                    <span>Proceeding...</span>
-                  ) : (
-                    <>
-                      <span>Buy Now</span>
-                      <ArrowRight className="w-4 h-4" />
-                    </>
-                  )}
+                  <Heart
+                    className={`w-4 h-4 transition-transform ${
+                      isWishlisted ? "fill-red-600 text-red-600 scale-110" : "text-neutral-600"
+                    }`}
+                  />
+                  <span className="hidden sm:inline">{isWishlisted ? "Saved" : "Wishlist"}</span>
                 </button>
               </div>
 
@@ -894,7 +1012,7 @@ export default function ProductDetailClient({
 
         </div>
 
-        {/* ── 3. Content Tabs Below ── */}
+        {/* ── 2. Content Tabs Below ── */}
         <div className="mt-16 sm:mt-20 border-t border-[#EAEAEA] pt-10">
           <div className="flex items-center gap-6 border-b border-[#EAEAEA] overflow-x-auto no-scrollbar mb-8">
             <button
@@ -990,12 +1108,76 @@ export default function ProductDetailClient({
           </div>
         </div>
 
-        {/* ── 4. Same Brand Recommendations ("More from Brand") ── */}
-        <SameBrandProducts currentProduct={product} allProducts={allProducts} />
+        {/* ── 4. Compatible Accessories Section ── */}
+        <CompatibleAccessories currentProduct={product} allProducts={allProducts} />
 
-        {/* ── 5. Intelligent Recommendations ("Complete Your Setup") ── */}
-        <CompleteYourSetup currentProduct={product} allProducts={allProducts} />
+        {/* ── 5. Same Brand Recommendations ("More from Brand") ── */}
+        <SameBrandProducts currentProduct={product} allProducts={allProducts} />
       </div>
+
+      {/* ── 6. Mobile Sticky Bottom Purchase Bar (Screens < 1024px) ── */}
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3 safe-bottom">
+        <div className="flex flex-col min-w-0">
+          <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Price</span>
+          <span className="text-base font-black text-black leading-tight truncate">
+            {formatPrice(currentVariantPrice)}
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2 shrink-0">
+          {isVariantOutOfStock && isMobileOrLaptop ? (
+            <button
+              type="button"
+              onClick={() => setIsPreOrderOpen(true)}
+              className="px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Pre-Order</span>
+            </button>
+          ) : (
+            <>
+              <button
+                type="button"
+                disabled={isVariantOutOfStock}
+                onClick={handleAddToCart}
+                className={`px-3.5 py-2.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                  isVariantOutOfStock
+                    ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
+                    : added
+                    ? "bg-emerald-600 border-emerald-600 text-white"
+                    : "bg-white text-black border-black"
+                }`}
+              >
+                {added ? <Check className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
+                <span>{added ? "Added" : "Add to Bag"}</span>
+              </button>
+
+              <button
+                type="button"
+                disabled={isVariantOutOfStock || buyingNow}
+                onClick={handleBuyNow}
+                className="px-4 py-2.5 rounded-full bg-black text-white font-bold text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all"
+              >
+                <span>{buyingNow ? "..." : "Buy Now"}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Device Pre-Booking Modal ── */}
+      <PreOrderModal
+        isOpen={isPreOrderOpen}
+        onClose={() => setIsPreOrderOpen(false)}
+        product={product}
+        selectedColor={hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || "")}
+        selectedStorage={selectedStorage || undefined}
+        selectedRam={selectedVariant?.ram}
+        currentPrice={currentVariantPrice}
+        currentSku={currentSku}
+        productImage={activeImages[0] || product.images?.[0]}
+      />
     </div>
   );
 }

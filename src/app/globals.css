@@ -32,7 +32,6 @@ main:has([data-admin-root]),
 body:has([data-admin-root]) main {
   padding-top: 0 !important;
   margin-top: 0 !important;
-  background-color: #000000 !important;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -419,4 +418,43 @@ body {
 }
 .scrollbar-none::-webkit-scrollbar {
   display: none;
+}
+
+/* ── Lenis Smooth Scrolling Styles ── */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
+.lenis.lenis-smooth [data-lenis-prevent] {
+  overscroll-behavior: contain;
+}
+
+.lenis.lenis-stopped {
+  overflow: hidden;
+}
+
+.lenis.lenis-smooth iframe {
+  pointer-events: none;
+}
+
+/* ── Restrained Motion & Reduced Motion Fallback ── */
+@media (prefers-reduced-motion: reduce) {
+  html.lenis,
+  html.lenis body {
+    scroll-behavior: auto !important;
+  }
+  
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

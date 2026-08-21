@@ -5,7 +5,7 @@ import "./globals.css";
 import Header from "@/components/layout/header";
 import Footer from "@/components/layout/footer";
 import MobileNav from "@/components/layout/mobile-nav";
-import WhatsAppFab from "@/components/layout/whatsapp-fab";
+import StreetAssistant from "@/components/assistant/StreetAssistant";
 import { AuthProvider } from "@/lib/auth-context";
 import { CartProvider } from "@/lib/cart-context";
 import { ToastProvider } from "@/components/ui/ToastProvider";
@@ -13,6 +13,7 @@ import SearchOverlay from "@/components/ui/SearchOverlay";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import AnnouncementBar from "@/components/ui/AnnouncementBar";
 import CampaignPopup from "@/components/ui/CampaignPopup";
+import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import Script from "next/script";
 
 const inter = Inter({
@@ -78,18 +79,20 @@ export default function RootLayout({
           <CartProvider>
             <WishlistProvider>
               <ToastProvider>
-                {/* Screen reader live region for cart announcements */}
-                <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
-                <AnnouncementBar />
-                <Header />
-                <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
-                  {children}
-                </main>
-                <Footer />
-                <MobileNav />
-                <WhatsAppFab />
-                <SearchOverlay />
-                <CampaignPopup />
+                <SmoothScrollProvider>
+                  {/* Screen reader live region for cart announcements */}
+                  <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
+                  <AnnouncementBar />
+                  <Header />
+                  <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
+                    {children}
+                  </main>
+                  <Footer />
+                  <MobileNav />
+                  <StreetAssistant />
+                  <SearchOverlay />
+                  <CampaignPopup />
+                </SmoothScrollProvider>
               </ToastProvider>
             </WishlistProvider>
           </CartProvider>

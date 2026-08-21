@@ -4,6 +4,7 @@ import React, { useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, Tag } from "lucide-react";
 import { Product } from "@/lib/types";
+import { getMoreFromBrand } from "@/lib/recommendation-engine";
 import ProductCard from "@/components/products/ProductCard";
 
 interface SameBrandProductsProps {
@@ -15,40 +16,9 @@ export default function SameBrandProducts({
   currentProduct,
   allProducts,
 }: SameBrandProductsProps) {
-  const brandName = useMemo(() => {
-    const raw = (
-      currentProduct.brand_name ||
-      currentProduct.brandName ||
-      currentProduct.brand ||
-      ""
-    ).trim();
-    if (!raw || raw === "Other" || raw === "Standard") return "";
-    return raw;
-  }, [currentProduct]);
-
-  const brandProducts = useMemo(() => {
-    if (!brandName || !allProducts || allProducts.length === 0) return [];
-
-    const brandLower = brandName.toLowerCase();
-
-    return allProducts
-      .filter((p) => {
-        if (p.id === currentProduct.id) return false;
-        const pBrand = (
-          p.brand_name ||
-          p.brandName ||
-          p.brand ||
-          ""
-        ).trim().toLowerCase();
-        const pName = p.name.toLowerCase();
-
-        return (
-          pBrand === brandLower ||
-          (brandLower.length > 2 && pName.includes(brandLower))
-        );
-      })
-      .slice(0, 4);
-  }, [brandName, currentProduct, allProducts]);
+  const { brandName, products: brandProducts } = useMemo(() => {
+    return getMoreFromBrand(currentProduct, allProducts, 4);
+  }, [currentProduct, allProducts]);
 
   if (!brandName || brandProducts.length === 0) return null;
 

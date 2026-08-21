@@ -37,14 +37,14 @@ export default function ProductGallery({
     <div className="space-y-4">
       {/* ── Main Media Display Container ── */}
       <div className="relative aspect-square rounded-[24px] overflow-hidden bg-white p-6 border border-[#EAEAEA] flex items-center justify-center group shadow-xs">
-        {/* Top Badges */}
-        <div className="absolute top-4 left-4 z-10 flex flex-col gap-2">
-          {discount > 0 && (
-            <span className="bg-red-600 text-white text-[11px] font-black px-3 py-1 rounded-full uppercase tracking-wider shadow-sm animate-pulse">
-              {discount}% OFF
+        {/* Bottom-Left Discount Badge (Anchored on Image Bottom Edge) */}
+        {discount > 0 && (
+          <div className="absolute bottom-0 left-0 z-10">
+            <span className="bg-red-600 text-white text-[11px] font-black px-3.5 py-1.5 rounded-tr-2xl uppercase tracking-wider shadow-sm inline-block">
+              -{discount}% OFF
             </span>
-          )}
-        </div>
+          </div>
+        )}
 
         {/* Fullscreen Zoom Trigger */}
         <button

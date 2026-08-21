@@ -35,10 +35,10 @@ export default function StoreLocation() {
       <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
         <motion.div
           ref={containerRef}
-          initial={{ opacity: 0, y: 40 }}
+          initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-100px" }}
-          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          viewport={{ once: true, margin: "-60px" }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
           className="bg-white/60 backdrop-blur-[24px] saturate-[180%] rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80"
         >
           <div className="grid lg:grid-cols-2">

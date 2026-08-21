@@ -310,6 +310,30 @@ export default function CartClient() {
           </div>
         )}
       </div>
+
+      {/* ── Mobile Sticky Bottom Checkout Bar (Screens < 1024px) ── */}
+      {cart.length > 0 && (
+        <div className="lg:hidden fixed bottom-14 sm:bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-3 shadow-lg flex items-center justify-between gap-3 safe-bottom">
+          <div className="flex flex-col min-w-0">
+            <span className="text-[10px] text-neutral-500 font-semibold uppercase">
+              Total ({selectedItems.length} items)
+            </span>
+            <span className="text-base font-black text-black leading-tight truncate">
+              {formatPrice(selectedSubtotal)}
+            </span>
+          </div>
+
+          <button
+            type="button"
+            disabled={selectedItems.length === 0}
+            onClick={handleProceedToCheckout}
+            className="px-6 py-3 rounded-full bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 active:scale-95 transition-all shrink-0 cursor-pointer"
+          >
+            <span>Proceed to Buy</span>
+            <ArrowRight className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }

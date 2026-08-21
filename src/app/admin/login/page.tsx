@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
+import Link from "next/link";
+import { Lock, User, Eye, EyeOff, AlertCircle, ArrowLeft, ArrowRight, Shield } from "lucide-react";
+import { motion } from "framer-motion";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -18,89 +20,109 @@ export default function AdminLoginPage() {
     setIsLoading(true);
 
     // Simple auth check — hardcoded credentials
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
     if (username.trim().toLowerCase() === "admin" && password.trim() === "street2024") {
-      // Store auth in sessionStorage
       sessionStorage.setItem("admin_auth", "true");
       router.push("/admin/dashboard");
     } else {
-      setError("Invalid username or password");
+      setError("Invalid username or password. Please try again.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4">
-      {/* Background glow */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]" />
-      </div>
+    <div className="min-h-screen w-full bg-white flex flex-col justify-between items-center p-6 sm:p-10 font-sans text-neutral-900 selection:bg-neutral-900 selection:text-white">
+      {/* Top Header Navigation */}
+      <header className="w-full max-w-5xl flex items-center justify-between py-2">
+        <Link
+          href="/"
+          className="inline-flex items-center gap-2 text-xs sm:text-sm font-medium text-neutral-500 hover:text-neutral-900 transition-colors group"
+        >
+          <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
+          <span>Back to Store</span>
+        </Link>
 
-      <div className="relative w-full max-w-md">
-        {/* Logo area */}
+        <div className="flex items-center gap-2 text-xs font-semibold text-neutral-400 uppercase tracking-widest">
+          <Shield className="w-3.5 h-3.5" />
+          <span>Secure Admin Portal</span>
+        </div>
+      </header>
+
+      {/* Main Login Card */}
+      <motion.main
+        initial={{ opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, ease: "easeOut" }}
+        className="w-full max-w-[420px] my-auto py-8"
+      >
+        {/* Minimal Brand Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 mb-4">
-            <Lock className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center w-12 h-12 rounded-2xl bg-neutral-900 text-white shadow-md shadow-neutral-900/10 mb-4">
+            <Lock className="w-5 h-5" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Admin Panel
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
+            Admin Sign In
           </h1>
-          <p className="text-sm text-white/50 mt-1">
-            STREET MOBILE — Management Dashboard
+          <p className="text-sm text-neutral-500 mt-2 font-normal">
+            Enter your credentials to access the management dashboard.
           </p>
         </div>
 
-        {/* Login Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
-          <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error Message */}
+        {/* Minimal White Form Card */}
+        <div className="bg-white border border-neutral-200/80 rounded-2xl p-6 sm:p-8 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {/* Error Notification */}
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0" />
-                {error}
-              </div>
+              <motion.div
+                initial={{ opacity: 0, scale: 0.98 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="flex items-start gap-2.5 p-3.5 bg-red-50/80 border border-red-200/80 rounded-xl text-red-600 text-xs font-medium"
+              >
+                <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+                <span>{error}</span>
+              </motion.div>
             )}
 
-            {/* Username */}
-            <div>
-              <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">
+            {/* Username Field */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   placeholder="Enter username"
-                  className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 bg-neutral-50/60 hover:bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-neutral-900 rounded-xl text-neutral-900 placeholder:text-neutral-400 text-sm outline-none focus:ring-4 focus:ring-neutral-900/5 transition-all"
                   required
                   autoFocus
                 />
               </div>
             </div>
 
-            {/* Password */}
-            <div>
-              <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">
+            {/* Password Field */}
+            <div className="space-y-1.5">
+              <label className="block text-xs font-semibold text-neutral-700 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full pl-11 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="••••••••••••"
+                  className="w-full pl-10 pr-11 py-2.5 bg-neutral-50/60 hover:bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-neutral-900 rounded-xl text-neutral-900 placeholder:text-neutral-400 text-sm outline-none focus:ring-4 focus:ring-neutral-900/5 transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  aria-label={showPassword ? "Hide password" : "Show password"}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-neutral-700 transition-colors p-1 rounded-md"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -111,30 +133,41 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
-            <button
-              type="submit"
-              disabled={isLoading}
-              className="w-full py-3.5 bg-white text-slate-900 rounded-xl font-semibold text-sm hover:bg-white/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {isLoading ? (
-                <>
-                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
+            {/* Submit Button */}
+            <div className="pt-2">
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full py-3 px-4 bg-neutral-900 hover:bg-black text-white rounded-xl font-medium text-sm transition-all shadow-sm active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 group"
+              >
+                {isLoading ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    <span>Signing in...</span>
+                  </>
+                ) : (
+                  <>
+                    <span>Continue to Dashboard</span>
+                    <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  </>
+                )}
+              </button>
+            </div>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-white/5">
-            <p className="text-xs text-white/30 text-center">
-              Protected area. Authorized personnel only.
+          {/* Minimal footer note */}
+          <div className="mt-6 pt-5 border-t border-neutral-100 text-center">
+            <p className="text-xs text-neutral-400">
+              STREET MOBILE Management System • Authorized Access Only
             </p>
           </div>
         </div>
-      </div>
+      </motion.main>
+
+      {/* Page Footer */}
+      <footer className="w-full max-w-5xl py-4 text-center text-xs text-neutral-400">
+        &copy; {new Date().getFullYear()} Street Mobile. All rights reserved.
+      </footer>
     </div>
   );
 }

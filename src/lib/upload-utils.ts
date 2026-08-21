@@ -30,7 +30,14 @@ export function compressImageToBase64(file: File, maxDimension = 1000, quality =
         const ctx = canvas.getContext("2d");
         if (ctx) {
           ctx.drawImage(img, 0, 0, width, height);
-          resolve(canvas.toDataURL("image/jpeg", quality));
+          const isPngOrSvg =
+            file.type === "image/png" ||
+            file.type === "image/svg+xml" ||
+            file.type === "image/webp" ||
+            file.name.toLowerCase().endsWith(".png") ||
+            file.name.toLowerCase().endsWith(".svg") ||
+            file.name.toLowerCase().endsWith(".webp");
+          resolve(canvas.toDataURL(isPngOrSvg ? "image/png" : "image/jpeg", quality));
         } else {
           resolve((e.target?.result as string) || "");
         }

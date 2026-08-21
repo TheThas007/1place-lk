@@ -77,8 +77,19 @@ export default function ReviewsClient({
   googleSettings?: GoogleReviewsSettings;
 }) {
   const [reviews, setReviews] = useState<Review[]>(initialReviews);
-  const mainGoogleUrl = validateUrl(googleSettings?.view_all_reviews_url, "https://www.google.com/maps/search/Street+Mobile+Vavuniya");
-  const overallRatingVal = googleSettings?.overall_rating ? googleSettings.overall_rating.toFixed(1) : (reviews.length > 0 ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1) : "4.9");
+  const mainGoogleUrl = validateUrl(
+    googleSettings?.view_all_reviews_url,
+    "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D"
+  );
+  const mainWriteReviewUrl = validateUrl(
+    googleSettings?.write_review_url,
+    "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D"
+  );
+  const overallRatingVal = googleSettings?.overall_rating
+    ? googleSettings.overall_rating.toFixed(1)
+    : (reviews.length > 0
+        ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
+        : "4.9");
   const totalCountVal = googleSettings?.total_reviews_count || reviews.length || 250;
 
   const [isModalOpen, setIsModalOpen] = useState(false);

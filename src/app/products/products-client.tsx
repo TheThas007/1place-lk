@@ -1,696 +1,270 @@
 "use client";
 
-import { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import type { Variants } from "framer-motion";
 import { motion, AnimatePresence } from "framer-motion";
 import {
-  Search,
   SlidersHorizontal,
   X,
   Package,
-  ChevronDown,
-  ChevronUp,
+  RotateCcw,
+  MessageCircle,
 } from "lucide-react";
-import { Product, Category } from "@/lib/types";
+import { Product, Category, Brand } from "@/lib/types";
 import ProductCard from "@/components/products/ProductCard";
+import ShopSearchBar from "@/components/products/ShopSearchBar";
+import ShopCategoryChips, { QUICK_CATEGORIES } from "@/components/products/ShopCategoryChips";
+import ShopResultsToolbar, {
+  SortOptionValue,
+  ActiveFilterChip,
+} from "@/components/products/ShopResultsToolbar";
+import ShopFilterSidebar, {
+  detectProductBrand,
+  detectProductCondition,
+  detectProductStorage,
+} from "@/components/products/ShopFilterSidebar";
 
 /* ─────────────────────────────────────────────────────────────
-   CONSTANTS
+   ANIMATION VARIANTS
 ───────────────────────────────────────────────────────────── */
-const KNOWN_BRANDS = [
-  "Apple", "Samsung", "Redmi", "Xiaomi", "Honor",
-  "Oppo", "Vivo", "Realme", "Google", "OnePlus",
-  "JBL", "LENYES", "UGREEN", "Anker", "Baseus", "Oraimo", "Soundcore",
-];
-
-const SORT_OPTIONS = [
-  { label: "Price: High to Low", value: "price-desc" },
-  { label: "Price: Low to High", value: "price-asc"  },
-];
-
-type SortKey = "price-desc" | "price-asc";
-
 const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 20, scale: 0.98 },
-  show:   { opacity: 1, y: 0, scale: 1, transition: { duration: 0.4, ease: [0.16, 1, 0.3, 1] } },
-  exit:   { opacity: 0, scale: 0.96, transition: { duration: 0.2 } },
+  hidden: { opacity: 0, y: 15, scale: 0.98 },
+  show: {
+    opacity: 1,
+    y: 0,
+    scale: 1,
+    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
+  },
+  exit: { opacity: 0, scale: 0.96, transition: { duration: 0.18 } },
 };
 
 /* ─────────────────────────────────────────────────────────────
-   SMART BRAND DETECTION
-   Works even when brands were stored incorrectly as categories
+   EFFECTIVE SELLING PRICE HELPER
 ───────────────────────────────────────────────────────────── */
-function detectProductBrand(product: Product): string {
-  const rawBrand = (product.brand_name || product.brandName || product.brand || "").trim();
-  const rawCat   = (product.category_name || product.categoryName || "").trim();
-  const name     = product.name.toLowerCase();
-
-  const REAL = ["apple","samsung","redmi","xiaomi","honor","oppo","vivo","realme",
-                 "google","oneplus","jbl","lenyes","ugreen","anker","baseus","oraimo","soundcore"];
-
-  if (rawBrand && rawBrand.toLowerCase() !== "standard" && REAL.includes(rawBrand.toLowerCase()))
-    return rawBrand;
-  if (rawBrand && rawBrand.toLowerCase() !== "standard" && rawBrand.length > 0)
-    return rawBrand;
-
-  const fromCat = REAL.find((b) => b === rawCat.toLowerCase());
-  if (fromCat) return rawCat;
-
-  if (name.includes("apple") || name.includes("iphone") || name.includes("airpods") ||
-      name.includes("ipad")  || name.includes("macbook") || name.includes("apple watch"))
-    return "Apple";
-  if (name.includes("samsung") || name.includes("galaxy")) return "Samsung";
-  if (name.includes("redmi") || (name.includes("xiaomi") && !name.includes("samsung"))) return "Redmi";
-  if (name.includes("honor"))     return "Honor";
-  if (name.includes("oppo"))      return "Oppo";
-  if (name.includes("vivo"))      return "Vivo";
-  if (name.includes("realme"))    return "Realme";
-  if (name.includes("jbl"))       return "JBL";
-  if (name.includes("lenyes"))    return "LENYES";
-  if (name.includes("ugreen"))    return "UGREEN";
-  if (name.includes("anker"))     return "Anker";
-  if (name.includes("baseus"))    return "Baseus";
-  if (name.includes("oraimo"))    return "Oraimo";
-  if (name.includes("soundcore")) return "Soundcore";
-
-  return rawBrand || "Other";
+function getEffectivePrice(p: Product): number {
+  if (p.sale_price && p.sale_price > 0 && p.sale_price < p.price) {
+    return p.sale_price;
+  }
+  return p.price || 0;
 }
 
-/* ─────────────────────────────────────────────────────────────
-   HELPERS
-───────────────────────────────────────────────────────────── */
 function fmtLKR(val: number) {
   return "LKR " + val.toLocaleString("en-LK");
 }
 
 /* ─────────────────────────────────────────────────────────────
-   DUAL RANGE SLIDER
-───────────────────────────────────────────────────────────── */
-function DualRangeSlider({
-  min, max, low, high, onChange,
-}: {
-  min: number; max: number; low: number; high: number;
-  onChange: (low: number, high: number) => void;
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  const pct = (v: number) => ((v - min) / (max - min)) * 100;
-
-  const drag = (handle: "low" | "high", e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const track = trackRef.current;
-    if (!track) return;
-
-    const move = (clientX: number) => {
-      const rect = track.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const raw = Math.round(min + ratio * (max - min));
-      if (handle === "low")  onChange(Math.min(raw, high - 1000), high);
-      if (handle === "high") onChange(low, Math.max(raw, low + 1000));
-    };
-
-    const onMove = (ev: MouseEvent | TouchEvent) => {
-      const x = ev instanceof MouseEvent ? ev.clientX : ev.touches[0].clientX;
-      move(x);
-    };
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchend", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchend", onUp);
-  };
-
-  return (
-    <div className="relative h-5 flex items-center" ref={trackRef}>
-      {/* Track */}
-      <div className="absolute w-full h-1 bg-neutral-200 rounded-full" />
-      {/* Fill */}
-      <div
-        className="absolute h-1 bg-black rounded-full"
-        style={{ left: `${pct(low)}%`, width: `${pct(high) - pct(low)}%` }}
-      />
-      {/* Low handle */}
-      <div
-        className="absolute w-5 h-5 bg-white border-2 border-black rounded-full shadow cursor-grab active:cursor-grabbing z-10"
-        style={{ left: `calc(${pct(low)}% - 10px)` }}
-        onMouseDown={(e) => drag("low", e)}
-        onTouchStart={(e) => drag("low", e)}
-      />
-      {/* High handle */}
-      <div
-        className="absolute w-5 h-5 bg-black border-2 border-black rounded-full shadow cursor-grab active:cursor-grabbing z-10"
-        style={{ left: `calc(${pct(high)}% - 10px)` }}
-        onMouseDown={(e) => drag("high", e)}
-        onTouchStart={(e) => drag("high", e)}
-      />
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   FILTER SIDEBAR COMPONENT (shared between desktop & mobile)
-───────────────────────────────────────────────────────────── */
-interface FilterSidebarProps {
-  allProducts: Product[];
-  categoryProducts: Product[];
-  allCategoriesList: Category[];
-  categoryCounts: Map<string, number>;
-  selectedCategories: string[];
-  onCategorySelect: (catSlugOrId: string) => void;
-  onClearCategories: () => void;
-  sortKey: SortKey;
-  onSortChange: (key: SortKey) => void;
-  selectedBrands: string[];
-  onBrandToggle: (brand: string) => void;
-  onClearBrands: () => void;
-  pendingMin: string;
-  pendingMax: string;
-  setPendingMin: (v: string) => void;
-  setPendingMax: (v: string) => void;
-  priceError: string;
-  onApplyPrice: () => void;
-  sliderLow: number;
-  sliderHigh: number;
-  onSliderChange: (low: number, high: number) => void;
-  priceMin: number;
-  priceMax: number;
-  inStockOnly: boolean;
-  setInStockOnly: (v: boolean) => void;
-  newArrivalsOnly: boolean;
-  setNewArrivalsOnly: (v: boolean) => void;
-  featuredOnly: boolean;
-  setFeaturedOnly: (v: boolean) => void;
-  onSaleOnly: boolean;
-  setOnSaleOnly: (v: boolean) => void;
-  onApply: () => void;
-  onClearAll: () => void;
-  onClose?: () => void;
-}
-
-function FilterSidebarContent({
-  allProducts,
-  categoryProducts,
-  allCategoriesList,
-  categoryCounts,
-  selectedCategories,
-  onCategorySelect,
-  onClearCategories,
-  sortKey,
-  onSortChange,
-  selectedBrands,
-  onBrandToggle,
-  onClearBrands,
-  pendingMin,
-  pendingMax,
-  setPendingMin,
-  setPendingMax,
-  priceError,
-  onApplyPrice,
-  sliderLow,
-  sliderHigh,
-  onSliderChange,
-  priceMin,
-  priceMax,
-  inStockOnly,
-  setInStockOnly,
-  newArrivalsOnly,
-  setNewArrivalsOnly,
-  featuredOnly,
-  setFeaturedOnly,
-  onSaleOnly,
-  setOnSaleOnly,
-  onApply,
-  onClearAll,
-  onClose,
-}: FilterSidebarProps) {
-  // Collapsible Accordion Sections
-  const [openCat, setOpenCat] = useState(true);
-  const [openBrand, setOpenBrand] = useState(true);
-  const [openPrice, setOpenPrice] = useState(true);
-  const [openStatus, setOpenStatus] = useState(true);
-
-  // Search queries inside Category and Brand sections
-  const [catSearch, setCatSearch] = useState("");
-  const [brandSearch, setBrandSearch] = useState("");
-
-  // Build brand list from products in current category scope
-  const brandCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    categoryProducts.forEach((p) => {
-      const b = detectProductBrand(p);
-      if (b && b !== "Other") map.set(b, (map.get(b) || 0) + 1);
-    });
-    return map;
-  }, [categoryProducts]);
-
-  const orderedBrands = useMemo(() => {
-    const fromKnown = KNOWN_BRANDS.filter((b) => brandCounts.has(b));
-    const extra     = Array.from(brandCounts.keys()).filter((b) => !KNOWN_BRANDS.includes(b));
-    return [...fromKnown, ...extra];
-  }, [brandCounts]);
-
-  // Filtered categories & brands based on user search
-  const filteredCategoriesList = useMemo(() => {
-    if (!catSearch.trim()) return allCategoriesList;
-    return allCategoriesList.filter((cat) =>
-      cat.name.toLowerCase().includes(catSearch.toLowerCase())
-    );
-  }, [allCategoriesList, catSearch]);
-
-  const filteredBrandsList = useMemo(() => {
-    if (!brandSearch.trim()) return orderedBrands;
-    return orderedBrands.filter((b) =>
-      b.toLowerCase().includes(brandSearch.toLowerCase())
-    );
-  }, [orderedBrands, brandSearch]);
-
-  return (
-    <div className="flex flex-col gap-5 text-neutral-900">
-
-      {/* ── 0. SORT BY ── */}
-      <div className="pb-4 border-b border-neutral-100">
-        <p className="text-[10px] font-black uppercase tracking-widest text-neutral-400 mb-2">Sort By</p>
-        <div className="relative">
-          <select
-            value={sortKey}
-            onChange={(e) => onSortChange(e.target.value as SortKey)}
-            className="w-full appearance-none pl-3.5 pr-8 py-2.5 bg-white border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 outline-none cursor-pointer hover:border-black focus:border-black transition-colors"
-          >
-            {SORT_OPTIONS.map((opt) => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 pointer-events-none" />
-        </div>
-      </div>
-
-      {/* ── 1. CATEGORIES (Searchable Accordion with Checkboxes) ── */}
-      <div className="border-b border-neutral-100 pb-4">
-        <button
-          type="button"
-          onClick={() => setOpenCat(!openCat)}
-          className="w-full flex items-center justify-between py-1 text-left group"
-        >
-          <span className="text-[11px] font-black uppercase tracking-widest text-neutral-900 flex items-center gap-2">
-            Categories
-            {selectedCategories.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
-                {selectedCategories.length}
-              </span>
-            )}
-          </span>
-          {openCat ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
-        </button>
-
-        {openCat && (
-          <div className="mt-3 space-y-2">
-            {/* Category Search Input */}
-            {allCategoriesList.length > 5 && (
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  value={catSearch}
-                  onChange={(e) => setCatSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-900 outline-none focus:border-black"
-                />
-              </div>
-            )}
-
-            {/* Checkbox List */}
-            <div className="max-h-56 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
-              <label className="flex items-center justify-between text-xs cursor-pointer group py-1">
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    checked={selectedCategories.length === 0}
-                    onChange={onClearCategories}
-                    className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                  />
-                  <span className={`text-xs ${selectedCategories.length === 0 ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                    All Categories
-                  </span>
-                </div>
-                <span className="text-[10px] text-neutral-400 font-medium">({allProducts.length})</span>
-              </label>
-
-              {filteredCategoriesList.map((cat, idx) => {
-                const isSelected = selectedCategories.some(
-                  (c) =>
-                    c.toLowerCase() === cat.id.toLowerCase() ||
-                    c.toLowerCase() === cat.slug.toLowerCase() ||
-                    c.toLowerCase() === cat.name.toLowerCase()
-                );
-                const count = categoryCounts.get(cat.name.toLowerCase()) || 0;
-
-                return (
-                  <label key={`${cat.id || cat.slug}-${idx}`} className="flex items-center justify-between text-xs cursor-pointer group py-1">
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onCategorySelect(cat.slug || cat.id)}
-                        className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                      <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                        {cat.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-neutral-400 font-medium">({count})</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* ── 2. BRANDS (Searchable Accordion with Checkboxes) ── */}
-      <div className="border-b border-neutral-100 pb-4">
-        <button
-          type="button"
-          onClick={() => setOpenBrand(!openBrand)}
-          className="w-full flex items-center justify-between py-1 text-left group"
-        >
-          <span className="text-[11px] font-black uppercase tracking-widest text-neutral-900 flex items-center gap-2">
-            Brands
-            {selectedBrands.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-bold flex items-center justify-center">
-                {selectedBrands.length}
-              </span>
-            )}
-          </span>
-          {openBrand ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
-        </button>
-
-        {openBrand && (
-          <div className="mt-3 space-y-2">
-            {/* Brand Search Input */}
-            {orderedBrands.length > 5 && (
-              <div className="relative mb-2">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search brands..."
-                  value={brandSearch}
-                  onChange={(e) => setBrandSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs text-neutral-900 outline-none focus:border-black"
-                />
-              </div>
-            )}
-
-            {/* Checkbox List */}
-            <div className="max-h-56 overflow-y-auto pr-1 space-y-1.5 custom-scrollbar">
-              <label className="flex items-center justify-between text-xs cursor-pointer group py-1">
-                <div className="flex items-center gap-2.5">
-                  <input
-                    type="checkbox"
-                    checked={selectedBrands.length === 0}
-                    onChange={onClearBrands}
-                    className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                  />
-                  <span className={`text-xs ${selectedBrands.length === 0 ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                    All Brands
-                  </span>
-                </div>
-              </label>
-
-              {filteredBrandsList.map((brand) => {
-                const isSelected = selectedBrands.includes(brand);
-                const count = brandCounts.get(brand) || 0;
-
-                return (
-                  <label key={brand} className="flex items-center justify-between text-xs cursor-pointer group py-1">
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => onBrandToggle(brand)}
-                        className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                      <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                        {brand}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-neutral-400 font-medium">({count})</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-      <div className="border-b border-neutral-100 pb-4">
-        <button
-          type="button"
-          onClick={() => setOpenPrice(!openPrice)}
-          className="w-full flex items-center justify-between py-1 text-left group"
-        >
-          <span className="text-[11px] font-black uppercase tracking-widest text-neutral-900">Price Range (LKR)</span>
-          {openPrice ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
-        </button>
-
-        {openPrice && (
-          <div className="mt-4 space-y-3">
-            {/* Slider */}
-            <DualRangeSlider
-              min={priceMin}
-              max={priceMax}
-              low={sliderLow}
-              high={sliderHigh}
-              onChange={onSliderChange}
-            />
-
-            <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500">
-              <span>{fmtLKR(sliderLow)}</span>
-              <span>{fmtLKR(sliderHigh)}</span>
-            </div>
-
-            {/* Price Inputs */}
-            <div className="flex items-center gap-2">
-              <input
-                type="number"
-                value={pendingMin}
-                onChange={(e) => setPendingMin(e.target.value)}
-                placeholder="Min"
-                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
-              />
-              <span className="text-neutral-400 text-xs">-</span>
-              <input
-                type="number"
-                value={pendingMax}
-                onChange={(e) => setPendingMax(e.target.value)}
-                placeholder="Max"
-                className="w-full px-3 py-2 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
-              />
-            </div>
-            {priceError && <p className="text-[10px] text-red-600 font-bold">{priceError}</p>}
-            <button
-              type="button"
-              onClick={onApplyPrice}
-              className="w-full py-2 bg-neutral-100 hover:bg-black hover:text-white rounded-lg text-xs font-bold text-neutral-800 transition-colors"
-            >
-              Set Price Range
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── 4. PRODUCT STATUS & QUICK FILTERS ── */}
-      <div className="pb-2">
-        <button
-          type="button"
-          onClick={() => setOpenStatus(!openStatus)}
-          className="w-full flex items-center justify-between py-1 text-left group mb-3"
-        >
-          <span className="text-[11px] font-black uppercase tracking-widest text-neutral-900">Availability & Deals</span>
-          {openStatus ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
-        </button>
-
-        {openStatus && (
-          <div className="space-y-2">
-            {[
-              { label: "In Stock Only", checked: inStockOnly, setter: setInStockOnly },
-              { label: "New Arrivals", checked: newArrivalsOnly, setter: setNewArrivalsOnly },
-              { label: "Featured Only", checked: featuredOnly, setter: setFeaturedOnly },
-              { label: "On Sale", checked: onSaleOnly, setter: setOnSaleOnly },
-            ].map(({ label, checked, setter }) => (
-              <label key={label} className="flex items-center gap-2.5 cursor-pointer py-1 group">
-                <input
-                  type="checkbox"
-                  checked={checked}
-                  onChange={(e) => setter(e.target.checked)}
-                  className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                />
-                <span className={`text-xs ${checked ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                  {label}
-                </span>
-              </label>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* ── 5. ACTIONS ── */}
-      <div className="pt-3 border-t border-neutral-100 flex flex-col gap-2">
-        <button
-          type="button"
-          onClick={() => { onApply(); onClose?.(); }}
-          className="w-full py-3 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors shadow-2xs"
-        >
-          Apply Filters
-        </button>
-        <button
-          type="button"
-          onClick={() => { onClearAll(); onClose?.(); }}
-          className="w-full py-1.5 text-xs font-bold text-neutral-400 hover:text-black transition-colors"
-        >
-          Clear All
-        </button>
-      </div>
-
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   MAIN CLIENT COMPONENT
+   MAIN COMPONENT
 ───────────────────────────────────────────────────────────── */
 export default function ProductsClient({
   initialProducts,
   categories,
+  brands = [],
 }: {
   initialProducts: Product[];
   categories: Category[];
+  brands?: Brand[];
 }) {
-  const router      = useRouter();
-  const pathname    = usePathname();
+  const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  /* ── URL‑synced state ── */
-  const [searchQuery,    setSearchQuery]    = useState(searchParams.get("search") || "");
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
-  const [selectedBrands, setSelectedBrands] = useState<string[]>(
-    () => searchParams.get("brand") ? searchParams.get("brand")!.split(",").filter(Boolean) : []
-  );
-  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
-  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
-  const [inStockOnly,     setInStockOnly]     = useState(searchParams.get("stock") === "in_stock");
-  const [newArrivalsOnly, setNewArrivalsOnly] = useState(searchParams.get("new") === "true");
-  const [featuredOnly,    setFeaturedOnly]    = useState(searchParams.get("featured") === "true");
-  const [onSaleOnly,      setOnSaleOnly]      = useState(searchParams.get("sale") === "true");
-  const [sortKey, setSortKey] = useState<SortKey>(
-    () => (searchParams.get("sort") as SortKey) || "price-desc"
-  );
-  const [showMobileFilters, setShowMobileFilters] = useState(false);
+  /* ── 1. Search Query State ── */
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
 
-  /* ── Pending price state (committed only on "Apply Price") ── */
-  const [pendingMin,  setPendingMin]  = useState(searchParams.get("minPrice") || "");
-  const [pendingMax,  setPendingMax]  = useState(searchParams.get("maxPrice") || "");
-  const [priceError,  setPriceError]  = useState("");
+  /* ── 2. Category State ── */
+  const [selectedQuickCategory, setSelectedQuickCategory] = useState<string>(
+    () => searchParams.get("cat_chip") || "all"
+  );
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
+    const p = searchParams.get("category");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
 
-  /* ── Compute price bounds from catalog ── */
+  /* ── 3. Brand State ── */
+  const [selectedBrands, setSelectedBrands] = useState<string[]>(() => {
+    const p = searchParams.get("brand");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+
+  /* ── 4. Price State ── */
   const { catalogMin, catalogMax } = useMemo(() => {
-    const prices = initialProducts.map((p) => p.price).filter(Boolean);
+    const prices = initialProducts.map((p) => getEffectivePrice(p)).filter(Boolean);
     return {
       catalogMin: prices.length ? Math.min(...prices) : 0,
       catalogMax: prices.length ? Math.max(...prices) : 500000,
     };
   }, [initialProducts]);
 
-  /* ── Slider state mirrors committed price ── */
-  const [sliderLow,  setSliderLow]  = useState(() => parseInt(searchParams.get("minPrice") || "0") || catalogMin);
-  const [sliderHigh, setSliderHigh] = useState(() => parseInt(searchParams.get("maxPrice") || "0") || catalogMax);
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
+  const [quickPriceMax, setQuickPriceMax] = useState<number | null>(() => {
+    const qp = searchParams.get("quickPrice");
+    return qp ? parseInt(qp) : null;
+  });
+  const [pendingMin, setPendingMin] = useState(searchParams.get("minPrice") || "");
+  const [pendingMax, setPendingMax] = useState(searchParams.get("maxPrice") || "");
+  const [priceError, setPriceError] = useState("");
+  const [sliderLow, setSliderLow] = useState(
+    () => parseInt(searchParams.get("minPrice") || "0") || catalogMin
+  );
+  const [sliderHigh, setSliderHigh] = useState(
+    () => parseInt(searchParams.get("maxPrice") || "0") || catalogMax
+  );
 
-  /* keep slider in sync when catalog loads */
-  useEffect(() => {
-    if (!searchParams.get("minPrice")) setSliderLow(catalogMin);
-    if (!searchParams.get("maxPrice")) setSliderHigh(catalogMax);
-  }, [catalogMin, catalogMax, searchParams]);
+  /* ── 5. Availability State ── */
+  const [inStockOnly, setInStockOnly] = useState(searchParams.get("stock") === "in_stock");
+  const [selectedAvailability, setSelectedAvailability] = useState<string[]>(() => {
+    const p = searchParams.get("avail");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+
+  /* ── 6. Condition, Storage, Warranty State ── */
+  const [selectedConditions, setSelectedConditions] = useState<string[]>(() => {
+    const p = searchParams.get("condition");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+  const [selectedStorage, setSelectedStorage] = useState<string[]>(() => {
+    const p = searchParams.get("storage");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+  const [selectedWarranties, setSelectedWarranties] = useState<string[]>(() => {
+    const p = searchParams.get("warranty");
+    return p ? p.split(",").filter(Boolean) : [];
+  });
+
+  /* ── 7. Quick Deals & Sorting State ── */
+  const [newArrivalsOnly, setNewArrivalsOnly] = useState(searchParams.get("new") === "true");
+  const [featuredOnly, setFeaturedOnly] = useState(searchParams.get("featured") === "true");
+  const [onSaleOnly, setOnSaleOnly] = useState(searchParams.get("sale") === "true");
+  const [sortKey, setSortKey] = useState<SortOptionValue>(
+    () => (searchParams.get("sort") as SortOptionValue) || "price-desc"
+  );
+
+  /* ── 8. Mobile Drawer State ── */
+  const [showMobileFilters, setShowMobileFilters] = useState(false);
+
+  /* ─────────────────────────────────────────────────────────────
+     URL PARAMS SYNC HELPER
+  ───────────────────────────────────────────────────────────── */
+  const updateUrlParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString());
+      Object.entries(updates).forEach(([key, val]) => {
+        if (val === null || val === "" || val === undefined) {
+          params.delete(key);
+        } else {
+          params.set(key, val);
+        }
+      });
+      const qs = params.toString();
+      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+    },
+    [router, pathname, searchParams]
+  );
 
   /* ── ESC closes mobile drawer ── */
   useEffect(() => {
     if (!showMobileFilters) return;
-    const handler = (e: KeyboardEvent) => { if (e.key === "Escape") setShowMobileFilters(false); };
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setShowMobileFilters(false);
+    };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [showMobileFilters]);
 
-  /* ── Sync state from URL on navigation ── */
+  /* ── Synchronize state when browser back/forward is used ── */
   useEffect(() => {
+    setSearchQuery(searchParams.get("search") || "");
+    setSelectedQuickCategory(searchParams.get("cat_chip") || "all");
+
     const catParam = searchParams.get("category");
-    if (catParam) {
-      const matched = categories.find(
-        (c) => c.slug.toLowerCase() === catParam.toLowerCase() || c.id.toLowerCase() === catParam.toLowerCase()
-      );
-      setSelectedCategories(matched ? [matched.id] : [catParam]);
-    } else {
-      setSelectedCategories([]);
-    }
+    setSelectedCategories(catParam ? catParam.split(",").filter(Boolean) : []);
 
     const brandParam = searchParams.get("brand");
     setSelectedBrands(brandParam ? brandParam.split(",").filter(Boolean) : []);
+
     const pMin = searchParams.get("minPrice") || "";
     const pMax = searchParams.get("maxPrice") || "";
-    setMinPrice(pMin); setPendingMin(pMin);
-    setMaxPrice(pMax); setPendingMax(pMax);
+    setMinPrice(pMin);
+    setPendingMin(pMin);
+    setMaxPrice(pMax);
+    setPendingMax(pMax);
     if (pMin) setSliderLow(parseInt(pMin));
     if (pMax) setSliderHigh(parseInt(pMax));
+
+    const qp = searchParams.get("quickPrice");
+    setQuickPriceMax(qp ? parseInt(qp) : null);
+
     setInStockOnly(searchParams.get("stock") === "in_stock");
+    const availParam = searchParams.get("avail");
+    setSelectedAvailability(availParam ? availParam.split(",").filter(Boolean) : []);
+
+    const condParam = searchParams.get("condition");
+    setSelectedConditions(condParam ? condParam.split(",").filter(Boolean) : []);
+
+    const storParam = searchParams.get("storage");
+    setSelectedStorage(storParam ? storParam.split(",").filter(Boolean) : []);
+
+    const warrParam = searchParams.get("warranty");
+    setSelectedWarranties(warrParam ? warrParam.split(",").filter(Boolean) : []);
+
     setNewArrivalsOnly(searchParams.get("new") === "true");
     setFeaturedOnly(searchParams.get("featured") === "true");
     setOnSaleOnly(searchParams.get("sale") === "true");
-    setSortKey((searchParams.get("sort") as SortKey) || "price-desc");
-    if (searchParams.get("search")) setSearchQuery(searchParams.get("search") || "");
-  }, [searchParams, categories]);
+    setSortKey((searchParams.get("sort") as SortOptionValue) || "price-desc");
+  }, [searchParams]);
 
-  /* ── URL updater ── */
-  const updateUrlParams = useCallback(
-    (updates: Record<string, string | null>) => {
-      const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([k, v]) => {
-        if (!v || v === "" || v === "false" || v === "all") params.delete(k);
-        else params.set(k, v);
-      });
-      router.replace(`${pathname}?${params.toString()}`, { scroll: false });
-    },
-    [searchParams, pathname, router]
-  );
+  /* ─────────────────────────────────────────────────────────────
+     EVENT HANDLERS
+  ───────────────────────────────────────────────────────────── */
+  const handleSearchChange = (q: string) => {
+    setSearchQuery(q);
+  };
 
-  /* ── Handlers ── */
-  const handleCategorySelect = (slugOrId: string) => {
-    if (!slugOrId) {
-      setSelectedCategories([]);
-      updateUrlParams({ category: null });
-      return;
-    }
-    const matched = categories.find(
-      (c) => c.slug.toLowerCase() === slugOrId.toLowerCase() || c.id.toLowerCase() === slugOrId.toLowerCase()
-    );
-    if (matched) {
-      setSelectedCategories([matched.id]);
-      updateUrlParams({ category: matched.slug });
+  const handleSearchSubmit = (q: string) => {
+    setSearchQuery(q);
+    updateUrlParams({ search: q || null });
+  };
+
+  const handleQuickCategorySelect = (chipId: string) => {
+    setSelectedQuickCategory(chipId);
+    if (chipId === "all") {
+      updateUrlParams({ cat_chip: null });
     } else {
-      setSelectedCategories([slugOrId]);
-      updateUrlParams({ category: slugOrId });
+      updateUrlParams({ cat_chip: chipId });
     }
   };
 
-  const handleBrandToggle = (brand: string) => {
-    const next = selectedBrands.includes(brand)
-      ? selectedBrands.filter((b) => b !== brand)
-      : [...selectedBrands, brand];
-    setSelectedBrands(next);
+  const handleToggleCategory = (catIdOrSlug: string) => {
+    const next = selectedCategories.some(
+      (c) => c.toLowerCase() === catIdOrSlug.toLowerCase()
+    )
+      ? selectedCategories.filter((c) => c.toLowerCase() !== catIdOrSlug.toLowerCase())
+      : [...selectedCategories, catIdOrSlug];
+
+    setSelectedCategories(next);
+    updateUrlParams({ category: next.length ? next.join(",") : null });
   };
 
-  const handleClearBrands = () => setSelectedBrands([]);
+  const handleClearCategories = () => {
+    setSelectedCategories([]);
+    updateUrlParams({ category: null });
+  };
+
+  const handleToggleBrand = (brandName: string) => {
+    const next = selectedBrands.some((b) => b.toLowerCase() === brandName.toLowerCase())
+      ? selectedBrands.filter((b) => b.toLowerCase() !== brandName.toLowerCase())
+      : [...selectedBrands, brandName];
+
+    setSelectedBrands(next);
+    updateUrlParams({ brand: next.length ? next.join(",") : null });
+  };
+
+  const handleClearBrands = () => {
+    setSelectedBrands([]);
+    updateUrlParams({ brand: null });
+  };
 
   const handleSliderChange = (low: number, high: number) => {
     setSliderLow(low);
@@ -709,78 +283,135 @@ export default function ProductsClient({
     setPriceError("");
     setMinPrice(pendingMin);
     setMaxPrice(pendingMax);
-    if (pendingMin) setSliderLow(mn);
-    if (pendingMax) setSliderHigh(mx === Infinity ? catalogMax : mx);
-  };
-
-  /* Apply all pending filters → push to URL */
-  const handleApplyFilters = () => {
-    handleApplyPrice();
     updateUrlParams({
-      brand:    selectedBrands.length ? selectedBrands.join(",") : null,
       minPrice: pendingMin || null,
       maxPrice: pendingMax || null,
-      stock:    inStockOnly ? "in_stock" : null,
-      new:      newArrivalsOnly ? "true" : null,
-      featured: featuredOnly    ? "true" : null,
-      sale:     onSaleOnly      ? "true" : null,
-      sort:     sortKey !== "price-desc" ? sortKey : null,
     });
   };
 
-  const handleSortChange = (key: SortKey) => {
+  const handleToggleQuickPrice = (val: number | null) => {
+    setQuickPriceMax(val);
+    updateUrlParams({ quickPrice: val ? String(val) : null });
+  };
+
+  const handleToggleAvailability = (val: string) => {
+    const next = selectedAvailability.includes(val)
+      ? selectedAvailability.filter((x) => x !== val)
+      : [...selectedAvailability, val];
+    setSelectedAvailability(next);
+    updateUrlParams({ avail: next.length ? next.join(",") : null });
+  };
+
+  const handleToggleCondition = (val: string) => {
+    const next = selectedConditions.some((c) => c.toLowerCase() === val.toLowerCase())
+      ? selectedConditions.filter((c) => c.toLowerCase() !== val.toLowerCase())
+      : [...selectedConditions, val];
+    setSelectedConditions(next);
+    updateUrlParams({ condition: next.length ? next.join(",") : null });
+  };
+
+  const handleToggleStorage = (val: string) => {
+    const next = selectedStorage.some((s) => s.toLowerCase() === val.toLowerCase())
+      ? selectedStorage.filter((s) => s.toLowerCase() !== val.toLowerCase())
+      : [...selectedStorage, val];
+    setSelectedStorage(next);
+    updateUrlParams({ storage: next.length ? next.join(",") : null });
+  };
+
+  const handleToggleWarranty = (val: string) => {
+    const next = selectedWarranties.some((w) => w.toLowerCase() === val.toLowerCase())
+      ? selectedWarranties.filter((w) => w.toLowerCase() !== val.toLowerCase())
+      : [...selectedWarranties, val];
+    setSelectedWarranties(next);
+    updateUrlParams({ warranty: next.length ? next.join(",") : null });
+  };
+
+  const handleToggleInStock = () => {
+    const next = !inStockOnly;
+    setInStockOnly(next);
+    updateUrlParams({ stock: next ? "in_stock" : null });
+  };
+
+  const handleToggleOnSale = () => {
+    const next = !onSaleOnly;
+    setOnSaleOnly(next);
+    updateUrlParams({ sale: next ? "true" : null });
+  };
+
+  const handleToggleNewArrivals = () => {
+    const next = !newArrivalsOnly;
+    setNewArrivalsOnly(next);
+    updateUrlParams({ new: next ? "true" : null });
+  };
+
+  const handleSortChange = (key: SortOptionValue) => {
     setSortKey(key);
-    updateUrlParams({ sort: key !== "price-desc" ? key : null });
+    updateUrlParams({ sort: key !== "featured" ? key : null });
   };
 
   const handleClearAll = () => {
     setSearchQuery("");
+    setSelectedQuickCategory("all");
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setMinPrice(""); setPendingMin(""); setMaxPrice(""); setPendingMax("");
-    setSliderLow(catalogMin); setSliderHigh(catalogMax);
+    setMinPrice("");
+    setMaxPrice("");
+    setPendingMin("");
+    setPendingMax("");
+    setSliderLow(catalogMin);
+    setSliderHigh(catalogMax);
     setPriceError("");
-    setInStockOnly(false); setNewArrivalsOnly(false);
-    setFeaturedOnly(false); setOnSaleOnly(false);
+    setQuickPriceMax(null);
+    setInStockOnly(false);
+    setSelectedAvailability([]);
+    setSelectedConditions([]);
+    setSelectedStorage([]);
+    setSelectedWarranties([]);
+    setNewArrivalsOnly(false);
+    setFeaturedOnly(false);
+    setOnSaleOnly(false);
     setSortKey("price-desc");
     router.replace(pathname, { scroll: false });
   };
 
-  /* ── Category scope for brand counting ── */
-  const categoryProducts = useMemo(() => {
-    if (selectedCategories.length === 0) return initialProducts;
-    return initialProducts.filter((p) =>
-      selectedCategories.some((target) => {
-        const t = target.toLowerCase();
-        return (
-          (p.category_id || "").toLowerCase() === t ||
-          (p.category_name || p.categoryName || "").toLowerCase() === t ||
-          (p.category_slug || p.categorySlug || "").toLowerCase() === t ||
-          (p.category_name || p.categoryName || "").toLowerCase().includes(t)
-        );
-      })
-    );
-  }, [initialProducts, selectedCategories]);
-
-  /* ── Filtered products — sort by effective selling price ── */
+  /* ─────────────────────────────────────────────────────────────
+     PRODUCT FILTERING & SORTING LOGIC
+  ───────────────────────────────────────────────────────────── */
   const filteredProducts = useMemo(() => {
-    // Helper: effective price = sale_price when valid, else price
-    const effectivePrice = (p: Product): number => {
-      if (p.sale_price && p.sale_price > 0 && p.sale_price < p.price) return p.sale_price;
-      return p.price || 0;
-    };
-
     let list = initialProducts.filter((product) => {
-      // 1. Search
-      const matchesSearch =
-        !searchQuery ||
-        product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (product.description || "").toLowerCase().includes(searchQuery.toLowerCase());
+      // 1. Search Query (Typo-tolerant multi-token)
+      if (searchQuery && searchQuery.trim().length > 0) {
+        const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
+        const name = (product.name || "").toLowerCase();
+        const brand = detectProductBrand(product).toLowerCase();
+        const cat = (product.category_name || product.categoryName || "").toLowerCase();
+        const code = (product.code || "").toLowerCase();
+        const tags = (product.tags || []).join(" ").toLowerCase();
+        const specs = Object.values(product.specifications || {}).join(" ").toLowerCase();
+        const desc = (product.description || "").toLowerCase();
+        const blob = `${name} ${brand} ${cat} ${code} ${tags} ${specs} ${desc}`;
 
-      // 2. Category
-      const matchesCategory =
-        selectedCategories.length === 0 ||
-        selectedCategories.some((target) => {
+        const matchesAllTokens = tokens.every((tok) => blob.includes(tok));
+        if (!matchesAllTokens) return false;
+      }
+
+      // 2. Quick Category Chips
+      if (selectedQuickCategory && selectedQuickCategory !== "all") {
+        const quickDef = QUICK_CATEGORIES.find((c) => c.id === selectedQuickCategory);
+        if (quickDef && quickDef.matchKeys.length > 0) {
+          const pCat = (product.category_name || product.categoryName || product.category_slug || "").toLowerCase();
+          const pName = (product.name || "").toLowerCase();
+          const pTags = (product.tags || []).join(" ").toLowerCase();
+          const matchesQuick = quickDef.matchKeys.some(
+            (k) => pCat.includes(k) || pName.includes(k) || pTags.includes(k)
+          );
+          if (!matchesQuick) return false;
+        }
+      }
+
+      // 3. Sidebar Multi-Categories
+      if (selectedCategories.length > 0) {
+        const matchesSidebarCat = selectedCategories.some((target) => {
           const t = target.toLowerCase();
           return (
             (product.category_id || "").toLowerCase() === t ||
@@ -789,189 +420,334 @@ export default function ProductsClient({
             (product.category_name || product.categoryName || "").toLowerCase().includes(t)
           );
         });
+        if (!matchesSidebarCat) return false;
+      }
 
-      // 3. Brand (multi-select)
-      const detectedBrand = detectProductBrand(product).toLowerCase();
-      const matchesBrand =
-        selectedBrands.length === 0 ||
-        selectedBrands.some((b) => {
+      // 4. Brands (Multi-select)
+      if (selectedBrands.length > 0) {
+        const detected = detectProductBrand(product).toLowerCase();
+        const rawBrand = (product.brand_name || product.brandName || product.brand || "").toLowerCase();
+        const matchesBrand = selectedBrands.some((b) => {
           const bl = b.toLowerCase();
-          return (
-            detectedBrand === bl ||
-            (product.brandName || "").toLowerCase() === bl ||
-            (product.brand_name || "").toLowerCase() === bl ||
-            (product.brand || "").toLowerCase() === bl ||
-            product.name.toLowerCase().includes(bl)
-          );
+          return detected === bl || rawBrand === bl || (product.name || "").toLowerCase().includes(bl);
         });
+        if (!matchesBrand) return false;
+      }
 
-      // 4. Price
-      const mn = minPrice ? parseInt(minPrice) : 0;
-      const mx = maxPrice ? parseInt(maxPrice) : Infinity;
-      const matchesPrice = effectivePrice(product) >= mn && effectivePrice(product) <= mx;
+      // 5. Price & Quick Price Cap
+      const effPrice = getEffectivePrice(product);
+      const minP = minPrice ? parseInt(minPrice) : 0;
+      let maxP = maxPrice ? parseInt(maxPrice) : Infinity;
+      if (quickPriceMax && quickPriceMax < maxP) {
+        maxP = quickPriceMax;
+      }
+      if (effPrice < minP || effPrice > maxP) return false;
 
-      // 5. Quick filters
-      const matchesStock    = !inStockOnly     || product.stock_status !== "out_of_stock";
-      const matchesNew      = !newArrivalsOnly  || product.is_new_arrival === true;
-      const matchesFeatured = !featuredOnly     || product.featured === true;
-      const matchesSale     = !onSaleOnly       || !!(product.sale_price && product.sale_price < product.price);
+      // 6. Availability
+      if (inStockOnly && product.stock_status === "out_of_stock") return false;
+      if (selectedAvailability.length > 0) {
+        const currentStatus = product.stock_status || "in_stock";
+        if (!selectedAvailability.includes(currentStatus)) return false;
+      }
 
-      return matchesSearch && matchesCategory && matchesBrand && matchesPrice &&
-             matchesStock && matchesNew && matchesFeatured && matchesSale;
+      // 7. Condition
+      if (selectedConditions.length > 0) {
+        const cond = detectProductCondition(product).toLowerCase();
+        const matchesCond = selectedConditions.some((c) => c.toLowerCase() === cond);
+        if (!matchesCond) return false;
+      }
+
+      // 8. Storage
+      if (selectedStorage.length > 0) {
+        const storages = detectProductStorage(product).map((s) => s.toLowerCase());
+        const matchesStorage = selectedStorage.some((s) => storages.includes(s.toLowerCase()));
+        if (!matchesStorage) return false;
+      }
+
+      // 9. Warranty
+      if (selectedWarranties.length > 0) {
+        const warr = (product.warranty || product.brand_warranty || "").toLowerCase();
+        const matchesWarr = selectedWarranties.some((w) => warr.includes(w.toLowerCase()));
+        if (!matchesWarr) return false;
+      }
+
+      // 10. Deals & Flags
+      if (newArrivalsOnly && !product.is_new_arrival) return false;
+      if (featuredOnly && !product.featured) return false;
+      if (
+        onSaleOnly &&
+        !(
+          (product.old_price && product.old_price > product.price) ||
+          (product.sale_price && product.sale_price < product.price)
+        )
+      ) {
+        return false;
+      }
+
+      return true;
     });
 
-    // Sort by effective selling price — products without price go last
-    if (sortKey === "price-asc") {
-      list = [...list].sort((a, b) => {
-        const ea = effectivePrice(a), eb = effectivePrice(b);
-        if (!ea && !eb) return 0;
-        if (!ea) return 1;
-        if (!eb) return -1;
-        return ea - eb;
-      });
-    } else {
-      // Default: price-desc (High to Low)
-      list = [...list].sort((a, b) => {
-        const ea = effectivePrice(a), eb = effectivePrice(b);
-        if (!ea && !eb) return 0;
-        if (!ea) return 1;
-        if (!eb) return -1;
-        return eb - ea;
-      });
-    }
+    // Sort Results
+    list = [...list].sort((a, b) => {
+      const pa = getEffectivePrice(a);
+      const pb = getEffectivePrice(b);
+
+      if (sortKey === "price-asc") {
+        return pa - pb;
+      }
+      if (sortKey === "price-desc") {
+        return pb - pa;
+      }
+      if (sortKey === "newest") {
+        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+        if (dateA !== dateB) return dateB - dateA;
+        return (b.is_new_arrival ? 1 : 0) - (a.is_new_arrival ? 1 : 0);
+      }
+      if (sortKey === "biggest-discount") {
+        const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
+        const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
+        return discB - discA;
+      }
+      // Default: Featured
+      if (a.featured !== b.featured) {
+        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+      }
+      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
+      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
+      return dateB - dateA;
+    });
 
     return list;
   }, [
-    initialProducts, searchQuery, selectedCategories, selectedBrands,
-    minPrice, maxPrice, inStockOnly, newArrivalsOnly, featuredOnly, onSaleOnly, sortKey,
+    initialProducts,
+    searchQuery,
+    selectedQuickCategory,
+    selectedCategories,
+    selectedBrands,
+    minPrice,
+    maxPrice,
+    quickPriceMax,
+    inStockOnly,
+    selectedAvailability,
+    selectedConditions,
+    selectedStorage,
+    selectedWarranties,
+    newArrivalsOnly,
+    featuredOnly,
+    onSaleOnly,
+    sortKey,
   ]);
 
-  // 1. Dynamic extraction of all Categories across Firestore categories prop AND actual products
-  const allCategoriesList = useMemo(() => {
-    const map = new Map<string, Category>();
+  /* ─────────────────────────────────────────────────────────────
+     ACTIVE FILTER CHIPS LIST (Short, clean customer-facing labels)
+  ───────────────────────────────────────────────────────────── */
+  const activeFilterChips: ActiveFilterChip[] = useMemo(() => {
+    const chips: ActiveFilterChip[] = [];
 
-    // Add categories prop from Firestore
-    categories.forEach((c) => {
-      if (c && c.name) {
-        const cleanName = c.name.replace(/[\u0080-\uFFFF]/g, "").trim();
-        const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanName.toLowerCase());
-        if (cleanName && !isBrand) {
-          const rawSlug = (c.slug || cleanName).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-          const safeId = c.id || `cat-${rawSlug || "general"}`;
-          map.set(cleanName.toLowerCase(), { ...c, id: safeId, name: cleanName });
-        }
-      }
+    // Search Query
+    if (searchQuery.trim()) {
+      chips.push({
+        id: "search",
+        label: `"${searchQuery.trim()}"`,
+        onRemove: () => {
+          setSearchQuery("");
+          updateUrlParams({ search: null });
+        },
+      });
+    }
+
+    // Quick Category
+    if (selectedQuickCategory && selectedQuickCategory !== "all") {
+      const qDef = QUICK_CATEGORIES.find((c) => c.id === selectedQuickCategory);
+      chips.push({
+        id: `qcat-${selectedQuickCategory}`,
+        label: qDef ? qDef.label : selectedQuickCategory,
+        onRemove: () => {
+          setSelectedQuickCategory("all");
+          updateUrlParams({ cat_chip: null });
+        },
+      });
+    }
+
+    // Sidebar Categories
+    selectedCategories.forEach((c) => {
+      const catObj = categories.find(
+        (cat) => cat.id === c || cat.slug === c || cat.name.toLowerCase() === c.toLowerCase()
+      );
+      chips.push({
+        id: `cat-${c}`,
+        label: catObj ? catObj.name : c,
+        onRemove: () => handleToggleCategory(c),
+      });
     });
 
-    // Add any custom categories present on actual products
-    initialProducts.forEach((p) => {
-      const rawCat = (p.category_name || p.categoryName || "").trim();
-      const cleanCat = rawCat.replace(/[\u0080-\uFFFF]/g, "").trim();
-      const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanCat.toLowerCase());
-
-      if (cleanCat && !isBrand && !map.has(cleanCat.toLowerCase())) {
-        const rawSlug = (p.category_slug || p.categorySlug || cleanCat).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-        const safeSlug = rawSlug || "general";
-        map.set(cleanCat.toLowerCase(), {
-          id: `cat-${safeSlug}`,
-          name: cleanCat,
-          slug: safeSlug,
-          icon: "📱",
-          image_url: "",
-          sort_order: 99,
-        });
-      }
+    // Brands
+    selectedBrands.forEach((b) => {
+      chips.push({
+        id: `brand-${b}`,
+        label: b,
+        onRemove: () => handleToggleBrand(b),
+      });
     });
 
-    return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
-  }, [categories, initialProducts]);
+    // Price
+    if (minPrice || maxPrice) {
+      const mn = minPrice ? parseInt(minPrice) : 0;
+      const mx = maxPrice ? parseInt(maxPrice) : 0;
+      let label = "";
+      if (!mn && mx) label = `Under ${fmtLKR(mx)}`;
+      else if (mn && !mx) label = `Above ${fmtLKR(mn)}`;
+      else if (mn && mx) label = `${fmtLKR(mn)} – ${fmtLKR(mx)}`;
+      else label = "Price Filter";
 
-  // Count products for each category
-  const categoryCounts = useMemo(() => {
-    const map = new Map<string, number>();
-    initialProducts.forEach((p) => {
-      const rawCat = (p.category_name || p.categoryName || "").trim();
-      const cleanCat = rawCat.replace(/[\u0080-\uFFFF]/g, "").trim().toLowerCase();
-      if (cleanCat) {
-        map.set(cleanCat, (map.get(cleanCat) || 0) + 1);
-      }
+      chips.push({
+        id: "price-range",
+        label,
+        onRemove: () => {
+          setMinPrice("");
+          setMaxPrice("");
+          setPendingMin("");
+          setPendingMax("");
+          setSliderLow(catalogMin);
+          setSliderHigh(catalogMax);
+          updateUrlParams({ minPrice: null, maxPrice: null });
+        },
+      });
+    }
+
+    // Quick Price Cap
+    if (quickPriceMax) {
+      chips.push({
+        id: `quick-price-${quickPriceMax}`,
+        label: `Under ${fmtLKR(quickPriceMax)}`,
+        onRemove: () => handleToggleQuickPrice(null),
+      });
+    }
+
+    // Availability
+    if (inStockOnly) {
+      chips.push({
+        id: "in-stock",
+        label: "In Stock",
+        onRemove: handleToggleInStock,
+      });
+    }
+
+    selectedAvailability.forEach((a) => {
+      const label = a === "in_stock" ? "In Stock" : a === "low_stock" ? "Low Stock" : "Out of Stock";
+      chips.push({
+        id: `avail-${a}`,
+        label,
+        onRemove: () => handleToggleAvailability(a),
+      });
     });
-    return map;
-  }, [initialProducts]);
 
-  const handleClearCategories = () => {
-    setSelectedCategories([]);
-    updateUrlParams({ category: null });
-  };
+    // Condition
+    selectedConditions.forEach((c) => {
+      chips.push({
+        id: `cond-${c}`,
+        label: c,
+        onRemove: () => handleToggleCondition(c),
+      });
+    });
 
-  /* ── Active filter chips ── */
-  const activeFilters: { label: string; onRemove: () => void }[] = [
-    ...selectedCategories.map((cId) => {
-      const catObj = allCategoriesList.find((c) => c.id === cId || c.slug === cId || c.name.toLowerCase() === cId.toLowerCase());
-      const label = catObj ? catObj.name : cId;
-      return {
-        label: `Category: ${label}`,
-        onRemove: () => handleCategorySelect(cId),
-      };
-    }),
-    ...selectedBrands.map((b) => ({
-      label: `Brand: ${b}`,
-      onRemove: () => {
-        const next = selectedBrands.filter((x) => x !== b);
-        setSelectedBrands(next);
-        updateUrlParams({ brand: next.length ? next.join(",") : null });
-      },
-    })),
-    ...(minPrice || maxPrice ? [{
-      label: `${minPrice ? fmtLKR(parseInt(minPrice)) : "Any"} – ${maxPrice ? fmtLKR(parseInt(maxPrice)) : "Any"}`,
-      onRemove: () => {
-        setMinPrice(""); setPendingMin(""); setMaxPrice(""); setPendingMax("");
-        setSliderLow(catalogMin); setSliderHigh(catalogMax);
-        updateUrlParams({ minPrice: null, maxPrice: null });
-      },
-    }] : []),
-    ...(inStockOnly ? [{ label: "In Stock Only", onRemove: () => { setInStockOnly(false); updateUrlParams({ stock: null }); } }] : []),
-    ...(newArrivalsOnly ? [{ label: "New Arrivals", onRemove: () => { setNewArrivalsOnly(false); updateUrlParams({ new: null }); } }] : []),
-    ...(featuredOnly ? [{ label: "Featured Only", onRemove: () => { setFeaturedOnly(false); updateUrlParams({ featured: null }); } }] : []),
-    ...(onSaleOnly ? [{ label: "On Sale", onRemove: () => { setOnSaleOnly(false); updateUrlParams({ sale: null }); } }] : []),
-  ];
+    // Storage
+    selectedStorage.forEach((s) => {
+      chips.push({
+        id: `storage-${s}`,
+        label: s,
+        onRemove: () => handleToggleStorage(s),
+      });
+    });
 
-  const hasActiveFilters = activeFilters.length > 0 || searchQuery;
+    // Warranty
+    selectedWarranties.forEach((w) => {
+      let cleanW = w;
+      const lower = w.toLowerCase();
+      if (lower.includes("6 month") || lower.includes("six month")) cleanW = "6 Months";
+      else if (lower.includes("3 month") || lower.includes("three month")) cleanW = "3 Months";
+      else if (lower.includes("1 year apple") || lower.includes("apple care")) cleanW = "1 Yr Apple Care";
+      else if (lower.includes("1 year") || lower.includes("one year")) cleanW = "1 Year";
+      else if (lower.includes("2 year") || lower.includes("two year")) cleanW = "2 Years";
+      else cleanW = w.replace(/warranty|limited/gi, "").trim() || w;
 
-  /* ── Shared sidebar props ── */
-  const sidebarProps: FilterSidebarProps = {
-    allProducts: initialProducts,
-    categoryProducts,
-    allCategoriesList,
-    categoryCounts,
+      chips.push({
+        id: `warr-${w}`,
+        label: `Warranty: ${cleanW}`,
+        onRemove: () => handleToggleWarranty(w),
+      });
+    });
+
+    // Flags
+    if (newArrivalsOnly) {
+      chips.push({
+        id: "flag-new",
+        label: "New Arrivals",
+        onRemove: handleToggleNewArrivals,
+      });
+    }
+    if (onSaleOnly) {
+      chips.push({
+        id: "flag-sale",
+        label: "Best Deals",
+        onRemove: handleToggleOnSale,
+      });
+    }
+
+    return chips;
+  }, [
+    searchQuery,
+    selectedQuickCategory,
     selectedCategories,
-    onCategorySelect: handleCategorySelect,
-    onClearCategories: handleClearCategories,
-    sortKey,
-    onSortChange: handleSortChange,
     selectedBrands,
-    onBrandToggle: handleBrandToggle,
+    minPrice,
+    maxPrice,
+    quickPriceMax,
+    inStockOnly,
+    selectedAvailability,
+    selectedConditions,
+    selectedStorage,
+    selectedWarranties,
+    newArrivalsOnly,
+    onSaleOnly,
+    categories,
+    catalogMin,
+    catalogMax,
+  ]);
+
+  /* ─────────────────────────────────────────────────────────────
+     SIDEBAR PROPS
+  ───────────────────────────────────────────────────────────── */
+  const sidebarProps = {
+    allProducts: initialProducts,
+    categories,
+    selectedCategories,
+    onToggleCategory: handleToggleCategory,
+    onClearCategories: handleClearCategories,
+    selectedBrands,
+    onToggleBrand: handleToggleBrand,
     onClearBrands: handleClearBrands,
+    priceMin: catalogMin,
+    priceMax: catalogMax,
+    sliderLow,
+    sliderHigh,
+    onSliderChange: handleSliderChange,
     pendingMin,
     pendingMax,
     setPendingMin,
     setPendingMax,
     priceError,
     onApplyPrice: handleApplyPrice,
-    sliderLow,
-    sliderHigh,
-    onSliderChange: handleSliderChange,
-    priceMin: catalogMin,
-    priceMax: catalogMax,
-    inStockOnly,
-    setInStockOnly,
-    newArrivalsOnly,
-    setNewArrivalsOnly,
-    featuredOnly,
-    setFeaturedOnly,
-    onSaleOnly,
-    setOnSaleOnly,
-    onApply: handleApplyFilters,
+    selectedAvailability,
+    onToggleAvailability: handleToggleAvailability,
+    selectedConditions,
+    onToggleCondition: handleToggleCondition,
+    selectedStorage,
+    onToggleStorage: handleToggleStorage,
+    selectedWarranties,
+    onToggleWarranty: handleToggleWarranty,
+    onApplyAll: () => setShowMobileFilters(false),
     onClearAll: handleClearAll,
   };
 
@@ -979,150 +755,168 @@ export default function ProductsClient({
      RENDER
   ════════════════════════════════════════════════════════════ */
   return (
-    <div className="bg-white min-h-screen">
+    <div className="bg-white min-h-screen text-neutral-900 pb-20">
 
-      {/* ── Slim Apple-Style Page Header ── */}
-      <section className="bg-white border-b border-neutral-100 pt-6 pb-6">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-8">
-          <div className="flex flex-col md:flex-row md:items-end justify-between gap-4">
-            <div>
-              <span className="text-[10px] font-black uppercase tracking-[0.2em] text-neutral-400 block mb-1">
-                STREET MOBILE CATALOG
-              </span>
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight">
-                SHOP ALL
-              </h1>
-              <p className="text-neutral-500 text-xs sm:text-sm mt-1 max-w-xl font-medium">
-                Explore our full collection of genuine smartphones, high-performance audio gear, and authentic accessories.
-              </p>
-            </div>
-
-            {/* Quick Search & Mobile Filters Trigger */}
-            <div className="flex items-center gap-3">
-              <div className="relative min-w-[240px] sm:min-w-[280px]">
-                <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    updateUrlParams({ search: e.target.value || null });
-                  }}
-                  placeholder="Search products..."
-                  className="w-full pl-10 pr-8 py-2 bg-neutral-50 border border-neutral-200 rounded-xl text-xs text-neutral-900 placeholder-neutral-400 focus:outline-none focus:border-black transition-all"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => { setSearchQuery(""); updateUrlParams({ search: null }); }}
-                    className="absolute right-2.5 top-1/2 -translate-y-1/2 p-1 text-neutral-400 hover:text-black"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
-
-              {/* Mobile Filter Button */}
-              <button
-                type="button"
-                onClick={() => setShowMobileFilters(true)}
-                className="lg:hidden flex items-center gap-2 px-3.5 py-2 rounded-xl bg-black text-white text-xs font-bold shrink-0"
-              >
-                <SlidersHorizontal className="w-3.5 h-3.5" />
-                <span>Filters</span>
-                {activeFilters.length > 0 && (
-                  <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
-                    {activeFilters.length}
-                  </span>
-                )}
-              </button>
-            </div>
+      {/* ── 1. Page Header & Hero Discovery Hub (Compact connected layout) ── */}
+      <section className="bg-white border-b border-neutral-100 pt-5 sm:pt-6 pb-4 sm:pb-5">
+        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 text-center sm:text-left">
+          
+          {/* Title & Subtitle */}
+          <div className="space-y-0.5 mb-4">
+            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-neutral-400 block">
+              STREET MOBILE CATALOG
+            </span>
+            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight">
+              SHOP ALL
+            </h1>
+            <p className="text-neutral-500 text-xs sm:text-sm font-medium max-w-2xl">
+              Explore our full collection of genuine smartphones, high-performance audio gear, authentic accessories, and premium tech.
+            </p>
           </div>
+
+          {/* ── Main Search Bar (Desktop width ~880px, centered) ── */}
+          <div className="mb-4">
+            <ShopSearchBar
+              searchQuery={searchQuery}
+              onSearchChange={handleSearchChange}
+              onSearchSubmit={handleSearchSubmit}
+              products={initialProducts}
+            />
+          </div>
+
+          {/* ── Quick Category Chips (Outline Lucide icons, smooth scroll & edge fade) ── */}
+          <div>
+            <ShopCategoryChips
+              selectedCategoryId={selectedQuickCategory}
+              onSelectCategory={handleQuickCategorySelect}
+            />
+          </div>
+
         </div>
       </section>
 
-      {/* ── Main Content Container (Wider max-w-[1440px]) ── */}
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 py-6 sm:py-8 pb-20">
+      {/* ── 2. Sticky Mobile Control Bar ── */}
+      <div className="lg:hidden sticky top-[56px] sm:top-[64px] z-20 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 py-2.5 px-4 flex items-center justify-between shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setShowMobileFilters(true)}
+          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black text-white text-xs font-bold shadow-2xs hover:bg-neutral-800 transition-colors"
+        >
+          <SlidersHorizontal className="w-3.5 h-3.5" />
+          <span>Filters</span>
+          {activeFilterChips.length > 0 && (
+            <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
+              {activeFilterChips.length}
+            </span>
+          )}
+        </button>
 
-        {/* Count Bar */}
-        <div className="flex items-center justify-between border-b border-neutral-100 pb-3 mb-6">
-          <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider">
-            Showing <strong className="text-neutral-900 font-extrabold">{filteredProducts.length}</strong> Products
-          </span>
+        <span className="text-xs font-bold text-neutral-500">
+          {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"}
+        </span>
+
+        {/* Mobile Sort */}
+        <div className="relative">
+          <select
+            value={sortKey}
+            onChange={(e) => handleSortChange(e.target.value as SortOptionValue)}
+            className="appearance-none pl-3 pr-7 py-1.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 outline-none cursor-pointer"
+          >
+            <option value="featured">Sort: Featured</option>
+            <option value="newest">Sort: Newest</option>
+            <option value="price-asc">Sort: Price: Low to High</option>
+            <option value="price-desc">Sort: Price: High to Low</option>
+            <option value="biggest-discount">Sort: Biggest Discount</option>
+          </select>
+        </div>
+      </div>
+
+      {/* ── 3. Main Catalog Container (Tightened desktop spacing: max 32px to toolbar) ── */}
+      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-4 sm:pt-6 pb-12">
+
+        {/* ── Results Toolbar (Desktop & Tablet: single horizontal row) ── */}
+        <div className="mb-4">
+          <ShopResultsToolbar
+            totalCount={filteredProducts.length}
+            activeFilters={activeFilterChips}
+            onClearAll={handleClearAll}
+            sortKey={sortKey}
+            onSortChange={handleSortChange}
+            onOpenMobileFilters={() => setShowMobileFilters(true)}
+          />
         </div>
 
-        {/* Active filter chips */}
-        {hasActiveFilters && (
-          <div className="flex flex-wrap gap-2 mb-5">
-            {activeFilters.map((f) => (
-              <button
-                key={f.label}
-                type="button"
-                onClick={f.onRemove}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-700 transition-colors"
-              >
-                {f.label}
-                <X className="w-3 h-3 opacity-70" />
-              </button>
-            ))}
-            {searchQuery && (
-              <button
-                type="button"
-                onClick={() => { setSearchQuery(""); updateUrlParams({ search: null }); }}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-neutral-800 text-white text-xs font-bold hover:bg-neutral-700 transition-colors"
-              >
-                &ldquo;{searchQuery}&rdquo;
-                <X className="w-3 h-3 opacity-70" />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={handleClearAll}
-              className="px-3 py-1.5 rounded-full border border-neutral-300 text-xs font-bold text-neutral-500 hover:border-black hover:text-black transition-colors"
-            >
-              Clear all
-            </button>
-          </div>
-        )}
+        {/* ── Two-Column Layout (Sidebar 250-260px, aligned top) ── */}
+        <div className="flex flex-col lg:flex-row gap-6 xl:gap-8 items-start">
 
-        {/* Two-column layout */}
-        <div className="flex flex-col lg:flex-row gap-8">
-
-          {/* Desktop Sidebar */}
-          <aside className="hidden lg:block w-64 xl:w-72 shrink-0">
-            <div className="sticky top-[110px] bg-white border border-neutral-200/80 rounded-2xl p-5 shadow-sm">
-              <FilterSidebarContent {...sidebarProps} />
+          {/* Desktop Filter Sidebar (Width 255px) */}
+          <aside className="hidden lg:block w-[255px] shrink-0">
+            <div className="sticky top-[100px] bg-white border border-neutral-200/80 rounded-2xl p-4.5 shadow-2xs">
+              <ShopFilterSidebar {...sidebarProps} />
             </div>
           </aside>
 
-          {/* Product Grid */}
-          <main className="flex-1 min-w-0">
+          {/* Product Results Grid */}
+          <main className="flex-1 min-w-0 w-full">
             {filteredProducts.length === 0 ? (
-              <div className="text-center py-20 bg-[#F8F8F9] rounded-2xl border border-neutral-200">
-                <Package className="w-12 h-12 text-neutral-300 mx-auto mb-3" />
-                <h3 className="text-base font-bold text-neutral-800">No products found</h3>
-                <p className="text-xs text-neutral-500 mt-1 max-w-xs mx-auto">
-                  Try clearing some filters or adjusting your search.
+              /* ── 4. Empty State ── */
+              <div className="text-center py-14 sm:py-16 px-4 bg-[#FAFAFB] rounded-3xl border border-neutral-200/80 shadow-2xs max-w-2xl mx-auto my-2">
+                <div className="w-14 h-14 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center mx-auto mb-3 shadow-2xs">
+                  <Package className="w-7 h-7 text-neutral-400" />
+                </div>
+                
+                <h3 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
+                  No products match your search or selected filters.
+                </h3>
+                
+                <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 max-w-md mx-auto font-medium">
+                  Try clearing your active filters, expanding your price range, or checking for typo variations in your search term.
                 </p>
-                <button
-                  type="button"
-                  onClick={handleClearAll}
-                  className="mt-4 px-5 py-2.5 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors"
-                >
-                  Reset Filters
-                </button>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
+                  {activeFilterChips.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={handleClearAll}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all shadow-2xs"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                      <span>Clear Filters</span>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={handleClearAll}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-neutral-300 text-neutral-800 text-xs font-bold hover:border-black hover:text-black transition-all shadow-2xs"
+                  >
+                    <span>View All Products</span>
+                  </button>
+
+                  <a
+                    href="https://wa.me/94774141118?text=Hello%20Street%20Mobile,%20I'm%20looking%20for%20a%20product%20on%20your%20website"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#25D366] text-white text-xs font-bold hover:bg-[#1EBE5D] transition-all shadow-2xs"
+                  >
+                    <MessageCircle className="w-4 h-4" />
+                    <span>Chat on WhatsApp</span>
+                  </a>
+                </div>
               </div>
             ) : (
+              /* ── 5. Product Grid with Strict Alignment & Larger Images ── */
               <AnimatePresence mode="popLayout">
                 <motion.div
                   key={filteredProducts.map((p) => p.id).join("-")}
                   initial="hidden"
                   animate="show"
-                  className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-6"
+                  className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
                 >
                   {filteredProducts.map((product) => (
-                    <motion.div key={product.id} variants={cardVariants}>
-                      <ProductCard product={product} />
+                    <motion.div key={product.id} variants={cardVariants} className="h-full">
+                      <ProductCard product={product} className="h-full" />
                     </motion.div>
                   ))}
                 </motion.div>
@@ -1131,9 +925,10 @@ export default function ProductsClient({
           </main>
 
         </div>
+
       </div>
 
-      {/* ── Mobile Bottom Sheet ── */}
+      {/* ── 6. Mobile Filter Full-Height Bottom Sheet / Drawer ── */}
       <AnimatePresence>
         {showMobileFilters && (
           <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
@@ -1145,35 +940,66 @@ export default function ProductsClient({
               onClick={() => setShowMobileFilters(false)}
               className="absolute inset-0 bg-black/60 backdrop-blur-sm"
             />
-            {/* Drawer */}
+
+            {/* Bottom Sheet Drawer */}
             <motion.div
               initial={{ y: "100%" }}
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 320 }}
-              className="relative bg-white rounded-t-3xl max-h-[90vh] flex flex-col z-10 shadow-2xl"
+              transition={{ type: "spring", damping: 28, stiffness: 300 }}
+              className="relative bg-white rounded-t-3xl max-h-[88vh] flex flex-col z-10 shadow-2xl overflow-hidden"
             >
               {/* Header */}
-              <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-20 rounded-t-3xl">
-                <h3 className="font-black text-sm text-black flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4" /> Filter Products
-                </h3>
+              <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-20">
+                <div className="flex items-center gap-2">
+                  <SlidersHorizontal className="w-4 h-4 text-black" />
+                  <h3 className="font-black text-sm text-black">
+                    Filter Products
+                  </h3>
+                  {activeFilterChips.length > 0 && (
+                    <span className="px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-black">
+                      {activeFilterChips.length}
+                    </span>
+                  )}
+                </div>
+
                 <button
                   type="button"
                   onClick={() => setShowMobileFilters(false)}
                   className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors"
+                  aria-label="Close filters"
                 >
                   <X className="w-5 h-5" />
                 </button>
               </div>
 
-              {/* Scrollable Content */}
-              <div className="p-5 overflow-y-auto flex-1">
-                <FilterSidebarContent
+              {/* Scrollable Filters Body */}
+              <div className="p-5 overflow-y-auto flex-1 overscroll-contain">
+                <ShopFilterSidebar
                   {...sidebarProps}
                   onClose={() => setShowMobileFilters(false)}
                 />
               </div>
+
+              {/* Sticky Mobile Apply Footer */}
+              <div className="p-4 bg-white border-t border-neutral-100 flex items-center gap-3 sticky bottom-0 z-20">
+                <button
+                  type="button"
+                  onClick={handleClearAll}
+                  className="py-3 px-4 rounded-xl border border-neutral-200 text-xs font-bold text-neutral-600 hover:text-black transition-colors"
+                >
+                  Reset
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setShowMobileFilters(false)}
+                  className="flex-1 py-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm flex items-center justify-center gap-2"
+                >
+                  <span>Show {filteredProducts.length} Products</span>
+                </button>
+              </div>
+
             </motion.div>
           </div>
         )}

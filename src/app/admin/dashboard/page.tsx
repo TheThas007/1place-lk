@@ -47,8 +47,8 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts } from "@/lib/data";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, MotionSettings } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_MOTION_SETTINGS } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
@@ -65,14 +65,22 @@ import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
 import ProductsTab from "@/components/admin/tabs/ProductsTab";
 import HeroTab from "@/components/admin/tabs/HeroTab";
 import BrandsTab from "@/components/admin/tabs/BrandsTab";
+import WarrantiesTab from "@/components/admin/tabs/WarrantiesTab";
 import GalleryTab from "@/components/admin/tabs/GalleryTab";
 import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
+import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
+import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsTab";
+import AssistantTab from "@/components/admin/tabs/AssistantTab";
+import FooterTab from "@/components/admin/tabs/FooterTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
   | "brands"
+  | "warranties"
+  | "collections"
+  | "showcase"
   | "reviews"
   | "gallery"
   | "hero"
@@ -80,9 +88,12 @@ type Tab =
   | "orders"
   | "settings"
   | "banners"
+  | "footer"
   | "inventory"
   | "payments"
-  | "analytics";
+  | "analytics"
+  | "assistant";
+
 
 function DashboardContent() {
   const router = useRouter();
@@ -103,7 +114,9 @@ function DashboardContent() {
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
   const [loading, setLoading] = useState(true);
+
 
   // COD Fee state
   const [codFee, setCodFee] = useState<number>(250);
@@ -134,6 +147,63 @@ function DashboardContent() {
       alert("Failed to update COD fee");
     } finally {
       setSavingCod(false);
+    }
+  };
+
+  // Featured Products Visibility state
+  const [showFeaturedProducts, setShowFeaturedProducts] = useState<boolean>(true);
+  const [featuredSavedMsg, setFeaturedSavedMsg] = useState(false);
+
+  useEffect(() => {
+    async function loadUiSettings() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "ui"));
+        if (snap.exists() && snap.data().showFeaturedProducts !== undefined) {
+          setShowFeaturedProducts(snap.data().showFeaturedProducts !== false);
+        }
+      } catch {
+        // Fallback to default true
+      }
+    }
+    loadUiSettings();
+  }, []);
+
+  const handleToggleFeatured = async (checked: boolean) => {
+    setShowFeaturedProducts(checked);
+    try {
+      await setDoc(doc(db, "settings", "ui"), { showFeaturedProducts: checked }, { merge: true });
+      setFeaturedSavedMsg(true);
+      setTimeout(() => setFeaturedSavedMsg(false), 3500);
+    } catch (e) {
+      alert("Failed to update Featured Products visibility");
+      setShowFeaturedProducts(!checked);
+    }
+  };
+
+  // Motion Settings state
+  const [motionSettings, setMotionSettings] = useState<MotionSettings>(DEFAULT_MOTION_SETTINGS);
+  const [motionSavedMsg, setMotionSavedMsg] = useState(false);
+
+  useEffect(() => {
+    async function loadMotionSettings() {
+      try {
+        const snap = await getDoc(doc(db, "settings", "motion"));
+        if (snap.exists()) {
+          setMotionSettings({ ...DEFAULT_MOTION_SETTINGS, ...snap.data() });
+        }
+      } catch {}
+    }
+    loadMotionSettings();
+  }, []);
+
+  const handleSaveMotionSettings = async (newSettings: MotionSettings) => {
+    setMotionSettings(newSettings);
+    try {
+      await setDoc(doc(db, "settings", "motion"), newSettings, { merge: true });
+      setMotionSavedMsg(true);
+      setTimeout(() => setMotionSavedMsg(false), 3500);
+    } catch (e) {
+      alert("Failed to update motion settings");
     }
   };
 
@@ -250,7 +320,17 @@ function DashboardContent() {
       const userSnap = await getDocs(collection(db, "users"));
       const userList = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCustomers(userList);
+
+      // Visual Product Showcase Settings
+      const showSnap = await getDoc(doc(db, "settings", "visual_product_showcase"));
+      if (showSnap.exists()) {
+        const data = showSnap.data() as VisualShowcaseSettings;
+        if (data && data.tiles && data.tiles.length > 0) {
+          setShowcaseSettings(data);
+        }
+      }
     } catch (e) {
+
       console.error("Dashboard Data Fetch Error:", e);
     } finally {
       setLoading(false);
@@ -695,14 +775,45 @@ function DashboardContent() {
       {activeTab === "overview" && (
         <div className="space-y-8">
           {/* Header Title */}
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Overview Dashboard
-            </h1>
-            <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
-              Here's what's happening with your store today.
-            </p>
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                Overview Dashboard
+              </h1>
+              <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
+                Here's what's happening with your store today.
+              </p>
+            </div>
+
+            {/* Quick Featured Products Visibility Switch */}
+            <div className="bg-[#0F172A] border border-white/10 p-3 sm:px-4 sm:py-3 rounded-2xl flex items-center gap-3.5 shadow-lg">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-white whitespace-nowrap">Featured Products</span>
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
+                  showFeaturedProducts
+                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+                    : "bg-white/10 text-white/50 border-white/10"
+                }`}>
+                  {showFeaturedProducts ? "Visible" : "Hidden"}
+                </span>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                <input
+                  type="checkbox"
+                  checked={showFeaturedProducts}
+                  onChange={(e) => handleToggleFeatured(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 cursor-pointer" />
+              </label>
+            </div>
           </div>
+
+          {featuredSavedMsg && (
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400 flex items-center gap-2 animate-pulse">
+              <Check className="w-4 h-4" /> Featured Products visibility updated.
+            </div>
+          )}
 
           {/* Live Low Stock Warning Alert Banner */}
           {lowStockItems.length > 0 && (
@@ -1090,6 +1201,7 @@ function DashboardContent() {
       {activeTab === "products" && (
         <ProductsTab
           products={products}
+          categories={categories}
           onDelete={handleDeleteProduct}
           onEdit={(p: Product) => {
             setEditingProduct(p);
@@ -1161,6 +1273,13 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          TAB 4C: WARRANTIES TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "warranties" && (
+        <WarrantiesTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB 5: OFFERS & BANNERS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "banners" && (
@@ -1217,6 +1336,39 @@ function DashboardContent() {
           onDelete={handleDeleteGalleryImage}
         />
       )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5D: VISUAL PRODUCT SHOWCASE TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "showcase" && (
+        <ShowcaseTab
+          products={products}
+          categories={categories}
+          initialSettings={showcaseSettings}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5E: FEATURED COLLECTIONS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "collections" && (
+        <FeaturedCollectionsTab
+          products={products}
+          categories={categories}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5F: FOOTER SETTINGS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "footer" && (
+        <FooterTab
+          onRefresh={refreshData}
+        />
+      )}
+
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB 6: CUSTOMERS TAB
@@ -1489,6 +1641,194 @@ function DashboardContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Store Details & COD */}
             <div className="lg:col-span-2 space-y-6">
+              {/* Featured Products Homepage Visibility Control Card */}
+              <div className="bg-[#0F172A] border-2 border-blue-500/30 rounded-3xl p-6 shadow-xl space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="font-bold text-base text-white flex items-center gap-2">
+                    <Sparkles className="w-5 h-5 text-blue-400" /> Featured Products Homepage Display
+                  </h3>
+                  <span className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
+                    showFeaturedProducts
+                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                      : "bg-white/10 text-white/50 border-white/10"
+                  }`}>
+                    {showFeaturedProducts ? "Visible" : "Hidden"}
+                  </span>
+                </div>
+
+                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                  <div className="pr-4">
+                    <h4 className="text-sm font-bold text-white">Show Featured Products on Homepage</h4>
+                    <p className="text-xs text-white/50 mt-0.5">
+                      Turn this off to hide the complete Featured Products section from the homepage.
+                    </p>
+                  </div>
+
+                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                    <input
+                      type="checkbox"
+                      checked={showFeaturedProducts}
+                      onChange={(e) => handleToggleFeatured(e.target.checked)}
+                      className="sr-only peer"
+                    />
+                    <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-500 cursor-pointer" />
+                  </label>
+                </div>
+
+                {featuredSavedMsg && (
+                  <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
+                    <Check className="w-4 h-4" /> Featured Products visibility updated.
+                  </p>
+                )}
+              </div>
+
+              {/* Apple-Inspired Motion & Smooth Scrolling Experience Card */}
+              <div className="bg-[#0F172A] border-2 border-indigo-500/30 rounded-3xl p-6 shadow-xl space-y-5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2.5">
+                    <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
+                      <Sliders className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <h3 className="font-bold text-base text-white">Motion & Smooth Scrolling</h3>
+                      <p className="text-xs text-white/50">Lenis smooth scrolling & GSAP editorial entrance reveals</p>
+                    </div>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSaveMotionSettings(DEFAULT_MOTION_SETTINGS)}
+                    className="text-xs font-semibold text-white/60 hover:text-white hover:underline transition-colors"
+                  >
+                    Reset to Defaults
+                  </button>
+                </div>
+
+                <div className="space-y-3.5">
+                  {/* 1. Lenis Smooth Scrolling Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <div className="pr-4">
+                      <h4 className="text-sm font-bold text-white">Lenis Smooth Wheel Scrolling</h4>
+                      <p className="text-xs text-white/50 mt-0.5">
+                        Enables high-performance physics-based smooth momentum scrolling on public pages (disabled in admin).
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={motionSettings.enableSmoothScroll !== false}
+                        onChange={(e) =>
+                          handleSaveMotionSettings({
+                            ...motionSettings,
+                            enableSmoothScroll: e.target.checked,
+                          })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
+                    </label>
+                  </div>
+
+                  {/* 2. GSAP ScrollTrigger Reveals Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <div className="pr-4">
+                      <h4 className="text-sm font-bold text-white">Editorial Section Scroll Reveals</h4>
+                      <p className="text-xs text-white/50 mt-0.5">
+                        Calm upward fade animations (0.7-0.9s, power3.out) triggered once when sections enter viewport.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={motionSettings.enableSectionReveals !== false}
+                        onChange={(e) =>
+                          handleSaveMotionSettings({
+                            ...motionSettings,
+                            enableSectionReveals: e.target.checked,
+                          })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
+                    </label>
+                  </div>
+
+                  {/* 3. Hero Parallax Toggle */}
+                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
+                    <div className="pr-4">
+                      <h4 className="text-sm font-bold text-white">Hero Scroll-Linked Parallax</h4>
+                      <p className="text-xs text-white/50 mt-0.5">
+                        Subtle 1.03x to 1.0x background scale and max 30px content translation on scroll.
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
+                      <input
+                        type="checkbox"
+                        checked={motionSettings.enableHeroParallax !== false}
+                        onChange={(e) =>
+                          handleSaveMotionSettings({
+                            ...motionSettings,
+                            enableHeroParallax: e.target.checked,
+                          })
+                        }
+                        className="sr-only peer"
+                      />
+                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
+                    </label>
+                  </div>
+
+                  {/* 4. Motion Intensity Selector */}
+                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="text-sm font-bold text-white">Motion Intensity Level</h4>
+                        <p className="text-xs text-white/50">Controls animation distance and duration presets.</p>
+                      </div>
+                      <span className="text-xs font-mono font-bold text-indigo-400 uppercase">
+                        {motionSettings.motionIntensity || "balanced"}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2 pt-1">
+                      {(
+                        [
+                          { key: "minimal", label: "Minimal", desc: "Subtle (12px, 0.5s)" },
+                          { key: "balanced", label: "Balanced", desc: "Apple Default (20px, 0.75s)" },
+                          { key: "off", label: "Off", desc: "Instant / Reduced" },
+                        ] as const
+                      ).map((item) => {
+                        const isSelected = (motionSettings.motionIntensity || "balanced") === item.key;
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() =>
+                              handleSaveMotionSettings({
+                                ...motionSettings,
+                                motionIntensity: item.key,
+                              })
+                            }
+                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
+                              isSelected
+                                ? "bg-indigo-600/30 border-indigo-400 text-white shadow-sm"
+                                : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <div className="text-xs font-bold">{item.label}</div>
+                            <div className="text-[10px] text-white/40 mt-0.5">{item.desc}</div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </div>
+
+                {motionSavedMsg && (
+                  <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
+                    <Check className="w-4 h-4" /> Motion & Smooth Scrolling settings saved in real-time.
+                  </p>
+                )}
+              </div>
+
               {/* Store Details Card */}
               <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-5">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
@@ -1615,6 +1955,13 @@ function DashboardContent() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: STREET ASSISTANT AI SHOPPING CHATBOT
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "assistant" && (
+        <AssistantTab />
       )}
 
       {/* Global Product Modal */}

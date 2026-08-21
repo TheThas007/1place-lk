@@ -3,16 +3,29 @@
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ArrowRight, ShoppingBag, Eye, Heart, Check, Sparkles } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Product, NewArrivalsSettings } from "@/lib/types";
 import { getProducts } from "@/lib/firestore-client";
+import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import QuickViewModal from "@/components/ui/QuickViewModal";
+import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewArrivalsGridBanner from "./NewArrivalsGridBanner";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
-export default function NewArrivalsSection({ initialProducts }: { initialProducts?: Product[] }) {
+export default function NewArrivalsSection({
+  initialProducts,
+  initialSettings,
+}: {
+  initialProducts?: Product[];
+  initialSettings?: NewArrivalsSettings | null;
+}) {
   const [products, setProducts] = useState<Product[]>(initialProducts || []);
+  const [settings, setSettings] = useState<NewArrivalsSettings>(
+    initialSettings || DEFAULT_NEW_ARRIVALS_SETTINGS
+  );
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
@@ -28,16 +41,55 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
     }
   }, [initialProducts]);
 
+  // Real-time Firestore sync for New Arrivals Settings
+  useEffect(() => {
+    try {
+      const docRef = doc(db, "settings", "new_arrivals");
+      const unsubscribe = onSnapshot(
+        docRef,
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data() as NewArrivalsSettings;
+            setSettings((prev) => ({
+              ...DEFAULT_NEW_ARRIVALS_SETTINGS,
+              ...data,
+              custom_product_ids: Array.isArray(data.custom_product_ids)
+                ? data.custom_product_ids
+                : [],
+            }));
+          }
+        },
+        (err) => {
+          console.warn("New Arrivals settings real-time listener error:", err);
+        }
+      );
+      return () => unsubscribe();
+    } catch {}
+  }, []);
+
   // Compute New Arrivals list:
-  // Priority 1: Marked as is_new_arrival === true
-  // Priority 2: Fallback to products ordered by created_at descending
+  // Mode 1: Custom curated list in exact admin specified order
+  // Mode 2: Automatic (Priority: is_new_arrival === true, Fallback: created_at desc)
   const newArrivalProducts = useMemo(() => {
     const activeProducts = products.filter((p) => p.status !== "draft" && p.status !== "inactive");
+    const limitCount = settings.display_count && settings.display_count > 0 ? settings.display_count : 8;
 
+    if (settings.mode === "custom" && settings.custom_product_ids && settings.custom_product_ids.length > 0) {
+      const map = new Map(activeProducts.map((p) => [p.id, p]));
+      const curated = settings.custom_product_ids
+        .map((id) => map.get(id))
+        .filter((p): p is Product => Boolean(p));
+
+      if (curated.length > 0) {
+        return curated.slice(0, limitCount);
+      }
+    }
+
+    // Automatic Mode Fallback
     const markedNew = activeProducts.filter((p) => p.is_new_arrival === true);
 
-    if (markedNew.length >= 4) {
-      return markedNew;
+    if (markedNew.length >= limitCount) {
+      return markedNew.slice(0, limitCount);
     }
 
     // Sort by created_at descending if not enough manually marked products
@@ -49,8 +101,8 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
 
     // Merge markedNew and latest products ensuring uniqueness
     const merged = Array.from(new Set([...markedNew, ...sortedLatest]));
-    return merged.slice(0, 10);
-  }, [products]);
+    return merged.slice(0, limitCount);
+  }, [products, settings]);
 
   const handleAddToCart = (e: React.MouseEvent, product: Product) => {
     e.preventDefault();
@@ -80,22 +132,32 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
     }, 1800);
   };
 
+  if (settings.enabled === false) {
+    return null;
+  }
+
   return (
-    <section className="py-12 sm:py-16 bg-[#FAFAFA] border-b border-neutral-100">
+    <ScrollReveal
+      as="section"
+      id="new-arrivals"
+      stagger={0.06}
+      yOffset={20}
+      className="py-12 sm:py-16 bg-[#FAFAFA] border-b border-neutral-100 font-sans"
+    >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         
         {/* Section Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
+        <div data-reveal-item className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
           <div>
             <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black text-white text-[10px] font-black uppercase tracking-wider mb-2">
               <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
               <span>JUST LANDED</span>
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#090909] tracking-tight">
-              New Arrivals
+              {settings.section_title || "New Arrivals"}
             </h2>
             <p className="text-neutral-500 text-sm sm:text-base mt-1 font-medium">
-              Explore the latest devices and accessories at Street Mobile.
+              {settings.section_subtitle || "Explore the latest devices and accessories at Street Mobile."}
             </p>
           </div>
 
@@ -130,53 +192,51 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
               <React.Fragment key={product.id}>
                 {idx === 2 && <NewArrivalsGridBanner />}
                 <div
+                  data-reveal-item
                   className="group relative bg-white border border-neutral-200/90 rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md hover:border-black hover:-translate-y-1 transition-all duration-300 h-full"
                 >
                   {/* Image Section */}
                   <div className="relative aspect-square bg-[#F7F7F8] p-5 flex items-center justify-center overflow-hidden rounded-t-2xl">
                     
-                    {/* Badges */}
-                    <div className="absolute top-3 left-3 z-10 flex flex-col gap-1.5 items-start">
-                      <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-full uppercase tracking-wider shadow-2xs">
-                        NEW
-                      </span>
-                      {hasDiscount && (
-                        <span className="bg-red-600 text-white text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                          -{discountPercent}%
-                        </span>
-                      )}
-                      {isOutOfStock ? (
+                    {/* Top-Left Out-of-Stock Badge */}
+                    {isOutOfStock && (
+                      <div className="absolute top-3 left-3 z-10">
                         <span className="bg-neutral-800 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
                           Sold Out
                         </span>
-                      ) : isLowStock ? (
-                        <span className="bg-amber-500 text-white text-[10px] font-semibold px-2 py-0.5 rounded-full">
-                          Low Stock
+                      </div>
+                    )}
+
+                    {/* Bottom-Left Discount Badge (Anchored on Image Bottom Edge) */}
+                    {hasDiscount && (
+                      <div className="absolute bottom-0 left-0 z-10">
+                        <span className="bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
+                          -{discountPercent}% OFF
                         </span>
-                      ) : null}
-                    </div>
+                      </div>
+                    )}
 
-                    {/* Top-Right Buttons (Wishlist & Quick View) */}
-                    <div className="absolute top-3 right-3 z-10 flex flex-col gap-2">
-                      <button
-                        type="button"
-                        onClick={() => toggleWishlist(product.id)}
-                        aria-label="Wishlist"
-                        className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
-                      >
-                        <Heart
-                          className={`w-4 h-4 ${isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-600"}`}
-                        />
-                      </button>
-
+                    {/* Bottom-Right Action Buttons (Wishlist & Quick View) */}
+                    <div className="absolute bottom-2.5 right-2.5 z-10 flex items-center gap-1.5">
                       <button
                         type="button"
                         onClick={() => setQuickViewProduct(product)}
                         aria-label="Quick View"
-                        className="w-8 h-8 rounded-full bg-white/90 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
+                        className="w-8 h-8 rounded-full bg-white/95 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
                         title="Quick View"
                       >
                         <Eye className="w-4 h-4 text-neutral-600" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => toggleWishlist(product.id)}
+                        aria-label="Wishlist"
+                        className="w-8 h-8 rounded-full bg-white/95 backdrop-blur border border-neutral-200 flex items-center justify-center text-neutral-700 hover:scale-110 active:scale-95 transition-all shadow-xs"
+                      >
+                        <Heart
+                          className={`w-4 h-4 ${isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-600"}`}
+                        />
                       </button>
                     </div>
 
@@ -228,32 +288,54 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
                       </div>
 
                       {/* Add to Bag Button */}
-                      <button
-                        type="button"
-                        disabled={isOutOfStock}
-                        onClick={(e) => handleAddToCart(e, product)}
-                        className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs ${
-                          isOutOfStock
-                            ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                            : addedMap[product.id]
-                            ? "bg-emerald-600 text-white"
-                            : "bg-black text-white hover:bg-neutral-800"
-                        }`}
-                      >
-                        {addedMap[product.id] ? (
-                          <>
-                            <Check className="w-4 h-4" />
-                            <span>Added</span>
-                          </>
-                        ) : isOutOfStock ? (
-                          <span>Sold Out</span>
-                        ) : (
-                          <>
-                            <ShoppingBag className="w-4 h-4" />
-                            <span>Add to Bag</span>
-                          </>
-                        )}
-                      </button>
+                      {isOutOfStock && (
+                        product.productType === "phone" ||
+                        (product.category_name || "").toLowerCase().includes("phone") ||
+                        (product.category_name || "").toLowerCase().includes("mobile") ||
+                        (product.category_name || "").toLowerCase().includes("smartphone") ||
+                        (product.category_name || "").toLowerCase().includes("laptop") ||
+                        (product.category_name || "").toLowerCase().includes("macbook") ||
+                        (product.category_name || "").toLowerCase().includes("ipad") ||
+                        (product.category_name || "").toLowerCase().includes("tablet") ||
+                        (product.name || "").toLowerCase().includes("iphone") ||
+                        (product.name || "").toLowerCase().includes("galaxy") ||
+                        (product.name || "").toLowerCase().includes("macbook") ||
+                        Boolean(product.hasStorageVariants)
+                      ) ? (
+                        <Link
+                          href={`/products/${product.slug}?book=true`}
+                          className="w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+                        >
+                          <span>Pre-Order / Book</span>
+                        </Link>
+                      ) : (
+                        <button
+                          type="button"
+                          disabled={isOutOfStock}
+                          onClick={(e) => handleAddToCart(e, product)}
+                          className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs ${
+                            isOutOfStock
+                              ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
+                              : addedMap[product.id]
+                              ? "bg-emerald-600 text-white"
+                              : "bg-black text-white hover:bg-neutral-800"
+                          }`}
+                        >
+                          {addedMap[product.id] ? (
+                            <>
+                              <Check className="w-4 h-4" />
+                              <span>Added</span>
+                            </>
+                          ) : isOutOfStock ? (
+                            <span>Sold Out</span>
+                          ) : (
+                            <>
+                              <ShoppingBag className="w-4 h-4" />
+                              <span>Add to Bag</span>
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
 
                   </div>
@@ -271,6 +353,6 @@ export default function NewArrivalsSection({ initialProducts }: { initialProduct
         isOpen={!!quickViewProduct}
         onClose={() => setQuickViewProduct(null)}
       />
-    </section>
+    </ScrollReveal>
   );
 }

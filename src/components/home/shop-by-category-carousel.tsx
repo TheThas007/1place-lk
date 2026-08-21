@@ -135,9 +135,19 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
   const activeCategories = useMemo(() => {
     const source = categories && categories.length > 0 ? categories : fallbackCategories;
-    return source
-      .filter((c) => c.show_on_homepage !== false && c.status !== "inactive")
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    const seen = new Set<string>();
+    const unique: Category[] = [];
+
+    source.forEach((c) => {
+      if (!c || c.show_on_homepage === false || c.status === "inactive") return;
+      const key = (c.id || c.slug || c.name || "").toLowerCase().trim();
+      if (key && !seen.has(key)) {
+        seen.add(key);
+        unique.push(c);
+      }
+    });
+
+    return unique.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [categories]);
 
   // Smooth Slow Auto-Scroll Loop

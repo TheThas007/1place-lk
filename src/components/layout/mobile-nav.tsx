@@ -13,8 +13,14 @@ export default function MobileNav() {
   const { itemCount } = useCart();
   const { wishlist } = useWishlist();
 
-  // Hide bottom nav on admin and checkout routes
-  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) return null;
+  // Hide bottom nav on admin, checkout, and product detail pages (where sticky purchase bar is active)
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/checkout") ||
+    (pathname.startsWith("/products/") && pathname !== "/products")
+  ) {
+    return null;
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 safe-bottom">

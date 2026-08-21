@@ -3,24 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { getProducts } from "@/lib/firestore-client";
 import { products as fallbackProducts } from "@/lib/data";
 import ProductCard from "@/components/products/ProductCard";
-import * as motion from "framer-motion/client";
-
-const containerVariants = {
-  hidden: { opacity: 0 },
-  show: {
-    opacity: 1,
-    transition: { staggerChildren: 0.1 },
-  },
-};
-
-const cardVariants = {
-  hidden: { opacity: 0, y: 20 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { type: "spring" as const, stiffness: 300, damping: 24 },
-  },
-};
+import ScrollReveal from "@/components/ui/ScrollReveal";
 
 const ACCESSORY_CATEGORY_IDS = new Set([
   "8", "9", "10", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"
@@ -55,12 +38,18 @@ export default async function FeaturedAccessories() {
   const featuredAccessories = accessoryProducts.slice(0, 4);
 
   return (
-    <section className="py-16 lg:py-24 bg-background relative overflow-hidden border-t border-white/5">
+    <ScrollReveal
+      as="section"
+      id="featured-accessories"
+      stagger={0.06}
+      yOffset={20}
+      className="py-16 lg:py-24 bg-background relative overflow-hidden border-t border-white/5 font-sans"
+    >
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-purple-500/5 to-emerald-500/5 blur-3xl rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
-        <div className="flex items-end justify-between mb-12">
+        <div data-reveal-item className="flex items-end justify-between mb-12">
           <div>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight text-foreground">
               Accessories
@@ -74,21 +63,15 @@ export default async function FeaturedAccessories() {
           </Link>
         </div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {featuredAccessories.map((product) => (
-            <motion.div key={product.id} variants={cardVariants} className="h-full">
+            <div key={product.id} data-reveal-item className="h-full">
               <ProductCard product={product} />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
-        <div className="mt-8 sm:hidden">
+        <div data-reveal-item className="mt-8 sm:hidden">
           <Link
             href="/products?category=accessories"
             className="flex items-center justify-center gap-2 text-sm font-semibold w-full py-4 border border-zinc-800 rounded-xl hover:bg-zinc-900 transition-colors text-white"
@@ -98,6 +81,6 @@ export default async function FeaturedAccessories() {
           </Link>
         </div>
       </div>
-    </section>
+    </ScrollReveal>
   );
 }

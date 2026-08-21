@@ -73,13 +73,17 @@ export interface Brand {
   logo_alt_text?: string;
   description?: string;
   product_group?: "smartphones" | "laptops" | "accessories" | "audio" | "other";
+  category?: string;
   link_destination?: string;
   monochrome?: boolean;
   sort_order?: number;
+  order?: number;
   mobile_sort_order?: number;
   status?: "active" | "inactive";
   show_on_homepage?: boolean;
+  is_featured?: boolean;
   product_count?: number;
+  logoScale?: number;
 }
 
 export interface ProductColor {
@@ -125,7 +129,7 @@ export interface WarrantyOption {
   duration_value: number | string;
   duration_unit: "months" | "years" | "lifetime" | "unlimited";
   additional_price: number;
-  coverage_details: string;
+  coverage_details?: string;
   exclusions?: string;
   claim_instructions?: string;
   status: "active" | "inactive";
@@ -146,15 +150,29 @@ export interface InventoryLog {
   note?: string;
 }
 
+export interface Subcategory {
+  id: string;
+  name: string;
+  slug: string;
+  parent_category_id: string;
+  parent_category_slug?: string;
+  destination_url?: string;
+  sort_order: number;
+  status: "active" | "inactive";
+  description?: string;
+  is_featured_in_menu?: boolean;
+}
+
 export interface Category {
   id: string;
   name: string;
   slug: string;
-  icon: string;
-  image_url: string;
+  icon?: string;
+  image_url?: string;
   hover_icon_url?: string;
   icon_alt_text?: string;
   link_destination?: string;
+  destination_url?: string;
   target_category_id?: string;
   sort_order: number;
   mobile_sort_order?: number;
@@ -164,7 +182,31 @@ export interface Category {
   status?: "active" | "inactive";
   show_in_selector?: boolean;
   show_on_homepage?: boolean;
+  show_in_menu?: boolean;
+  is_featured_in_menu?: boolean;
   parent_id?: string;
+  subcategories?: Subcategory[];
+}
+
+export interface MegaMenuExploreLink {
+  id: string;
+  label: string;
+  url: string;
+  sort_order: number;
+  is_highlighted?: boolean;
+  status: "active" | "inactive";
+}
+
+export interface MegaMenuSettings {
+  enabled: boolean;
+  column1_heading: string;
+  column2_heading: string;
+  column3_heading: string;
+  selected_category_ids?: string[];
+  selected_subcategory_ids?: string[];
+  explore_links: MegaMenuExploreLink[];
+  last_updated?: string;
+  status?: "draft" | "published";
 }
 
 export interface Review {
@@ -414,6 +456,51 @@ export interface SiteSettings {
 
 export interface UiSettings {
   snowEffectEnabled?: boolean;
+  showFeaturedProducts?: boolean;
+}
+
+export interface NewArrivalsSettings {
+  mode: "automatic" | "custom";
+  display_count: number;
+  custom_product_ids: string[];
+  enabled?: boolean;
+  section_title?: string;
+  section_subtitle?: string;
+}
+
+export interface FooterLink {
+  id: string;
+  label: string;
+  href: string;
+  isExternal?: boolean;
+}
+
+export interface FooterSettings {
+  enabled: boolean;
+  logo_url: string;
+  logo_size?: "small" | "medium" | "large";
+  description: string;
+  shop_links: FooterLink[];
+  help_links: FooterLink[];
+  instagram_url: string;
+  instagram_enabled: boolean;
+  tiktok_url: string;
+  tiktok_enabled: boolean;
+  facebook_url: string;
+  facebook_enabled: boolean;
+  whatsapp_url?: string;
+  whatsapp_enabled?: boolean;
+  copyright_text: string;
+  policy_links: FooterLink[];
+  developer_credit_text: string;
+  developer_credit_url: string;
+}
+
+export interface MotionSettings {
+  enableSmoothScroll: boolean;
+  enableSectionReveals: boolean;
+  motionIntensity: "minimal" | "balanced" | "off" | "standard";
+  enableHeroParallax: boolean;
 }
 
 export interface Service {
@@ -508,3 +595,232 @@ export interface TickerSettings {
   pause_on_hover: boolean;
   updated_at?: string;
 }
+
+// ==========================================
+// VISUAL PRODUCT SHOWCASE (FEATURED FULL-WIDTH SHOWCASE)
+// ==========================================
+
+export interface VisualShowcaseSlide {
+  id: string;
+  enabled: boolean;
+  title?: string;             // Optional: e.g. "iPhone 17 Pro Max" (leave blank for clean image-only banner)
+  subtitle?: string;          // Optional: e.g. "Power. Precision. Pro."
+  desktop_image: string;      // Transparent high-res PNG or WebP
+  mobile_image?: string;      // Optional mobile-specific image
+  image_alt?: string;
+  bg_type?: "color" | "gradient";
+  bg_color?: string;          // e.g. "#FFFFFF" or "#F5F5F7"
+  bg_gradient_from?: string;  // e.g. "#F0F5FA"
+  bg_gradient_to?: string;    // e.g. "#FFFFFF"
+  heading_color?: string;     // Default "#1D1D1F" or custom
+  subtitle_color?: string;    // Default "#6E6E73" or custom
+  primary_cta_text?: string;  // Optional: e.g. "Explore"
+  primary_cta_url?: string;   // Optional: e.g. "/products/iphone-16-pro-max"
+  secondary_cta_text?: string;// Optional: e.g. "Buy Now"
+  secondary_cta_url?: string; // Optional: e.g. "/products/iphone-16-pro-max"
+  show_secondary_cta?: boolean;
+  order?: number;
+  placement?: ShowcasePlacement; // Per-slide placement position on homepage
+  enable_animation?: boolean;    // Toggle floating image animation on/off
+  product_id?: string;
+  category_id?: string;
+}
+
+export interface ShowcaseTile {
+  id: string;
+  title: string;
+  subtitle: string;
+  bg_color: string;
+  text_theme: "dark" | "light";
+  image_url: string;
+  image_alt?: string;
+  primary_button_text: string;
+  primary_button_url: string;
+  show_secondary_button?: boolean;
+  secondary_button_text?: string;
+  secondary_button_url?: string;
+  link_type?: "product" | "category" | "custom";
+  product_id?: string;
+  category_id?: string;
+}
+
+export type ShowcasePlacement =
+  | "below_category"
+  | "above_brand"
+  | "below_brand"
+  | "below_hero"
+  | "below_new_arrivals"
+  | "below_featured_phones"
+  | "below_featured_accessories"
+  | "above_why_choose"
+  | "below_why_choose"
+  | "below_gallery"
+  | "below_reviews"
+  | "above_location";
+
+export interface VisualShowcaseSettings {
+  enabled: boolean;
+  section_title?: string;
+  auto_slide?: boolean;
+  slide_interval?: number; // duration in ms, default 6000 (6s)
+  placement?: ShowcasePlacement; // Position on homepage
+  enable_animation?: boolean;    // Global toggle for floating image animation
+  slides?: VisualShowcaseSlide[];
+  tiles?: ShowcaseTile[]; // fallback for older 2x2 grid data
+  updated_at?: string;
+}
+
+// ===== Street Assistant AI Shopping Chatbot Types =====
+export type AssistantLanguage = "en" | "ta" | "si";
+
+export type AssistantMessageType =
+  | "text"
+  | "product_list"
+  | "comparison"
+  | "order_status"
+  | "contact_info"
+  | "human_handoff"
+  | "quick_actions"
+  | "repairs";
+
+export interface AssistantAction {
+  label: string;
+  action: string;
+  payload?: any;
+  icon?: string;
+}
+
+export interface AssistantProductSummary {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  old_price?: number | null;
+  image: string;
+  storage?: string;
+  color?: string;
+  warranty?: string;
+  stock_status?: string;
+  category_name?: string;
+}
+
+export interface AssistantMessage {
+  id: string;
+  sender: "user" | "assistant" | "system";
+  text: string;
+  timestamp: string;
+  language?: AssistantLanguage;
+  type?: AssistantMessageType;
+  products?: AssistantProductSummary[];
+  comparisonProducts?: AssistantProductSummary[];
+  orderData?: {
+    id: string;
+    customerName: string;
+    paymentStatus: string;
+    orderStatus: string;
+    deliveryOption?: string;
+    estimatedDelivery?: string;
+    finalTotal: number;
+    items: {
+      name: string;
+      quantity: number;
+      price: number;
+      image?: string;
+    }[];
+  };
+  actions?: AssistantAction[];
+}
+
+export interface AssistantFAQ {
+  id: string;
+  category: "products" | "repairs" | "orders" | "warranty" | "payment" | "store";
+  question_en: string;
+  answer_en: string;
+  question_ta?: string;
+  answer_ta?: string;
+  question_si?: string;
+  answer_si?: string;
+  order?: number;
+  created_at?: string;
+}
+
+export interface AssistantSettings {
+  enabled: boolean;
+  assistant_name: string;
+  assistant_subtitle: string;
+  avatar_url?: string;
+  tooltip_text?: string;
+  welcome_message_en?: string;
+  welcome_message_ta?: string;
+  welcome_message_si?: string;
+  supported_languages?: AssistantLanguage[];
+  business_hours?: string;
+  offline_message?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  rate_limit_per_minute?: number;
+  retention_days?: number;
+  updated_at?: string;
+}
+
+export interface AssistantConversation {
+  id: string;
+  sessionId: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  language: AssistantLanguage;
+  messages: AssistantMessage[];
+  status: "active" | "resolved" | "handed_off" | "blocked";
+  notes?: string;
+  rating?: number; // 1-5 satisfaction score
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURED COLLECTIONS (Homepage 2-Column Editorial Grid)
+// ══════════════════════════════════════════════════════════════════════════
+export interface FeaturedCollectionCard {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  primary_cta_text?: string;
+  primary_cta_url?: string;
+  secondary_cta_text?: string;
+  secondary_cta_url?: string;
+  desktop_image_url: string;
+  mobile_image_url?: string;
+  image_alt?: string;
+  image_layout?: "full_card" | "split";
+  image_fit?: "contain" | "cover";
+  focal_position?: "center" | "top" | "bottom" | "left" | "right" | "top left" | "top right" | "bottom left" | "bottom right" | "custom" | string;
+  custom_focal_position?: string;
+  theme?: "light" | "dark";
+  bg_color?: string; // e.g. #F5F5F7, #000000, #FFFFFF
+  text_color?: "auto" | "black" | "white" | "light" | "dark" | string;
+  text_align?: "left" | "center" | "right";
+  content_position?: "top" | "center" | "bottom";
+  overlay_enabled?: boolean;
+  overlay_strength?: number; // 0 to 25%
+  link_type?: "product" | "category" | "brand" | "custom" | "none";
+  link_destination?: string;
+  card_link_url?: string;
+  open_in_new_tab?: boolean;
+  start_date?: string;
+  expiry_date?: string;
+  active: boolean;
+  sort_order: number;
+}
+
+export interface FeaturedCollectionsSettings {
+  enabled: boolean;
+  title?: string;
+  subtitle?: string;
+  cards: FeaturedCollectionCard[];
+}
+

@@ -25,6 +25,7 @@ import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import AuthModal from "@/components/auth/AuthModal";
 import CartDrawer from "@/components/cart/CartDrawer";
+import MegaMenu from "@/components/layout/MegaMenu";
 import { categories as fallbackCategories } from "@/lib/data";
 import { getCategories } from "@/lib/firestore-client";
 import { Category } from "@/lib/types";
@@ -41,7 +42,8 @@ export default function Header() {
   const [catList, setCatList] = useState<Category[]>(fallbackCategories);
 
   const categoriesRef = useRef<HTMLDivElement>(null);
-  const hoverTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const closeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const headerRef = useRef<HTMLElement>(null);
   const pathname = usePathname();
   const { user, signOut } = useAuth();
@@ -130,14 +132,30 @@ export default function Header() {
   }, []);
 
   const handleMouseEnterCategories = () => {
-    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
-    setIsCategoriesOpen(true);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    openTimeoutRef.current = setTimeout(() => {
+      setIsCategoriesOpen(true);
+    }, 140); // 140ms intentional hover delay
   };
 
   const handleMouseLeaveCategories = () => {
-    hoverTimeoutRef.current = setTimeout(() => {
+    if (openTimeoutRef.current) clearTimeout(openTimeoutRef.current);
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
       setIsCategoriesOpen(false);
-    }, 150);
+    }, 160); // 160ms closing buffer
+  };
+
+  const handleMouseEnterMegaMenu = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+  };
+
+  const handleMouseLeaveMegaMenu = () => {
+    if (closeTimeoutRef.current) clearTimeout(closeTimeoutRef.current);
+    closeTimeoutRef.current = setTimeout(() => {
+      setIsCategoriesOpen(false);
+    }, 160);
   };
 
   const initials = user?.displayName
@@ -146,22 +164,36 @@ export default function Header() {
 
   // Deduplicate categories & exclude brand names for clean presentation
   const uniqueNavCategories = useMemo(() => {
-    const map = new Map<string, Category>();
+    const seenIds = new Set<string>();
+    const seenSlugs = new Set<string>();
+    const seenNames = new Set<string>();
     const brandLowerList = KNOWN_BRAND_NAMES.map((b) => b.toLowerCase());
     
     // Combine Firestore categories + fallbackCategories
     const all = [...catList, ...fallbackCategories];
+    const unique: Category[] = [];
+
     all.forEach((c) => {
-      if (
-        c &&
-        c.name &&
-        !brandLowerList.includes(c.name.toLowerCase().trim()) &&
-        !map.has(c.name.toLowerCase().trim())
-      ) {
-        map.set(c.name.toLowerCase().trim(), c);
-      }
+      if (!c || !c.name) return;
+      const cleanName = c.name.toLowerCase().trim();
+      const cleanId = (c.id || "").toLowerCase().trim();
+      const cleanSlug = (c.slug || "").toLowerCase().trim();
+
+      if (brandLowerList.includes(cleanName)) return;
+
+      // Skip if already seen by ID, slug, or name
+      if (cleanId && seenIds.has(cleanId)) return;
+      if (cleanSlug && seenSlugs.has(cleanSlug)) return;
+      if (seenNames.has(cleanName)) return;
+
+      if (cleanId) seenIds.add(cleanId);
+      if (cleanSlug) seenSlugs.add(cleanSlug);
+      seenNames.add(cleanName);
+
+      unique.push(c);
     });
-    return Array.from(map.values()).sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
+
+    return unique.sort((a, b) => (a.sort_order || 99) - (b.sort_order || 99));
   }, [catList]);
 
   return (
@@ -268,7 +300,7 @@ export default function Header() {
                 <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-full transition-all duration-300 group-hover:w-3/4" />
               </Link>
 
-              {/* 3. Categories Link + Apple Minimal Dropdown */}
+              {/* 3. Shop by Category Mega Menu Trigger */}
               <div
                 ref={categoriesRef}
                 className="relative"
@@ -278,12 +310,14 @@ export default function Header() {
                 <button
                   onClick={() => setIsCategoriesOpen(!isCategoriesOpen)}
                   onFocus={() => setIsCategoriesOpen(true)}
+                  aria-expanded={isCategoriesOpen}
+                  aria-haspopup="true"
                   className={cn(
                     "relative px-4 py-2 rounded-lg text-[13px] font-medium transition-all duration-300 flex items-center gap-1.5 group focus:outline-none focus-visible:ring-2 focus-visible:ring-white",
                     isCategoriesOpen ? "text-white" : "text-white/50 hover:text-white"
                   )}
                 >
-                  <span className="relative z-10">Categories</span>
+                  <span className="relative z-10">Shop by Category</span>
                   <ChevronDown
                     className={cn(
                       "w-3.5 h-3.5 transition-transform duration-200 relative z-10",
@@ -299,65 +333,6 @@ export default function Header() {
                   )}
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-full transition-all duration-300 group-hover:w-3/4" />
                 </button>
-
-                {/* Clean White Apple-Inspired Mega Menu Dropdown */}
-                <AnimatePresence>
-                  {isCategoriesOpen && (
-                    <motion.div
-                      initial={{ opacity: 0, y: -6, scale: 0.98 }}
-                      animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: -6, scale: 0.98 }}
-                      transition={{ duration: 0.18, ease: "easeOut" }}
-                      className="absolute left-1/2 -translate-x-1/2 top-full mt-2.5 w-[560px] bg-white border border-[#EAEAEA] rounded-[20px] shadow-[0_16px_50px_rgba(0,0,0,0.12)] p-5 sm:p-6 z-50 text-black"
-                    >
-                      <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100 px-1">
-                        <span className="text-[11px] font-black uppercase tracking-wider text-gray-400">
-                          Product Categories ({uniqueNavCategories.length})
-                        </span>
-                        <span className="text-[10px] font-bold text-blue-600 bg-blue-50 px-2.5 py-0.5 rounded-full border border-blue-100">
-                          Official Sri Lanka Warranty
-                        </span>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-1 custom-scrollbar">
-                        {uniqueNavCategories.map((cat) => {
-                          const icon = cat.icon || "📱";
-                          return (
-                            <Link
-                              key={cat.id || cat.slug}
-                              href={`/products?category=${cat.slug}`}
-                              onClick={() => setIsCategoriesOpen(false)}
-                              className="group flex items-center justify-between min-h-[46px] px-3.5 py-2.5 rounded-xl bg-[#FAFAFA] hover:bg-black transition-all duration-200 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-black"
-                            >
-                              <div className="flex items-center gap-3 min-w-0">
-                                <span className="text-base shrink-0 group-hover:scale-110 transition-transform">
-                                  {icon}
-                                </span>
-                                <span className="text-xs font-extrabold text-gray-900 group-hover:text-white truncate">
-                                  {cat.name}
-                                </span>
-                              </div>
-                              <ChevronRight className="w-3.5 h-3.5 text-gray-400 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
-                            </Link>
-                          );
-                        })}
-                      </div>
-
-                      {/* Dropdown Footer */}
-                      <div className="mt-4 pt-3 border-t border-[#EAEAEA] flex items-center justify-between px-1">
-                        <span className="text-[11px] text-gray-500 font-medium">Looking for a specific device?</span>
-                        <Link
-                          href="/products"
-                          onClick={() => setIsCategoriesOpen(false)}
-                          className="inline-flex items-center gap-1.5 text-xs font-extrabold text-black hover:text-blue-600 transition-colors"
-                        >
-                          <span>Browse All Catalog</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </motion.div>
-                  )}
-                </AnimatePresence>
               </div>
 
               {/* 4. Contact Link */}
@@ -381,73 +356,95 @@ export default function Header() {
             </nav>
 
             {/* Right Icons / Actions */}
-            <div className="flex items-center gap-1.5">
-              {/* Search button */}
+            <div className="flex items-center gap-2 lg:gap-2.5">
+              {/* Highlighted Desktop Search Bar Control */}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-                className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                aria-label="Search site"
+                className="hidden md:flex items-center gap-2.5 px-3.5 h-[42px] w-[280px] lg:w-[300px] xl:w-[320px] rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 focus-visible:border-white/30 transition-all duration-200 ease-out text-left group cursor-pointer"
+                aria-label="Search devices, accessories and brands"
               >
-                <Search className="w-5 h-5" />
+                <Search className="w-[18px] h-[18px] text-white/50 group-hover:text-white/80 transition-colors shrink-0" strokeWidth={1.75} />
+                <span className="text-[13px] text-white/50 group-hover:text-white/70 font-normal truncate select-none">
+                  Search products...
+                </span>
+                <kbd className="hidden xl:inline-flex items-center justify-center px-1.5 min-w-[24px] h-[20px] text-[10px] font-medium font-mono text-white/40 bg-white/[0.06] border border-white/[0.1] rounded-[4px] leading-none ml-auto select-none">
+                  ⌘K
+                </kbd>
               </button>
 
               {/* Wishlist button */}
-              <Link
-                href="/wishlist"
-                className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                aria-label="Open wishlist"
-              >
-                <Heart className="w-5 h-5" />
-                {wishlist.length > 0 && (
-                  <motion.span
-                    key={wishlist.length}
-                    initial={{ scale: 0.5 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full leading-none shadow-md shadow-red-600/50"
-                  >
-                    {wishlist.length}
-                  </motion.span>
-                )}
-              </Link>
+              <div className="group/item relative flex items-center justify-center">
+                <Link
+                  href="/wishlist"
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200 relative"
+                  aria-label="Open wishlist"
+                >
+                  <Heart className="w-[20px] h-[20px]" strokeWidth={1.75} />
+                  {wishlist.length > 0 && (
+                    <motion.span
+                      key={wishlist.length}
+                      initial={{ scale: 0.6 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
+                    >
+                      {wishlist.length}
+                    </motion.span>
+                  )}
+                </Link>
+                {/* Accessible Tooltip */}
+                <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-[#18181b] border border-white/10 text-white/90 text-[10px] font-medium tracking-normal whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150 shadow-md z-50">
+                  Wishlist
+                </span>
+              </div>
 
-              {/* Bag icon */}
-              <Link
-                href="/cart"
-                className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
-                aria-label="View Shopping Bag"
-              >
-                <ShoppingBag className="w-5 h-5" />
-                {itemCount === 0 ? (
-                  <span className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-gray-700/90 text-white text-[10px] font-black rounded-full leading-none border border-white/30">
-                    0
-                  </span>
-                ) : (
-                  <motion.span
-                    key={itemCount}
-                    initial={{ scale: 0.5 }}
-                    animate={{ scale: 1 }}
-                    className="absolute -top-0.5 -right-0.5 min-w-[18px] h-[18px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-black rounded-full leading-none shadow-md shadow-red-600/50"
-                  >
-                    {itemCount > 99 ? "99+" : itemCount}
-                  </motion.span>
-                )}
-              </Link>
+              {/* Bag / Cart icon */}
+              <div className="group/item relative flex items-center justify-center">
+                <Link
+                  href="/cart"
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200 relative"
+                  aria-label="View Shopping Bag"
+                >
+                  <ShoppingBag className="w-[20px] h-[20px]" strokeWidth={1.75} />
+                  {itemCount > 0 && (
+                    <motion.span
+                      key={itemCount}
+                      initial={{ scale: 0.6 }}
+                      animate={{ scale: 1 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
+                    >
+                      {itemCount > 99 ? "99+" : itemCount}
+                    </motion.span>
+                  )}
+                </Link>
+                {/* Accessible Tooltip */}
+                <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-[#18181b] border border-white/10 text-white/90 text-[10px] font-medium tracking-normal whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150 shadow-md z-50">
+                  Shopping Bag
+                </span>
+              </div>
 
-              {/* User icon / avatar */}
-              <div className="relative">
+              {/* User icon / Profile avatar */}
+              <div className="group/item relative flex items-center justify-center">
                 <button
                   onClick={() => (user ? setUserMenuOpen(!userMenuOpen) : setAuthOpen(true))}
-                  className="p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-all"
+                  className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200"
                   aria-label={user ? "Account menu" : "Sign in"}
                 >
                   {user ? (
-                    <span className="w-6 h-6 rounded-full bg-white text-black text-xs font-black flex items-center justify-center">
+                    <span className="w-[32px] h-[32px] rounded-full bg-white text-black text-[11px] font-bold tracking-tight flex items-center justify-center border border-white/20 shadow-xs select-none">
                       {initials}
                     </span>
                   ) : (
-                    <User className="w-5 h-5" />
+                    <User className="w-[20px] h-[20px]" strokeWidth={1.75} />
                   )}
                 </button>
+                {/* Accessible Tooltip */}
+                {!userMenuOpen && (
+                  <span className="pointer-events-none absolute -bottom-9 left-1/2 -translate-x-1/2 px-2 py-1 rounded-md bg-[#18181b] border border-white/10 text-white/90 text-[10px] font-medium tracking-normal whitespace-nowrap opacity-0 group-hover/item:opacity-100 transition-opacity duration-150 shadow-md z-50">
+                    {user ? "Account" : "Sign In"}
+                  </span>
+                )}
 
                 {/* User dropdown */}
                 <AnimatePresence>
@@ -523,6 +520,26 @@ export default function Header() {
           </div>
         </div>
 
+        {/* ── Mobile Full-Width Search Row (Row 2 on screens < 768px) ── */}
+        <div className="md:hidden px-4 pb-2.5 pt-0.5">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
+            className="w-full h-[40px] px-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 flex items-center justify-between text-left text-white/50 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
+            aria-label="Search phones, brands and accessories"
+          >
+            <div className="flex items-center gap-2.5 min-w-0">
+              <Search className="w-4 h-4 text-white/50 shrink-0" />
+              <span className="text-xs font-medium text-white/50 truncate">
+                Search phones, brands & accessories...
+              </span>
+            </div>
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/70 shrink-0">
+              Search
+            </span>
+          </button>
+        </div>
+
         {/* Bottom glow line */}
         <div className="absolute bottom-0 left-0 right-0 h-[1px] overflow-hidden">
           <motion.div
@@ -536,6 +553,15 @@ export default function Header() {
           />
         </div>
       </motion.header>
+
+      {/* Apple-Inspired Full-Width Text-Based Mega Menu Dropdown */}
+      <MegaMenu
+        isOpen={isCategoriesOpen}
+        onClose={() => setIsCategoriesOpen(false)}
+        onMouseEnter={handleMouseEnterMegaMenu}
+        onMouseLeave={handleMouseLeaveMegaMenu}
+        categories={uniqueNavCategories}
+      />
 
       {/* Mobile Menu */}
       <AnimatePresence>
@@ -574,6 +600,20 @@ export default function Header() {
               </div>
 
               <nav className="flex-1 overflow-y-auto py-3 px-3">
+                {/* Mobile Drawer Search Bar Button */}
+                <div className="px-1 mb-3">
+                  <button
+                    onClick={() => {
+                      setIsMobileMenuOpen(false);
+                      window.dispatchEvent(new CustomEvent("open-search-overlay"));
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.15] rounded-2xl text-left text-xs font-semibold text-white/70 hover:text-white transition-all shadow-sm"
+                  >
+                    <Search className="w-4 h-4 text-emerald-400" />
+                    <span>Search phones, accessories, brands...</span>
+                  </button>
+                </div>
+
                 {/* Mobile Link 1: Home */}
                 <Link
                   href="/"
@@ -604,10 +644,11 @@ export default function Header() {
                   <ChevronRight className="w-4 h-4 text-white/20 group-hover:text-white/40" />
                 </Link>
 
-                {/* Mobile Link 3: Categories Collapsible Accordion */}
+                {/* Mobile Link 3: Shop by Category Text-Based Accordion */}
                 <div className="mb-1">
                   <button
                     onClick={() => setIsMobileCategoriesOpen(!isMobileCategoriesOpen)}
+                    aria-expanded={isMobileCategoriesOpen}
                     className={cn(
                       "flex items-center justify-between w-full px-4 py-3.5 rounded-xl text-sm font-medium transition-all group min-h-[44px]",
                       isMobileCategoriesOpen
@@ -615,7 +656,7 @@ export default function Header() {
                         : "text-white/50 hover:text-white hover:bg-white/[0.04]"
                     )}
                   >
-                    <span>Categories</span>
+                    <span>Shop by Category</span>
                     <ChevronDown
                       className={cn(
                         "w-4 h-4 transition-transform duration-200",
@@ -630,30 +671,61 @@ export default function Header() {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden pl-4 py-2 space-y-1"
+                        className="overflow-hidden pl-2 py-2 space-y-1"
                       >
+                        {/* Prominent Shop All Products */}
                         <Link
                           href="/products"
                           onClick={() => setIsMobileMenuOpen(false)}
-                          className="flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold text-emerald-400 bg-white/[0.04] min-h-[44px]"
+                          className="flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-bold text-white bg-white/[0.06] hover:bg-white/10 transition-all min-h-[44px]"
                         >
-                          <span>View All Products</span>
-                          <ArrowRight className="w-3.5 h-3.5" />
+                          <span>Shop All Products</span>
+                          <ArrowRight className="w-3.5 h-3.5 text-white/60" />
                         </Link>
-                        {uniqueNavCategories.map((cat) => (
+
+                        {/* Pure Text Category List (No Icons/Logos) */}
+                        {uniqueNavCategories.map((cat, idx) => (
                           <Link
-                            key={cat.id || cat.slug}
-                            href={`/products?category=${cat.slug}`}
+                            key={`nav-mobile-${cat.id || cat.slug || idx}`}
+                            href={cat.destination_url || `/products?category=${cat.slug}`}
                             onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-3 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                            className="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
                           >
-                            <span className="flex items-center gap-2.5">
-                              <span className="text-sm">{cat.icon || "📱"}</span>
-                              <span>{cat.name}</span>
-                            </span>
+                            <span className="truncate">{cat.name}</span>
                             <ChevronRight className="w-3.5 h-3.5 text-white/20" />
                           </Link>
                         ))}
+
+                        {/* Supporting Explore Links */}
+                        <div className="pt-2 mt-2 border-t border-white/[0.06]">
+                          <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-3.5 block mb-1">
+                            More to Explore
+                          </span>
+                          <Link
+                            href="/products?sort=newest"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                          >
+                            <span>New Arrivals</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                          </Link>
+                          <Link
+                            href="/products?sort=featured"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                          >
+                            <span>Best Sellers</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                          </Link>
+                          <Link
+                            href="/products?discount=true"
+                            onClick={() => setIsMobileMenuOpen(false)}
+                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
+                          >
+                            <span>Latest Offers</span>
+                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                          </Link>
+                        </div>
                       </motion.div>
                     )}
                   </AnimatePresence>

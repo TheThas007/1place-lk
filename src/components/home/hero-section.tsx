@@ -1,43 +1,116 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
-import { getHeroSlides } from "@/lib/firestore-client";
+import { db } from "@/lib/firebase";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { DEFAULT_HERO_SLIDES } from "@/lib/data";
 import { HeroSlide } from "@/lib/types";
+import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 export default function HeroSection() {
-  const [slides, setSlides] = useState<HeroSlide[]>([]);
+  const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const heroRef = useRef<HTMLDivElement | null>(null);
+  const heroBgRef = useRef<HTMLDivElement | null>(null);
+  const heroContentRef = useRef<HTMLDivElement | null>(null);
+  const { motionSettings, isReducedMotion } = useSmoothScroll();
 
+  // Subtle Apple-inspired scroll-linked hero parallax and scale
   useEffect(() => {
-    async function loadSlides() {
-      try {
-        const fetched = await getHeroSlides();
-        const activeOnly = fetched.filter((s) => s.active !== false);
-        if (activeOnly.length > 0) {
-          setSlides(activeOnly);
-        }
-      } catch (err) {
-        console.warn("Failed to load hero slides from Firestore:", err);
+    if (isReducedMotion || motionSettings.enableHeroParallax === false) return;
+    const heroEl = heroRef.current;
+    const bgEl = heroBgRef.current;
+    const contentEl = heroContentRef.current;
+    if (!heroEl) return;
+
+    const isMobile = window.innerWidth < 768;
+    const maxTranslateY = isMobile ? -15 : -30;
+
+    const ctx = gsap.context(() => {
+      if (bgEl) {
+        gsap.fromTo(
+          bgEl,
+          { scale: 1.03 },
+          {
+            scale: 1.0,
+            ease: "none",
+            scrollTrigger: {
+              trigger: heroEl,
+              start: "top top",
+              end: "bottom top",
+              scrub: 0.5,
+            },
+          }
+        );
       }
+
+      if (contentEl) {
+        gsap.to(contentEl, {
+          y: maxTranslateY,
+          opacity: 0.88,
+          ease: "none",
+          scrollTrigger: {
+            trigger: heroEl,
+            start: "top top",
+            end: "bottom top",
+            scrub: 0.5,
+          },
+        });
+      }
+    }, heroRef);
+
+    return () => ctx.revert();
+  }, [isReducedMotion, motionSettings.enableHeroParallax]);
+
+  // Real-time Firestore synchronization with fallback
+  useEffect(() => {
+    try {
+      const q = query(collection(db, "hero_slides"));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const fetched = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as HeroSlide));
+            const activeOnly = fetched.filter((s) => s.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+            if (activeOnly.length > 0) {
+              setSlides(activeOnly);
+              return;
+            }
+          }
+          setSlides(DEFAULT_HERO_SLIDES);
+        },
+        (err) => {
+          console.warn("Firestore hero_slides listener fallback:", err);
+          setSlides(DEFAULT_HERO_SLIDES);
+        }
+      );
+      return () => unsubscribe();
+    } catch {
+      setSlides(DEFAULT_HERO_SLIDES);
     }
-    loadSlides();
   }, []);
 
-  // Auto-play interval (5 seconds)
+  // Continuous auto-play rotation every 4.5 seconds (pauses on hover)
   useEffect(() => {
     if (slides.length <= 1 || isPaused) return;
     const timer = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % slides.length);
-    }, 5000);
+    }, 4500);
     return () => clearInterval(timer);
   }, [slides.length, isPaused]);
 
   if (slides.length === 0) {
-    return null; // Silent clean render when no active slides in DB
+    return null;
   }
 
   const handlePrev = () => {
@@ -137,75 +210,71 @@ export default function HeroSection() {
     return lower.includes("whatsapp") || lower.includes("wa.me") || lower.includes("api.whatsapp");
   };
 
-  const heroHeight = "calc(100svh - var(--navbar-height) - var(--ticker-height))";
-  const heroHeightFallback = "calc(100vh - var(--navbar-height) - var(--ticker-height))";
-
   return (
     <section
-      className="group relative w-full w-screen max-w-full bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0"
+      ref={heroRef}
+      className="group relative w-full w-screen max-w-full bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0 h-[500px] sm:h-[540px] md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] min-h-[460px] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] max-h-[580px] md:max-h-none"
       style={{
         fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-        height: heroHeight,
-        minHeight: heroHeight,
-        // @ts-expect-error -- fallback for browsers without svh support
-        "--hero-h-fallback": heroHeightFallback,
       }}
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* ── Background Carousel Layer (100vw Edge-to-Edge with 1.02 scale animation) ── */}
-      <AnimatePresence mode="wait">
-        <motion.div
-          key={currentSlide.id || currentIndex}
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className="absolute inset-0 z-0 w-full h-full overflow-hidden"
-        >
-          {/* Desktop Background Image with subtle cinematic scale */}
-          <motion.img
-            key={`img-desktop-${currentIndex}`}
-            initial={{ scale: 1.02 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            src={desktopBg}
-            alt={currentSlide.alt || line1Text || "Hero Banner"}
-            className="hidden lg:block w-full h-full object-cover"
-            style={{
-              objectPosition: currentSlide.desktop_image_position || "center",
-            }}
-          />
-          {/* Mobile Background Image */}
-          <motion.img
-            key={`img-mobile-${currentIndex}`}
-            initial={{ scale: 1.02 }}
-            animate={{ scale: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            src={mobileBg}
-            alt={currentSlide.alt || line1Text || "Hero Banner"}
-            className="lg:hidden w-full h-full object-cover"
-            style={{
-              objectPosition: currentSlide.mobile_image_position || "center",
-            }}
-          />
+      {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
+      <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentSlide.id || currentIndex}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
+            className="absolute inset-0 w-full h-full"
+          >
+            {/* Desktop Background Image with subtle cinematic scale */}
+            <motion.img
+              key={`img-desktop-${currentIndex}`}
+              initial={{ scale: 1.02 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              src={desktopBg}
+              alt={currentSlide.alt || line1Text || "Hero Banner"}
+              className="hidden lg:block w-full h-full object-cover"
+              style={{
+                objectPosition: currentSlide.desktop_image_position || "center",
+              }}
+            />
+            {/* Mobile Background Image */}
+            <motion.img
+              key={`img-mobile-${currentIndex}`}
+              initial={{ scale: 1.02 }}
+              animate={{ scale: 1 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              src={mobileBg}
+              alt={currentSlide.alt || line1Text || "Hero Banner"}
+              className="lg:hidden w-full h-full object-cover"
+              style={{
+                objectPosition: currentSlide.mobile_image_position || "center",
+              }}
+            />
 
-          {/* Dynamic Admin Custom Overlay Color & Opacity */}
-          <div
-            className="absolute inset-0 z-10 transition-all duration-500"
-            style={{
-              backgroundColor: currentSlide.overlay_color || "#000000",
-              opacity: (currentSlide.overlay_opacity ?? 35) / 100,
-            }}
-          />
+            {/* Dynamic Admin Custom Overlay Color & Opacity */}
+            <div
+              className="absolute inset-0 z-10 transition-all duration-500"
+              style={{
+                backgroundColor: currentSlide.overlay_color || "#000000",
+                opacity: (currentSlide.overlay_opacity ?? 35) / 100,
+              }}
+            />
 
-          {/* Controlled Cinematic Left-to-Right Gradient (0%: 0.88 -> 42%: 0.55 -> 65%: 0.08 -> 100%: 0) */}
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.88)_0%,rgba(5,5,5,0.55)_42%,rgba(5,5,5,0.08)_65%,transparent_100%)] z-10 pointer-events-none" />
-        </motion.div>
-      </AnimatePresence>
+            {/* Controlled Cinematic Left-to-Right Gradient (0%: 0.88 -> 42%: 0.55 -> 65%: 0.08 -> 100%: 0) */}
+            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.88)_0%,rgba(5,5,5,0.55)_42%,rgba(5,5,5,0.08)_65%,transparent_100%)] z-10 pointer-events-none" />
+          </motion.div>
+        </AnimatePresence>
+      </div>
 
-      {/* ── Aligned Content Container (Matches max 1400px Navbar Logo Line) ── */}
-      <div className={`relative z-20 max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full h-full flex ${vertAlignClass} ${horizAlignClass}`}>
+      {/* ── Aligned Content Container (Matches max 1400px Navbar Logo Line with subtle scroll translation) ── */}
+      <div ref={heroContentRef} className={`relative z-20 max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full h-full flex ${vertAlignClass} ${horizAlignClass}`}>
         <div className={`${maxWClass} flex flex-col ${textAlignClass} w-full`} style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}>
 
           <AnimatePresence mode="wait">
@@ -237,13 +306,13 @@ export default function HeroSection() {
               )}
 
               {/* 2. Main Dual-Line Heading (Manrope 750/800, 56px / clamp, gap 4px, 24px bottom margin) */}
-              <div className="hero-heading flex flex-col gap-[4px] mb-[24px] w-full max-w-[720px]">
+              <div className="hero-heading flex flex-col gap-[2px] sm:gap-[4px] mb-[14px] sm:mb-[24px] w-full max-w-[720px]">
                 {showLine1 && (
                   <motion.span
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.08 }}
-                    className="block leading-[1.02] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[34px] sm:text-[42px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
+                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[28px] sm:text-[38px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
                     style={{
                       color: line1Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -257,7 +326,7 @@ export default function HeroSection() {
                     initial={{ opacity: 0, y: 12 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.5, delay: 0.16 }}
-                    className="block leading-[1.02] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[34px] sm:text-[42px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
+                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[28px] sm:text-[38px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
                     style={{
                       color: line2Color,
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -274,7 +343,7 @@ export default function HeroSection() {
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.24 }}
-                  className="text-[17px] leading-[1.6] font-medium max-w-[520px] lg:line-clamp-2 drop-shadow-md break-normal whitespace-normal hyphens-none mb-[30px]"
+                  className="text-[13px] sm:text-[15px] md:text-[17px] leading-[1.5] font-medium max-w-[520px] line-clamp-2 md:line-clamp-none drop-shadow-md break-normal whitespace-normal hyphens-none mb-[18px] sm:mb-[30px]"
                   style={{
                     color: currentSlide.description_color || "#D1D5DB",
                     fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
@@ -284,20 +353,20 @@ export default function HeroSection() {
                 </motion.p>
               )}
 
-              {/* 4. Compact Premium CTA Buttons (Height 52px, Padding 28px, Radius 12px, 14px 700 weight, 12px gap) */}
+              {/* 4. Compact Premium CTA Buttons (Height 48px on mobile, 52px on desktop) */}
               <motion.div
                 initial={{ opacity: 0, y: 12 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, delay: 0.32 }}
-                className={`flex flex-col sm:flex-row items-center gap-[12px] w-full sm:w-auto ${
+                className={`flex flex-row items-center gap-[10px] sm:gap-[12px] w-full sm:w-auto ${
                   currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
                 }`}
               >
-                {/* Primary Solid Button with lift hover & circular arrow badge */}
+                {/* Primary Solid Button */}
                 {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
                   <Link
                     href={currentSlide.primary_button_url || "/products"}
-                    className="group/btn w-full sm:w-auto h-[52px] px-[28px] rounded-[12px] font-bold text-[14px] shadow-xl transition-all duration-300 flex items-center justify-center gap-3 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0"
+                    className="group/btn flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] shadow-xl transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0"
                     style={{
                       color: currentSlide.button_text_color || "#000000",
                       backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
@@ -305,8 +374,8 @@ export default function HeroSection() {
                     }}
                   >
                     <span>{currentSlide.primary_button_text}</span>
-                    <span className="w-6 h-6 rounded-full bg-black/10 flex items-center justify-center transition-transform duration-300 group-hover/btn:translate-x-1">
-                      <ArrowRight className="w-3.5 h-3.5" />
+                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-black/10 flex items-center justify-center transition-transform duration-300 group-hover/btn:translate-x-1">
+                      <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     </span>
                   </Link>
                 )}
@@ -317,7 +386,7 @@ export default function HeroSection() {
                     href={currentSlide.secondary_button_url || "#"}
                     target={currentSlide.secondary_button_url?.startsWith("http") ? "_blank" : "_self"}
                     rel="noopener noreferrer"
-                    className="group/sec w-full sm:w-auto h-[52px] px-[28px] rounded-[12px] font-bold text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md"
+                    className="group/sec flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md"
                     style={{
                       color: currentSlide.secondary_button_text_color || "#FFFFFF",
                       backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
@@ -326,34 +395,34 @@ export default function HeroSection() {
                     }}
                   >
                     {isWhatsAppAction(currentSlide.secondary_button_url) ? (
-                      <MessageCircle className="w-4 h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
+                      <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
                     ) : (
-                      <ArrowRight className="w-4 h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
+                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
                     )}
                     <span>{currentSlide.secondary_button_text}</span>
                   </a>
                 )}
               </motion.div>
 
-              {/* 5. Minimal Trust Strip (34px top spacing, outline icons, 12px labels, subtle separators) */}
+              {/* 5. Minimal Trust Strip */}
               {currentSlide.show_trust_strip !== false && (
                 <motion.div
                   initial={{ opacity: 0, y: 12 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.5, delay: 0.40 }}
-                  className="mt-[34px] flex flex-wrap items-center gap-3 sm:gap-4 text-[12px] font-medium text-white/70 tracking-wide"
+                  className="mt-[16px] sm:mt-[34px] flex items-center gap-2.5 sm:gap-4 overflow-x-auto scrollbar-none text-[11px] sm:text-[12px] font-medium text-white/70 tracking-wide pb-1"
                 >
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span>{currentSlide.trust_item_1 || "Genuine Products"}</span>
                   </div>
-                  <span className="text-white/30 text-[10px]">•</span>
-                  <div className="flex items-center gap-1.5">
+                  <span className="text-white/30 text-[10px] shrink-0">•</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span>{currentSlide.trust_item_2 || "Islandwide Delivery"}</span>
                   </div>
-                  <span className="text-white/30 text-[10px]">•</span>
-                  <div className="flex items-center gap-1.5">
+                  <span className="text-white/30 text-[10px] shrink-0">•</span>
+                  <div className="flex items-center gap-1.5 shrink-0">
                     <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
                     <span>{currentSlide.trust_item_3 || "Secure Payments"}</span>
                   </div>

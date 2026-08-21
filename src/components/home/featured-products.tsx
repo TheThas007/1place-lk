@@ -1,9 +1,14 @@
+"use client";
+
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { getProducts } from "@/lib/firestore-client";
 import { products as fallbackProducts } from "@/lib/data";
 import ProductCard from "@/components/products/ProductCard";
-import * as motion from "framer-motion/client";
+import { motion } from "framer-motion";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import { Product } from "@/lib/types";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -22,16 +27,45 @@ const cardVariants = {
   },
 };
 
-export default async function FeaturedProducts() {
-  let allProducts: typeof fallbackProducts = [];
-  try {
-    allProducts = await getProducts();
-  } catch (err) {
-    console.error("Failed to fetch products from Firestore:", err);
-  }
+import ScrollReveal from "@/components/ui/ScrollReveal";
 
-  if (!allProducts || allProducts.length === 0) {
-    allProducts = fallbackProducts;
+export default function FeaturedProducts({
+  initialProducts,
+  initialVisible = true,
+}: {
+  initialProducts?: Product[];
+  initialVisible?: boolean;
+}) {
+  const [isVisible, setIsVisible] = useState(initialVisible);
+  const [allProducts] = useState<Product[]>(initialProducts && initialProducts.length > 0 ? initialProducts : fallbackProducts);
+
+  // Real-time Firestore sync on settings/ui
+  useEffect(() => {
+    try {
+      const docRef = doc(db, "settings", "ui");
+      const unsubscribe = onSnapshot(
+        docRef,
+        (snap) => {
+          if (snap.exists()) {
+            const data = snap.data();
+            if (data.showFeaturedProducts !== undefined) {
+              setIsVisible(data.showFeaturedProducts !== false);
+            }
+          }
+        },
+        () => {
+          setIsVisible(true);
+        }
+      );
+      return () => unsubscribe();
+    } catch {
+      setIsVisible(true);
+    }
+  }, []);
+
+  // When disabled, completely remove from the DOM with zero empty space or margin
+  if (!isVisible) {
+    return null;
   }
 
   let featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
@@ -40,12 +74,18 @@ export default async function FeaturedProducts() {
   }
 
   return (
-    <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
+    <ScrollReveal
+      as="section"
+      id="featured-products"
+      stagger={0.06}
+      yOffset={20}
+      className="pt-16 pb-6 sm:pt-20 sm:pb-8 lg:pt-24 lg:pb-10 bg-background relative overflow-hidden font-sans"
+    >
       {/* Background Glow */}
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-emerald-500/5 to-purple-500/5 blur-3xl rounded-full pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
-        <div className="flex items-end justify-between mb-12">
+        <div data-reveal-item className="flex items-end justify-between mb-12">
           <div>
             <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2 text-foreground">
               Featured Products
@@ -60,21 +100,15 @@ export default async function FeaturedProducts() {
           </Link>
         </div>
 
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, margin: "-100px" }}
-          className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6"
-        >
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
           {featuredProducts.map((product) => (
-            <motion.div key={product.id} variants={cardVariants} className="h-full">
+            <div key={product.id} data-reveal-item className="h-full">
               <ProductCard product={product} />
-            </motion.div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
-        <div className="mt-8 sm:hidden">
+        <div data-reveal-item className="mt-8 sm:hidden">
           <Link
             href="/products?featured=true"
             className="flex items-center justify-center gap-2 text-sm font-semibold w-full py-4 border border-zinc-800 rounded-xl hover:bg-zinc-900 transition-colors text-white"
@@ -83,6 +117,6 @@ export default async function FeaturedProducts() {
           </Link>
         </div>
       </div>
-    </section>
+    </ScrollReveal>
   );
 }

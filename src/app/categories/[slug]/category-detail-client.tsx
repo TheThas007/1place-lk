@@ -64,10 +64,10 @@ export default function CategoryDetailClient({
               transition={{ delay: 0.1, duration: 0.5, type: "spring", stiffness: 260, damping: 20 }}
               className="w-20 h-20 md:w-24 md:h-24 rounded-3xl bg-gradient-to-br from-foreground/5 to-foreground/10 border border-border flex items-center justify-center shadow-xl shadow-black/5 shrink-0"
             >
-              {category.icon.startsWith("http") ? (
+              {category.icon && category.icon.startsWith("http") ? (
                 <img src={category.icon} alt={category.name} className="w-12 h-12 object-contain" />
               ) : (
-                <span className="text-5xl">{category.icon}</span>
+                <span className="text-5xl">{category.icon || "📱"}</span>
               )}
             </motion.div>
 

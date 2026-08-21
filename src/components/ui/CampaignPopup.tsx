@@ -87,6 +87,12 @@ export default function CampaignPopup() {
       return;
     }
 
+    // 0. Exclude admin and login pages
+    if (pathname?.startsWith("/admin") || pathname?.startsWith("/login")) {
+      setIsOpen(false);
+      return;
+    }
+
     // 1. Page Targeting Check
     if (popup.pageTargeting === "homepage" && pathname !== "/") {
       setIsOpen(false);

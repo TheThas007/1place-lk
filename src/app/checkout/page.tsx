@@ -1,4 +1,5 @@
 import CheckoutClient from "./checkout-client";
+import Script from "next/script";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -7,5 +8,14 @@ export const metadata: Metadata = {
 };
 
 export default function CheckoutPage() {
-  return <CheckoutClient />;
+  return (
+    <>
+      {/* Official PayHere JavaScript SDK */}
+      <Script
+        src="https://www.payhere.lk/lib/payhere.js"
+        strategy="afterInteractive"
+      />
+      <CheckoutClient />
+    </>
+  );
 }

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useState, useEffect, useRef } from "react";
-import { X, Check, ShoppingBag, Heart, ShieldCheck, Truck, Sparkles } from "lucide-react";
+import Link from "next/link";
+import { X, Check, ShoppingBag, Heart, ShieldCheck, Truck, Sparkles, MessageCircle } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
@@ -28,15 +29,11 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
   // Initialize variant selections when product changes
   useEffect(() => {
     if (product) {
-      const defaultColor = product.colors?.[0] || "";
-      setSelectedColor(defaultColor);
+      setSelectedColor("");
 
-      // Find available storage options for default color if variant_combos exist
+      // Find available storage options
       if (product.variant_combos && product.variant_combos.length > 0) {
-        const availableCombos = product.variant_combos.filter(
-          (c) => !defaultColor || c.color_name?.toLowerCase() === defaultColor.toLowerCase()
-        );
-        const firstAvailableStorage = availableCombos.find((c) => (c.available_stock || c.stock_quantity) > 0)?.storage || availableCombos[0]?.storage;
+        const firstAvailableStorage = product.variant_combos.find((c) => (c.available_stock || c.stock_quantity) > 0)?.storage || product.variant_combos[0]?.storage;
         setSelectedStorage(firstAvailableStorage || product.storage_options?.[0] || "");
       } else {
         setSelectedStorage(product.storage_options?.[0] || "");
@@ -106,6 +103,20 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
   const isOutOfStock = currentCombo
     ? currentCombo.available_stock <= 0 && currentCombo.stock_quantity <= 0
     : product.stock_status === "out_of_stock";
+
+  const isMobileOrLaptop =
+    product.productType === "phone" ||
+    (product.category_name || "").toLowerCase().includes("phone") ||
+    (product.category_name || "").toLowerCase().includes("mobile") ||
+    (product.category_name || "").toLowerCase().includes("smartphone") ||
+    (product.category_name || "").toLowerCase().includes("laptop") ||
+    (product.category_name || "").toLowerCase().includes("macbook") ||
+    (product.category_name || "").toLowerCase().includes("ipad") ||
+    (product.category_name || "").toLowerCase().includes("tablet") ||
+    (product.name || "").toLowerCase().includes("iphone") ||
+    (product.name || "").toLowerCase().includes("galaxy") ||
+    (product.name || "").toLowerCase().includes("macbook") ||
+    Boolean(product.hasStorageVariants);
 
   const handleColorChange = (color: string) => {
     setSelectedColor(color);
@@ -189,19 +200,14 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
               className="max-h-full max-w-full object-contain mix-blend-multiply transition-all duration-300"
             />
 
-            {/* Badges */}
-            <div className="absolute top-2 left-2 flex flex-col gap-1 items-start">
-              {product.is_new_arrival && (
-                <span className="px-2.5 py-1 rounded-full bg-black text-white text-[10px] font-black uppercase tracking-wider">
-                  NEW ARRIVAL
-                </span>
-              )}
-              {currentOldPrice && currentOldPrice > currentPrice && (
-                <span className="px-2.5 py-1 rounded-full bg-red-600 text-white text-[10px] font-black uppercase tracking-wider">
+            {/* Bottom-Left SALE Badge */}
+            {currentOldPrice && currentOldPrice > currentPrice && (
+              <div className="absolute bottom-0 left-0 z-10">
+                <span className="px-2.5 py-1 rounded-tr-lg bg-red-600 text-white text-[10px] font-black uppercase tracking-wider shadow-2xs inline-block">
                   SALE
                 </span>
-              )}
-            </div>
+              </div>
+            )}
           </div>
 
           {/* Thumbnails */}
@@ -250,8 +256,17 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
               )}
             </div>
 
+            {/* Out of Stock Notice */}
+            {isOutOfStock && (
+              <div className="mb-4">
+                 <span className={`inline-block ${isMobileOrLaptop ? "text-amber-700 bg-amber-50 border-amber-200" : "text-red-600 bg-red-50 border-red-200"} text-xs font-bold px-2.5 py-1 rounded-full border`}>
+                  {isMobileOrLaptop ? "📅 Out of Stock — Pre-Order Available" : "Out of Stock"}
+                </span>
+              </div>
+            )}
+
             {/* Installment Plan Notice if applicable */}
-            {product.installment_price && (
+            {product.installment_price && !isOutOfStock && (
               <div className="mb-4 p-2.5 rounded-xl bg-neutral-100 border border-neutral-200 text-xs font-semibold text-neutral-800 flex items-center gap-2">
                 <Sparkles className="w-4 h-4 text-emerald-600 shrink-0" />
                 <span>{product.installment_price}</span>
@@ -345,32 +360,43 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
           <div className="pt-4 border-t border-neutral-100 mt-4 space-y-3">
             
             <div className="flex items-center gap-3">
-              <button
-                type="button"
-                disabled={isOutOfStock}
-                onClick={handleAddToCart}
-                className={`flex-1 py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md ${
-                  isOutOfStock
-                    ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
-                    : added
-                    ? "bg-emerald-600 text-white"
-                    : "bg-black text-white hover:bg-neutral-800"
-                }`}
-              >
-                {added ? (
-                  <>
-                    <Check className="w-4 h-4" />
-                    <span>Added to Bag</span>
-                  </>
-                ) : isOutOfStock ? (
-                  <span>Sold Out</span>
-                ) : (
-                  <>
-                    <ShoppingBag className="w-4 h-4" />
-                    <span>Add to Bag</span>
-                  </>
-                )}
-              </button>
+              {isOutOfStock && isMobileOrLaptop ? (
+                <Link
+                  href={`/products/${product.slug}?book=true`}
+                  onClick={onClose}
+                  className="flex-1 py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <MessageCircle className="w-4 h-4" />
+                  <span>Pre-Order / Book Device</span>
+                </Link>
+              ) : (
+                <button
+                  type="button"
+                  disabled={isOutOfStock}
+                  onClick={handleAddToCart}
+                  className={`flex-1 py-3.5 rounded-full font-bold text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-md ${
+                    isOutOfStock
+                      ? "bg-neutral-200 text-neutral-500 cursor-not-allowed"
+                      : added
+                      ? "bg-emerald-600 text-white"
+                      : "bg-black text-white hover:bg-neutral-800"
+                  }`}
+                >
+                  {added ? (
+                    <>
+                      <Check className="w-4 h-4" />
+                      <span>Added to Bag</span>
+                    </>
+                  ) : isOutOfStock ? (
+                    <span>Sold Out</span>
+                  ) : (
+                    <>
+                      <ShoppingBag className="w-4 h-4" />
+                      <span>Add to Bag</span>
+                    </>
+                  )}
+                </button>
+              )}
 
               <button
                 type="button"
