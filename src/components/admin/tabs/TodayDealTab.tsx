@@ -67,6 +67,7 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
   const [savedSuccess, setSavedSuccess] = useState(false);
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
+  const [uploadingSquare, setUploadingSquare] = useState(false);
   const [activeTabGroup, setActiveTabGroup] = useState<"content" | "media" | "appearance" | "countdown">("content");
 
   // Sync initial settings if updated from parent
@@ -106,23 +107,27 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
   }, [settings.enabled, settings.startsAt, settings.endsAt]);
 
   // Handle image upload
-  const handleFileUpload = async (file: File, type: "desktop" | "mobile") => {
+  const handleFileUpload = async (file: File, type: "desktop" | "mobile" | "square") => {
     if (type === "desktop") setUploadingDesktop(true);
-    else setUploadingMobile(true);
+    else if (type === "mobile") setUploadingMobile(true);
+    else setUploadingSquare(true);
 
     try {
       const downloadUrl = await uploadImageWithFallback(file, "today_deal");
       if (type === "desktop") {
         setSettings((prev) => ({ ...prev, desktopImageUrl: downloadUrl }));
-      } else {
+      } else if (type === "mobile") {
         setSettings((prev) => ({ ...prev, mobileImageUrl: downloadUrl }));
+      } else {
+        setSettings((prev) => ({ ...prev, squareImageUrl: downloadUrl }));
       }
     } catch (err) {
       console.error("Image upload failed:", err);
       alert("Failed to upload image. Please try a smaller image file.");
     } finally {
       if (type === "desktop") setUploadingDesktop(false);
-      else setUploadingMobile(false);
+      else if (type === "mobile") setUploadingMobile(false);
+      else setUploadingSquare(false);
     }
   };
 
@@ -469,134 +474,435 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
           </div>
         )}
 
-        {/* ── GROUP C: BANNER IMAGES ── */}
+        {/* ── GROUP C: BANNER IMAGES & BACKGROUND MODES ── */}
         {activeTabGroup === "media" && (
           <div className="space-y-6 animate-in fade-in-50 duration-200">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
-              
-              {/* Desktop Banner Image */}
-              <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Monitor className="w-4 h-4 text-blue-400" /> Desktop Banner Image
+            
+            {/* Banner Mode Switcher */}
+            <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-extrabold text-white text-xs uppercase tracking-wider">
+                    Banner Background Mode
                   </h4>
-                  <span className="text-[10px] font-bold text-white/40">1600 × 800 px (2:1)</span>
-                </div>
-
-                <div>
-                  <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">Image URL</label>
-                  <input
-                    type="text"
-                    value={settings.desktopImageUrl}
-                    onChange={(e) => setSettings({ ...settings, desktopImageUrl: e.target.value })}
-                    placeholder="https://images.unsplash.com/..."
-                    className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="file"
-                    id="desktopDealImageUpload"
-                    accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "desktop")}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="desktopDealImageUpload"
-                    className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-blue-400" />
-                    {uploadingDesktop ? "Uploading Image..." : "Upload Desktop Banner"}
-                  </label>
-                </div>
-
-                {/* Focal Position Selector */}
-                <div>
-                  <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
-                    Desktop Focal Position
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["left", "center", "right"] as const).map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        onClick={() => setSettings({ ...settings, desktopFocalPosition: pos })}
-                        className={`py-2 rounded-xl font-bold uppercase text-[11px] transition-all capitalize ${
-                          settings.desktopFocalPosition === pos
-                            ? "bg-blue-600 text-white shadow-md"
-                            : "bg-white/5 text-white/50 hover:text-white"
-                        }`}
-                      >
-                        {pos}
-                      </button>
-                    ))}
-                  </div>
+                  <p className="text-[11px] text-white/50">
+                    Choose between a full-width background photo or a custom background color with a floating square product image.
+                  </p>
                 </div>
               </div>
 
-              {/* Mobile Banner Image */}
-              <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                    <Smartphone className="w-4 h-4 text-emerald-400" /> Mobile Banner Image (Optional)
-                  </h4>
-                  <span className="text-[10px] font-bold text-white/40">900 × 1100 px</span>
-                </div>
-
-                <div>
-                  <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">Mobile Image URL</label>
-                  <input
-                    type="text"
-                    value={settings.mobileImageUrl || ""}
-                    onChange={(e) => setSettings({ ...settings, mobileImageUrl: e.target.value })}
-                    placeholder="Leave empty to use desktop banner"
-                    className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
-                  />
-                </div>
-
-                <div>
-                  <input
-                    type="file"
-                    id="mobileDealImageUpload"
-                    accept="image/*"
-                    onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "mobile")}
-                    className="hidden"
-                  />
-                  <label
-                    htmlFor="mobileDealImageUpload"
-                    className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
-                  >
-                    <Upload className="w-3.5 h-3.5 text-emerald-400" />
-                    {uploadingMobile ? "Uploading Image..." : "Upload Mobile Banner"}
-                  </label>
-                </div>
-
-                {/* Mobile Focal Position Selector */}
-                <div>
-                  <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
-                    Mobile Focal Position
-                  </label>
-                  <div className="grid grid-cols-3 gap-2">
-                    {(["left", "center", "right"] as const).map((pos) => (
-                      <button
-                        key={pos}
-                        type="button"
-                        onClick={() => setSettings({ ...settings, mobileFocalPosition: pos })}
-                        className={`py-2 rounded-xl font-bold uppercase text-[11px] transition-all capitalize ${
-                          settings.mobileFocalPosition === pos
-                            ? "bg-emerald-600 text-white shadow-md"
-                            : "bg-white/5 text-white/50 hover:text-white"
-                        }`}
-                      >
-                        {pos}
-                      </button>
-                    ))}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, bannerMode: "full_image" })}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                    (settings.bannerMode || "full_image") === "full_image"
+                      ? "bg-blue-600/15 border-blue-500 text-white shadow-lg"
+                      : "bg-black/30 border-white/10 text-white/50 hover:border-white/20"
+                  }`}
+                >
+                  <div className="font-extrabold text-xs text-white flex items-center justify-between">
+                    <span>1. Full-Width Background Photo</span>
+                    {(settings.bannerMode || "full_image") === "full_image" && (
+                      <span className="w-2 h-2 rounded-full bg-blue-400" />
+                    )}
                   </div>
-                </div>
-              </div>
+                  <p className="text-[11px] text-white/50 mt-1">
+                    Upload a high-resolution wide lifestyle or campaign image spanning the entire banner.
+                  </p>
+                </button>
 
+                <button
+                  type="button"
+                  onClick={() => setSettings({ ...settings, bannerMode: "custom_bg_with_square_image" })}
+                  className={`p-4 rounded-xl border text-left transition-all cursor-pointer ${
+                    settings.bannerMode === "custom_bg_with_square_image"
+                      ? "bg-red-600/15 border-red-500 text-white shadow-lg"
+                      : "bg-black/30 border-white/10 text-white/50 hover:border-white/20"
+                  }`}
+                >
+                  <div className="font-extrabold text-xs text-white flex items-center justify-between">
+                    <span>2. Background Color + Square Product Asset</span>
+                    {settings.bannerMode === "custom_bg_with_square_image" && (
+                      <span className="w-2 h-2 rounded-full bg-red-400" />
+                    )}
+                  </div>
+                  <p className="text-[11px] text-white/50 mt-1">
+                    Pick custom background colors/gradients and align a square product visual on top.
+                  </p>
+                </button>
+              </div>
             </div>
+
+            {/* ── MODE 1: FULL-WIDTH BACKGROUND PHOTO ── */}
+            {(settings.bannerMode || "full_image") === "full_image" && (
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs animate-in fade-in-50 duration-200">
+                {/* Desktop Banner Image */}
+                <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Monitor className="w-4 h-4 text-blue-400" /> Desktop Banner Image
+                    </h4>
+                    <span className="text-[10px] font-bold text-white/40">1600 × 800 px (2:1)</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">Image URL</label>
+                    <input
+                      type="text"
+                      value={settings.desktopImageUrl}
+                      onChange={(e) => setSettings({ ...settings, desktopImageUrl: e.target.value })}
+                      placeholder="https://images.unsplash.com/..."
+                      className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="file"
+                      id="desktopDealImageUpload"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "desktop")}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="desktopDealImageUpload"
+                      className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-blue-400" />
+                      {uploadingDesktop ? "Uploading Image..." : "Upload Desktop Banner"}
+                    </label>
+                  </div>
+
+                  {/* Focal Position Selector */}
+                  <div>
+                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
+                      Desktop Focal Position
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["left", "center", "right"] as const).map((pos) => (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => setSettings({ ...settings, desktopFocalPosition: pos })}
+                          className={`py-2 rounded-xl font-bold uppercase text-[11px] transition-all capitalize cursor-pointer ${
+                            settings.desktopFocalPosition === pos
+                              ? "bg-blue-600 text-white shadow-md"
+                              : "bg-white/5 text-white/50 hover:text-white"
+                          }`}
+                        >
+                          {pos}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Mobile Banner Image */}
+                <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-emerald-400" /> Mobile Banner Image (Optional)
+                    </h4>
+                    <span className="text-[10px] font-bold text-white/40">900 × 1100 px</span>
+                  </div>
+
+                  <div>
+                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">Mobile Image URL</label>
+                    <input
+                      type="text"
+                      value={settings.mobileImageUrl || ""}
+                      onChange={(e) => setSettings({ ...settings, mobileImageUrl: e.target.value })}
+                      placeholder="Leave empty to use desktop banner"
+                      className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
+                    />
+                  </div>
+
+                  <div>
+                    <input
+                      type="file"
+                      id="mobileDealImageUpload"
+                      accept="image/*"
+                      onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "mobile")}
+                      className="hidden"
+                    />
+                    <label
+                      htmlFor="mobileDealImageUpload"
+                      className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
+                    >
+                      <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                      {uploadingMobile ? "Uploading Image..." : "Upload Mobile Banner"}
+                    </label>
+                  </div>
+
+                  {/* Mobile Focal Position Selector */}
+                  <div>
+                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
+                      Mobile Focal Position
+                    </label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {(["left", "center", "right"] as const).map((pos) => (
+                        <button
+                          key={pos}
+                          type="button"
+                          onClick={() => setSettings({ ...settings, mobileFocalPosition: pos })}
+                          className={`py-2 rounded-xl font-bold uppercase text-[11px] transition-all capitalize cursor-pointer ${
+                            settings.mobileFocalPosition === pos
+                              ? "bg-emerald-600 text-white shadow-md"
+                              : "bg-white/5 text-white/50 hover:text-white"
+                          }`}
+                        >
+                          {pos}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* ── MODE 2: CUSTOM BACKGROUND COLOR + SQUARE PRODUCT IMAGE ── */}
+            {settings.bannerMode === "custom_bg_with_square_image" && (
+              <div className="space-y-6 animate-in fade-in-50 duration-200">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs">
+                  
+                  {/* Background Color / Gradient Setup */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                    <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                      <Sparkles className="w-4 h-4 text-amber-400" /> Banner Base Background
+                    </h4>
+
+                    {/* Bg Type Switcher */}
+                    <div className="flex items-center gap-2 p-1 bg-black/40 rounded-xl border border-white/10">
+                      <button
+                        type="button"
+                        onClick={() => setSettings({ ...settings, bannerBgType: "solid" })}
+                        className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                          (settings.bannerBgType || "solid") === "solid"
+                            ? "bg-white text-black shadow"
+                            : "text-white/60 hover:text-white"
+                        }`}
+                      >
+                        Solid Color
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSettings({ ...settings, bannerBgType: "gradient" })}
+                        className={`flex-1 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer ${
+                          settings.bannerBgType === "gradient"
+                            ? "bg-white text-black shadow"
+                            : "text-white/60 hover:text-white"
+                        }`}
+                      >
+                        Linear Gradient
+                      </button>
+                    </div>
+
+                    {/* Solid Color Controls */}
+                    {(settings.bannerBgType || "solid") === "solid" ? (
+                      <div className="space-y-3">
+                        <label className="block text-white/60 font-bold mb-1">Pick Solid Background Color</label>
+                        <div className="flex items-center gap-3">
+                          <input
+                            type="color"
+                            value={settings.bannerBgColor || "#090909"}
+                            onChange={(e) => setSettings({ ...settings, bannerBgColor: e.target.value })}
+                            className="w-10 h-10 rounded-xl bg-transparent border border-white/20 cursor-pointer"
+                          />
+                          <input
+                            type="text"
+                            value={settings.bannerBgColor || "#090909"}
+                            onChange={(e) => setSettings({ ...settings, bannerBgColor: e.target.value })}
+                            className="flex-1 bg-black/40 border border-white/10 px-3.5 py-2 rounded-xl text-white font-mono text-xs"
+                          />
+                        </div>
+
+                        {/* Presets */}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                          <span className="text-[10px] text-white/40">Presets:</span>
+                          {[
+                            { name: "Onyx Black", hex: "#090909" },
+                            { name: "Midnight Slate", hex: "#0F172A" },
+                            { name: "Deep Indigo", hex: "#1E1B4B" },
+                            { name: "Ruby Crimson", hex: "#450A0A" },
+                            { name: "Emerald Pine", hex: "#064E3B" },
+                            { name: "Cobalt Blue", hex: "#172554" },
+                          ].map((p) => (
+                            <button
+                              key={p.hex}
+                              type="button"
+                              onClick={() => setSettings({ ...settings, bannerBgColor: p.hex })}
+                              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[10px] font-bold transition-colors flex items-center gap-1.5 cursor-pointer"
+                            >
+                              <span className="w-2.5 h-2.5 rounded-full border border-white/20" style={{ backgroundColor: p.hex }} />
+                              <span>{p.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ) : (
+                      /* Gradient Controls */
+                      <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-white/60 font-bold mb-1">Gradient Start</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={settings.bannerBgGradientFrom || "#0F172A"}
+                                onChange={(e) => setSettings({ ...settings, bannerBgGradientFrom: e.target.value })}
+                                className="w-8 h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={settings.bannerBgGradientFrom || "#0F172A"}
+                                onChange={(e) => setSettings({ ...settings, bannerBgGradientFrom: e.target.value })}
+                                className="w-full bg-black/40 border border-white/10 px-2 py-1.5 rounded-lg text-white font-mono text-[11px]"
+                              />
+                            </div>
+                          </div>
+
+                          <div>
+                            <label className="block text-white/60 font-bold mb-1">Gradient End</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                type="color"
+                                value={settings.bannerBgGradientTo || "#020617"}
+                                onChange={(e) => setSettings({ ...settings, bannerBgGradientTo: e.target.value })}
+                                className="w-8 h-8 rounded-lg bg-transparent border border-white/20 cursor-pointer"
+                              />
+                              <input
+                                type="text"
+                                value={settings.bannerBgGradientTo || "#020617"}
+                                onChange={(e) => setSettings({ ...settings, bannerBgGradientTo: e.target.value })}
+                                className="w-full bg-black/40 border border-white/10 px-2 py-1.5 rounded-lg text-white font-mono text-[11px]"
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Gradient Presets */}
+                        <div className="flex items-center gap-1.5 flex-wrap pt-1">
+                          <span className="text-[10px] text-white/40">Presets:</span>
+                          {[
+                            { name: "Midnight Slate", from: "#0F172A", to: "#020617" },
+                            { name: "Crimson Blaze", from: "#7F1D1D", to: "#18181B" },
+                            { name: "Deep Amethyst", from: "#312E81", to: "#0F172A" },
+                            { name: "Cyber Teal", from: "#134E4A", to: "#020617" },
+                          ].map((p) => (
+                            <button
+                              key={p.name}
+                              type="button"
+                              onClick={() => setSettings({ ...settings, bannerBgGradientFrom: p.from, bannerBgGradientTo: p.to })}
+                              className="px-2 py-1 rounded-md bg-white/5 hover:bg-white/10 text-white/80 hover:text-white text-[10px] font-bold transition-colors cursor-pointer"
+                            >
+                              {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Square Product Image Setup & Alignment */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                        <ImageIcon className="w-4 h-4 text-emerald-400" /> Square Product Image Asset
+                      </h4>
+                      <span className="text-[10px] font-bold text-white/40">1:1 Square (PNG / JPG)</span>
+                    </div>
+
+                    <div>
+                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">Square Image URL</label>
+                      <input
+                        type="text"
+                        value={settings.squareImageUrl || ""}
+                        onChange={(e) => setSettings({ ...settings, squareImageUrl: e.target.value })}
+                        placeholder="https://images.unsplash.com/... or transparent PNG"
+                        className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <input
+                        type="file"
+                        id="squareDealImageUpload"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "square")}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="squareDealImageUpload"
+                        className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-emerald-400" />
+                        {uploadingSquare ? "Uploading Square Image..." : "Upload Square Image"}
+                      </label>
+                    </div>
+
+                    {/* Square Image Alignment Selector */}
+                    <div>
+                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
+                        Image Alignment on Desktop
+                      </label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {(["left", "center", "right"] as const).map((pos) => (
+                          <button
+                            key={pos}
+                            type="button"
+                            onClick={() => setSettings({ ...settings, squareImagePosition: pos })}
+                            className={`py-2 rounded-xl font-bold uppercase text-[11px] transition-all capitalize cursor-pointer ${
+                              (settings.squareImagePosition || "right") === pos
+                                ? "bg-emerald-600 text-white shadow-md"
+                                : "bg-white/5 text-white/50 hover:text-white"
+                            }`}
+                          >
+                            {pos}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Size & Border Radius Sliders */}
+                    <div className="grid grid-cols-2 gap-4 pt-2">
+                      <div>
+                        <div className="flex items-center justify-between text-white/60 mb-1">
+                          <span className="font-bold">Image Scale</span>
+                          <span className="font-mono text-white">{settings.squareImageSize || 42}%</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="25"
+                          max="55"
+                          step="1"
+                          value={settings.squareImageSize || 42}
+                          onChange={(e) => setSettings({ ...settings, squareImageSize: Number(e.target.value) })}
+                          className="w-full accent-emerald-500 cursor-pointer"
+                        />
+                      </div>
+
+                      <div>
+                        <div className="flex items-center justify-between text-white/60 mb-1">
+                          <span className="font-bold">Border Radius</span>
+                          <span className="font-mono text-white">{settings.squareImageBorderRadius ?? 16}px</span>
+                        </div>
+                        <input
+                          type="range"
+                          min="0"
+                          max="36"
+                          step="2"
+                          value={settings.squareImageBorderRadius ?? 16}
+                          onChange={(e) => setSettings({ ...settings, squareImageBorderRadius: Number(e.target.value) })}
+                          className="w-full accent-emerald-500 cursor-pointer"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            )}
 
             <div>
               <label className="block text-white/60 font-bold uppercase tracking-wider text-xs mb-1.5">

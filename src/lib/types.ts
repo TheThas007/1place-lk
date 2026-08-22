@@ -1112,6 +1112,18 @@ export interface TodayDealSettings {
   boxPadding: number;
   borderRadius: number;
 
+  bannerMode?: "full_image" | "custom_bg_with_square_image";
+  bannerBgType?: "solid" | "gradient";
+  bannerBgColor?: string;
+  bannerBgGradientFrom?: string;
+  bannerBgGradientTo?: string;
+  squareImageUrl?: string;
+  squareImageAlt?: string;
+  squareImagePosition?: "left" | "center" | "right";
+  squareImageSize?: number;
+  squareImageBorderRadius?: number;
+  squareImageShadow?: boolean;
+
   countdownEnabled: boolean;
   startsAt?: string | null;
   endsAt?: string | null;

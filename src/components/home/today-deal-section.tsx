@@ -289,10 +289,25 @@ export default function TodayDealSection({
     );
   };
 
+  const isCustomBgMode = deal.bannerMode === "custom_bg_with_square_image";
+  const customBgStyle = isCustomBgMode
+    ? deal.bannerBgType === "gradient"
+      ? {
+          background: `linear-gradient(135deg, ${deal.bannerBgGradientFrom || "#0F172A"} 0%, ${
+            deal.bannerBgGradientTo || "#020617"
+          } 100%)`,
+        }
+      : { backgroundColor: deal.bannerBgColor || "#090909" }
+    : undefined;
+
+  const squareImgUrl = deal.squareImageUrl || desktopImg;
+  const squarePosition = deal.squareImagePosition || "right";
+
   return (
     <section
       id="todays-deal-section"
       aria-label="Today's Deal Promotional Banner"
+      style={customBgStyle}
       className={`relative w-full overflow-hidden select-none bg-black rounded-none border-0 shadow-none my-0 py-0 ${
         isLivePreview ? "rounded-2xl border border-white/10" : ""
       } ${className}`}
@@ -305,64 +320,113 @@ export default function TodayDealSection({
             : "h-[clamp(620px,78vh,680px)] md:h-[clamp(480px,62vh,620px)]"
         } flex items-end md:items-center`}
       >
-        {/* ── 1. Full-Frame Background Image Layer ── */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
-          {!imgError && desktopImg ? (
-            <picture className="w-full h-full block">
-              {mobileImg && <source media="(max-width: 767px)" srcSet={mobileImg} />}
+        {/* ── 1. Background Layer ── */}
+        {!isCustomBgMode ? (
+          // Mode A: Full-Frame Background Image Layer
+          <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
+            {!imgError && desktopImg ? (
+              <picture className="w-full h-full block">
+                {mobileImg && <source media="(max-width: 767px)" srcSet={mobileImg} />}
+                <img
+                  src={desktopImg}
+                  alt={deal.imageAlt || "Today's Deal Promotion"}
+                  loading="lazy"
+                  decoding="async"
+                  style={{
+                    objectFit: "cover",
+                    objectPosition: getObjectPosition(deal.desktopFocalPosition || "center"),
+                  }}
+                  className="w-full h-full object-cover max-md:object-[center_top] block transition-transform duration-700 ease-out"
+                  onError={() => setImgError(true)}
+                />
+              </picture>
+            ) : (
+              <div className="w-full h-full bg-neutral-950 flex items-center justify-center text-white/40 font-mono text-sm">
+                <span>[ Today&apos;s Deal Banner Image ]</span>
+              </div>
+            )}
+          </div>
+        ) : (
+          // Mode B: Custom Solid/Gradient Background with Subtle Ambient Glow
+          <div className="absolute inset-0 pointer-events-none overflow-hidden">
+            <div className="absolute -top-32 -right-32 w-96 h-96 bg-red-600/10 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl pointer-events-none" />
+          </div>
+        )}
+
+        {/* ── 2. Floating Square/Product Image Asset (Custom BG Mode) ── */}
+        {isCustomBgMode && squareImgUrl && (
+          <div
+            className={`hidden md:flex absolute top-1/2 -translate-y-1/2 z-10 items-center justify-center pointer-events-none ${
+              squarePosition === "left"
+                ? "left-[6vw]"
+                : squarePosition === "center"
+                ? "left-1/2 -translate-x-1/2 opacity-30"
+                : "right-[6vw]"
+            }`}
+            style={{
+              width: `${deal.squareImageSize || 42}%`,
+              maxWidth: "460px",
+            }}
+          >
+            <div
+              style={{
+                borderRadius: `${deal.squareImageBorderRadius ?? 16}px`,
+              }}
+              className={`relative aspect-square w-full overflow-hidden flex items-center justify-center ${
+                deal.squareImageShadow !== false
+                  ? "shadow-[0_25px_60px_rgba(0,0,0,0.6)] border border-white/10"
+                  : ""
+              }`}
+            >
               <img
-                src={desktopImg}
-                alt={deal.imageAlt || "Today's Deal Promotion"}
-                loading="lazy"
-                decoding="async"
-                style={{
-                  objectFit: "cover",
-                  objectPosition: getObjectPosition(deal.desktopFocalPosition || "center"),
-                }}
-                className="w-full h-full object-cover max-md:object-[center_top] block transition-transform duration-700 ease-out"
-                onError={() => setImgError(true)}
+                src={squareImgUrl}
+                alt={deal.squareImageAlt || deal.imageAlt || "Today's Deal Product"}
+                className="w-full h-full object-contain p-2 transition-transform duration-500 hover:scale-105"
               />
-            </picture>
-          ) : (
-            <div className="w-full h-full bg-neutral-950 flex items-center justify-center text-white/40 font-mono text-sm">
-              <span>[ Today&apos;s Deal Banner Image ]</span>
             </div>
-          )}
-        </div>
+          </div>
+        )}
 
-        {/* ── 2. Readability Gradient Overlays ── */}
-        {/* Desktop Left-to-Right Subtle Overlay */}
-        <div
-          className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            background:
-              deal.boxPosition === "right"
-                ? "linear-gradient(270deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)"
-                : deal.boxPosition === "center"
-                ? "radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)"
-                : "linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)",
-          }}
-        />
+        {/* ── 3. Readability Gradient Overlays (Full Image Mode) ── */}
+        {!isCustomBgMode && (
+          <>
+            {/* Desktop Left-to-Right Subtle Overlay */}
+            <div
+              className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
+              style={{
+                background:
+                  deal.boxPosition === "right"
+                    ? "linear-gradient(270deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)"
+                    : deal.boxPosition === "center"
+                    ? "radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)"
+                    : "linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)",
+              }}
+            />
 
-        {/* Mobile Bottom-to-Top Overlay */}
-        <div
-          className="md:hidden absolute inset-0 pointer-events-none z-[1]"
-          style={{
-            background:
-              "linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)",
-          }}
-        />
+            {/* Mobile Bottom-to-Top Overlay */}
+            <div
+              className="md:hidden absolute inset-0 pointer-events-none z-[1]"
+              style={{
+                background:
+                  "linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)",
+              }}
+            />
+          </>
+        )}
 
         {/* Optional Custom Dark Overlay Opacity */}
-        {darkOverlayOpacity > 0 && (
+        {!isCustomBgMode && darkOverlayOpacity > 0 && (
           <div
             className="absolute inset-0 z-[2] pointer-events-none transition-opacity"
             style={{ backgroundColor: `rgba(0, 0, 0, ${darkOverlayOpacity})` }}
           />
         )}
 
-        {/* ── 3. Content Group (Responsive Left Offset & Padding) ── */}
-        <div className={`relative z-10 w-full h-full p-6 sm:p-10 lg:pl-[8vw] lg:pr-12 ${getBoxPositionClasses()}`}>
+        {/* ── 4. Content Group (Responsive Left Offset & Padding) ── */}
+        <div
+          className={`relative z-20 w-full h-full p-6 sm:p-10 lg:pl-[8vw] lg:pr-12 ${getBoxPositionClasses()}`}
+        >
           {renderContentBox(false)}
         </div>
       </div>
