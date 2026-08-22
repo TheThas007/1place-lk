@@ -19,6 +19,7 @@ import {
   NewArrivalsSettings,
   MegaMenuSettings,
   TodayDealSettings,
+  GalleryAnimationSettings,
 } from "./types";
 import {
   products as fallbackProducts,
@@ -35,6 +36,7 @@ import {
   DEFAULT_NEW_ARRIVALS_SETTINGS,
   DEFAULT_MEGA_MENU_SETTINGS,
   DEFAULT_TODAY_DEAL_SETTINGS,
+  DEFAULT_GALLERY_ANIMATION_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
 import { cache } from "react";
@@ -442,6 +444,35 @@ export const getTodayDealSettings = cache(async (): Promise<TodayDealSettings> =
   }
   return DEFAULT_TODAY_DEAL_SETTINGS;
 });
+
+export const getGalleryAnimationSettings = cache(async (): Promise<GalleryAnimationSettings> => {
+  try {
+    const docRef = doc(db, "settings", "gallery_animation");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data() as GalleryAnimationSettings;
+      return {
+        ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
+        ...data,
+      };
+    }
+
+    // Try alternate siteSettings/galleryAnimation location if exists
+    const altDocRef = doc(db, "siteSettings", "galleryAnimation");
+    const altSnap = await getDoc(altDocRef);
+    if (altSnap.exists()) {
+      const data = altSnap.data() as GalleryAnimationSettings;
+      return {
+        ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
+        ...data,
+      };
+    }
+  } catch (e) {
+    console.warn("Offline/Error fetching gallery animation settings:", e);
+  }
+  return DEFAULT_GALLERY_ANIMATION_SETTINGS;
+});
+
 
 
 

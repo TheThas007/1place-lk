@@ -1,11 +1,10 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
-import type { Variants } from "framer-motion";
 import { ArrowRight, Images } from "lucide-react";
-import { GalleryImage, UiSettings } from "@/lib/types";
+import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
+import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 
 function InstagramIcon({ className = "w-3 h-3" }: { className?: string }) {
@@ -37,14 +36,14 @@ function validateUrl(url?: string): string | null {
   return null;
 }
 
-/* ─── Refined Editorial Gallery Card ─── */
-function GalleryCard({
-  image,
-  index,
-}: {
+/* ─── Refined Editorial Gallery Card (Exact 4:5 Aspect Ratio & Dimensions) ─── */
+interface GalleryCardProps {
   image: GalleryImage;
   index: number;
-}) {
+  onLinkClick?: (e: React.MouseEvent) => void;
+}
+
+function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
   const validPostUrl = validateUrl(image.post_url);
   const isInstagram =
     image.platform === "instagram" ||
@@ -52,26 +51,27 @@ function GalleryCard({
   const titleText = image.caption || image.title || "Life at Street Mobile";
 
   const CardContent = (
-    <div className="relative w-full h-full overflow-hidden bg-neutral-100">
+    <div className="relative w-full h-full overflow-hidden bg-neutral-100 select-none">
       {/* 1. Edge-to-Edge Image with Smooth Subtle Scale */}
       <img
         src={image.image_url}
         alt={titleText}
-        loading="lazy"
+        loading={index < 4 ? "eager" : "lazy"}
         decoding="async"
-        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.025]"
+        draggable={false}
+        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.025] pointer-events-none select-none"
       />
 
       {/* 2. Top-Left Category Badge (12px offset, compact 5px radius) */}
       {image.category && (
-        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-[5px] text-[10px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
+        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-[5px] text-[10px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none pointer-events-none">
           {image.category}
         </div>
       )}
 
-      {/* 3. Top-Right Social Badge (Compact Instagram indicator) */}
+      {/* 3. Top-Right Social Badge (Compact indicator) */}
       {isInstagram && (
-        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-[5px] text-[10px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
+        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-[5px] text-[10px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none pointer-events-none">
           <InstagramIcon className="w-3 h-3 text-pink-400" />
           <span>Instagram</span>
         </div>
@@ -79,7 +79,7 @@ function GalleryCard({
 
       {/* 4. Compact Bottom Gradient Overlay & Typography */}
       <div className="absolute inset-x-0 bottom-0 pt-12 pb-3.5 px-3.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end z-10 pointer-events-none">
-        <p className="text-white text-xs sm:text-[13px] font-semibold leading-snug line-clamp-2 drop-shadow-xs m-0">
+        <p className="text-white text-xs sm:text-[13px] font-semibold leading-snug line-clamp-2 drop-shadow-xs m-0 select-none">
           {titleText}
         </p>
       </div>
@@ -87,58 +87,282 @@ function GalleryCard({
   );
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.45, delay: index * 0.05, ease: [0.16, 1, 0.3, 1] }}
-      className="relative group aspect-[4/5] rounded-[11px] overflow-hidden border border-neutral-200/80 hover:border-neutral-300 transition-all duration-300 hover:-translate-y-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] flex-shrink-0 w-[84vw] sm:w-auto"
+    <div
+      className="relative group aspect-[4/5] rounded-[11px] overflow-hidden border border-neutral-200/80 hover:border-neutral-300 transition-all duration-300 hover:-translate-y-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] shrink-0 w-[78vw] sm:w-[280px] lg:w-[298px] select-none"
     >
       {validPostUrl ? (
         <a
           href={validPostUrl}
           target="_blank"
           rel="noopener noreferrer"
+          onClick={onLinkClick}
           aria-label={`View on Social Media: ${titleText}`}
-          className="block w-full h-full cursor-pointer focus:outline-none"
+          className="block w-full h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[11px]"
         >
           {CardContent}
         </a>
       ) : (
         <Link
           href="/gallery"
+          onClick={onLinkClick}
           aria-label={`View Gallery: ${titleText}`}
-          className="block w-full h-full focus:outline-none"
+          className="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[11px]"
         >
           {CardContent}
         </Link>
       )}
-    </motion.div>
+    </div>
   );
 }
 
-/* ─── Header Animation Variants ─── */
-const headerVariants: Variants = {
-  hidden: { opacity: 0, y: 18 },
-  show: {
-    opacity: 1,
-    y: 0,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
-  },
-};
-
-/* ─── Main Gallery Section (Exact #FAFAFA Background Preserved) ─── */
+/* ─── Main Gallery Section (Continuous Endless Marquee Engine) ─── */
 export default function GallerySection({
   images,
+  animationSettings,
+  uiSettings,
 }: {
   images: GalleryImage[];
+  animationSettings?: GalleryAnimationSettings;
   uiSettings?: UiSettings;
 }) {
-  // Filter visible images & show 4 cards on homepage
-  const visibleImages = images.filter((img) => img.visible !== false);
-  const preview = visibleImages.slice(0, 4);
+  const settings = {
+    ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
+    ...animationSettings,
+  };
 
-  if (preview.length === 0) return null;
+  const visibleImages = useMemo(() => {
+    return images.filter((img) => img.visible !== false);
+  }, [images]);
+
+  // Expand sequence to ensure seamless loop without gaps
+  const baseItems = useMemo(() => {
+    if (visibleImages.length === 0) return [];
+    if (visibleImages.length >= 6) return visibleImages;
+    // Repeat items so single sequence is wide enough
+    const repeated: GalleryImage[] = [];
+    while (repeated.length < 6) {
+      repeated.push(...visibleImages);
+    }
+    return repeated;
+  }, [visibleImages]);
+
+  // Reduced motion preference
+  const [isReducedMotion, setIsReducedMotion] = useState(false);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setIsReducedMotion(media.matches);
+    const listener = (e: MediaQueryListEvent) => setIsReducedMotion(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
+  // Animation Engine Refs
+  const sectionRef = useRef<HTMLElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
+  const singleSeqRef = useRef<HTMLDivElement>(null);
+  const offsetRef = useRef<number>(0);
+  const sequenceWidthRef = useRef<number>(0);
+  const animFrameIdRef = useRef<number | null>(null);
+  const lastTimeRef = useRef<number | null>(null);
+  const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // State flags for interactive pausing
+  const isHoveredRef = useRef(false);
+  const isFocusedRef = useRef(false);
+  const isDraggingRef = useRef(false);
+  const isPausedRef = useRef(false);
+  const isVisibleRef = useRef(true);
+  const wasDraggingRef = useRef(false);
+
+  // Drag physics tracking
+  const dragStartXRef = useRef(0);
+  const dragStartOffsetRef = useRef(0);
+  const dragMovedRef = useRef(0);
+
+  // Measure sequence width dynamically with ResizeObserver
+  const measureSequence = useCallback(() => {
+    if (singleSeqRef.current) {
+      const width = singleSeqRef.current.offsetWidth;
+      if (width > 0) {
+        sequenceWidthRef.current = width;
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    measureSequence();
+    const el = singleSeqRef.current;
+    if (!el) return;
+    const observer = new ResizeObserver(() => measureSequence());
+    observer.observe(el);
+    window.addEventListener("resize", measureSequence);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measureSequence);
+    };
+  }, [measureSequence, baseItems]);
+
+  // IntersectionObserver to pause RAF when section is offscreen
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isVisibleRef.current = entry.isIntersecting;
+        if (entry.isIntersecting) {
+          lastTimeRef.current = null;
+        }
+      },
+      { threshold: 0.05 }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  // Tab visibility listener
+  useEffect(() => {
+    const handleVisibility = () => {
+      if (document.hidden) {
+        isVisibleRef.current = false;
+      } else {
+        isVisibleRef.current = true;
+        lastTimeRef.current = null;
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+    return () => document.removeEventListener("visibilitychange", handleVisibility);
+  }, []);
+
+  // Main 60fps RequestAnimationFrame Loop
+  useEffect(() => {
+    const enabled =
+      settings.endlessScrollEnabled &&
+      settings.autoplayEnabled &&
+      !isReducedMotion &&
+      baseItems.length > 1;
+
+    if (!enabled) {
+      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+      return;
+    }
+
+    const animate = (now: number) => {
+      if (lastTimeRef.current === null) {
+        lastTimeRef.current = now;
+      }
+      const dt = (now - lastTimeRef.current) / 1000;
+      lastTimeRef.current = now;
+
+      const seqWidth = sequenceWidthRef.current;
+
+      const shouldPause =
+        !isVisibleRef.current ||
+        isDraggingRef.current ||
+        (settings.pauseOnHover && isHoveredRef.current) ||
+        (settings.pauseOnFocus && isFocusedRef.current) ||
+        isPausedRef.current;
+
+      if (!shouldPause && seqWidth > 0 && dt > 0 && dt < 0.25) {
+        // Calculate responsive speed
+        let speed = settings.desktopSpeed;
+        if (typeof window !== "undefined") {
+          if (window.innerWidth < 768) {
+            speed = settings.mobileSpeed;
+          } else if (window.innerWidth < 1024) {
+            speed = settings.tabletSpeed;
+          }
+        }
+
+        const dirMult = settings.direction === "right" ? 1 : -1;
+        offsetRef.current += speed * dt * dirMult;
+
+        // Wrap around seamlessly
+        if (offsetRef.current <= -seqWidth) {
+          offsetRef.current += seqWidth;
+        } else if (offsetRef.current >= 0) {
+          offsetRef.current -= seqWidth;
+        }
+
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
+        }
+      }
+
+      animFrameIdRef.current = requestAnimationFrame(animate);
+    };
+
+    animFrameIdRef.current = requestAnimationFrame(animate);
+
+    return () => {
+      if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
+    };
+  }, [settings, isReducedMotion, baseItems]);
+
+  // Pointer drag & touch swipe handlers
+  const handlePointerDown = (e: React.PointerEvent) => {
+    if (!settings.dragEnabled || isReducedMotion || baseItems.length <= 1) return;
+    isDraggingRef.current = true;
+    dragStartXRef.current = e.clientX;
+    dragStartOffsetRef.current = offsetRef.current;
+    dragMovedRef.current = 0;
+    lastTimeRef.current = null;
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    if (!isDraggingRef.current) return;
+    const dx = e.clientX - dragStartXRef.current;
+    dragMovedRef.current = Math.abs(dx);
+
+    const seqWidth = sequenceWidthRef.current || 1;
+    let newOffset = dragStartOffsetRef.current + dx;
+
+    while (newOffset <= -seqWidth) newOffset += seqWidth;
+    while (newOffset >= 0) newOffset -= seqWidth;
+
+    offsetRef.current = newOffset;
+    if (trackRef.current) {
+      trackRef.current.style.transform = `translate3d(${newOffset}px, 0, 0)`;
+    }
+  };
+
+  const handlePointerUp = () => {
+    if (!isDraggingRef.current) return;
+    isDraggingRef.current = false;
+    lastTimeRef.current = null;
+
+    if (dragMovedRef.current > 6) {
+      wasDraggingRef.current = true;
+      setTimeout(() => {
+        wasDraggingRef.current = false;
+      }, 250);
+    }
+
+    if (settings.pauseOnInteraction) {
+      isPausedRef.current = true;
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+      resumeTimeoutRef.current = setTimeout(() => {
+        isPausedRef.current = false;
+        lastTimeRef.current = null;
+      }, settings.resumeDelay || 1500);
+    }
+  };
+
+  const handleLinkClick = (e: React.MouseEvent) => {
+    if (wasDraggingRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  if (visibleImages.length === 0) return null;
+
+  const isContinuous =
+    settings.endlessScrollEnabled &&
+    !isReducedMotion &&
+    baseItems.length > 1;
 
   return (
     <ScrollReveal
@@ -146,7 +370,7 @@ export default function GallerySection({
       id="gallery-section"
       stagger={0.06}
       yOffset={20}
-      className="relative py-12 sm:py-16 lg:py-[72px] bg-[#FAFAFA] border-y border-neutral-200/80 overflow-hidden font-sans"
+      className="relative py-12 sm:py-16 lg:py-[72px] bg-[#FAFAFA] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
     >
       {/* ── Content Container (1320px Max-Width, Width: calc(100% - 48px)) ── */}
       <div className="relative max-w-[1320px] w-[calc(100%-48px)] mx-auto">
@@ -157,7 +381,7 @@ export default function GallerySection({
         >
           <div className="flex flex-col items-start text-left">
             {/* Eyebrow */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-white border border-neutral-200/80 text-neutral-800 text-[11px] font-bold uppercase tracking-[0.08em] shadow-2xs mb-2.5">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-white border border-neutral-200/80 text-neutral-800 text-[11px] font-bold uppercase tracking-[0.08em] shadow-2xs mb-2.5 select-none">
               <Images className="w-3.5 h-3.5 text-blue-600 shrink-0" />
               <span>STORE HIGHLIGHTS &amp; SOCIAL MEDIA</span>
             </div>
@@ -176,7 +400,7 @@ export default function GallerySection({
             </p>
           </div>
 
-          {/* Action Button (Desktop: Right aligned with header; Mobile: Placed cleanly) */}
+          {/* Action Button */}
           <Link
             href="/gallery"
             className="group inline-flex items-center justify-center gap-2 h-[46px] sm:h-[48px] px-6 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold transition-all shrink-0 self-start md:self-auto shadow-sm active:scale-[0.98]"
@@ -185,15 +409,95 @@ export default function GallerySection({
             <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
           </Link>
         </div>
+      </div>
 
-        {/* ── Gallery Grid (Desktop: 4 equal cols; Tablet: 2 cols; Mobile: Snap Carousel) ── */}
-        <div className="flex overflow-x-auto snap-x snap-mandatory sm:grid sm:grid-cols-2 lg:grid-cols-4 gap-[18px] lg:gap-5 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 no-scrollbar">
-          {preview.map((img, idx) => (
-            <div key={img.id || idx} data-reveal-item className="h-full">
-              <GalleryCard image={img} index={idx} />
+      {/* ── Moving Gallery Viewport Rail ── */}
+      <div
+        ref={sectionRef as React.RefObject<HTMLDivElement>}
+        data-reveal-item
+        className="relative w-full overflow-hidden"
+        onMouseEnter={() => {
+          isHoveredRef.current = true;
+        }}
+        onMouseLeave={() => {
+          isHoveredRef.current = false;
+        }}
+        onFocus={() => {
+          isFocusedRef.current = true;
+        }}
+        onBlur={() => {
+          isFocusedRef.current = false;
+        }}
+      >
+        {/* Optional Edge Fade Gradients */}
+        {settings.edgeFadeEnabled && (
+          <>
+            <div
+              style={{
+                width: `${settings.edgeFadeWidth}px`,
+                background: `linear-gradient(to right, ${settings.edgeFadeColor || "#FAFAFA"}, transparent)`,
+              }}
+              className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none"
+            />
+            <div
+              style={{
+                width: `${settings.edgeFadeWidth}px`,
+                background: `linear-gradient(to left, ${settings.edgeFadeColor || "#FAFAFA"}, transparent)`,
+              }}
+              className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none"
+            />
+          </>
+        )}
+
+        {isContinuous ? (
+          /* Continuous Endless Moving Track with Pointer Drag */
+          <div
+            ref={trackRef}
+            onPointerDown={handlePointerDown}
+            onPointerMove={handlePointerMove}
+            onPointerUp={handlePointerUp}
+            onPointerCancel={handlePointerUp}
+            className="flex items-center gap-4 sm:gap-5 cursor-grab active:cursor-grabbing will-change-transform touch-pan-y"
+            style={{ width: "max-content" }}
+          >
+            {/* Sequence A (Primary) */}
+            <div ref={singleSeqRef} className="flex items-center gap-4 sm:gap-5 shrink-0">
+              {baseItems.map((img, idx) => (
+                <GalleryCard
+                  key={`seq-a-${img.id || idx}`}
+                  image={img}
+                  index={idx}
+                  onLinkClick={handleLinkClick}
+                />
+              ))}
             </div>
-          ))}
-        </div>
+
+            {/* Sequence B (Identical clone for seamless loop) */}
+            <div className="flex items-center gap-4 sm:gap-5 shrink-0" aria-hidden="true">
+              {baseItems.map((img, idx) => (
+                <GalleryCard
+                  key={`seq-b-${img.id || idx}`}
+                  image={img}
+                  index={idx}
+                  onLinkClick={handleLinkClick}
+                />
+              ))}
+            </div>
+          </div>
+        ) : (
+          /* Fallback Static / Manual Scroll Rail (1 Item or Reduced Motion) */
+          <div className="max-w-[1320px] w-[calc(100%-48px)] mx-auto">
+            <div className="flex overflow-x-auto gap-4 sm:gap-5 pb-2 no-scrollbar scroll-smooth">
+              {visibleImages.map((img, idx) => (
+                <GalleryCard
+                  key={`static-${img.id || idx}`}
+                  image={img}
+                  index={idx}
+                />
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </ScrollReveal>
   );

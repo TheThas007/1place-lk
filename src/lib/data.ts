@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings } from "./types";
 
 export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
   enabled: true,
@@ -1273,6 +1273,28 @@ export const DEFAULT_TODAY_DEAL_SETTINGS: TodayDealSettings = {
   replacementCtaLabel: "Browse All Deals",
   replacementCtaUrl: "/products",
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// DEFAULT GALLERY SCROLL ANIMATION SETTINGS
+// ══════════════════════════════════════════════════════════════════════════
+export const DEFAULT_GALLERY_ANIMATION_SETTINGS: GalleryAnimationSettings = {
+  endlessScrollEnabled: true,
+  autoplayEnabled: true,
+  direction: "left",
+  desktopSpeed: 40,
+  tabletSpeed: 32,
+  mobileSpeed: 24,
+  pauseOnHover: true,
+  pauseOnFocus: true,
+  pauseOnInteraction: true,
+  resumeDelay: 1500,
+  dragEnabled: true,
+  mobileAutoplayEnabled: true,
+  edgeFadeEnabled: false,
+  edgeFadeWidth: 60,
+  edgeFadeColor: "#FAFAFA",
+};
+
 
 
 

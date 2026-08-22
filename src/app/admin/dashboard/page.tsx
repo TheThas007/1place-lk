@@ -47,9 +47,9 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS, DEFAULT_MEGA_MENU_SETTINGS, DEFAULT_BRANDS } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings, getMegaMenuSettings, getBrands } from "@/lib/firestore-client";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand, GalleryAnimationSettings } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS, DEFAULT_MEGA_MENU_SETTINGS, DEFAULT_BRANDS, DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings, getMegaMenuSettings, getBrands, getGalleryAnimationSettings } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -112,6 +112,7 @@ function DashboardContent() {
   const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
   const [todayDealSettings, setTodayDealSettings] = useState<TodayDealSettings>(DEFAULT_TODAY_DEAL_SETTINGS);
   const [megaMenuSettings, setMegaMenuSettings] = useState<MegaMenuSettings>(DEFAULT_MEGA_MENU_SETTINGS);
+  const [galleryAnimationSettings, setGalleryAnimationSettings] = useState<GalleryAnimationSettings>(DEFAULT_GALLERY_ANIMATION_SETTINGS);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -291,6 +292,14 @@ function DashboardContent() {
         if (bList && bList.length > 0) setBrands(bList);
       } catch (err) {
         console.warn("Error fetching brands in admin:", err);
+      }
+
+      // Gallery Scroll Animation Settings
+      try {
+        const ga = await getGalleryAnimationSettings();
+        if (ga) setGalleryAnimationSettings(ga);
+      } catch (err) {
+        console.warn("Error fetching gallery animation settings in admin:", err);
       }
     } catch (e) {
       console.error("Dashboard Data Fetch Error:", e);
@@ -1248,6 +1257,7 @@ function DashboardContent() {
       {activeTab === "gallery" && (
         <GalleryTab
           images={galleryImages}
+          initialAnimationSettings={galleryAnimationSettings}
           onAdd={() => {
             setEditingGalleryImage(null);
             setIsGalleryModalOpen(true);
@@ -1257,6 +1267,7 @@ function DashboardContent() {
             setIsGalleryModalOpen(true);
           }}
           onDelete={handleDeleteGalleryImage}
+          onRefresh={refreshData}
         />
       )}
 

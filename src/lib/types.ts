@@ -321,6 +321,26 @@ export interface GalleryImage {
   visible?: boolean;
 }
 
+export interface GalleryAnimationSettings {
+  endlessScrollEnabled: boolean;
+  autoplayEnabled: boolean;
+  direction: "left" | "right";
+  desktopSpeed: number; // px/s, e.g. 40
+  tabletSpeed: number; // px/s, e.g. 32
+  mobileSpeed: number; // px/s, e.g. 24
+  pauseOnHover: boolean;
+  pauseOnFocus: boolean;
+  pauseOnInteraction: boolean;
+  resumeDelay: number; // ms, e.g. 1500
+  dragEnabled: boolean;
+  mobileAutoplayEnabled: boolean;
+  edgeFadeEnabled: boolean;
+  edgeFadeWidth: number; // px, e.g. 60
+  edgeFadeColor: string; // e.g. "#FAFAFA"
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
 export interface Banner {
   id: string;
   image_url: string;

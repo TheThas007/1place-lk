@@ -28,6 +28,7 @@ import {
   getFeaturedCollections,
   getNewArrivalsSettings,
   getTodayDealSettings,
+  getGalleryAnimationSettings,
 } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
@@ -47,6 +48,7 @@ export default async function HomePage() {
     featuredCollectionsSettings,
     newArrivalsSettings,
     todayDealSettings,
+    galleryAnimationSettings,
   ] = await Promise.all([
     getCategories(),
     getBrands(),
@@ -59,6 +61,7 @@ export default async function HomePage() {
     getFeaturedCollections(),
     getNewArrivalsSettings(),
     getTodayDealSettings(),
+    getGalleryAnimationSettings(),
   ]);
 
   const jsonLd = {
@@ -167,7 +170,11 @@ export default async function HomePage() {
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />
 
       {/* 9. Store Gallery (Life at Street Mobile) */}
-      <GallerySection images={galleryImages as GalleryImage[]} uiSettings={uiSettings} />
+      <GallerySection
+        images={galleryImages as GalleryImage[]}
+        animationSettings={galleryAnimationSettings}
+        uiSettings={uiSettings}
+      />
 
       {/* Showcase position: Below Life at Street Mobile */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
