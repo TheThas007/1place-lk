@@ -47,9 +47,9 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS } from "@/lib/data";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -67,6 +67,7 @@ import HeroTab from "@/components/admin/tabs/HeroTab";
 import BrandsTab from "@/components/admin/tabs/BrandsTab";
 import GalleryTab from "@/components/admin/tabs/GalleryTab";
 import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
+import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 
 type Tab =
   | "overview"
@@ -80,6 +81,7 @@ type Tab =
   | "orders"
   | "settings"
   | "banners"
+  | "showcase"
   | "inventory"
   | "payments"
   | "analytics";
@@ -102,6 +104,7 @@ function DashboardContent() {
   const [banners, setBanners] = useState<OfferBanner[]>([]);
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
+  const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -250,6 +253,14 @@ function DashboardContent() {
       const userSnap = await getDocs(collection(db, "users"));
       const userList = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCustomers(userList);
+
+      // Visual Showcase Settings
+      try {
+        const sc = await getShowcaseSettings();
+        if (sc) setShowcaseSettings(sc);
+      } catch (err) {
+        console.warn("Error fetching showcase settings in admin:", err);
+      }
     } catch (e) {
       console.error("Dashboard Data Fetch Error:", e);
     } finally {
@@ -1215,6 +1226,18 @@ function DashboardContent() {
             setIsGalleryModalOpen(true);
           }}
           onDelete={handleDeleteGalleryImage}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5D: VISUAL PRODUCT SHOWCASE BANNERS
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "showcase" && (
+        <ShowcaseTab
+          products={products}
+          categories={categories}
+          initialSettings={showcaseSettings}
+          onRefresh={refreshData}
         />
       )}
 

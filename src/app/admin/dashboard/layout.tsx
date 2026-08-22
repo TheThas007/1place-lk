@@ -44,6 +44,7 @@ const SIDEBAR_ITEMS = [
   { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
   { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
+  { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
   { id: "inventory", label: "Inventory", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
   { id: "payments", label: "Payments", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
   { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
