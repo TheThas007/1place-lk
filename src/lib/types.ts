@@ -944,7 +944,7 @@ export type AssistantMessageType =
 export interface AssistantAction {
   label: string;
   action: string;
-  payload?: any;
+  payload?: Record<string, unknown> | string | number | boolean | null;
   icon?: string;
 }
 

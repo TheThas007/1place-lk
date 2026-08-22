@@ -165,7 +165,7 @@ function BrandProductCard({ product }: { product: Product }) {
               }}
               className={`w-full h-full ${
                 isCover ? "object-cover" : "object-contain"
-              } transition-transform duration-500 ease-out group-hover:scale-[${(userScale * 1.05).toFixed(2)}]`}
+              } transition-transform duration-500 ease-out group-hover:scale-105`}
             />
           </div>
         </div>

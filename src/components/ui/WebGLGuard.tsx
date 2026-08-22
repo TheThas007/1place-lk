@@ -47,14 +47,14 @@ export default function WebGLGuard({
   fallback,
   timeoutMs = 3000,
 }: WebGLGuardProps) {
-  const [webglSupported, setWebglSupported] = useState<boolean | null>(null);
+  const [webglSupported] = useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !prefersReducedMotion() && isWebGLAvailable();
+  });
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    const isSupported = !prefersReducedMotion() && isWebGLAvailable();
-    setWebglSupported(isSupported);
-
-    if (!isSupported) return;
+    if (!webglSupported) return;
 
     // Timeout safety net in case 3D textures/shaders hang indefinitely
     const timer = setTimeout(() => {
@@ -62,7 +62,7 @@ export default function WebGLGuard({
     }, timeoutMs);
 
     return () => clearTimeout(timer);
-  }, [timeoutMs]);
+  }, [timeoutMs, webglSupported]);
 
   // Server-Side Rendering or checking status
   if (webglSupported === null) {

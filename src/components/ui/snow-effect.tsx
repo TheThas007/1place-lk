@@ -66,12 +66,10 @@ function SnowParticles({ count = 10000 }: { count?: number }) {
 }
 
 export default function SnowEffect() {
-  const [canRender, setCanRender] = useState(false);
-
-  useEffect(() => {
-    const isSupported = !prefersReducedMotion() && !isLowPowerDevice() && isWebGLAvailable();
-    setCanRender(Boolean(isSupported));
-  }, []);
+  const [canRender] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !prefersReducedMotion() && !isLowPowerDevice() && isWebGLAvailable();
+  });
 
   if (!canRender) return null;
 

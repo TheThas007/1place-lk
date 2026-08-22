@@ -27,7 +27,7 @@ export const DEFAULT_ASSISTANT_SETTINGS: AssistantSettings = {
 
 export const ASSISTANT_QUICK_ACTIONS: Record<
   AssistantLanguage,
-  { id: string; label: string; icon: string; action: string; payload?: any }[]
+  { id: string; label: string; icon: string; action: string; payload?: Record<string, unknown> | string | number | boolean | null }[]
 > = {
   en: [
     { id: "find_phone", label: "Find a Phone", icon: "Smartphone", action: "start_find_phone" },
