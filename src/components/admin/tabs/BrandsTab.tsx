@@ -157,12 +157,17 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const name = e.target.value;
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+    const group = formData.product_group || "smartphones";
+    let defaultLink = `/products?brand=${slug}&cat_chip=smartphones`;
+    if (group === "laptops") defaultLink = `/products?brand=${slug}&cat_chip=laptops-tablets`;
+    else if (group === "accessories" || group === "audio") defaultLink = `/products?brand=${slug}&category=accessories`;
+
     setFormData((prev) => ({
       ...prev,
       name,
       slug: prev.slug || slug,
       logo_alt_text: prev.logo_alt_text || `${name} Logo`,
-      link_destination: prev.link_destination || `/products?brand=${slug}`,
+      link_destination: (!prev.link_destination || prev.link_destination.startsWith("/products?brand=")) ? defaultLink : prev.link_destination,
     }));
   };
 
@@ -646,14 +651,26 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                   </label>
                   <select
                     value={formData.product_group || "smartphones"}
-                    onChange={(e) => setFormData({ ...formData, product_group: e.target.value as any })}
+                    onChange={(e) => {
+                      const group = e.target.value as any;
+                      const slug = formData.slug || (formData.name || "brand").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                      let defaultLink = `/products?brand=${slug}&cat_chip=smartphones`;
+                      if (group === "laptops") defaultLink = `/products?brand=${slug}&cat_chip=laptops-tablets`;
+                      else if (group === "accessories" || group === "audio") defaultLink = `/products?brand=${slug}&category=accessories`;
+
+                      setFormData((prev) => ({
+                        ...prev,
+                        product_group: group,
+                        link_destination: (!prev.link_destination || prev.link_destination.startsWith("/products?brand=")) ? defaultLink : prev.link_destination,
+                      }));
+                    }}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold outline-none focus:border-blue-500"
                   >
-                    <option value="smartphones" className="bg-[#0F172A] text-white">Smartphones &amp; Mobiles</option>
-                    <option value="laptops" className="bg-[#0F172A] text-white">Laptops &amp; Computers</option>
-                    <option value="accessories" className="bg-[#0F172A] text-white">Accessories &amp; Power</option>
-                    <option value="audio" className="bg-[#0F172A] text-white">Audio &amp; Speakers</option>
-                    <option value="other" className="bg-[#0F172A] text-white">Other Products</option>
+                    <option value="smartphones" className="bg-[#0F172A] text-white">📱 Smartphones &amp; Mobiles</option>
+                    <option value="laptops" className="bg-[#0F172A] text-white">💻 Laptops &amp; Computers</option>
+                    <option value="accessories" className="bg-[#0F172A] text-white">🎧 Accessories &amp; Power</option>
+                    <option value="audio" className="bg-[#0F172A] text-white">🔊 Audio &amp; Speakers</option>
+                    <option value="other" className="bg-[#0F172A] text-white">📦 Other Products</option>
                   </select>
                 </div>
 
@@ -663,11 +680,14 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                   </label>
                   <input
                     type="text"
-                    placeholder="/products?brand=samsung"
+                    placeholder="/products?brand=apple&cat_chip=smartphones"
                     value={formData.link_destination || ""}
                     onChange={(e) => setFormData({ ...formData, link_destination: e.target.value })}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
                   />
+                  <p className="text-[10px] text-white/40 mt-1">
+                    Auto-configured to open the exact brand + category filter on the Store.
+                  </p>
                 </div>
               </div>
 

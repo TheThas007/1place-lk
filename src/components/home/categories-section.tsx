@@ -16,10 +16,25 @@ interface CategoriesSectionProps {
   brands?: Brand[];
 }
 
-function BrandCard({ brand, index }: { brand: Brand; index: number }) {
+function BrandCard({ brand, index, activeTab }: { brand: Brand; index: number; activeTab: Tab }) {
   const [imgError, setImgError] = useState(false);
-  const targetLink = brand.link_destination || `/products?brand=${encodeURIComponent(brand.slug || brand.name)}`;
   const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+
+  // Compute contextual link based on currently active tab and brand
+  const brandName = brand.slug || brand.name;
+  let targetLink = brand.link_destination || "";
+
+  if (!targetLink || targetLink === `/products?brand=${brandName}` || !targetLink.includes("?")) {
+    if (activeTab === "phones") {
+      targetLink = `/products?brand=${encodeURIComponent(brandName)}&cat_chip=smartphones`;
+    } else if (activeTab === "laptops") {
+      targetLink = `/products?brand=${encodeURIComponent(brandName)}&cat_chip=laptops-tablets`;
+    } else if (activeTab === "accessories") {
+      targetLink = `/products?brand=${encodeURIComponent(brandName)}&category=accessories`;
+    } else {
+      targetLink = `/products?brand=${encodeURIComponent(brandName)}`;
+    }
+  }
 
   return (
     <motion.div
@@ -164,7 +179,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 lg:gap-6"
           >
             {visibleBrands.map((brand, i) => (
-              <BrandCard key={brand.id || i} brand={brand} index={i} />
+              <BrandCard key={brand.id || i} brand={brand} index={i} activeTab={activeTab} />
             ))}
           </motion.div>
         </AnimatePresence>

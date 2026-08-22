@@ -409,15 +409,33 @@ export default function ProductsClient({
         }
       }
 
-      // 3. Sidebar Multi-Categories
+      // 3. Sidebar Multi-Categories & Group Keywords
       if (selectedCategories.length > 0) {
         const matchesSidebarCat = selectedCategories.some((target) => {
           const t = target.toLowerCase();
+          const pCat = (product.category_name || product.categoryName || product.category_slug || "").toLowerCase();
+          const pName = (product.name || "").toLowerCase();
+          const pId = (product.category_id || "").toLowerCase();
+
+          // Intelligent match for group names
+          if (t === "smartphones" || t === "phones" || t === "smart-phones") {
+            return pCat.includes("phone") || pCat.includes("smartphone") || pCat.includes("iphone") || pName.includes("phone") || pName.includes("iphone") || pId === "cat-smartphones";
+          }
+          if (t === "laptops" || t === "laptop" || t === "tablets" || t === "laptops-tablets") {
+            return pCat.includes("laptop") || pCat.includes("macbook") || pCat.includes("tablet") || pCat.includes("ipad") || pCat.includes("tab") || pName.includes("macbook") || pName.includes("laptop") || pName.includes("ipad") || pId === "cat-laptops" || pId === "cat-tablets";
+          }
+          if (t === "accessories" || t === "accessory" || t === "audio" || t === "other") {
+            const isMainPhoneOrLaptop = (pCat === "smartphones" || pCat === "iphone" || pCat === "phones") && !pCat.includes("case") && !pCat.includes("accessory");
+            const isLaptopDevice = (pCat === "laptop" || pCat === "laptops" || pCat === "macbook") && !pCat.includes("bag") && !pCat.includes("stand");
+            if (isMainPhoneOrLaptop || isLaptopDevice) return false;
+            return true;
+          }
+
           return (
-            (product.category_id || "").toLowerCase() === t ||
-            (product.category_name || product.categoryName || "").toLowerCase() === t ||
-            (product.category_slug || product.categorySlug || "").toLowerCase() === t ||
-            (product.category_name || product.categoryName || "").toLowerCase().includes(t)
+            pId === t ||
+            pCat === t ||
+            pCat.includes(t) ||
+            (product.category_slug || "").toLowerCase() === t
           );
         });
         if (!matchesSidebarCat) return false;
