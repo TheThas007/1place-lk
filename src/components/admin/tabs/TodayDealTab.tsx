@@ -180,16 +180,16 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
               {/* Campaign Status Badge */}
               <span
                 className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
-                  campaignStatus === "live"
+                  !settings.enabled
+                    ? "bg-neutral-500/20 text-neutral-400 border-neutral-500/30"
+                    : campaignStatus === "live"
                     ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
                     : campaignStatus === "scheduled"
                     ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                    : campaignStatus === "expired"
-                    ? "bg-red-500/20 text-red-400 border-red-500/30"
-                    : "bg-neutral-500/20 text-neutral-400 border-neutral-500/30"
+                    : "bg-red-500/20 text-red-400 border-red-500/30"
                 }`}
               >
-                ● {campaignStatus}
+                ● {!settings.enabled ? "OFF (Disabled)" : campaignStatus}
               </span>
             </div>
             <p className="text-xs text-white/50 mt-0.5">
@@ -199,6 +199,24 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
         </div>
 
         <div className="flex items-center gap-3">
+          {/* Quick Banner ON / OFF Switch */}
+          <button
+            type="button"
+            onClick={() => setSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
+            className={`px-4 py-2.5 rounded-xl font-extrabold text-xs transition-all flex items-center gap-2 border cursor-pointer ${
+              settings.enabled
+                ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/40 hover:bg-emerald-500/30"
+                : "bg-neutral-800 text-neutral-400 border-neutral-700 hover:bg-neutral-700"
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                settings.enabled ? "bg-emerald-400 animate-pulse" : "bg-neutral-500"
+              }`}
+            />
+            {settings.enabled ? "Banner: ON" : "Banner: OFF"}
+          </button>
+
           <button
             type="button"
             onClick={handleResetDefaults}

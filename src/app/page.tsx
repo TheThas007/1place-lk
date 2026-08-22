@@ -128,6 +128,9 @@ export default async function HomePage() {
       {/* 3. New Arrivals */}
       <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
 
+      {/* Today's Deal Promotional Banner (Below New Arrivals) */}
+      <TodayDealSection settings={todayDealSettings} />
+
       {/* Showcase position: Below New Arrivals */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_new_arrivals" />
 
@@ -163,9 +166,6 @@ export default async function HomePage() {
 
       {/* 8. Shop by Category (Carousel Slider) */}
       <ShopByCategoryCarousel categories={categories} />
-
-      {/* Today's Deal Promotional Banner */}
-      <TodayDealSection settings={todayDealSettings} />
 
       {/* Showcase position: Below Shop by Category */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />
