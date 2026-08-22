@@ -66,7 +66,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const lastOrderId = useRef<string | null>(null);
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("admin_auth");
+    const auth =
+      (typeof window !== "undefined" && (sessionStorage.getItem("admin_auth") || localStorage.getItem("admin_auth"))) === "true";
     if (!auth) {
       router.push("/admin/login");
     } else {
@@ -134,16 +135,24 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
+    localStorage.removeItem("admin_auth");
     router.push("/admin/login");
   };
 
   if (!isAuthed) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white font-sans">
-        <div className="flex items-center gap-2 font-bold text-sm">
-          <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
-          Authenticating Admin Session...
+      <div className="min-h-screen bg-[#090D14] flex flex-col items-center justify-center text-white font-sans p-6 text-center">
+        <div className="w-12 h-12 rounded-2xl bg-blue-600/20 border border-blue-500/30 flex items-center justify-center text-blue-400 mb-4 animate-pulse">
+          <Smartphone className="w-6 h-6" />
         </div>
+        <h2 className="text-xl font-bold text-white mb-2">Admin Session Required</h2>
+        <p className="text-xs text-white/50 mb-6 max-w-sm">Please sign in with your credentials to access the StreetMobile Admin Panel.</p>
+        <Link
+          href="/admin/login"
+          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl shadow-lg shadow-blue-600/30 transition-all"
+        >
+          Go to Admin Sign In
+        </Link>
       </div>
     );
   }

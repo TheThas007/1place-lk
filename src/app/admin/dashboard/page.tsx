@@ -82,12 +82,7 @@ type Tab =
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = (searchParams.get("tab") as Tab) || "overview";
-
-  const [activeTab, setActiveTab] = useState<Tab>(tabParam);
-  useEffect(() => {
-    setActiveTab(tabParam);
-  }, [tabParam]);
+  const activeTab = (searchParams.get("tab") as Tab) || "overview";
 
   // Firestore Lists
   const [products, setProducts] = useState<Product[]>([]);
