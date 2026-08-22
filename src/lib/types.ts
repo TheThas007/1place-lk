@@ -65,13 +65,24 @@ export interface Product {
   metaDescription?: string;
 }
 
+export interface Department {
+  id: string;
+  name: string;
+  slug: string;
+  enabled: boolean;
+  order: number;
+  description?: string;
+}
+
 export interface Brand {
   id: string;
   name: string;
   slug: string;
   logo_url?: string;
+  icon_url?: string;
   logo_alt_text?: string;
   description?: string;
+  assigned_departments?: string[]; // e.g. ["phones", "laptops-tablets", "accessories"]
   product_group?: "smartphones" | "laptops" | "accessories" | "audio" | "other";
   category?: string;
   link_destination?: string;
@@ -80,10 +91,123 @@ export interface Brand {
   order?: number;
   mobile_sort_order?: number;
   status?: "active" | "inactive";
+  enabled?: boolean;
   show_on_homepage?: boolean;
   is_featured?: boolean;
+  featured?: boolean;
   product_count?: number;
   logoScale?: number;
+  seo_title?: string;
+  seo_description?: string;
+}
+
+export interface BrandDepartmentRelation {
+  id: string;
+  brandId: string;
+  brandSlug: string;
+  departmentId: string;
+  departmentSlug: string;
+  enabled: boolean;
+  featured: boolean;
+  order: number;
+  hideWhenEmpty: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface DepartmentBrandCategoryTab {
+  id: string;
+  enabled: boolean;
+  label: string;
+  slug: string;
+  categoryId?: string;
+  subcategoryId?: string;
+  order: number;
+}
+
+export interface DepartmentBrandPageConfig {
+  id: string; // e.g. "phones_apple"
+  brandId: string;
+  brandSlug: string;
+  departmentId: string;
+  departmentSlug: string;
+
+  enabled: boolean;
+  status: "draft" | "scheduled" | "published" | "archived";
+  startsAt?: string;
+  endsAt?: string;
+
+  useDefaultLogo: boolean;
+  logoOverrideUrl?: string;
+  logoAlt?: string;
+  logoWidth?: number;
+
+  useDefaultBanner: boolean;
+  desktopBannerUrl?: string;
+  tabletBannerUrl?: string;
+  mobileBannerUrl?: string;
+  bannerAlt?: string;
+
+  desktopFocalPosition?: string;
+  tabletFocalPosition?: string;
+  mobileFocalPosition?: string;
+
+  eyebrow?: string;
+  heading: string;
+  description?: string;
+
+  primaryCtaEnabled: boolean;
+  primaryCtaLabel?: string;
+  primaryCtaUrl?: string;
+
+  secondaryCtaEnabled: boolean;
+  secondaryCtaLabel?: string;
+  secondaryCtaUrl?: string;
+  openInNewTab?: boolean;
+
+  horizontalPosition: "left" | "center" | "right";
+  verticalPosition: "top" | "center" | "bottom";
+  textAlignment: "left" | "center" | "right";
+  mobileLayout: "overlay" | "stacked";
+
+  headingColor: string;
+  descriptionColor: string;
+  eyebrowColor: string;
+  accentColor: string;
+
+  primaryCtaBackground: string;
+  primaryCtaTextColor: string;
+  secondaryCtaBackground: string;
+  secondaryCtaTextColor: string;
+
+  contentBackgroundColor: string;
+  contentBackgroundOpacity: number;
+  imageOverlayColor: string;
+  imageOverlayOpacity: number;
+
+  desktopBannerHeight: number;
+  tabletBannerHeight: number;
+  mobileBannerHeight: number;
+  borderRadius: number;
+
+  categoryTabs: DepartmentBrandCategoryTab[];
+  defaultCategoryTabId?: string;
+  hideEmptyTabs: boolean;
+
+  relatedSectionEnabled: boolean;
+  relatedSectionHeading?: string;
+  relatedCategoryIds?: string[];
+  relatedProductIds?: string[];
+  relatedDisplayMode: "grid" | "rail";
+
+  seoTitle?: string;
+  seoDescription?: string;
+  seoImageUrl?: string;
+  noIndex?: boolean;
+
+  updatedAt?: string;
+  updatedBy?: string;
+  publishedAt?: string;
 }
 
 export interface ProductColor {

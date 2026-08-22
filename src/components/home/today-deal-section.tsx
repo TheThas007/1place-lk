@@ -293,93 +293,79 @@ export default function TodayDealSection({
     <section
       id="todays-deal-section"
       aria-label="Today's Deal Promotional Banner"
-      className={`w-full max-w-7xl mx-auto px-4 lg:px-6 my-10 sm:my-14 ${className}`}
+      className={`relative w-full overflow-hidden select-none bg-black rounded-none border-0 shadow-none my-0 py-0 ${
+        isLivePreview ? "rounded-2xl border border-white/10" : ""
+      } ${className}`}
     >
-      {/* ── DESKTOP & TABLET VIEW (AND MOBILE OVERLAY MODE) ── */}
+      {/* ── Outer Height Container matching Offer Banner Screen Fit ── */}
       <div
-        className={`relative w-full overflow-hidden shadow-xl border border-neutral-200/60 dark:border-white/10 ${
-          deal.mobileLayout === "stacked" ? "hidden md:block" : "block"
-        }`}
-        style={{
-          borderRadius: `${deal.borderRadius ?? 8}px`,
-          minHeight: "460px",
-          maxHeight: "620px",
-          aspectRatio: "2 / 1",
-        }}
+        className={`relative w-full ${
+          isLivePreview
+            ? "min-h-[380px] md:min-h-[460px]"
+            : "h-[clamp(620px,78vh,680px)] md:h-[clamp(480px,62vh,620px)]"
+        } flex items-end md:items-center`}
       >
-        {/* Banner Base Image Layer */}
-        {!imgError && desktopImg ? (
-          <Image
-            src={desktopImg}
-            alt={deal.imageAlt || "Today's Deal Promotion"}
-            fill
-            priority={false}
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 90vw, 1400px"
-            style={{
-              objectFit: "cover",
-              objectPosition: getObjectPosition(deal.desktopFocalPosition || "center"),
-            }}
-            className="transition-transform duration-700 ease-out hover:scale-[1.01]"
-            onError={() => setImgError(true)}
-          />
-        ) : (
-          <div className="absolute inset-0 bg-neutral-900 flex items-center justify-center text-white/40 font-mono text-sm">
-            <span>[ Today&apos;s Deal Banner Image ]</span>
-          </div>
-        )}
+        {/* ── 1. Full-Frame Background Image Layer ── */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
+          {!imgError && desktopImg ? (
+            <picture className="w-full h-full block">
+              {mobileImg && <source media="(max-width: 767px)" srcSet={mobileImg} />}
+              <img
+                src={desktopImg}
+                alt={deal.imageAlt || "Today's Deal Promotion"}
+                loading="lazy"
+                decoding="async"
+                style={{
+                  objectFit: "cover",
+                  objectPosition: getObjectPosition(deal.desktopFocalPosition || "center"),
+                }}
+                className="w-full h-full object-cover max-md:object-[center_top] block transition-transform duration-700 ease-out"
+                onError={() => setImgError(true)}
+              />
+            </picture>
+          ) : (
+            <div className="w-full h-full bg-neutral-950 flex items-center justify-center text-white/40 font-mono text-sm">
+              <span>[ Today&apos;s Deal Banner Image ]</span>
+            </div>
+          )}
+        </div>
 
-        {/* Optional Dark Overlay for Image Contrast */}
+        {/* ── 2. Readability Gradient Overlays ── */}
+        {/* Desktop Left-to-Right Subtle Overlay */}
+        <div
+          className="hidden md:block absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            background:
+              deal.boxPosition === "right"
+                ? "linear-gradient(270deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)"
+                : deal.boxPosition === "center"
+                ? "radial-gradient(circle at center, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)"
+                : "linear-gradient(90deg, rgba(0,0,0,0.78) 0%, rgba(0,0,0,0.42) 38%, rgba(0,0,0,0.05) 68%, transparent 100%)",
+          }}
+        />
+
+        {/* Mobile Bottom-to-Top Overlay */}
+        <div
+          className="md:hidden absolute inset-0 pointer-events-none z-[1]"
+          style={{
+            background:
+              "linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)",
+          }}
+        />
+
+        {/* Optional Custom Dark Overlay Opacity */}
         {darkOverlayOpacity > 0 && (
           <div
-            className="absolute inset-0 z-10 pointer-events-none transition-opacity"
+            className="absolute inset-0 z-[2] pointer-events-none transition-opacity"
             style={{ backgroundColor: `rgba(0, 0, 0, ${darkOverlayOpacity})` }}
           />
         )}
 
-        {/* Overlay Content Container */}
-        <div className={`absolute inset-0 z-20 p-6 sm:p-8 lg:p-12 ${getBoxPositionClasses()}`}>
+        {/* ── 3. Content Group (Responsive Left Offset & Padding) ── */}
+        <div className={`relative z-10 w-full h-full p-6 sm:p-10 lg:pl-[8vw] lg:pr-12 ${getBoxPositionClasses()}`}>
           {renderContentBox(false)}
         </div>
       </div>
-
-      {/* ── MOBILE STACKED MODE (< 768px) ── */}
-      {deal.mobileLayout === "stacked" && (
-        <div
-          className="md:hidden flex flex-col w-full overflow-hidden shadow-xl border border-neutral-200/70 dark:border-white/10"
-          style={{ borderRadius: `${deal.borderRadius ?? 8}px` }}
-        >
-          {/* Mobile Top Image Layer */}
-          <div className="relative w-full aspect-[16/10] min-h-[220px] overflow-hidden bg-neutral-900">
-            {!imgError && (mobileImg || desktopImg) ? (
-              <Image
-                src={mobileImg || desktopImg}
-                alt={deal.imageAlt || "Today's Deal Promotion"}
-                fill
-                sizes="100vw"
-                style={{
-                  objectFit: "cover",
-                  objectPosition: getObjectPosition(deal.mobileFocalPosition || deal.desktopFocalPosition || "center"),
-                }}
-                onError={() => setImgError(true)}
-              />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center text-white/40 font-mono text-xs">
-                <span>[ Today&apos;s Deal Banner ]</span>
-              </div>
-            )}
-
-            {darkOverlayOpacity > 0 && (
-              <div
-                className="absolute inset-0 z-10 pointer-events-none"
-                style={{ backgroundColor: `rgba(0, 0, 0, ${darkOverlayOpacity})` }}
-              />
-            )}
-          </div>
-
-          {/* Mobile Bottom Stacked Content Box */}
-          {renderContentBox(true)}
-        </div>
-      )}
     </section>
   );
 }

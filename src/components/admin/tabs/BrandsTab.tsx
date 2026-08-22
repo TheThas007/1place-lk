@@ -1,24 +1,60 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { Brand, Product } from "@/lib/types";
-import { getBrandsFromDb, saveBrandToDb, deleteBrandFromDb } from "@/lib/firestore-brands";
-import { Plus, Edit, Trash2, Tag, Search, Eye, ArrowUp, ArrowDown, Copy, EyeOff, Upload, Link as LinkIcon, Sparkles, Image as ImageIcon, AlertCircle, ShieldAlert, AlertTriangle } from "lucide-react";
+import Link from "next/link";
+import { Brand, Department, DepartmentBrandPageConfig, DepartmentBrandCategoryTab, Product } from "@/lib/types";
+import {
+  getBrandsFromDb,
+  saveBrandToDb,
+  deleteBrandFromDb,
+  getDepartmentsFromDb,
+  getDepartmentBrandPageConfig,
+  saveDepartmentBrandPageConfig,
+  generateDefaultDepartmentPageConfig,
+  DEFAULT_DEPARTMENTS,
+  getDefaultBrandDepartments,
+} from "@/lib/firestore-brands";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  Tag,
+  Search,
+  Eye,
+  Copy,
+  Upload,
+  Link as LinkIcon,
+  Sparkles,
+  Image as ImageIcon,
+  AlertCircle,
+  ShieldAlert,
+  AlertTriangle,
+  ExternalLink,
+  Layers,
+  Palette,
+  Sliders,
+  CheckCircle2,
+  Monitor,
+  Tablet,
+  Smartphone,
+  RotateCcw,
+  Save,
+  Check,
+} from "lucide-react";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
-import { db } from "@/lib/firebase";
-import { doc, setDoc, addDoc, collection } from "firebase/firestore";
+import DepartmentBrandHero from "@/components/brand/DepartmentBrandHero";
 
 const BRAND_LOGO_PRESETS = [
   { name: "Apple", logo: "https://cdn.simpleicons.org/apple/000000" },
   { name: "Samsung", logo: "https://cdn.simpleicons.org/samsung/000000" },
-  { name: "Xiaomi / Redmi", logo: "https://cdn.simpleicons.org/xiaomi/000000" },
+  { name: "Xiaomi", logo: "https://cdn.simpleicons.org/xiaomi/FF6900" },
+  { name: "Google Pixel", logo: "https://cdn.simpleicons.org/google/000000" },
+  { name: "OnePlus", logo: "https://cdn.simpleicons.org/oneplus/F5010C" },
+  { name: "Honor", logo: "https://cdn.simpleicons.org/honor/000000" },
   { name: "Vivo", logo: "https://cdn.simpleicons.org/vivo/000000" },
   { name: "Oppo", logo: "https://cdn.simpleicons.org/oppo/000000" },
   { name: "Realme", logo: "https://cdn.simpleicons.org/realme/000000" },
-  { name: "Honor", logo: "https://cdn.simpleicons.org/honor/000000" },
-  { name: "Google Pixel", logo: "https://cdn.simpleicons.org/google/000000" },
-  { name: "OnePlus", logo: "https://cdn.simpleicons.org/oneplus/000000" },
-  { name: "JBL", logo: "https://cdn.simpleicons.org/jbl/000000" },
+  { name: "JBL", logo: "https://cdn.simpleicons.org/jbl/FF3300" },
   { name: "Anker", logo: "https://cdn.simpleicons.org/anker/000000" },
   { name: "Baseus", logo: "https://cdn.simpleicons.org/baseus/000000" },
   { name: "UGREEN", logo: "https://cdn.simpleicons.org/ugreen/000000" },
@@ -27,919 +63,939 @@ const BRAND_LOGO_PRESETS = [
   { name: "Oraimo", logo: "https://icon.horse/icon/oraimo.com" },
 ];
 
-function validateImageUrl(url?: string): { isValid: boolean; error?: string } {
-  if (!url || typeof url !== "string" || !url.trim()) {
-    return { isValid: true };
-  }
-  const cleanUrl = url.trim();
-  if (!cleanUrl.startsWith("https://") && !cleanUrl.startsWith("http://")) {
-    return { isValid: false, error: "URL must start with https:// or http://" };
-  }
-  if (cleanUrl.includes(".html") || cleanUrl.includes("wikipedia.org") || cleanUrl.includes("amazon.com/dp")) {
-    return { isValid: false, error: "Please enter a direct logo/SVG URL ending in .png, .svg, .webp or .jpg (not an HTML webpage)." };
-  }
-  try {
-    new URL(cleanUrl);
-    return { isValid: true };
-  } catch {
-    return { isValid: false, error: "Invalid URL format." };
-  }
-}
-
 export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const [brands, setBrands] = useState<Brand[]>([]);
+  const [departments, setDepartments] = useState<Department[]>(DEFAULT_DEPARTMENTS);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
-  const [groupFilter, setGroupFilter] = useState<string>("all");
+  const [selectedDeptFilter, setSelectedDeptFilter] = useState<string>("all");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBrand, setEditingBrand] = useState<Brand | null>(null);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [deleteWarningBrand, setDeleteWarningBrand] = useState<{ brand: Brand; linkedCount: number } | null>(null);
+  const [modalSubTab, setModalSubTab] = useState<"general" | "departments" | "pages" | "preview">("general");
 
-  // Form State
+  // Form State for Brand
   const [formData, setFormData] = useState<Partial<Brand>>({
     name: "",
     slug: "",
     logo_url: "",
-    logo_alt_text: "",
+    icon_url: "",
     description: "",
-    product_group: "smartphones",
-    link_destination: "",
-    monochrome: false,
-    sort_order: 1,
+    assigned_departments: ["phones"],
     status: "active",
+    enabled: true,
     show_on_homepage: true,
+    featured: false,
+    order: 1,
+    seo_title: "",
+    seo_description: "",
   });
 
-  const [logoSourceMode, setLogoSourceMode] = useState<"file" | "url">("url");
-  const [logoFile, setLogoFile] = useState<File | null>(null);
-  const [logoPreview, setLogoPreview] = useState<string>("");
-  const [logoError, setLogoError] = useState<string>("");
-  const [urlValidationError, setUrlValidationError] = useState<string>("");
+  // Department Pages Form State (Keyed by department slug)
+  const [activePageDeptSlug, setActivePageDeptSlug] = useState<string>("phones");
+  const [pageConfigs, setPageConfigs] = useState<Record<string, DepartmentBrandPageConfig>>({});
+  const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [isSaving, setIsSaving] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
-  const fetchBrands = async () => {
+  const fetchBrandsAndDepartments = async () => {
     setLoading(true);
     try {
-      const data = await getBrandsFromDb();
-      setBrands(data);
+      const [brandData, deptData] = await Promise.all([
+        getBrandsFromDb(),
+        getDepartmentsFromDb(),
+      ]);
+      setBrands(brandData);
+      setDepartments(deptData);
     } catch (e) {
-      console.error("Failed to fetch brands:", e);
+      console.error("Failed to fetch brands/departments:", e);
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchBrands();
+    fetchBrandsAndDepartments();
   }, []);
 
-  const handleOpenModal = (brand?: Brand) => {
+  // Open Modal for Create or Edit
+  const handleOpenModal = async (brand?: Brand) => {
     if (brand) {
       setEditingBrand(brand);
+      const assigned =
+        brand.assigned_departments && brand.assigned_departments.length > 0
+          ? brand.assigned_departments
+          : getDefaultBrandDepartments(brand.slug, brand.product_group);
+
       setFormData({
         ...brand,
-        logo_alt_text: brand.logo_alt_text || `${brand.name} Logo`,
-        product_group: brand.product_group || "smartphones",
-        link_destination: brand.link_destination || `/products?brand=${brand.slug}`,
+        assigned_departments: assigned,
+        enabled: brand.enabled !== false && brand.status !== "inactive",
       });
-      setLogoPreview(brand.logo_url || "");
+
+      // Load all department page configs for this brand
+      const configs: Record<string, DepartmentBrandPageConfig> = {};
+      for (const deptSlug of departments.map((d) => d.slug)) {
+        const config = await getDepartmentBrandPageConfig(deptSlug, brand.slug);
+        if (config) {
+          configs[deptSlug] = config;
+        } else {
+          configs[deptSlug] = generateDefaultDepartmentPageConfig(deptSlug, brand);
+        }
+      }
+      setPageConfigs(configs);
+      setActivePageDeptSlug(assigned[0] || "phones");
     } else {
       setEditingBrand(null);
-      setFormData({
+      const newBrand: Partial<Brand> = {
         name: "",
         slug: "",
         logo_url: "",
-        logo_alt_text: "",
+        icon_url: "",
         description: "",
-        product_group: "smartphones",
-        link_destination: "",
-        monochrome: false,
-        sort_order: brands.length + 1,
+        assigned_departments: ["phones"],
         status: "active",
+        enabled: true,
         show_on_homepage: true,
-      });
-      setLogoPreview("");
+        featured: false,
+        order: brands.length + 1,
+        seo_title: "",
+        seo_description: "",
+      };
+      setFormData(newBrand);
+
+      // Default configs for new brand
+      const dummyBrand: Brand = {
+        id: "brand-new",
+        name: "New Brand",
+        slug: "new-brand",
+        assigned_departments: ["phones"],
+      };
+      const configs: Record<string, DepartmentBrandPageConfig> = {};
+      for (const dept of departments) {
+        configs[dept.slug] = generateDefaultDepartmentPageConfig(dept.slug, dummyBrand);
+      }
+      setPageConfigs(configs);
+      setActivePageDeptSlug("phones");
     }
-    setLogoFile(null);
-    setLogoError("");
-    setUrlValidationError("");
+
+    setModalSubTab("general");
     setIsModalOpen(true);
   };
 
-  const handleLogoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setLogoError("");
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      if (file.size > 307200) { // 300 KB limit
-        setLogoError("Logo file exceeds recommended 300 KB limit. Please compress logo.");
-        return;
-      }
-      setLogoFile(file);
-      setLogoPreview(URL.createObjectURL(file));
-      setFormData((prev) => ({ ...prev, logo_url: "" }));
-    }
+  // Toggle department assignment
+  const handleToggleDepartment = (deptSlug: string) => {
+    const current = formData.assigned_departments || [];
+    const next = current.includes(deptSlug)
+      ? current.filter((s) => s !== deptSlug)
+      : [...current, deptSlug];
+
+    setFormData((prev) => ({ ...prev, assigned_departments: next }));
   };
 
-  const handleUrlInputChange = (url: string) => {
-    setFormData((prev) => ({ ...prev, logo_url: url }));
-    if (!logoFile) setLogoPreview(url);
-
-    const val = validateImageUrl(url);
-    if (!val.isValid) {
-      setUrlValidationError(val.error || "Invalid URL");
-    } else {
-      setUrlValidationError("");
-      setLogoError("");
-    }
+  // Update current department page config in state
+  const handleUpdateActivePageConfig = (updates: Partial<DepartmentBrandPageConfig>) => {
+    setPageConfigs((prev) => {
+      const current = prev[activePageDeptSlug] || generateDefaultDepartmentPageConfig(activePageDeptSlug, formData as Brand);
+      return {
+        ...prev,
+        [activePageDeptSlug]: { ...current, ...updates },
+      };
+    });
   };
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
-    const group = formData.product_group || "smartphones";
-    let defaultLink = `/products?brand=${slug}&cat_chip=smartphones`;
-    if (group === "laptops") defaultLink = `/products?brand=${slug}&cat_chip=laptops-tablets`;
-    else if (group === "accessories" || group === "audio") defaultLink = `/products?brand=${slug}&category=accessories`;
-
-    setFormData((prev) => ({
-      ...prev,
-      name,
-      slug: prev.slug || slug,
-      logo_alt_text: prev.logo_alt_text || `${name} Logo`,
-      link_destination: (!prev.link_destination || prev.link_destination.startsWith("/products?brand=")) ? defaultLink : prev.link_destination,
-    }));
+  // Copy config from another department
+  const handleCopyConfigFromDept = (sourceDeptSlug: string) => {
+    const source = pageConfigs[sourceDeptSlug];
+    if (!source) return;
+    handleUpdateActivePageConfig({
+      eyebrow: source.eyebrow,
+      heading: source.heading,
+      description: source.description,
+      desktopBannerUrl: source.desktopBannerUrl,
+      tabletBannerUrl: source.tabletBannerUrl,
+      mobileBannerUrl: source.mobileBannerUrl,
+      headingColor: source.headingColor,
+      descriptionColor: source.descriptionColor,
+      eyebrowColor: source.eyebrowColor,
+      accentColor: source.accentColor,
+      primaryCtaBackground: source.primaryCtaBackground,
+      primaryCtaTextColor: source.primaryCtaTextColor,
+      contentBackgroundColor: source.contentBackgroundColor,
+      contentBackgroundOpacity: source.contentBackgroundOpacity,
+      imageOverlayOpacity: source.imageOverlayOpacity,
+    });
+    alert(`Copied configuration from ${sourceDeptSlug}!`);
   };
 
-  const handleSave = async (e: React.FormEvent) => {
+  // Save Brand and all assigned Department Page Configs
+  const handleSaveBrand = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.name.trim()) {
-      alert("Please provide a brand name");
-      return;
-    }
-    if (urlValidationError) {
-      alert("Please fix the logo URL error before saving.");
+    if (!formData.name?.trim()) {
+      alert("Brand name is required.");
       return;
     }
 
+    const slug = (formData.slug || formData.name).toLowerCase().replace(/[^a-z0-9]+/g, "-");
     setIsSaving(true);
-    try {
-      let finalLogoUrl = formData.logo_url || "";
 
-      if (logoFile) {
-        finalLogoUrl = await uploadImageWithFallback(logoFile, "brands");
+    try {
+      const brandPayload: Brand = {
+        id: editingBrand?.id || `brand-${slug}`,
+        name: formData.name.trim(),
+        slug,
+        logo_url: formData.logo_url || "",
+        icon_url: formData.icon_url || "",
+        description: formData.description || "",
+        assigned_departments: formData.assigned_departments || ["phones"],
+        status: formData.status || "active",
+        enabled: formData.enabled !== false,
+        show_on_homepage: formData.show_on_homepage !== false,
+        featured: formData.featured || false,
+        order: Number(formData.order) || 1,
+        seo_title: formData.seo_title || "",
+        seo_description: formData.seo_description || "",
+      };
+
+      // 1. Save Brand
+      await saveBrandToDb(brandPayload);
+
+      // 2. Save all active department page configs
+      for (const deptSlug of brandPayload.assigned_departments || []) {
+        const config = pageConfigs[deptSlug] || generateDefaultDepartmentPageConfig(deptSlug, brandPayload);
+        await saveDepartmentBrandPageConfig({
+          ...config,
+          brandId: brandPayload.id,
+          brandSlug: brandPayload.slug,
+          departmentSlug: deptSlug,
+        });
       }
 
-      const slugVal = formData.slug ? formData.slug.trim() : formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      setSaveSuccess(true);
+      setTimeout(() => {
+        setSaveSuccess(false);
+        setIsModalOpen(false);
+      }, 1000);
 
-      await saveBrandToDb({
-        ...formData,
-        slug: slugVal,
-        logo_url: finalLogoUrl,
-        logo_alt_text: formData.logo_alt_text ? formData.logo_alt_text.trim() : `${formData.name} Logo`,
-        link_destination: formData.link_destination ? formData.link_destination.trim() : `/products?brand=${slugVal}`,
-        product_group: formData.product_group || "smartphones",
-      });
-
-      setIsModalOpen(false);
-      fetchBrands();
+      await fetchBrandsAndDepartments();
     } catch (err) {
-      console.error("Failed to save brand:", err);
-      alert("Error saving brand");
+      console.error("Failed to save brand & department pages:", err);
+      alert("Failed to save brand. Please check your internet connection.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleToggleVisibility = async (b: Brand) => {
-    const nextState = b.show_on_homepage !== false ? false : true;
-    try {
-      await saveBrandToDb({ ...b, show_on_homepage: nextState });
-      fetchBrands();
-    } catch (e) {
-      console.error("Error toggling brand visibility:", e);
-    }
-  };
-
-  const handleReorder = async (index: number, direction: "up" | "down") => {
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
-    if (targetIndex < 0 || targetIndex >= filteredBrands.length) return;
-
-    const currentBrand = filteredBrands[index];
-    const targetBrand = filteredBrands[targetIndex];
-
-    const currentOrder = currentBrand.sort_order || index;
-    const targetOrder = targetBrand.sort_order || targetIndex;
-
-    try {
-      await saveBrandToDb({ ...currentBrand, sort_order: targetOrder });
-      await saveBrandToDb({ ...targetBrand, sort_order: currentOrder });
-      fetchBrands();
-    } catch (e) {
-      console.error("Reorder error:", e);
-    }
-  };
-
-  const handleDuplicate = async (b: Brand) => {
-    const dupName = `${b.name} (Copy)`;
-    const dupSlug = `${b.slug}-copy-${Date.now().toString().slice(-4)}`;
-    try {
-      await saveBrandToDb({
-        ...b,
-        id: "",
-        name: dupName,
-        slug: dupSlug,
-        sort_order: (b.sort_order || 0) + 1,
-      });
-      fetchBrands();
-    } catch (e) {
-      console.error("Duplicate error:", e);
-    }
-  };
-
-  const triggerDeleteCheck = (b: Brand) => {
-    const assignedCount = products.filter(
-      p => (p.brand_id === b.id || p.brandId === b.id || p.brand?.toLowerCase() === b.name.toLowerCase())
-    ).length;
-
-    if (assignedCount > 0) {
-      setDeleteWarningBrand({ brand: b, linkedCount: assignedCount });
-    } else {
-      if (confirm(`Are you sure you want to delete brand '${b.name}'?`)) {
-        deleteBrandFromDb(b.id).then(() => fetchBrands());
+  const handleDeleteBrand = async (id: string, name: string) => {
+    if (confirm(`Are you sure you want to delete brand "${name}"? This action cannot be undone.`)) {
+      try {
+        await deleteBrandFromDb(id);
+        await fetchBrandsAndDepartments();
+      } catch (err) {
+        alert("Failed to delete brand.");
       }
     }
   };
 
+  // Duplicate brand detector
+  const duplicateWarnings = useMemo(() => {
+    const map = new Map<string, Brand[]>();
+    brands.forEach((b) => {
+      const cleanName = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const arr = map.get(cleanName) || [];
+      arr.push(b);
+      map.set(cleanName, arr);
+    });
+    return Array.from(map.values()).filter((arr) => arr.length > 1);
+  }, [brands]);
+
+  // Filtered Brands List
   const filteredBrands = useMemo(() => {
-    return brands
-      .filter((b) => {
-        const q = searchQuery.toLowerCase();
-        const matchesSearch =
-          b.name.toLowerCase().includes(q) ||
-          b.slug.toLowerCase().includes(q);
+    return brands.filter((b) => {
+      const matchesSearch =
+        (b.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (b.slug || "").toLowerCase().includes(searchQuery.toLowerCase());
 
-        if (!matchesSearch) return false;
-        if (groupFilter !== "all" && (b.product_group || "smartphones") !== groupFilter) return false;
+      if (!matchesSearch) return false;
 
-        return true;
-      })
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [brands, searchQuery, groupFilter]);
+      if (selectedDeptFilter !== "all") {
+        const assigned = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
+        if (!assigned.includes(selectedDeptFilter)) return false;
+      }
+
+      return true;
+    });
+  }, [brands, searchQuery, selectedDeptFilter]);
+
+  const activePageConfig =
+    pageConfigs[activePageDeptSlug] ||
+    generateDefaultDepartmentPageConfig(activePageDeptSlug, formData as Brand);
+
+  const activeDepartment =
+    departments.find((d) => d.slug === activePageDeptSlug) || DEFAULT_DEPARTMENTS[0];
 
   return (
-    <div className="space-y-6 text-white">
-      
-      {/* Top Header (Dark Theme) */}
+    <div className="space-y-8 font-sans">
+      {/* ── Top Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
         <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-wider mb-2 border border-blue-500/20">
-            <Tag className="w-3.5 h-3.5 text-blue-400" />
-            <span>HOMEPAGE NAVIGATION</span>
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              Brand &amp; Multi-Department Management
+            </h1>
+            <span className="px-3 py-0.5 rounded-full text-[11px] font-black uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              {brands.length} Brands
+            </span>
           </div>
-          <h3 className="text-2xl font-black text-white tracking-tight">Shop by Brand Manager</h3>
-          <p className="text-xs text-white/50 font-medium mt-0.5">
-            Manage, reorder, and group genuine brand logos (Apple, Samsung, Xiaomi, Vivo, Oppo, JBL, Anker, Baseus, etc.) displayed across your store.
+          <p className="text-xs text-white/50 mt-1">
+            Configure department-specific landing pages, banner overlays, and category navigation for every brand.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={() => setShowPreviewModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-bold transition-all border border-white/10 shadow-xs"
-          >
-            <Eye className="w-4 h-4 text-blue-400" />
-            Live Brand Strip Preview
-          </button>
-          
-          <button
-            type="button"
-            onClick={() => handleOpenModal()}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-bold transition-all shadow-md active:scale-95"
-          >
-            <Plus className="w-4 h-4" />
-            Add Brand Logo
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => handleOpenModal()}
+          className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 shrink-0 cursor-pointer"
+        >
+          <Plus className="w-4 h-4" /> Add New Brand
+        </button>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-md">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-          <input
-            type="text"
-            placeholder="Search brand by name or slug..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
-          />
-        </div>
-
-        <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
-          {[
-            { id: "all", label: "All Groups" },
-            { id: "smartphones", label: "Smartphones" },
-            { id: "laptops", label: "Laptops" },
-            { id: "accessories", label: "Accessories" },
-            { id: "audio", label: "Audio" },
-          ].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setGroupFilter(f.id)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                groupFilter === f.id
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Clean Admin Brand Logo Cards Grid (Dark Theme) */}
-      {loading ? (
-        <div className="p-12 text-center text-xs font-bold text-white/40">Loading brands catalog...</div>
-      ) : filteredBrands.length === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-[#0F172A] border border-white/10 space-y-3">
-          <p className="text-white/50 text-sm font-semibold">No matching brands found.</p>
-          <button
-            onClick={() => handleOpenModal()}
-            className="px-5 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all"
-          >
-            + Create New Brand
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-          {filteredBrands.map((b, idx) => {
-            const assignedCount = products.filter(
-              p => (p.brand_id === b.id || p.brandId === b.id || p.brand?.toLowerCase() === b.name.toLowerCase())
-            ).length;
-
-            return (
-              <div
-                key={b.id || idx}
-                className={`bg-[#0F172A] border rounded-2xl p-5 transition-all shadow-md hover:border-white/20 relative flex flex-col justify-between ${
-                  b.show_on_homepage !== false ? "border-white/10" : "border-white/5 bg-[#0F172A]/50 opacity-60"
-                }`}
-              >
-                {/* Top Section */}
-                <div className="flex items-start gap-4">
-                  
-                  {/* Brand Logo Container */}
-                  <div className={`w-24 h-12 rounded-xl border border-white/10 bg-white/5 p-2 flex items-center justify-center overflow-hidden shrink-0 shadow-inner relative group ${
-                    b.monochrome ? "grayscale" : ""
-                  }`}>
-                    {b.logo_url ? (
-                      <img
-                        src={b.logo_url}
-                        alt={b.logo_alt_text || b.name}
-                        className="w-full h-full object-contain filter invert brightness-200"
-                      />
-                    ) : (
-                      <span className="font-black text-sm text-blue-400">{b.name.slice(0, 3).toUpperCase()}</span>
-                    )}
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h4 className="text-sm font-extrabold text-white truncate">{b.name}</h4>
-                      <span className="text-[10px] font-mono font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
-                        Order #{b.sort_order ?? idx}
-                      </span>
-                    </div>
-
-                    <p className="text-xs text-white/40 font-mono truncate">
-                      /{b.slug}
-                    </p>
-
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
-                        {assignedCount} Products
-                      </span>
-
-                      <span className="px-2 py-0.5 rounded-md bg-white/5 text-white/70 text-[10px] font-bold capitalize">
-                        {b.product_group || "smartphones"}
-                      </span>
-
-                      {b.show_on_homepage !== false ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                          Homepage
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">
-                          Hidden
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Bottom Action Footer */}
-                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                  
-                  {/* Reorder Buttons */}
-                  <div className="flex items-center gap-1">
-                    <button
-                      type="button"
-                      onClick={() => handleReorder(idx, "up")}
-                      disabled={idx === 0}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      title="Move Up"
-                    >
-                      <ArrowUp className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => handleReorder(idx, "down")}
-                      disabled={idx === filteredBrands.length - 1}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                      title="Move Down"
-                    >
-                      <ArrowDown className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-
-                  {/* Actions */}
-                  <div className="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      onClick={() => handleToggleVisibility(b)}
-                      className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                        b.show_on_homepage !== false
-                          ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                          : "bg-white/5 text-white/40 hover:bg-white/10 text-white"
-                      }`}
-                      title={b.show_on_homepage !== false ? "Hide from Homepage" : "Show on Homepage"}
-                    >
-                      {b.show_on_homepage !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleDuplicate(b)}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors"
-                      title="Duplicate Brand"
-                    >
-                      <Copy className="w-3.5 h-3.5" />
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => handleOpenModal(b)}
-                      className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30"
-                      title="Edit Brand"
-                    >
-                      <Edit className="w-3.5 h-3.5" /> Edit
-                    </button>
-
-                    <button
-                      type="button"
-                      onClick={() => triggerDeleteCheck(b)}
-                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors"
-                      title="Delete Brand"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-
-      {/* Safety Deletion Warning Modal (Dark Theme) */}
-      {deleteWarningBrand && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
-            <div className="flex items-center gap-3 text-red-400 border-b border-white/10 pb-3">
-              <ShieldAlert className="w-6 h-6 shrink-0" />
-              <h3 className="font-extrabold text-lg text-white">Deletion Blocked</h3>
-            </div>
-
-            <p className="text-xs text-white/70 leading-relaxed">
-              Cannot delete brand <strong>&quot;{deleteWarningBrand.brand.name}&quot;</strong> because{" "}
-              <span className="font-extrabold text-white">{deleteWarningBrand.linkedCount} product(s)</span> are currently assigned to it.
+      {/* ── Duplicate Brand Warnings ── */}
+      {duplicateWarnings.length > 0 && (
+        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
+          <div className="text-xs">
+            <span className="font-bold text-amber-300">Duplicate Brand Name Detected: </span>
+            <span className="text-white/80">
+              {duplicateWarnings.map((group) => group.map((b) => b.name).join(" & ")).join(", ")}
+            </span>
+            <p className="text-white/50 text-[11px] mt-0.5">
+              Consider merging or removing obsolete records to ensure optimal customer navigation and SEO.
             </p>
-
-            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Recommended Safer Alternative:
-              </p>
-              <p className="text-[11px] text-amber-300/80">
-                Hide this brand from the homepage brand strip instead of deleting to keep product listings safe.
-              </p>
-            </div>
-
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
-              <button
-                type="button"
-                onClick={() => setDeleteWarningBrand(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:bg-white/10 text-white"
-              >
-                Close
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  await handleToggleVisibility(deleteWarningBrand.brand);
-                  setDeleteWarningBrand(null);
-                }}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md"
-              >
-                Hide From Homepage Instead
-              </button>
-            </div>
           </div>
         </div>
       )}
 
-      {/* Add / Edit Brand Modal (Dark Theme) */}
-      {isModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-xl max-h-[92vh] overflow-y-auto custom-scrollbar shadow-2xl text-white">
-            
-            {/* Modal Header */}
-            <div className="sticky top-0 bg-[#0F172A]/95 backdrop-blur border-b border-white/10 p-6 flex items-center justify-between z-10">
-              <div>
-                <span className="px-2.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 font-extrabold text-[10px] uppercase tracking-wider border border-blue-500/20">
-                  SHOP BY BRAND MANAGER
-                </span>
-                <h2 className="text-xl font-extrabold text-white mt-1">
-                  {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add Brand Logo"}
-                </h2>
-              </div>
+      {/* ── Department Filter Tabs & Search ── */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-lg">
+        {/* Department Filter Pills */}
+        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+          <button
+            type="button"
+            onClick={() => setSelectedDeptFilter("all")}
+            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+              selectedDeptFilter === "all"
+                ? "bg-blue-600 text-white shadow-md"
+                : "bg-white/5 text-white/60 hover:text-white"
+            }`}
+          >
+            All Brands ({brands.length})
+          </button>
+          {departments.map((dept) => {
+            const count = brands.filter((b) =>
+              (b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group)).includes(dept.slug)
+            ).length;
+
+            return (
               <button
+                key={dept.slug}
                 type="button"
-                onClick={() => setIsModalOpen(false)}
-                className="p-2 hover:bg-white/10 rounded-xl text-white/50 hover:text-white transition-colors"
+                onClick={() => setSelectedDeptFilter(dept.slug)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                  selectedDeptFilter === dept.slug
+                    ? "bg-blue-600 text-white shadow-md"
+                    : "bg-white/5 text-white/60 hover:text-white"
+                }`}
               >
-                ✕
+                {dept.name} ({count})
               </button>
-            </div>
+            );
+          })}
+        </div>
 
-            <form onSubmit={handleSave} className="p-6 space-y-6">
-              
-              {/* Live Preview Card */}
-              <div className="bg-black/30 border border-white/10 rounded-2xl p-4 text-center">
-                <p className="text-[11px] font-extrabold text-white/50 uppercase tracking-widest mb-3 flex items-center justify-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5 text-blue-400" /> Live Brand Strip Preview
-                </p>
-                <div className="max-w-[200px] mx-auto p-4 rounded-2xl border border-white/10 bg-white/5 shadow-lg flex flex-col items-center gap-3">
-                  <div className={`w-28 h-14 bg-black/40 rounded-xl p-2 flex items-center justify-center overflow-hidden border border-white/10 shadow-inner ${
-                    formData.monochrome ? "grayscale" : ""
-                  }`}>
-                    {logoPreview ? (
-                      <img
-                        src={logoPreview}
-                        alt={formData.logo_alt_text || "Preview"}
-                        className="w-full h-full object-contain filter invert brightness-200"
-                      />
-                    ) : (
-                      <span className="text-base font-black text-blue-400">
-                        {formData.name ? formData.name.slice(0, 3).toUpperCase() : "LOGO"}
-                      </span>
-                    )}
-                  </div>
-                  <span className="text-xs font-black text-white truncate block w-full text-center">
-                    {formData.name || "Brand Name"}
-                  </span>
-                </div>
-              </div>
+        {/* Search */}
+        <div className="relative w-full sm:w-64">
+          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search brand name or slug..."
+            className="w-full bg-white/5 border border-white/10 pl-8 pr-3 py-1.5 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-semibold"
+          />
+        </div>
+      </div>
 
-              {/* Name & Slug */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Brand Name *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="e.g. Samsung"
-                    value={formData.name || ""}
-                    onChange={handleNameChange}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Brand Slug *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    placeholder="samsung"
-                    value={formData.slug || ""}
-                    onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
-                  />
-                </div>
-              </div>
+      {/* ── Brands Table ── */}
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-xs">
+            <thead className="bg-white/5 text-white/60 border-b border-white/10 uppercase tracking-wider text-[10px] font-black">
+              <tr>
+                <th className="py-3.5 px-5">Brand</th>
+                <th className="py-3.5 px-4">Assigned Departments</th>
+                <th className="py-3.5 px-4">Status</th>
+                <th className="py-3.5 px-4">Homepage</th>
+                <th className="py-3.5 px-5 text-right">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-white/5 text-white/80">
+              {filteredBrands.map((brand) => {
+                const assigned =
+                  brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
 
-              {/* Product Group & Destination */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Product Group Grouping
-                  </label>
-                  <select
-                    value={formData.product_group || "smartphones"}
-                    onChange={(e) => {
-                      const group = e.target.value as any;
-                      const slug = formData.slug || (formData.name || "brand").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-                      let defaultLink = `/products?brand=${slug}&cat_chip=smartphones`;
-                      if (group === "laptops") defaultLink = `/products?brand=${slug}&cat_chip=laptops-tablets`;
-                      else if (group === "accessories" || group === "audio") defaultLink = `/products?brand=${slug}&category=accessories`;
+                return (
+                  <tr key={brand.id} className="hover:bg-white/[0.02] transition-colors">
+                    {/* Brand & Logo */}
+                    <td className="py-3 px-5">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center border border-white/10 shrink-0">
+                          {brand.logo_url ? (
+                            <img
+                              src={brand.logo_url}
+                              alt={brand.name}
+                              className="max-h-7 max-w-7 object-contain"
+                            />
+                          ) : (
+                            <Tag className="w-4 h-4 text-black/40" />
+                          )}
+                        </div>
+                        <div>
+                          <div className="font-bold text-white text-sm">{brand.name}</div>
+                          <span className="text-[11px] font-mono text-white/40">/{brand.slug}</span>
+                        </div>
+                      </div>
+                    </td>
 
-                      setFormData((prev) => ({
-                        ...prev,
-                        product_group: group,
-                        link_destination: (!prev.link_destination || prev.link_destination.startsWith("/products?brand=")) ? defaultLink : prev.link_destination,
-                      }));
-                    }}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold outline-none focus:border-blue-500"
-                  >
-                    <option value="smartphones" className="bg-[#0F172A] text-white">📱 Smartphones &amp; Mobiles</option>
-                    <option value="laptops" className="bg-[#0F172A] text-white">💻 Laptops &amp; Computers</option>
-                    <option value="accessories" className="bg-[#0F172A] text-white">🎧 Accessories &amp; Power</option>
-                    <option value="audio" className="bg-[#0F172A] text-white">🔊 Audio &amp; Speakers</option>
-                    <option value="other" className="bg-[#0F172A] text-white">📦 Other Products</option>
-                  </select>
-                </div>
+                    {/* Assigned Departments */}
+                    <td className="py-3 px-4">
+                      <div className="flex flex-wrap gap-1.5">
+                        {assigned.map((dSlug) => {
+                          const dept = departments.find((d) => d.slug === dSlug);
+                          return (
+                            <Link
+                              key={dSlug}
+                              href={`/shop-by-brand/${dSlug}/${brand.slug}`}
+                              target="_blank"
+                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-bold transition-colors"
+                            >
+                              <span>{dept?.name || dSlug}</span>
+                              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    </td>
 
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Link Destination URL
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="/products?brand=apple&cat_chip=smartphones"
-                    value={formData.link_destination || ""}
-                    onChange={(e) => setFormData({ ...formData, link_destination: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-mono focus:border-blue-500 outline-none"
-                  />
-                  <p className="text-[10px] text-white/40 mt-1">
-                    Auto-configured to open the exact brand + category filter on the Store.
-                  </p>
-                </div>
-              </div>
-
-              {/* Logo Source Selector: Upload File or Image URL */}
-              <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
-                <div className="flex items-center justify-between">
-                  <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                    <ImageIcon className="w-4 h-4 text-blue-400" /> Logo Source Selector
-                  </h4>
-                  
-                  <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
-                    <button
-                      type="button"
-                      onClick={() => setLogoSourceMode("file")}
-                      className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
-                        logoSourceMode === "file" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
-                      }`}
-                    >
-                      Upload File
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setLogoSourceMode("url")}
-                      className={`px-3 py-1 rounded-lg text-xs font-extrabold transition-all ${
-                        logoSourceMode === "url" ? "bg-blue-600 text-white shadow-xs" : "text-white/60 hover:text-white"
-                      }`}
-                    >
-                      Image URL
-                    </button>
-                  </div>
-                </div>
-
-                {logoSourceMode === "file" && (
-                  <div className="space-y-3">
-                    <input
-                      type="file"
-                      id="brandLogoUpload"
-                      accept="image/svg+xml,image/png,image/webp,image/jpeg"
-                      onChange={handleLogoFileChange}
-                      className="hidden"
-                    />
-                    <label
-                      htmlFor="brandLogoUpload"
-                      className="w-full py-3 bg-white/5 hover:bg-white/10 border border-white/15 text-white text-xs font-bold rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 shadow-xs"
-                    >
-                      <Upload className="w-4 h-4 text-blue-400" /> Upload SVG, PNG, WebP or JPG Logo
-                    </label>
-                    <div className="text-[11px] text-white/50 space-y-1">
-                      <p>• Recommended Size: <strong>400 × 200 px</strong> (2:1 ratio)</p>
-                      <p>• Recommended Format: <strong>SVG or transparent WebP</strong></p>
-                      <p>• Maximum File Size: <strong>300 KB</strong></p>
-                    </div>
-                  </div>
-                )}
-
-                {logoSourceMode === "url" && (
-                  <div className="space-y-2">
-                    <label className="block text-[11px] font-bold text-white/70">Direct HTTPS Logo / SVG URL</label>
-                    <div className="relative">
-                      <LinkIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
-                      <input
-                        type="url"
-                        placeholder="https://cdn.simpleicons.org/samsung/000000"
-                        value={formData.logo_url || ""}
-                        onChange={(e) => handleUrlInputChange(e.target.value)}
-                        className="w-full bg-black/40 border border-white/10 rounded-xl pl-10 pr-4 py-2.5 text-xs text-white font-mono outline-none focus:border-blue-500"
-                      />
-                    </div>
-                    {urlValidationError && (
-                      <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {urlValidationError}
-                      </p>
-                    )}
-                  </div>
-                )}
-
-                {logoError && (
-                  <p className="text-xs text-red-400 font-semibold flex items-center gap-1">
-                    <AlertCircle className="w-3.5 h-3.5 shrink-0" /> {logoError}
-                  </p>
-                )}
-
-                {/* Brand Logo Presets */}
-                <div>
-                  <p className="text-[11px] font-bold text-white/50 mb-1.5">Preset Brand Logos:</p>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    {BRAND_LOGO_PRESETS.map((preset) => (
-                      <button
-                        key={preset.name}
-                        type="button"
-                        onClick={() => {
-                          setLogoFile(null);
-                          setLogoPreview(preset.logo);
-                          setFormData({ ...formData, logo_url: preset.logo });
-                        }}
-                        className={`rounded-xl border p-2 flex items-center gap-2 text-left transition-all ${
-                          formData.logo_url === preset.logo
-                            ? "bg-blue-600/30 border-blue-500 text-white"
-                            : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10"
+                    {/* Status */}
+                    <td className="py-3 px-4">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                          brand.enabled !== false && brand.status !== "inactive"
+                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                            : "bg-neutral-500/10 text-neutral-400 border-neutral-500/20"
                         }`}
                       >
-                        <img src={preset.logo} alt={preset.name} className="w-5 h-5 rounded object-contain bg-white p-0.5" />
-                        <span className="text-[10px] font-bold truncate leading-tight">{preset.name}</span>
+                        {brand.enabled !== false && brand.status !== "inactive" ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+
+                    {/* Show on Homepage */}
+                    <td className="py-3 px-4">
+                      {brand.show_on_homepage !== false ? (
+                        <span className="text-emerald-400 font-bold text-[11px]">Visible</span>
+                      ) : (
+                        <span className="text-white/40 text-[11px]">Hidden</span>
+                      )}
+                    </td>
+
+                    {/* Actions */}
+                    <td className="py-3 px-5 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleOpenModal(brand)}
+                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
+                          title="Edit Brand & Department Pages"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBrand(brand.id, brand.name)}
+                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
+                          title="Delete Brand"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      {/* ── EDIT / CREATE BRAND MODAL ── */}
+      {isModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-6">
+            
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
+              <div>
+                <h2 className="text-lg font-extrabold text-white">
+                  {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add New Brand"}
+                </h2>
+                <p className="text-xs text-white/50">
+                  Manage brand details, department assignments, and landing page hero configurations.
+                </p>
+              </div>
+
+              {/* Sub-Tabs Switcher */}
+              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab("general")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    modalSubTab === "general" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  General
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab("departments")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    modalSubTab === "departments" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Departments
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab("pages")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                    modalSubTab === "pages" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  Department Pages
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setModalSubTab("preview")}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                    modalSubTab === "preview" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
+                  }`}
+                >
+                  <Eye className="w-3 h-3" /> Live Preview
+                </button>
+              </div>
+            </div>
+
+            {/* Modal Body */}
+            <form onSubmit={handleSaveBrand} className="flex-1 overflow-y-auto p-6 space-y-6">
+              
+              {/* SUBTAB 1: GENERAL BRAND SETTINGS */}
+              {modalSubTab === "general" && (
+                <div className="space-y-5 text-xs">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Brand Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={formData.name || ""}
+                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        placeholder="e.g. Apple"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Brand Slug</label>
+                      <input
+                        type="text"
+                        value={formData.slug || ""}
+                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                        placeholder="e.g. apple"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-white/70 font-bold mb-1">Logo URL (Transparent PNG or SVG)</label>
+                      <input
+                        type="url"
+                        value={formData.logo_url || ""}
+                        onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                        placeholder="https://cdn.simpleicons.org/apple/000000"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
+                      />
+                      
+                      {/* Logo Presets */}
+                      <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                        <span className="text-[10px] text-white/40">Presets:</span>
+                        {BRAND_LOGO_PRESETS.slice(0, 8).map((preset) => (
+                          <button
+                            key={preset.name}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, logo_url: preset.logo })}
+                            className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[10px] font-bold transition-colors"
+                          >
+                            {preset.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-white/70 font-bold mb-1">Brand Description</label>
+                      <textarea
+                        rows={2}
+                        value={formData.description || ""}
+                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        placeholder="Genuine devices and original accessories..."
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 resize-none"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer text-white font-bold">
+                        <input
+                          type="checkbox"
+                          checked={formData.show_on_homepage !== false}
+                          onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
+                          className="accent-red-600 rounded"
+                        />
+                        Show in Homepage &quot;Shop by Brand&quot;
+                      </label>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer text-white font-bold">
+                        <input
+                          type="checkbox"
+                          checked={formData.enabled !== false}
+                          onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                          className="accent-red-600 rounded"
+                        />
+                        Brand Enabled
+                      </label>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 2: DEPARTMENT ASSIGNMENT */}
+              {modalSubTab === "departments" && (
+                <div className="space-y-4">
+                  <p className="text-xs text-white/60">
+                    Select which store departments this brand belongs to. The brand will appear in the Shop by Brand section under every selected department.
+                  </p>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    {departments.map((dept) => {
+                      const isAssigned = (formData.assigned_departments || []).includes(dept.slug);
+                      return (
+                        <div
+                          key={dept.slug}
+                          onClick={() => handleToggleDepartment(dept.slug)}
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                            isAssigned
+                              ? "bg-blue-600/10 border-blue-500/40 text-white shadow-lg"
+                              : "bg-white/5 border-white/10 text-white/50 hover:border-white/20"
+                          }`}
+                        >
+                          <input
+                            type="checkbox"
+                            checked={isAssigned}
+                            onChange={() => {}}
+                            className="accent-blue-600 mt-1 rounded cursor-pointer"
+                          />
+                          <div>
+                            <h4 className="font-extrabold text-sm text-white">{dept.name}</h4>
+                            <p className="text-[11px] text-white/50 mt-1">{dept.description}</p>
+                            <span className="inline-block text-[10px] font-mono text-blue-400 mt-2">
+                              /shop-by-brand/{dept.slug}/{formData.slug || "brand"}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 3: DEPARTMENT PAGES CONFIGURATION */}
+              {modalSubTab === "pages" && (
+                <div className="space-y-6">
+                  {/* Department Sub-Selector */}
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-3">
+                    <span className="text-xs font-bold text-white/50">Editing Page for:</span>
+                    {(formData.assigned_departments || ["phones"]).map((dSlug) => {
+                      const dept = departments.find((d) => d.slug === dSlug);
+                      return (
+                        <button
+                          key={dSlug}
+                          type="button"
+                          onClick={() => setActivePageDeptSlug(dSlug)}
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                            activePageDeptSlug === dSlug
+                              ? "bg-blue-600 text-white shadow"
+                              : "bg-white/5 text-white/60 hover:text-white"
+                          }`}
+                        >
+                          {dept?.name || dSlug}
+                        </button>
+                      );
+                    })}
+
+                    <button
+                      type="button"
+                      onClick={() => handleCopyConfigFromDept(formData.assigned_departments?.[0] || "phones")}
+                      className="ml-auto text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
+                    >
+                      <Copy className="w-3 h-3" /> Duplicate Config from First Dept
+                    </button>
+                  </div>
+
+                  {/* Banner Image & Guidance */}
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                        <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
+                        Department Banner Image
+                      </span>
+                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
+                        Recommended: 1600 × 500px (WebP / JPG)
+                      </span>
+                    </div>
+
+                    <input
+                      type="url"
+                      value={activePageConfig.desktopBannerUrl || ""}
+                      onChange={(e) => handleUpdateActivePageConfig({ desktopBannerUrl: e.target.value })}
+                      placeholder="Desktop Banner URL (https://images.unsplash.com/...)"
+                      className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                    />
+
+                    {/* Live Thumbnail */}
+                    {activePageConfig.desktopBannerUrl && (
+                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-white/10">
+                        <img
+                          src={activePageConfig.desktopBannerUrl}
+                          alt="Banner Preview"
+                          className="w-full h-full object-cover"
+                        />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* HTML Overlay Text & CTAs */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Eyebrow Tagline</label>
+                      <input
+                        type="text"
+                        value={activePageConfig.eyebrow || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ eyebrow: e.target.value })}
+                        placeholder="OFFICIAL APPLE STORE"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-semibold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Main Headline</label>
+                      <input
+                        type="text"
+                        value={activePageConfig.heading || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ heading: e.target.value })}
+                        placeholder="iPhone 16 Pro Max"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
+                      />
+                    </div>
+
+                    <div className="sm:col-span-2">
+                      <label className="block text-white/70 font-bold mb-1">Description</label>
+                      <textarea
+                        rows={2}
+                        value={activePageConfig.description || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ description: e.target.value })}
+                        placeholder="Explore the latest flagships with official warranty..."
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 resize-none"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Primary CTA Label</label>
+                      <input
+                        type="text"
+                        value={activePageConfig.primaryCtaLabel || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ primaryCtaLabel: e.target.value })}
+                        placeholder="Explore All iPhones"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Primary CTA Destination</label>
+                      <input
+                        type="text"
+                        value={activePageConfig.primaryCtaUrl || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ primaryCtaUrl: e.target.value })}
+                        placeholder="#products"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Colors & Appearance */}
+                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                      <Palette className="w-3.5 h-3.5 text-amber-400" />
+                      Theme &amp; Accent Colors
+                    </span>
+
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                      <div>
+                        <label className="block text-white/60 text-[11px] mb-1">Heading Color</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={activePageConfig.headingColor || "#FFFFFF"}
+                            onChange={(e) => handleUpdateActivePageConfig({ headingColor: e.target.value })}
+                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                          />
+                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.headingColor || "#FFFFFF"}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-white/60 text-[11px] mb-1">CTA Background</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={activePageConfig.primaryCtaBackground || "#ED0712"}
+                            onChange={(e) => handleUpdateActivePageConfig({ primaryCtaBackground: e.target.value })}
+                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                          />
+                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.primaryCtaBackground || "#ED0712"}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-white/60 text-[11px] mb-1">Content Box Bg</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={activePageConfig.contentBackgroundColor || "#090909"}
+                            onChange={(e) => handleUpdateActivePageConfig({ contentBackgroundColor: e.target.value })}
+                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                          />
+                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.contentBackgroundColor || "#090909"}</span>
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-white/60 text-[11px] mb-1">Eyebrow Accent</label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="color"
+                            value={activePageConfig.eyebrowColor || "#ED0712"}
+                            onChange={(e) => handleUpdateActivePageConfig({ eyebrowColor: e.target.value })}
+                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                          />
+                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.eyebrowColor || "#ED0712"}</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SUBTAB 4: LIVE PREVIEW */}
+              {modalSubTab === "preview" && (
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-white">
+                      Live Preview: {formData.name} in {activeDepartment.name}
+                    </span>
+
+                    <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("desktop")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                          previewDevice === "desktop" ? "bg-blue-600 text-white" : "text-white/60"
+                        }`}
+                      >
+                        <Monitor className="w-3.5 h-3.5" />
                       </button>
-                    ))}
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("tablet")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                          previewDevice === "tablet" ? "bg-blue-600 text-white" : "text-white/60"
+                        }`}
+                      >
+                        <Tablet className="w-3.5 h-3.5" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setPreviewDevice("mobile")}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                          previewDevice === "mobile" ? "bg-blue-600 text-white" : "text-white/60"
+                        }`}
+                      >
+                        <Smartphone className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#020617] border border-white/5 rounded-2xl p-4 flex items-center justify-center overflow-x-auto min-h-[340px]">
+                    <div
+                      className="transition-all duration-300 w-full"
+                      style={{
+                        maxWidth: previewDevice === "mobile" ? "375px" : previewDevice === "tablet" ? "768px" : "100%",
+                      }}
+                    >
+                      <DepartmentBrandHero
+                        config={activePageConfig}
+                        brand={formData as Brand}
+                        department={activeDepartment}
+                      />
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
 
-              {/* Logo Alt Text & Monochrome option */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Logo Alt Text
-                  </label>
-                  <input
-                    type="text"
-                    placeholder="e.g. Samsung Brand Logo"
-                    value={formData.logo_alt_text || ""}
-                    onChange={(e) => setFormData({ ...formData, logo_alt_text: e.target.value })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:border-blue-500 outline-none"
-                  />
-                </div>
-
-                <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3">
-                  <div>
-                    <p className="text-xs font-bold text-white">Monochrome Mode</p>
-                    <p className="text-[10px] text-white/50">Grayscale logo styling</p>
-                  </div>
-                  <input
-                    type="checkbox"
-                    checked={formData.monochrome === true}
-                    onChange={(e) => setFormData({ ...formData, monochrome: e.target.checked })}
-                    className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-                  />
-                </div>
-              </div>
-
-              {/* Sort Order & Status */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Desktop Order
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.sort_order || 1}
-                    onChange={(e) => setFormData({ ...formData, sort_order: Number(e.target.value) })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Mobile Order
-                  </label>
-                  <input
-                    type="number"
-                    value={formData.mobile_sort_order ?? formData.sort_order ?? 1}
-                    onChange={(e) => setFormData({ ...formData, mobile_sort_order: Number(e.target.value) })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-mono font-bold outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-extrabold text-white/60 uppercase tracking-wider mb-1.5">
-                    Status
-                  </label>
-                  <select
-                    value={formData.status || "active"}
-                    onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-xs font-bold outline-none"
-                  >
-                    <option value="active" className="bg-[#0F172A] text-white">Active</option>
-                    <option value="inactive" className="bg-[#0F172A] text-white">Inactive</option>
-                  </select>
-                </div>
-              </div>
-
-              {/* Homepage Strip Toggle */}
-              <div className="flex items-center justify-between bg-white/5 border border-white/10 rounded-xl p-3.5">
-                <div>
-                  <p className="text-xs font-bold text-white">Show on Homepage Brand Strip</p>
-                  <p className="text-[11px] text-white/50">Display logo in homepage manufacturers grid</p>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={formData.show_on_homepage !== false}
-                  onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
-                  className="w-4 h-4 accent-blue-600 rounded cursor-pointer"
-                />
-              </div>
-
-              {/* Action Footer */}
-              <div className="sticky bottom-0 bg-[#0F172A] pt-4 pb-2 border-t border-white/10 flex justify-end gap-3">
+              {/* Modal Footer Actions */}
+              <div className="flex items-center justify-between pt-4 border-t border-white/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-5 py-2.5 rounded-xl font-bold text-xs text-white/60 hover:bg-white/10 text-white transition-colors"
+                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
+
                 <button
                   type="submit"
                   disabled={isSaving}
-                  className="px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-colors disabled:opacity-50 shadow-md"
+                  className="flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
-                  {isSaving ? "Saving Brand..." : editingBrand ? "Update Brand" : "Save Brand"}
+                  <Save className="w-4 h-4" />
+                  {isSaving ? "Saving..." : saveSuccess ? "Saved Successfully!" : "Save Brand & Department Pages"}
                 </button>
               </div>
             </form>
           </div>
         </div>
       )}
-
-      {/* Live Homepage Brand Strip Preview Modal (Dark Theme) */}
-      {showPreviewModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                <Eye className="w-5 h-5 text-blue-400" /> Live Homepage Brand Strip Preview
-              </h3>
-              <button onClick={() => setShowPreviewModal(false)} className="p-2 text-white/40 hover:text-white rounded-xl">
-                ✕
-              </button>
-            </div>
-
-            <div className="p-6 bg-black/40 rounded-3xl border border-white/10 space-y-6">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">
-                HOMEPAGE BRAND MANUFACTURERS STRIP
-              </span>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
-                {filteredBrands.filter(b => b.show_on_homepage !== false).map((b) => (
-                  <div key={b.id} className="p-3 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
-                    <div className={`w-full h-10 rounded-xl bg-white/5 p-1 flex items-center justify-center overflow-hidden ${
-                      b.monochrome ? "grayscale" : ""
-                    }`}>
-                      {b.logo_url ? (
-                        <img src={b.logo_url} alt={b.name} className="w-full h-full object-contain filter invert brightness-200" />
-                      ) : (
-                        <span className="text-xs font-black text-white">{b.name}</span>
-                      )}
-                    </div>
-                    <span className="text-[11px] font-bold text-white/70 block truncate">{b.name}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-
     </div>
   );
 }

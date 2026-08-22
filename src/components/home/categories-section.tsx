@@ -3,38 +3,33 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Category, Brand } from "@/lib/types";
+import { Category, Brand, Department } from "@/lib/types";
 import { DEFAULT_BRANDS } from "@/lib/data";
+import { DEFAULT_DEPARTMENTS, getDefaultBrandDepartments } from "@/lib/firestore-brands";
 import { db } from "@/lib/firebase";
 import { collection, onSnapshot, query } from "firebase/firestore";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 
-type Tab = "phones" | "laptops" | "accessories";
-
 interface CategoriesSectionProps {
   categories?: Category[];
   brands?: Brand[];
+  departments?: Department[];
 }
 
-function BrandCard({ brand, index, activeTab }: { brand: Brand; index: number; activeTab: Tab }) {
+function BrandCard({
+  brand,
+  index,
+  activeDepartmentSlug,
+}: {
+  brand: Brand;
+  index: number;
+  activeDepartmentSlug: string;
+}) {
   const [imgError, setImgError] = useState(false);
   const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
 
-  // Compute contextual link based on currently active tab and brand
-  const brandName = brand.slug || brand.name;
-  let targetLink = brand.link_destination || "";
-
-  if (!targetLink || targetLink === `/products?brand=${brandName}` || !targetLink.includes("?")) {
-    if (activeTab === "phones") {
-      targetLink = `/products?brand=${encodeURIComponent(brandName)}&cat_chip=smartphones`;
-    } else if (activeTab === "laptops") {
-      targetLink = `/products?brand=${encodeURIComponent(brandName)}&cat_chip=laptops-tablets`;
-    } else if (activeTab === "accessories") {
-      targetLink = `/products?brand=${encodeURIComponent(brandName)}&category=accessories`;
-    } else {
-      targetLink = `/products?brand=${encodeURIComponent(brandName)}`;
-    }
-  }
+  // Department-specific SEO-friendly brand route
+  const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
 
   return (
     <motion.div
@@ -46,10 +41,10 @@ function BrandCard({ brand, index, activeTab }: { brand: Brand; index: number; a
     >
       <Link
         href={targetLink}
-        title={brand.name}
+        title={`${brand.name}`}
         className="group relative flex items-center justify-center p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100/90 shadow-[0_3px_14px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.09)] hover:border-neutral-300 hover:-translate-y-1.5 transition-all duration-300 w-full aspect-[4/3] min-h-[110px] sm:min-h-[140px] md:min-h-[155px]"
       >
-        {/* Centered Large Genuine Brand Logo */}
+        {/* Centered Genuine Brand Logo */}
         <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
             <img
@@ -70,51 +65,95 @@ function BrandCard({ brand, index, activeTab }: { brand: Brand; index: number; a
   );
 }
 
-export default function CategoriesSection({ categories = [], brands = [] }: CategoriesSectionProps) {
-  const [activeTab, setActiveTab] = useState<Tab>("phones");
-  const [liveBrands, setLiveBrands] = useState<Brand[]>(brands && brands.length > 0 ? brands : DEFAULT_BRANDS);
+export default function CategoriesSection({
+  categories = [],
+  brands = [],
+  departments = DEFAULT_DEPARTMENTS,
+}: CategoriesSectionProps) {
+  const [activeDeptSlug, setActiveDeptSlug] = useState<string>("phones");
+  const [liveBrands, setLiveBrands] = useState<Brand[]>(() => {
+    return (brands && brands.length > 0 ? brands : DEFAULT_BRANDS).map((b) => ({
+      ...b,
+      assigned_departments:
+        b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group),
+    }));
+  });
+  const [liveDepts, setLiveDepts] = useState<Department[]>(
+    departments && departments.length > 0 ? departments : DEFAULT_DEPARTMENTS
+  );
 
-  // Real-time Firestore sync: Any brand uploaded in admin reflects on homepage immediately
+  // Real-time Firestore sync for Brands and Departments
   useEffect(() => {
     try {
-      const q = query(collection(db, "brands"));
-      const unsubscribe = onSnapshot(
-        q,
+      const qBrands = query(collection(db, "brands"));
+      const unsubBrands = onSnapshot(
+        qBrands,
         (snapshot) => {
           if (!snapshot.empty) {
             const brandMap = new Map<string, Brand>();
-            DEFAULT_BRANDS.forEach((b) => brandMap.set(b.id, b));
+            DEFAULT_BRANDS.forEach((b) => {
+              brandMap.set(b.id, {
+                ...b,
+                assigned_departments: getDefaultBrandDepartments(b.slug, b.product_group),
+              });
+            });
             snapshot.docs.forEach((d) => {
               const data = d.data() as Brand;
               const id = d.id || data.id;
+              const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              const assigned_departments =
+                data.assigned_departments && data.assigned_departments.length > 0
+                  ? data.assigned_departments
+                  : getDefaultBrandDepartments(slug, data.product_group);
+
               const existing = brandMap.get(id) || brandMap.get(data.id);
-              brandMap.set(id, { ...existing, ...data, id });
+              brandMap.set(id, { ...existing, ...data, id, slug, assigned_departments });
             });
             setLiveBrands(Array.from(brandMap.values()));
           }
         },
-        (err) => {
-          console.warn("Firestore brands onSnapshot warning:", err);
-        }
+        (err) => console.warn("Firestore brands snapshot warning:", err)
       );
-      return () => unsubscribe();
+
+      const qDepts = query(collection(db, "departments"));
+      const unsubDepts = onSnapshot(
+        qDepts,
+        (snapshot) => {
+          if (!snapshot.empty) {
+            const deptMap = new Map<string, Department>();
+            DEFAULT_DEPARTMENTS.forEach((d) => deptMap.set(d.slug, d));
+            snapshot.docs.forEach((d) => {
+              const data = d.data() as Department;
+              const slug = data.slug || d.id;
+              deptMap.set(slug, { ...data, id: d.id, slug });
+            });
+            setLiveDepts(
+              Array.from(deptMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0))
+            );
+          }
+        },
+        (err) => console.warn("Firestore departments snapshot warning:", err)
+      );
+
+      return () => {
+        unsubBrands();
+        unsubDepts();
+      };
     } catch (e) {
-      console.warn("Failed to subscribe to brands collection:", e);
+      console.warn("Failed to subscribe to brands/departments:", e);
     }
   }, []);
 
   const visibleBrands = useMemo(() => {
     return liveBrands
-      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive")
+      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
       .filter((b) => {
-        const group = (b.product_group || "smartphones").toLowerCase();
-        if (activeTab === "phones") return group === "smartphones" || group === "phones";
-        if (activeTab === "laptops") return group === "laptops";
-        if (activeTab === "accessories") return group === "accessories" || group === "audio" || group === "other";
-        return true;
+        const assigned =
+          b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
+        return assigned.includes(activeDeptSlug);
       })
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [liveBrands, activeTab]);
+      .sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0));
+  }, [liveBrands, activeDeptSlug]);
 
   return (
     <ScrollReveal
@@ -125,7 +164,6 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
       className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans"
     >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
-
         {/* Header Title & Subtitle */}
         <div data-reveal-item className="text-center mb-8 space-y-2">
           <h2 className="text-3xl sm:text-4xl font-black text-[#090909] tracking-tight">
@@ -136,65 +174,72 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
           </p>
         </div>
 
-        {/* Tab Switcher */}
+        {/* Department Switcher Tabs */}
         <div data-reveal-item className="flex justify-center mb-10">
           <div className="inline-flex items-center p-1.5 rounded-full bg-white/90 border border-neutral-200/80 shadow-xs relative">
-            {(["phones", "laptops", "accessories"] as Tab[]).map((t) => {
-              const isActive = activeTab === t;
-              const label = t === "phones" ? "📱 Smartphones" : t === "laptops" ? "💻 Laptops" : "🎧 Accessories";
-              
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => setActiveTab(t)}
-                  className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 capitalize z-10 cursor-pointer ${
-                    isActive ? "text-white" : "text-neutral-600 hover:text-black"
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="brand-tab-active-pill"
-                      className="absolute inset-0 bg-black rounded-full shadow-xs -z-10"
-                      transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
-                    />
-                  )}
-                  <span className="relative z-10 flex items-center gap-2">
-                    {label}
-                  </span>
-                </button>
-              );
-            })}
+            {liveDepts
+              .filter((d) => d.enabled !== false)
+              .map((dept) => {
+                const isActive = activeDeptSlug === dept.slug;
+                const icon =
+                  dept.slug === "phones"
+                    ? "📱"
+                    : dept.slug === "laptops-tablets"
+                    ? "💻"
+                    : "🎧";
+
+                return (
+                  <button
+                    key={dept.slug}
+                    type="button"
+                    onClick={() => setActiveDeptSlug(dept.slug)}
+                    className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 z-10 cursor-pointer ${
+                      isActive ? "text-white" : "text-neutral-600 hover:text-black"
+                    }`}
+                  >
+                    {isActive && (
+                      <motion.div
+                        layoutId="brand-dept-tab-active-pill"
+                        className="absolute inset-0 bg-black rounded-full shadow-xs -z-10"
+                        transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
+                      />
+                    )}
+                    <span className="relative z-10 flex items-center gap-2">
+                      <span>{icon}</span>
+                      <span>{dept.name}</span>
+                    </span>
+                  </button>
+                );
+              })}
           </div>
         </div>
 
-        {/* Brand Grid - 6 columns matching Apple-style squircle badges */}
+        {/* Brand Grid - 6 columns matching Apple-style badges */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeTab}
+            key={activeDeptSlug}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 lg:gap-6"
           >
-            {visibleBrands.map((brand, i) => (
-              <BrandCard key={brand.id || i} brand={brand} index={i} activeTab={activeTab} />
-            ))}
+            {visibleBrands.length > 0 ? (
+              visibleBrands.map((brand, idx) => (
+                <BrandCard
+                  key={`${activeDeptSlug}-${brand.id || brand.slug}`}
+                  brand={brand}
+                  index={idx}
+                  activeDepartmentSlug={activeDeptSlug}
+                />
+              ))
+            ) : (
+              <div className="col-span-full py-12 text-center text-neutral-400 text-xs font-semibold">
+                No active brands configured for this department.
+              </div>
+            )}
           </motion.div>
         </AnimatePresence>
-
-        {/* View All Products Button */}
-        <div data-reveal-item className="text-center mt-10">
-          <Link
-            href="/products"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-neutral-200/90 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black hover:border-black transition-all duration-300 bg-white shadow-xs"
-          >
-            <span>View All Brands &amp; Products</span>
-            <span>→</span>
-          </Link>
-        </div>
-
       </div>
     </ScrollReveal>
   );
