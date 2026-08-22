@@ -23,6 +23,7 @@ export default function AdminLoginPage() {
     if (username.trim().toLowerCase() === "admin" && password.trim() === "street2024") {
       // Store auth in sessionStorage
       sessionStorage.setItem("admin_auth", "true");
+      localStorage.setItem("admin_auth", "true");
       router.push("/admin/dashboard");
     } else {
       setError("Invalid username or password");

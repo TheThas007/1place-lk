@@ -6,6 +6,7 @@
 :root {
   --navbar-height: 74px;
   --ticker-height: 0px;
+  --mobile-nav-height: 60px;
 }
 
 @media (max-width: 1024px) {
@@ -23,7 +24,7 @@
 /* Hide public site layout elements when in admin panel */
 body:has([data-admin-root]) header:not([data-admin-header]),
 body:has([data-admin-root]) footer,
-body:has([data-admin-root]) nav.safe-bottom,
+body:has([data-admin-root]) nav,
 body:has([data-admin-root]) .whatsapp-fab {
   display: none !important;
 }

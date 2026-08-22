@@ -298,13 +298,50 @@ export default function CheckoutClient() {
     return undefined;
   };
 
-  // Promo code handlers
-  const handleApplyCoupon = () => {
+  // Check for auto-collected voucher from homepage
+  useEffect(() => {
+    try {
+      const savedCode = localStorage.getItem("sm_active_coupon");
+      if (savedCode && !appliedCoupon) {
+        setCouponInput(savedCode);
+      }
+    } catch {}
+  }, [appliedCoupon]);
+
+  // Promo code handlers with server-side validation
+  const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
     setCouponLoading(true);
     setCouponMessage(null);
 
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code: couponInput.trim(),
+          subtotal,
+          userId: user?.uid || "guest",
+        }),
+      });
+
+      const data = await res.json();
+
+      if (data.valid) {
+        setCouponDiscount(data.discountAmount || 0);
+        setAppliedCoupon(data.code);
+        setCouponMessage({
+          type: "success",
+          text: data.message || `Coupon '${data.code}' applied! Saved ${formatPrice(data.discountAmount || 0)}`,
+        });
+      } else {
+        setCouponMessage({
+          type: "error",
+          text: data.message || "Invalid or expired promo code.",
+        });
+      }
+    } catch (err) {
+      // Offline / fallback calculation
       const code = couponInput.trim().toUpperCase();
       if (code === "WELCOME10" || code === "STREET10") {
         const discountAmount = Math.round(subtotal * 0.1);
@@ -324,11 +361,12 @@ export default function CheckoutClient() {
       } else {
         setCouponMessage({
           type: "error",
-          text: "Invalid promo code. Try WELCOME10 for 10% off.",
+          text: "Could not validate coupon. Please check your connection.",
         });
       }
+    } finally {
       setCouponLoading(false);
-    }, 400);
+    }
   };
 
   const handleRemoveCoupon = () => {
@@ -336,6 +374,9 @@ export default function CheckoutClient() {
     setAppliedCoupon(null);
     setCouponDiscount(0);
     setCouponMessage(null);
+    try {
+      localStorage.removeItem("sm_active_coupon");
+    } catch {}
   };
 
   // Determine current progress step

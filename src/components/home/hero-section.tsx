@@ -443,27 +443,43 @@ export default function HeroSection() {
                   </Link>
                 )}
 
-                {/* Secondary Dark-Glass Bordered Button */}
-                {currentSlide.show_secondary_button === true && currentSlide.secondary_button_text && (
-                  <a
-                    href={currentSlide.secondary_button_url || "#"}
-                    target={currentSlide.secondary_button_url?.startsWith("http") ? "_blank" : "_self"}
-                    rel="noopener noreferrer"
-                    className="group/sec flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md"
-                    style={{
+                {/* Secondary Dark-Glass Bordered Button – only renders when a valid URL is provided */}
+                {currentSlide.show_secondary_button === true &&
+                  currentSlide.secondary_button_text &&
+                  currentSlide.secondary_button_url &&
+                  currentSlide.secondary_button_url.trim() !== "" &&
+                  currentSlide.secondary_button_url.trim() !== "#" && (
+                  (() => {
+                    const secUrl = currentSlide.secondary_button_url!.trim();
+                    const isExternal = secUrl.startsWith("http://") || secUrl.startsWith("https://");
+                    const isWA = isWhatsAppAction(secUrl);
+                    const btnContent = (
+                      <>
+                        {isWA ? (
+                          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
+                        ) : (
+                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
+                        )}
+                        <span>{currentSlide.secondary_button_text}</span>
+                      </>
+                    );
+                    const btnClass = "group/sec flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md";
+                    const btnStyle = {
                       color: currentSlide.secondary_button_text_color || "#FFFFFF",
                       backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
                       borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
                       fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                    }}
-                  >
-                    {isWhatsAppAction(currentSlide.secondary_button_url) ? (
-                      <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
+                    };
+                    return isExternal ? (
+                      <a href={secUrl} target="_blank" rel="noopener noreferrer" className={btnClass} style={btnStyle}>
+                        {btnContent}
+                      </a>
                     ) : (
-                      <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
-                    )}
-                    <span>{currentSlide.secondary_button_text}</span>
-                  </a>
+                      <Link href={secUrl} className={btnClass} style={btnStyle}>
+                        {btnContent}
+                      </Link>
+                    );
+                  })()
                 )}
               </motion.div>
 

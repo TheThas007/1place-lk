@@ -60,7 +60,7 @@ export default function ProductGallery({
         {showVideo && video_url ? (
           <div className="w-full h-full flex items-center justify-center bg-black rounded-xl overflow-hidden">
             <iframe
-              src={video_url.includes("youtube.com") || video_url.includes("youtu.be") 
+              src={video_url.includes("youtube.com") || video_url.includes("youtu.be")
                 ? video_url.replace("watch?v=", "embed/").replace("youtu.be/", "youtube.com/embed/")
                 : video_url}
               title={`${name} Video`}
@@ -89,11 +89,10 @@ export default function ProductGallery({
               setActiveIdx(i);
               setShowVideo(false);
             }}
-            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl p-2 overflow-hidden border-2 cursor-pointer transition-all ${
-              i === activeIdx && !showVideo
+            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl p-2 overflow-hidden border-2 cursor-pointer transition-all ${i === activeIdx && !showVideo
                 ? "border-black ring-1 ring-black"
                 : "border-[#EAEAEA] hover:border-black/50"
-            } bg-white`}
+              } bg-white`}
             aria-label={`View ${name} image ${i + 1}`}
           >
             <img
@@ -109,9 +108,8 @@ export default function ProductGallery({
           <button
             type="button"
             onClick={() => setShowVideo(true)}
-            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 cursor-pointer transition-all bg-black flex flex-col items-center justify-center text-white ${
-              showVideo ? "border-black ring-1 ring-black" : "border-[#EAEAEA] hover:border-black"
-            }`}
+            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 cursor-pointer transition-all bg-black flex flex-col items-center justify-center text-white ${showVideo ? "border-black ring-1 ring-black" : "border-[#EAEAEA] hover:border-black"
+              }`}
           >
             <Play className="w-6 h-6 text-white mb-1 fill-white" />
             <span className="text-[10px] font-bold uppercase tracking-wider">Video</span>
