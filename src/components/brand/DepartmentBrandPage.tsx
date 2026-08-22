@@ -65,7 +65,12 @@ export default function DepartmentBrandPage({
       params.set("category", catSlug);
     }
     const query = params.toString();
-    router.push(query ? `?${query}` : window.location.pathname, { scroll: false });
+    router.push(
+      query
+        ? `/shop-by-brand/${department.slug}/${brand.slug}?${query}`
+        : `/shop-by-brand/${department.slug}/${brand.slug}`,
+      { scroll: false }
+    );
   };
 
   // Filtered & Sorted Products

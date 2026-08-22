@@ -1,5 +1,6 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
+import { Suspense } from "react";
 import {
   getDepartmentsFromDb,
   getBrandsFromDb,
@@ -161,13 +162,21 @@ export default async function DepartmentBrandRoute({
   });
 
   return (
-    <DepartmentBrandPage
-      config={config}
-      brand={brand}
-      department={department}
-      products={departmentBrandProducts}
-      categories={categories}
-      allBrands={brands}
-    />
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-neutral-50 dark:bg-[#070707] pt-28 flex items-center justify-center">
+          <div className="w-8 h-8 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+        </div>
+      }
+    >
+      <DepartmentBrandPage
+        config={config}
+        brand={brand}
+        department={department}
+        products={departmentBrandProducts}
+        categories={categories}
+        allBrands={brands}
+      />
+    </Suspense>
   );
 }
