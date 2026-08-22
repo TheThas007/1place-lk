@@ -522,6 +522,7 @@ export default function Header() {
 
         {/* ── Mobile Full-Width Search Row (Row 2 on screens < 768px) ── */}
         <div 
+          suppressHydrationWarning
           className={cn(
             "md:hidden px-4 transition-all duration-300 ease-in-out overflow-hidden origin-top",
             isScrolled ? "h-0 opacity-0 pb-0 pt-0 mb-0" : "h-[44px] opacity-100 pb-2.5 pt-0.5"

@@ -30,6 +30,9 @@ import {
   Tag,
   LayoutGrid,
   Globe,
+  Wrench,
+  Building,
+  DollarSign,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -41,10 +44,13 @@ const SIDEBAR_ITEMS = [
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
   { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
+  { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
+  { id: "repairs", label: "Mobile Repairs", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
+  { id: "suppliers", label: "Suppliers", icon: Building, href: "/admin/dashboard?tab=suppliers" },
+  { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
   { id: "warranties", label: "Warranty Management", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
   { id: "collections", label: "Featured Collections", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
   { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
-  { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
   { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },

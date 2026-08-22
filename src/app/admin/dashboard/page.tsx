@@ -73,12 +73,18 @@ import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsT
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import FooterTab from "@/components/admin/tabs/FooterTab";
 import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
+import RepairsTab from "@/components/admin/tabs/RepairsTab";
+import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
+import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
   | "brands"
+  | "repairs"
+  | "suppliers"
+  | "cashflow"
   | "warranties"
   | "collections"
   | "showcase"
@@ -1377,6 +1383,27 @@ function DashboardContent() {
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "mobile" && (
         <MobileExperienceTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5H: REPAIRS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "repairs" && (
+        <RepairsTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5I: SUPPLIERS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "suppliers" && (
+        <SuppliersTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5J: CASH FLOW TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "cashflow" && (
+        <CashFlowTab />
       )}
 
 
