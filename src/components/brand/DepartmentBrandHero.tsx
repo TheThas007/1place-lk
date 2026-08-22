@@ -59,33 +59,42 @@ export default function DepartmentBrandHero({
   const fallbackCampaignBanner =
     BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.[deptSlug] || "";
 
-  const resolvedDesktopBanner =
-    config.desktopBannerUrl && config.desktopBannerUrl.trim()
-      ? config.desktopBannerUrl
-      : fallbackCampaignBanner;
+  // 1. Resolve Desktop Banner
+  const rawDesktop = config.desktop?.imageUrl || config.desktopBannerUrl || "";
+  const resolvedDesktopBanner = rawDesktop.trim() ? rawDesktop.trim() : fallbackCampaignBanner;
 
+  // 2. Resolve Tablet Banner (Check toggle useDesktopForTablet)
+  const rawTablet = config.tablet?.imageUrl || config.tabletBannerUrl || "";
   const resolvedTabletBanner =
-    config.tabletBannerUrl && config.tabletBannerUrl.trim()
-      ? config.tabletBannerUrl
-      : resolvedDesktopBanner;
+    config.useDesktopForTablet !== false && !rawTablet.trim()
+      ? resolvedDesktopBanner
+      : rawTablet.trim() || resolvedDesktopBanner;
 
-  const resolvedMobileBanner =
-    config.mobileBannerUrl && config.mobileBannerUrl.trim()
-      ? config.mobileBannerUrl
-      : resolvedTabletBanner;
+  // 3. Resolve Mobile Banner (Check toggles useDesktopForMobile / useTabletForMobile)
+  const rawMobile = config.mobile?.imageUrl || config.mobileBannerUrl || "";
+  let resolvedMobileBanner = rawMobile.trim();
+  if (!resolvedMobileBanner) {
+    if (config.useTabletForMobile && resolvedTabletBanner) {
+      resolvedMobileBanner = resolvedTabletBanner;
+    } else {
+      resolvedMobileBanner = resolvedDesktopBanner;
+    }
+  }
 
   // If no banner is available or image failed, hide banner section with 0 empty space
   if (!resolvedDesktopBanner || imgError) {
     return null;
   }
 
-  const altText =
-    config.bannerAlt ||
-    `${brand.name} ${department.name} Official Promotional Banner`;
+  const isDecorative = Boolean(config.decorative);
+  const altText = isDecorative
+    ? ""
+    : config.bannerAlt ||
+      `${brand.name} ${department.name} Official Promotional Banner`;
 
-  const desktopFocal = config.desktopFocalPosition || "center";
-  const tabletFocal = config.tabletFocalPosition || desktopFocal;
-  const mobileFocal = config.mobileFocalPosition || "center";
+  const desktopFocal = config.desktop?.focalPosition || config.desktopFocalPosition || "center";
+  const tabletFocal = config.tablet?.focalPosition || config.tabletFocalPosition || desktopFocal;
+  const mobileFocal = config.mobile?.focalPosition || config.mobileFocalPosition || "center";
 
   // Optional Link Destination
   let destinationUrl = "";
@@ -103,6 +112,10 @@ export default function DepartmentBrandHero({
 
   const isExternalLink =
     destinationUrl.startsWith("http://") || destinationUrl.startsWith("https://");
+
+  const ariaLabel =
+    config.linkAriaLabel ||
+    `Shop ${brand.name} ${department.name} collection`;
 
   const bannerContent = (
     <div className="relative w-full aspect-[16/5] md:aspect-[16/5] max-md:aspect-[16/6] max-sm:aspect-[4/3] overflow-hidden rounded-lg select-none bg-neutral-100">
@@ -122,6 +135,7 @@ export default function DepartmentBrandHero({
         <img
           src={resolvedDesktopBanner}
           alt={altText}
+          aria-hidden={isDecorative ? "true" : undefined}
           loading="eager"
           decoding="async"
           onError={() => setImgError(true)}
@@ -142,6 +156,7 @@ export default function DepartmentBrandHero({
             href={destinationUrl}
             target={config.openInNewTab ? "_blank" : "_self"}
             rel={config.openInNewTab ? "noopener noreferrer" : undefined}
+            aria-label={ariaLabel}
             className="block focus:outline-none focus:ring-2 focus:ring-red-600 rounded-lg overflow-hidden group"
           >
             {bannerContent}
@@ -150,6 +165,7 @@ export default function DepartmentBrandHero({
           <Link
             href={destinationUrl}
             target={config.openInNewTab ? "_blank" : "_self"}
+            aria-label={ariaLabel}
             className="block focus:outline-none focus:ring-2 focus:ring-red-600 rounded-lg overflow-hidden group"
           >
             {bannerContent}

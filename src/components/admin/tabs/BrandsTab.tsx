@@ -1,8 +1,15 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Brand, Department, DepartmentBrandPageConfig, DepartmentBrandCategoryTab, Product } from "@/lib/types";
+import {
+  Brand,
+  Department,
+  DepartmentBrandPageConfig,
+  DepartmentBrandCategoryTab,
+  Product,
+  ResponsiveBannerImage,
+} from "@/lib/types";
 import {
   getBrandsFromDb,
   saveBrandToDb,
@@ -40,6 +47,13 @@ import {
   RotateCcw,
   Save,
   Check,
+  Clipboard,
+  X,
+  ChevronRight,
+  Info,
+  Globe,
+  SlidersHorizontal,
+  ArrowRight,
 } from "lucide-react";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 import DepartmentBrandHero from "@/components/brand/DepartmentBrandHero";
@@ -62,6 +76,84 @@ const BRAND_LOGO_PRESETS = [
   { name: "Joyroom", logo: "https://icon.horse/icon/joyroom.com" },
   { name: "Oraimo", logo: "https://icon.horse/icon/oraimo.com" },
 ];
+
+// Helper: probe image dimensions and calculate ratio
+async function probeImageDetails(url: string, targetRatio: number): Promise<Partial<ResponsiveBannerImage>> {
+  if (!url || !url.trim()) {
+    return { validationStatus: "untested" };
+  }
+
+  const trimmed = url.trim();
+  if (trimmed.startsWith("javascript:") || (!trimmed.startsWith("http://") && !trimmed.startsWith("https://") && !trimmed.startsWith("data:image/"))) {
+    return {
+      validationStatus: "error",
+      validationMessage: "Invalid URL scheme. Please use HTTPS or uploaded image.",
+    };
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    const timeout = setTimeout(() => {
+      resolve({
+        imageUrl: trimmed,
+        validationStatus: "error",
+        validationMessage: "Unable to load image (timeout or invalid URL).",
+      });
+    }, 10000);
+
+    img.onload = () => {
+      clearTimeout(timeout);
+      const width = img.naturalWidth || img.width;
+      const height = img.naturalHeight || img.height;
+      const ratio = height > 0 ? Number((width / height).toFixed(2)) : 0;
+
+      // Extract format if available
+      let format = "Unknown";
+      if (trimmed.includes(".webp")) format = "WebP";
+      else if (trimmed.includes(".png")) format = "PNG";
+      else if (trimmed.includes(".jpg") || trimmed.includes(".jpeg")) format = "JPEG";
+      else if (trimmed.includes(".avif")) format = "AVIF";
+      else if (trimmed.startsWith("data:image/webp")) format = "WebP";
+      else if (trimmed.startsWith("data:image/png")) format = "PNG";
+      else if (trimmed.startsWith("data:image/jpeg")) format = "JPEG";
+
+      // Ratio validation
+      const diff = Math.abs(ratio - targetRatio) / targetRatio;
+      let status: "perfect" | "acceptable" | "warning" = "perfect";
+      let msg = `Perfect ratio (${ratio} vs target ${targetRatio})`;
+
+      if (diff > 0.25) {
+        status = "warning";
+        msg = `Incorrect ratio (${ratio}). Target is ${targetRatio}. Image will be cropped on storefront.`;
+      } else if (diff > 0.08) {
+        status = "acceptable";
+        msg = `Acceptable ratio (${ratio}). Target is ${targetRatio}.`;
+      }
+
+      resolve({
+        imageUrl: trimmed,
+        actualWidth: width,
+        actualHeight: height,
+        actualRatio: ratio,
+        format,
+        validationStatus: status,
+        validationMessage: msg,
+      });
+    };
+
+    img.onerror = () => {
+      clearTimeout(timeout);
+      resolve({
+        imageUrl: trimmed,
+        validationStatus: "error",
+        validationMessage: "Unable to load image. Check the URL and CORS permissions.",
+      });
+    };
+
+    img.src = trimmed;
+  });
+}
 
 export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const [brands, setBrands] = useState<Brand[]>([]);
@@ -93,10 +185,17 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   // Department Pages Form State (Keyed by department slug)
   const [activePageDeptSlug, setActivePageDeptSlug] = useState<string>("phones");
   const [pageConfigs, setPageConfigs] = useState<Record<string, DepartmentBrandPageConfig>>({});
+  const [editingDepartmentBanner, setEditingDepartmentBanner] = useState<string | null>(null);
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
   const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+
+  // Probe Image Details State
+  const [desktopProbe, setDesktopProbe] = useState<Partial<ResponsiveBannerImage>>({});
+  const [tabletProbe, setTabletProbe] = useState<Partial<ResponsiveBannerImage>>({});
+  const [mobileProbe, setMobileProbe] = useState<Partial<ResponsiveBannerImage>>({});
 
   const fetchBrandsAndDepartments = async () => {
     setLoading(true);
@@ -177,8 +276,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       setActivePageDeptSlug("phones");
     }
     setModalSubTab("general");
+    setEditingDepartmentBanner(null);
     setIsModalOpen(true);
     setSaveSuccess(false);
+    setHasUnsavedChanges(false);
   };
 
   const handleToggleDepartment = (deptSlug: string) => {
@@ -194,12 +295,14 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       updated = [...current, deptSlug];
     }
     setFormData({ ...formData, assigned_departments: updated });
+    setHasUnsavedChanges(true);
     if (!updated.includes(activePageDeptSlug)) {
       setActivePageDeptSlug(updated[0] || "phones");
     }
   };
 
-  const handleUpdateActivePageConfig = (updates: Partial<DepartmentBrandPageConfig>) => {
+  const handleUpdateActivePageConfig = useCallback((updates: Partial<DepartmentBrandPageConfig>) => {
+    setHasUnsavedChanges(true);
     setPageConfigs((prev) => {
       const current = prev[activePageDeptSlug] || generateDefaultDepartmentPageConfig(
         activePageDeptSlug,
@@ -214,6 +317,63 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         },
       };
     });
+  }, [activePageDeptSlug, editingBrand, formData.name, formData.slug]);
+
+  // Validate images when active config changes
+  useEffect(() => {
+    const cfg = pageConfigs[activePageDeptSlug];
+    if (cfg) {
+      const deskUrl = cfg.desktop?.imageUrl || cfg.desktopBannerUrl || "";
+      if (deskUrl) {
+        probeImageDetails(deskUrl, 3.20).then(setDesktopProbe);
+      } else {
+        setDesktopProbe({});
+      }
+
+      const tabUrl = cfg.tablet?.imageUrl || cfg.tabletBannerUrl || "";
+      if (tabUrl) {
+        probeImageDetails(tabUrl, 2.00).then(setTabletProbe);
+      } else {
+        setTabletProbe({});
+      }
+
+      const mobUrl = cfg.mobile?.imageUrl || cfg.mobileBannerUrl || "";
+      if (mobUrl) {
+        probeImageDetails(mobUrl, 0.82).then(setMobileProbe);
+      } else {
+        setMobileProbe({});
+      }
+    }
+  }, [activePageDeptSlug, pageConfigs]);
+
+  const handlePasteClipboard = async (type: "desktop" | "tablet" | "mobile") => {
+    try {
+      const text = await navigator.clipboard.readText();
+      if (text && text.trim()) {
+        const url = text.trim();
+        if (type === "desktop") {
+          handleUpdateActivePageConfig({
+            desktopBannerUrl: url,
+            desktop: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 3.20).then(setDesktopProbe);
+        } else if (type === "tablet") {
+          handleUpdateActivePageConfig({
+            tabletBannerUrl: url,
+            tablet: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 2.00).then(setTabletProbe);
+        } else {
+          handleUpdateActivePageConfig({
+            mobileBannerUrl: url,
+            mobile: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 0.82).then(setMobileProbe);
+        }
+      }
+    } catch {
+      alert("Clipboard access is restricted or empty. Please paste manually into the input.");
+    }
   };
 
   const handleBannerUpload = async (file: File, type: "desktop" | "tablet" | "mobile") => {
@@ -222,11 +382,23 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       const url = await uploadImageWithFallback(file, "brand-banners");
       if (url) {
         if (type === "desktop") {
-          handleUpdateActivePageConfig({ desktopBannerUrl: url });
+          handleUpdateActivePageConfig({
+            desktopBannerUrl: url,
+            desktop: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 3.20).then(setDesktopProbe);
         } else if (type === "tablet") {
-          handleUpdateActivePageConfig({ tabletBannerUrl: url });
+          handleUpdateActivePageConfig({
+            tabletBannerUrl: url,
+            tablet: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 2.00).then(setTabletProbe);
         } else {
-          handleUpdateActivePageConfig({ mobileBannerUrl: url });
+          handleUpdateActivePageConfig({
+            mobileBannerUrl: url,
+            mobile: { imageUrl: url, focalPosition: "center" },
+          });
+          probeImageDetails(url, 0.82).then(setMobileProbe);
         }
       }
     } catch (err) {
@@ -237,8 +409,8 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
     }
   };
 
-  const handleSaveBrand = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSaveBrand = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
     if (!formData.name?.trim()) {
       alert("Brand name is required.");
       return;
@@ -281,7 +453,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
             brandSlug: slug,
             departmentSlug: deptSlug,
             enabled: true,
-            status: "published",
+            status: config.status || "published",
             updatedAt: new Date().toISOString(),
           };
           await saveDepartmentBrandPageConfig(configToSave);
@@ -289,6 +461,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       }
 
       setSaveSuccess(true);
+      setHasUnsavedChanges(false);
       await fetchBrandsAndDepartments();
       setTimeout(() => {
         setIsModalOpen(false);
@@ -535,7 +708,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                   {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add New Brand"}
                 </h2>
                 <p className="text-xs text-white/50">
-                  Configure brand details, assigned departments, and full-frame banner artwork.
+                  Configure brand details, assigned departments, and responsive banner artwork.
                 </p>
               </div>
 
@@ -544,7 +717,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("general")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     modalSubTab === "general" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -553,7 +726,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("departments")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     modalSubTab === "departments" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -562,7 +735,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("pages")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                     modalSubTab === "pages" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -571,7 +744,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("preview")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
                     modalSubTab === "preview" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -593,7 +766,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         type="text"
                         required
                         value={formData.name || ""}
-                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, name: e.target.value });
+                          setHasUnsavedChanges(true);
+                        }}
                         placeholder="e.g. Apple"
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-semibold"
                       />
@@ -604,7 +780,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <input
                         type="text"
                         value={formData.slug || ""}
-                        onChange={(e) => setFormData({ ...formData, slug: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, slug: e.target.value });
+                          setHasUnsavedChanges(true);
+                        }}
                         placeholder="e.g. apple"
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono"
                       />
@@ -615,7 +794,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <input
                         type="url"
                         value={formData.logo_url || ""}
-                        onChange={(e) => setFormData({ ...formData, logo_url: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, logo_url: e.target.value });
+                          setHasUnsavedChanges(true);
+                        }}
                         placeholder="https://cdn.simpleicons.org/apple/000000"
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
                       />
@@ -626,8 +808,11 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                           <button
                             key={preset.name}
                             type="button"
-                            onClick={() => setFormData({ ...formData, logo_url: preset.logo })}
-                            className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[10px] font-bold transition-colors"
+                            onClick={() => {
+                              setFormData({ ...formData, logo_url: preset.logo });
+                              setHasUnsavedChanges(true);
+                            }}
+                            className="px-2 py-0.5 rounded-md bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-[10px] font-bold transition-colors cursor-pointer"
                           >
                             {preset.name}
                           </button>
@@ -640,7 +825,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <textarea
                         rows={2}
                         value={formData.description || ""}
-                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                        onChange={(e) => {
+                          setFormData({ ...formData, description: e.target.value });
+                          setHasUnsavedChanges(true);
+                        }}
                         placeholder="Genuine devices and original accessories..."
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 resize-none"
                       />
@@ -651,7 +839,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         <input
                           type="checkbox"
                           checked={formData.show_on_homepage !== false}
-                          onChange={(e) => setFormData({ ...formData, show_on_homepage: e.target.checked })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, show_on_homepage: e.target.checked });
+                            setHasUnsavedChanges(true);
+                          }}
                           className="accent-red-600 rounded"
                         />
                         Show in Homepage &quot;Shop by Brand&quot;
@@ -663,7 +854,10 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         <input
                           type="checkbox"
                           checked={formData.enabled !== false}
-                          onChange={(e) => setFormData({ ...formData, enabled: e.target.checked })}
+                          onChange={(e) => {
+                            setFormData({ ...formData, enabled: e.target.checked });
+                            setHasUnsavedChanges(true);
+                          }}
                           className="accent-red-600 rounded"
                         />
                         Brand Enabled
@@ -713,226 +907,632 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 </div>
               )}
 
-              {/* SUBTAB 3: DEPARTMENT PAGES (BANNER ARTWORK & PAGE HEADINGS) */}
+              {/* SUBTAB 3: DEPARTMENT PAGES (BANNER MANAGER & PAGE CONTENT) */}
               {modalSubTab === "pages" && (
                 <div className="space-y-6">
-                  {/* Department Sub-Selector */}
-                  <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
-                    <span className="text-xs font-bold text-white/50 whitespace-nowrap">Department Page:</span>
-                    {(formData.assigned_departments || ["phones"]).map((dSlug) => {
-                      const dept = departments.find((d) => d.slug === dSlug);
-                      return (
+                  
+                  {/* Department Page Overview Cards */}
+                  {!editingDepartmentBanner ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h3 className="text-sm font-bold text-white">Assigned Department Pages</h3>
+                          <p className="text-xs text-white/50">
+                            Each department has independent full-frame banner artwork and page headings.
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {(formData.assigned_departments || ["phones"]).map((dSlug) => {
+                          const dept = departments.find((d) => d.slug === dSlug) || { name: dSlug, slug: dSlug };
+                          const cfg = pageConfigs[dSlug] || generateDefaultDepartmentPageConfig(dSlug, { id: "temp", name: formData.name || "", slug: formData.slug || "" } as Brand);
+                          const hasDesktop = Boolean(cfg.desktop?.imageUrl || cfg.desktopBannerUrl);
+                          const hasTablet = Boolean(cfg.tablet?.imageUrl || cfg.tabletBannerUrl || cfg.useDesktopForTablet);
+                          const hasMobile = Boolean(cfg.mobile?.imageUrl || cfg.mobileBannerUrl || cfg.useDesktopForMobile || cfg.useTabletForMobile);
+
+                          return (
+                            <div
+                              key={dSlug}
+                              className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 flex flex-col justify-between hover:border-white/20 transition-all shadow-md"
+                            >
+                              <div>
+                                <div className="flex items-center justify-between mb-3">
+                                  <h4 className="font-extrabold text-base text-white flex items-center gap-2">
+                                    <span>{dept.name}</span>
+                                    <span className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md border border-blue-500/20">
+                                      /{dSlug}
+                                    </span>
+                                  </h4>
+                                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                                    cfg.status === "published" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                                  }`}>
+                                    {cfg.status === "published" ? "Published" : "Draft"}
+                                  </span>
+                                </div>
+
+                                {/* Banner Thumbnail Preview */}
+                                <div className="relative w-full aspect-[16/5] rounded-xl overflow-hidden bg-neutral-900 border border-white/10 mb-3 flex items-center justify-center">
+                                  {cfg.desktop?.imageUrl || cfg.desktopBannerUrl ? (
+                                    <img
+                                      src={cfg.desktop?.imageUrl || cfg.desktopBannerUrl}
+                                      alt={`${formData.name} ${dept.name} Banner`}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="text-center p-3 text-white/40">
+                                      <ImageIcon className="w-6 h-6 mx-auto mb-1 opacity-50" />
+                                      <span className="text-[11px] font-bold">No Banner Configured</span>
+                                    </div>
+                                  )}
+                                </div>
+
+                                {/* Status Badges */}
+                                <div className="grid grid-cols-3 gap-1.5 text-[10px] font-mono mb-2">
+                                  <div className="bg-black/30 p-1.5 rounded-lg border border-white/5 text-center">
+                                    <span className="text-white/40 block">Desktop</span>
+                                    <span className={hasDesktop ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                                      {hasDesktop ? "Added" : "Missing"}
+                                    </span>
+                                  </div>
+                                  <div className="bg-black/30 p-1.5 rounded-lg border border-white/5 text-center">
+                                    <span className="text-white/40 block">Tablet</span>
+                                    <span className={hasTablet ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                                      {hasTablet ? "Added" : "Missing"}
+                                    </span>
+                                  </div>
+                                  <div className="bg-black/30 p-1.5 rounded-lg border border-white/5 text-center">
+                                    <span className="text-white/40 block">Mobile</span>
+                                    <span className={hasMobile ? "text-emerald-400 font-bold" : "text-amber-400"}>
+                                      {hasMobile ? "Added" : "Missing"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+
+                              {/* Card Actions */}
+                              <div className="flex items-center gap-2 pt-2 border-t border-white/10">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActivePageDeptSlug(dSlug);
+                                    setEditingDepartmentBanner(dSlug);
+                                  }}
+                                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1.5 cursor-pointer shadow-sm"
+                                >
+                                  <Edit className="w-3.5 h-3.5" />
+                                  <span>Banner Manager</span>
+                                </button>
+
+                                <Link
+                                  href={`/shop-by-brand/${dSlug}/${formData.slug || "apple"}`}
+                                  target="_blank"
+                                  className="p-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white rounded-xl border border-white/10 transition-colors"
+                                  title="Open Live Page"
+                                >
+                                  <ExternalLink className="w-3.5 h-3.5" />
+                                </Link>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    /* ── BANNER MANAGER FORM FOR SELECTED DEPARTMENT ── */
+                    <div className="space-y-6">
+                      {/* Breadcrumb Back Button */}
+                      <div className="flex items-center justify-between pb-3 border-b border-white/10">
                         <button
-                          key={dSlug}
                           type="button"
-                          onClick={() => setActivePageDeptSlug(dSlug)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
-                            activePageDeptSlug === dSlug
-                              ? "bg-blue-600 text-white shadow"
-                              : "bg-white/5 text-white/60 hover:text-white"
-                          }`}
+                          onClick={() => setEditingDepartmentBanner(null)}
+                          className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1.5 cursor-pointer"
                         >
-                          {dept?.name || dSlug}
+                          <span>&larr; Back to Department Overview</span>
                         </button>
-                      );
-                    })}
-                  </div>
 
-                  {/* ── BANNER ARTWORK SECTION ── */}
-                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <ImageIcon className="w-4 h-4 text-blue-400" />
-                        Full-Frame Promotional Banner Artwork
-                      </span>
-                      <label className="flex items-center gap-2 text-xs font-bold text-white cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={activePageConfig.bannerEnabled !== false}
-                          onChange={(e) => handleUpdateActivePageConfig({ bannerEnabled: e.target.checked })}
-                          className="accent-blue-600 rounded"
-                        />
-                        Banner Enabled
-                      </label>
-                    </div>
-
-                    {/* Image Size Guidance */}
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] bg-black/30 p-3 rounded-xl border border-white/5">
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-blue-400 block">Desktop (≥ 1024px)</span>
-                        <span className="text-white/60">Recommended: 1600 × 500px</span>
-                        <span className="text-white/40 block">Ratio: 16:5 · Max 1.5MB</span>
+                        <span className="text-xs font-bold text-white bg-blue-600/20 px-3 py-1 rounded-full border border-blue-500/30">
+                          {formData.name} &times; {activeDepartment.name}
+                        </span>
                       </div>
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-amber-400 block">Tablet (768–1023px)</span>
-                        <span className="text-white/60">Recommended: 1200 × 600px</span>
-                        <span className="text-white/40 block">Ratio: 2:1 · Max 1.2MB</span>
-                      </div>
-                      <div className="space-y-0.5">
-                        <span className="font-bold text-emerald-400 block">Mobile (&lt; 768px)</span>
-                        <span className="text-white/60">Recommended: 900 × 1100px</span>
-                        <span className="text-white/40 block">Ratio: ~4:5 · Max 1MB</span>
-                      </div>
-                    </div>
 
-                    {/* Desktop Banner Input */}
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-white/80">Desktop Banner Image URL (16:5)</label>
-                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
-                          <Upload className="w-3 h-3" />
-                          <span>{uploadingBanner === "desktop" ? "Uploading..." : "Upload File"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleBannerUpload(file, "desktop");
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <input
-                        type="url"
-                        value={activePageConfig.desktopBannerUrl || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ desktopBannerUrl: e.target.value })}
-                        placeholder="https://images.unsplash.com/... (1600 × 500px)"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
-                      />
-                    </div>
-
-                    {/* Tablet Banner Input */}
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-white/80">Tablet Banner Image URL (2:1 Optional)</label>
-                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
-                          <Upload className="w-3 h-3" />
-                          <span>{uploadingBanner === "tablet" ? "Uploading..." : "Upload File"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleBannerUpload(file, "tablet");
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <input
-                        type="url"
-                        value={activePageConfig.tabletBannerUrl || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ tabletBannerUrl: e.target.value })}
-                        placeholder="Optional tablet banner (1200 × 600px)"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
-                      />
-                    </div>
-
-                    {/* Mobile Banner Input */}
-                    <div className="space-y-1.5 text-xs">
-                      <div className="flex items-center justify-between">
-                        <label className="font-bold text-white/80">Mobile Banner Image URL (4:5 Optional)</label>
-                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
-                          <Upload className="w-3 h-3" />
-                          <span>{uploadingBanner === "mobile" ? "Uploading..." : "Upload File"}</span>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            className="hidden"
-                            onChange={(e) => {
-                              const file = e.target.files?.[0];
-                              if (file) handleBannerUpload(file, "mobile");
-                            }}
-                          />
-                        </label>
-                      </div>
-                      <input
-                        type="url"
-                        value={activePageConfig.mobileBannerUrl || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ mobileBannerUrl: e.target.value })}
-                        placeholder="Optional mobile banner (900 × 1100px)"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
-                      />
-                    </div>
-
-                    {/* Banner Live Thumbnail Preview */}
-                    {activePageConfig.desktopBannerUrl && (
-                      <div className="relative w-full aspect-[16/5] rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
-                        <img
-                          src={activePageConfig.desktopBannerUrl}
-                          alt="Banner Preview"
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    )}
-
-                    {/* Banner Link Destination Settings */}
-                    <div className="pt-2 border-t border-white/10 space-y-3 text-xs">
-                      <label className="flex items-center gap-2 font-bold text-white cursor-pointer">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(activePageConfig.linkEnabled)}
-                          onChange={(e) => handleUpdateActivePageConfig({ linkEnabled: e.target.checked })}
-                          className="accent-blue-600 rounded"
-                        />
-                        Make Complete Banner Clickable
-                      </label>
-
-                      {activePageConfig.linkEnabled && (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
-                          <div>
-                            <label className="block text-white/60 mb-1">Destination URL</label>
+                      {/* Status & Unsaved Indicator */}
+                      <div className="flex items-center justify-between bg-black/30 p-3.5 rounded-2xl border border-white/5">
+                        <div className="flex items-center gap-3">
+                          <label className="flex items-center gap-2 text-xs font-bold text-white cursor-pointer">
                             <input
-                              type="text"
-                              value={activePageConfig.destinationUrl || ""}
-                              onChange={(e) => handleUpdateActivePageConfig({ destinationUrl: e.target.value })}
-                              placeholder="/products/iphone-16-pro or https://..."
-                              className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                              type="checkbox"
+                              checked={activePageConfig.bannerEnabled !== false}
+                              onChange={(e) => handleUpdateActivePageConfig({ bannerEnabled: e.target.checked })}
+                              className="accent-blue-600 rounded"
                             />
+                            <span>Banner Section Enabled</span>
+                          </label>
+
+                          <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                            activePageConfig.status === "published" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"
+                          }`}>
+                            {activePageConfig.status === "published" ? "Status: Published" : "Status: Draft"}
+                          </span>
+                        </div>
+
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleUpdateActivePageConfig({ status: activePageConfig.status === "published" ? "draft" : "published" })}
+                            className="px-3 py-1 rounded-xl bg-white/10 hover:bg-white/15 text-white text-xs font-bold transition-colors cursor-pointer"
+                          >
+                            {activePageConfig.status === "published" ? "Switch to Draft" : "Publish"}
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* ── 1. DESKTOP BANNER CONTROLS (1600 × 500px, 16:5) ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Monitor className="w-4 h-4 text-blue-400" />
+                            Desktop Banner Image (16:5)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("1600 × 500px")}
+                            className="text-[10px] font-mono text-blue-400 bg-blue-500/10 px-2 py-0.5 rounded-md hover:bg-blue-500/20 transition-colors flex items-center gap-1"
+                            title="Copy Recommended Size"
+                          >
+                            <span>1600 × 500px</span>
+                            <Copy className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+
+                        {/* Size Guidance */}
+                        <div className="text-[11px] bg-black/40 p-3 rounded-xl border border-white/5 space-y-0.5">
+                          <div className="text-white/80 font-bold">Recommended: 1600 × 500px · Aspect ratio: 16:5 (3.20)</div>
+                          <div className="text-white/50">Minimum: 1440 × 450px · Formats: WebP, AVIF, PNG · Max 1.5MB</div>
+                        </div>
+
+                        {/* URL input and action buttons */}
+                        <div className="space-y-2 text-xs">
+                          <div className="flex items-center justify-between">
+                            <label className="font-bold text-white/80">Desktop Banner Image URL</label>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handlePasteClipboard("desktop")}
+                                className="text-[11px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 cursor-pointer"
+                              >
+                                <Clipboard className="w-3 h-3" /> Paste URL
+                              </button>
+                              <label className="text-[11px] text-blue-400 hover:text-blue-300 font-bold flex items-center gap-1 cursor-pointer">
+                                <Upload className="w-3 h-3" />
+                                <span>{uploadingBanner === "desktop" ? "Uploading..." : "Upload File"}</span>
+                                <input
+                                  type="file"
+                                  accept="image/*"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    const file = e.target.files?.[0];
+                                    if (file) handleBannerUpload(file, "desktop");
+                                  }}
+                                />
+                              </label>
+                            </div>
                           </div>
-                          <div className="flex items-center pt-5">
-                            <label className="flex items-center gap-2 text-white/80 cursor-pointer">
-                              <input
-                                type="checkbox"
-                                checked={Boolean(activePageConfig.openInNewTab)}
-                                onChange={(e) => handleUpdateActivePageConfig({ openInNewTab: e.target.checked })}
-                                className="accent-blue-600 rounded"
-                              />
-                              Open Link in New Tab
-                            </label>
+
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="url"
+                              value={activePageConfig.desktop?.imageUrl || activePageConfig.desktopBannerUrl || ""}
+                              onChange={(e) => {
+                                handleUpdateActivePageConfig({
+                                  desktopBannerUrl: e.target.value,
+                                  desktop: {
+                                    imageUrl: e.target.value,
+                                    focalPosition: activePageConfig.desktop?.focalPosition || "center",
+                                  },
+                                });
+                              }}
+                              placeholder="https://images.unsplash.com/... or upload"
+                              className="flex-1 bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                            />
+                            {(activePageConfig.desktop?.imageUrl || activePageConfig.desktopBannerUrl) && (
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateActivePageConfig({
+                                    desktopBannerUrl: "",
+                                    desktop: undefined,
+                                  });
+                                  setDesktopProbe({});
+                                }}
+                                className="p-2 rounded-xl bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                                title="Clear Image"
+                              >
+                                <X className="w-4 h-4" />
+                              </button>
+                            )}
                           </div>
                         </div>
-                      )}
-                    </div>
-                  </div>
 
-                  {/* ── PAGE CONTENT HEADINGS (BELOW BANNER & TABS) ── */}
-                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 text-xs">
-                    <span className="font-bold text-white block">Product Section Heading &amp; Subtitle</span>
+                        {/* Image Probe & Validation Status */}
+                        {desktopProbe.validationStatus && (
+                          <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                            desktopProbe.validationStatus === "perfect"
+                              ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                              : desktopProbe.validationStatus === "acceptable"
+                              ? "bg-blue-500/10 border-blue-500/30 text-blue-300"
+                              : desktopProbe.validationStatus === "warning"
+                              ? "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                              : "bg-red-500/10 border-red-500/30 text-red-300"
+                          }`}>
+                            <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                            <div className="space-y-0.5 flex-1">
+                              <div className="font-bold">{desktopProbe.validationMessage}</div>
+                              {desktopProbe.actualWidth && desktopProbe.actualHeight && (
+                                <div className="text-[11px] opacity-80">
+                                  Actual Size: {desktopProbe.actualWidth} &times; {desktopProbe.actualHeight}px · Format: {desktopProbe.format || "WebP"}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        )}
 
-                    <div>
-                      <label className="block text-white/70 font-bold mb-1">Section Heading</label>
-                      <input
-                        type="text"
-                        value={activePageConfig.productSectionHeading || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ productSectionHeading: e.target.value })}
-                        placeholder={`e.g. ${formData.name} ${activeDepartment.name}`}
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
-                      />
-                    </div>
+                        {/* Focal Position Controls */}
+                        <div className="space-y-2 text-xs pt-2 border-t border-white/10">
+                          <label className="font-bold text-white/80 block">Focal Position</label>
+                          <div className="flex items-center gap-2">
+                            {["left", "center", "right"].map((pos) => (
+                              <button
+                                key={pos}
+                                type="button"
+                                onClick={() => {
+                                  handleUpdateActivePageConfig({
+                                    desktopFocalPosition: pos,
+                                    desktop: {
+                                      imageUrl: activePageConfig.desktop?.imageUrl || activePageConfig.desktopBannerUrl || "",
+                                      focalPosition: pos,
+                                    },
+                                  });
+                                }}
+                                className={`px-3 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
+                                  (activePageConfig.desktop?.focalPosition || activePageConfig.desktopFocalPosition || "center") === pos
+                                    ? "bg-blue-600 text-white shadow"
+                                    : "bg-white/5 text-white/60 hover:text-white"
+                                }`}
+                              >
+                                {pos}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
 
-                    <div>
-                      <label className="block text-white/70 font-bold mb-1">Section Description</label>
-                      <textarea
-                        rows={2}
-                        value={activePageConfig.productSectionDescription || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ productSectionDescription: e.target.value })}
-                        placeholder={`Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 resize-none"
-                      />
+                        {/* Live 16:5 Crop Preview */}
+                        {(activePageConfig.desktop?.imageUrl || activePageConfig.desktopBannerUrl) && (
+                          <div className="space-y-1 pt-2">
+                            <span className="text-[11px] font-bold text-white/60 block">Desktop 16:5 Crop Preview:</span>
+                            <div className="relative w-full aspect-[16/5] rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
+                              <img
+                                src={activePageConfig.desktop?.imageUrl || activePageConfig.desktopBannerUrl}
+                                alt="Desktop Banner Preview"
+                                style={{
+                                  objectPosition: activePageConfig.desktop?.focalPosition || activePageConfig.desktopFocalPosition || "center",
+                                }}
+                                className="w-full h-full object-cover"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── 2. TABLET BANNER CONTROLS (1200 × 600px, 2:1) ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Tablet className="w-4 h-4 text-amber-400" />
+                            Tablet Banner Image (2:1 Optional)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("1200 × 600px")}
+                            className="text-[10px] font-mono text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-md hover:bg-amber-500/20 transition-colors flex items-center gap-1"
+                            title="Copy Recommended Size"
+                          >
+                            <span>1200 × 600px</span>
+                            <Copy className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+
+                        {/* Toggle Use Desktop for Tablet */}
+                        <label className="flex items-center gap-2 text-xs font-bold text-white cursor-pointer bg-black/30 p-2.5 rounded-xl border border-white/5">
+                          <input
+                            type="checkbox"
+                            checked={activePageConfig.useDesktopForTablet !== false && !activePageConfig.tablet?.imageUrl && !activePageConfig.tabletBannerUrl}
+                            onChange={(e) => {
+                              handleUpdateActivePageConfig({
+                                useDesktopForTablet: e.target.checked,
+                                tabletBannerUrl: e.target.checked ? "" : activePageConfig.tabletBannerUrl,
+                              });
+                            }}
+                            className="accent-amber-500 rounded"
+                          />
+                          <span>Use Desktop Banner for Tablet (Automatic Fallback)</span>
+                        </label>
+
+                        {/* Custom Tablet Image Fields */}
+                        {(activePageConfig.useDesktopForTablet === false || activePageConfig.tablet?.imageUrl || activePageConfig.tabletBannerUrl) && (
+                          <div className="space-y-3 pt-2">
+                            <div className="text-[11px] bg-black/40 p-3 rounded-xl border border-white/5 space-y-0.5">
+                              <div className="text-white/80 font-bold">Recommended: 1200 × 600px · Aspect ratio: 2:1 (2.00)</div>
+                              <div className="text-white/50">Formats: WebP, AVIF, PNG · Max 1.2MB</div>
+                            </div>
+
+                            <div className="space-y-2 text-xs">
+                              <div className="flex items-center justify-between">
+                                <label className="font-bold text-white/80">Tablet Banner Image URL</label>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePasteClipboard("tablet")}
+                                    className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Clipboard className="w-3 h-3" /> Paste URL
+                                  </button>
+                                  <label className="text-[11px] text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer">
+                                    <Upload className="w-3 h-3" />
+                                    <span>{uploadingBanner === "tablet" ? "Uploading..." : "Upload File"}</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleBannerUpload(file, "tablet");
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+
+                              <input
+                                type="url"
+                                value={activePageConfig.tablet?.imageUrl || activePageConfig.tabletBannerUrl || ""}
+                                onChange={(e) => {
+                                  handleUpdateActivePageConfig({
+                                    tabletBannerUrl: e.target.value,
+                                    tablet: {
+                                      imageUrl: e.target.value,
+                                      focalPosition: activePageConfig.tablet?.focalPosition || "center",
+                                    },
+                                    useDesktopForTablet: false,
+                                  });
+                                }}
+                                placeholder="https://images.unsplash.com/... or upload"
+                                className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-amber-500 font-mono text-xs"
+                              />
+                            </div>
+
+                            {/* Tablet Image Probe */}
+                            {tabletProbe.validationStatus && (
+                              <div className={`p-3 rounded-xl border text-xs flex items-start gap-2.5 ${
+                                tabletProbe.validationStatus === "perfect"
+                                  ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+                                  : "bg-amber-500/10 border-amber-500/30 text-amber-300"
+                              }`}>
+                                <Info className="w-4 h-4 shrink-0 mt-0.5" />
+                                <div>
+                                  <div className="font-bold">{tabletProbe.validationMessage}</div>
+                                  {tabletProbe.actualWidth && (
+                                    <div className="text-[11px] opacity-80">
+                                      Actual: {tabletProbe.actualWidth} &times; {tabletProbe.actualHeight}px
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── 3. MOBILE BANNER CONTROLS (900 × 1100px, 4:5) ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-bold text-white flex items-center gap-1.5">
+                            <Smartphone className="w-4 h-4 text-emerald-400" />
+                            Mobile Banner Image (4:5 Optional)
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => navigator.clipboard.writeText("900 × 1100px")}
+                            className="text-[10px] font-mono text-emerald-400 bg-emerald-500/10 px-2 py-0.5 rounded-md hover:bg-emerald-500/20 transition-colors flex items-center gap-1"
+                            title="Copy Recommended Size"
+                          >
+                            <span>900 × 1100px</span>
+                            <Copy className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
+
+                        {/* Toggle Use Tablet/Desktop for Mobile */}
+                        <label className="flex items-center gap-2 text-xs font-bold text-white cursor-pointer bg-black/30 p-2.5 rounded-xl border border-white/5">
+                          <input
+                            type="checkbox"
+                            checked={activePageConfig.useDesktopForMobile !== false && !activePageConfig.mobile?.imageUrl && !activePageConfig.mobileBannerUrl}
+                            onChange={(e) => {
+                              handleUpdateActivePageConfig({
+                                useDesktopForMobile: e.target.checked,
+                                mobileBannerUrl: e.target.checked ? "" : activePageConfig.mobileBannerUrl,
+                              });
+                            }}
+                            className="accent-emerald-500 rounded"
+                          />
+                          <span>Use Desktop/Tablet Banner for Mobile (Automatic Fallback)</span>
+                        </label>
+
+                        {/* Custom Mobile Image Fields */}
+                        {(activePageConfig.useDesktopForMobile === false || activePageConfig.mobile?.imageUrl || activePageConfig.mobileBannerUrl) && (
+                          <div className="space-y-3 pt-2">
+                            <div className="text-[11px] bg-black/40 p-3 rounded-xl border border-white/5 space-y-0.5">
+                              <div className="text-white/80 font-bold">Recommended: 900 × 1100px · Aspect ratio: ~4:5 (0.82)</div>
+                              <div className="text-white/50">Formats: WebP, AVIF, PNG · Max 1MB</div>
+                            </div>
+
+                            <div className="space-y-2 text-xs">
+                              <div className="flex items-center justify-between">
+                                <label className="font-bold text-white/80">Mobile Banner Image URL</label>
+                                <div className="flex items-center gap-2">
+                                  <button
+                                    type="button"
+                                    onClick={() => handlePasteClipboard("mobile")}
+                                    className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer"
+                                  >
+                                    <Clipboard className="w-3 h-3" /> Paste URL
+                                  </button>
+                                  <label className="text-[11px] text-emerald-400 hover:text-emerald-300 font-bold flex items-center gap-1 cursor-pointer">
+                                    <Upload className="w-3 h-3" />
+                                    <span>{uploadingBanner === "mobile" ? "Uploading..." : "Upload File"}</span>
+                                    <input
+                                      type="file"
+                                      accept="image/*"
+                                      className="hidden"
+                                      onChange={(e) => {
+                                        const file = e.target.files?.[0];
+                                        if (file) handleBannerUpload(file, "mobile");
+                                      }}
+                                    />
+                                  </label>
+                                </div>
+                              </div>
+
+                              <input
+                                type="url"
+                                value={activePageConfig.mobile?.imageUrl || activePageConfig.mobileBannerUrl || ""}
+                                onChange={(e) => {
+                                  handleUpdateActivePageConfig({
+                                    mobileBannerUrl: e.target.value,
+                                    mobile: {
+                                      imageUrl: e.target.value,
+                                      focalPosition: activePageConfig.mobile?.focalPosition || "center",
+                                    },
+                                    useDesktopForMobile: false,
+                                  });
+                                }}
+                                placeholder="https://images.unsplash.com/... or upload"
+                                className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-emerald-500 font-mono text-xs"
+                              />
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── 4. ACCESSIBILITY & ALT TEXT ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3 text-xs">
+                        <div className="flex items-center justify-between">
+                          <label className="font-bold text-white block">Banner Alt Text (Accessibility)</label>
+                          <label className="flex items-center gap-2 text-white/70 cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(activePageConfig.decorative)}
+                              onChange={(e) => handleUpdateActivePageConfig({ decorative: e.target.checked })}
+                              className="accent-blue-600 rounded"
+                            />
+                            <span>Decorative image (empty alt)</span>
+                          </label>
+                        </div>
+
+                        {!activePageConfig.decorative && (
+                          <div>
+                            <input
+                              type="text"
+                              value={activePageConfig.bannerAlt || ""}
+                              onChange={(e) => handleUpdateActivePageConfig({ bannerAlt: e.target.value })}
+                              placeholder={`e.g. ${formData.name} ${activeDepartment.name} models available at Street Mobile`}
+                              className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
+                            />
+                            <div className="text-[10px] text-white/40 mt-1 text-right">
+                              {(activePageConfig.bannerAlt || "").length} characters
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── 5. CLICKABLE BANNER LINK SETTINGS ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 text-xs">
+                        <label className="flex items-center gap-2 font-bold text-white cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(activePageConfig.linkEnabled)}
+                            onChange={(e) => handleUpdateActivePageConfig({ linkEnabled: e.target.checked })}
+                            className="accent-blue-600 rounded"
+                          />
+                          <span>Make Complete Banner Clickable</span>
+                        </label>
+
+                        {activePageConfig.linkEnabled && (
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6 pt-2 border-t border-white/5">
+                            <div>
+                              <label className="block text-white/60 mb-1">Destination URL</label>
+                              <input
+                                type="text"
+                                value={activePageConfig.destinationUrl || ""}
+                                onChange={(e) => handleUpdateActivePageConfig({ destinationUrl: e.target.value })}
+                                placeholder="/products/iphone-16-pro or https://..."
+                                className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                              />
+                            </div>
+
+                            <div>
+                              <label className="block text-white/60 mb-1">Accessible Link Label (Aria)</label>
+                              <input
+                                type="text"
+                                value={activePageConfig.linkAriaLabel || ""}
+                                onChange={(e) => handleUpdateActivePageConfig({ linkAriaLabel: e.target.value })}
+                                placeholder={`Shop ${formData.name} ${activeDepartment.name} collection`}
+                                className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
+                              />
+                            </div>
+
+                            <div className="flex items-center pt-2">
+                              <label className="flex items-center gap-2 text-white/80 cursor-pointer">
+                                <input
+                                  type="checkbox"
+                                  checked={Boolean(activePageConfig.openInNewTab)}
+                                  onChange={(e) => handleUpdateActivePageConfig({ openInNewTab: e.target.checked })}
+                                  className="accent-blue-600 rounded"
+                                />
+                                <span>Open Link in New Tab</span>
+                              </label>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* ── 6. PAGE CONTENT HEADINGS (BELOW BANNER & TABS) ── */}
+                      <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 text-xs">
+                        <span className="font-bold text-white block">Product Section Heading &amp; Description</span>
+
+                        <div>
+                          <label className="block text-white/70 font-bold mb-1">Section Heading</label>
+                          <input
+                            type="text"
+                            value={activePageConfig.productSectionHeading || ""}
+                            onChange={(e) => handleUpdateActivePageConfig({ productSectionHeading: e.target.value })}
+                            placeholder={`e.g. ${formData.name} ${activeDepartment.name}`}
+                            className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-white/70 font-bold mb-1">Section Description</label>
+                          <textarea
+                            rows={2}
+                            value={activePageConfig.productSectionDescription || ""}
+                            onChange={(e) => handleUpdateActivePageConfig({ productSectionDescription: e.target.value })}
+                            placeholder={`Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
+                            className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 resize-none"
+                          />
+                        </div>
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               )}
 
@@ -948,7 +1548,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("desktop")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           previewDevice === "desktop" ? "bg-blue-600 text-white" : "text-white/60"
                         }`}
                       >
@@ -957,7 +1557,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("tablet")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           previewDevice === "tablet" ? "bg-blue-600 text-white" : "text-white/60"
                         }`}
                       >
@@ -966,7 +1566,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       <button
                         type="button"
                         onClick={() => setPreviewDevice("mobile")}
-                        className={`px-2.5 py-1 rounded-lg text-xs font-bold ${
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold cursor-pointer ${
                           previewDevice === "mobile" ? "bg-blue-600 text-white" : "text-white/60"
                         }`}
                       >
@@ -975,7 +1575,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                     </div>
                   </div>
 
-                  {/* Render Live Hero */}
+                  {/* Render Live Hero Simulation */}
                   <div className={`mx-auto bg-white rounded-2xl p-6 border border-white/20 transition-all ${
                     previewDevice === "mobile" ? "max-w-xs" : previewDevice === "tablet" ? "max-w-2xl" : "w-full"
                   }`}>
@@ -1020,13 +1620,20 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
 
               {/* Modal Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-white/10 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs transition-colors cursor-pointer"
-                >
-                  Cancel
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsModalOpen(false)}
+                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                  >
+                    Close
+                  </button>
+                  {hasUnsavedChanges && (
+                    <span className="text-amber-400 text-xs font-bold flex items-center gap-1">
+                      <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
+                    </span>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2">
                   {saveSuccess && (

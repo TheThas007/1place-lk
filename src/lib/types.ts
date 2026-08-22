@@ -127,6 +127,18 @@ export interface DepartmentBrandCategoryTab {
   order: number;
 }
 
+export interface ResponsiveBannerImage {
+  imageUrl: string;
+  focalPosition: string;
+  actualWidth?: number;
+  actualHeight?: number;
+  actualRatio?: number;
+  format?: string;
+  fileSize?: number;
+  validationStatus?: "perfect" | "acceptable" | "warning" | "error" | "untested";
+  validationMessage?: string;
+}
+
 export interface DepartmentBrandPageConfig {
   id: string; // e.g. "phones_apple"
   brandId: string;
@@ -139,20 +151,30 @@ export interface DepartmentBrandPageConfig {
 
   // ── Banner-Only Hero (Single externally designed artwork) ──
   bannerEnabled?: boolean;
+  desktop?: ResponsiveBannerImage;
+  tablet?: ResponsiveBannerImage;
+  mobile?: ResponsiveBannerImage;
+
   desktopBannerUrl?: string;
   tabletBannerUrl?: string;
   mobileBannerUrl?: string;
   bannerAlt?: string;
+  decorative?: boolean;
 
   desktopFocalPosition?: string;
   tabletFocalPosition?: string;
   mobileFocalPosition?: string;
+
+  useDesktopForTablet?: boolean;
+  useDesktopForMobile?: boolean;
+  useTabletForMobile?: boolean;
 
   linkEnabled?: boolean;
   destinationType?: "category" | "subcategory" | "product" | "collection" | "page" | "custom";
   destinationId?: string;
   destinationUrl?: string;
   openInNewTab?: boolean;
+  linkAriaLabel?: string;
   useDefaultBrandBanner?: boolean;
 
   // ── Page Content Section (Below Tabs) ──
