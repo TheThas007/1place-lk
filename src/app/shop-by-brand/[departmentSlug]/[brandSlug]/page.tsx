@@ -96,8 +96,7 @@ export default async function DepartmentBrandRoute({
   }
 
   // Filter products for this specific department AND brand
-  const departmentBrandProducts = products.filter((p) => {
-    // 1. Brand matching
+  const allBrandProducts = products.filter((p) => {
     const bSlug = (
       p.brand_slug ||
       p.brandSlug ||
@@ -108,14 +107,14 @@ export default async function DepartmentBrandRoute({
     const targetBrandSlug = brand.slug.toLowerCase();
     const targetBrandName = brand.name.toLowerCase();
 
-    const matchesBrand =
+    return (
       bSlug === targetBrandSlug ||
       bName === targetBrandName ||
-      (p.name || "").toLowerCase().includes(targetBrandName);
+      (p.name || "").toLowerCase().includes(targetBrandName)
+    );
+  });
 
-    if (!matchesBrand) return false;
-
-    // 2. Department matching
+  const departmentBrandProducts = allBrandProducts.filter((p) => {
     const pGroup = (p.productType || "").toLowerCase();
     const cSlug = (
       p.category_slug ||
@@ -150,21 +149,25 @@ export default async function DepartmentBrandRoute({
     if (departmentSlug === "accessories") {
       const isAccessory =
         pGroup === "accessory" ||
-        !cSlug.includes("smartphone") &&
-        !cSlug.includes("phone") &&
-        !cSlug.includes("laptop") &&
-        !cSlug.includes("macbook") &&
-        !cSlug.includes("ipad");
+        (!cSlug.includes("smartphone") &&
+          !cSlug.includes("phone") &&
+          !cSlug.includes("laptop") &&
+          !cSlug.includes("macbook") &&
+          !cSlug.includes("ipad"));
       return isAccessory;
     }
 
     return true;
   });
 
+  // If department subset is empty but brand has products, fallback to all brand products
+  const finalProducts =
+    departmentBrandProducts.length > 0 ? departmentBrandProducts : allBrandProducts;
+
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-neutral-50 dark:bg-[#070707] pt-28 flex items-center justify-center">
+        <div className="min-h-screen bg-white pt-28 flex items-center justify-center">
           <div className="w-8 h-8 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
         </div>
       }
@@ -173,7 +176,7 @@ export default async function DepartmentBrandRoute({
         config={config}
         brand={brand}
         department={department}
-        products={departmentBrandProducts}
+        products={finalProducts}
         categories={categories}
         allBrands={brands}
       />

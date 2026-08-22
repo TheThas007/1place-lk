@@ -1,9 +1,8 @@
 "use client";
 
 import React, { useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, Sparkles, PhoneCall } from "lucide-react";
+import { ArrowRight, PhoneCall } from "lucide-react";
 import { DepartmentBrandPageConfig, Brand, Department } from "@/lib/types";
 
 interface DepartmentBrandHeroProps {
@@ -12,21 +11,35 @@ interface DepartmentBrandHeroProps {
   department: Department;
 }
 
-// Convert HEX to RGBA string safely
-function hexToRgba(hex: string, opacityPercent: number): string {
-  if (!hex) return "rgba(9, 9, 9, 0.85)";
-  let c = hex.replace("#", "").trim();
-  if (c.length === 3) {
-    c = c.split("").map((ch) => ch + ch).join("");
-  }
-  if (c.length !== 6) return hex;
-  const num = parseInt(c, 16);
-  const r = (num >> 16) & 255;
-  const g = (num >> 8) & 255;
-  const b = num & 255;
-  const a = Math.max(0, Math.min(100, opacityPercent)) / 100;
-  return `rgba(${r}, ${g}, ${b}, ${a})`;
-}
+// Curated high-resolution studio multi-device banner assets for light #F5F5F7 background
+const BRAND_DEFAULT_STUDIO_BANNERS: Record<string, Record<string, string>> = {
+  apple: {
+    all: "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1600&auto=format&fit=crop",
+    phones: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1600&auto=format&fit=crop",
+    "laptops-tablets": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1600&auto=format&fit=crop",
+    accessories: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?q=80&w=1600&auto=format&fit=crop",
+  },
+  samsung: {
+    all: "https://images.unsplash.com/photo-1610945265064-3234eb261763?q=80&w=1600&auto=format&fit=crop",
+    phones: "https://images.unsplash.com/photo-1610945265064-3234eb261763?q=80&w=1600&auto=format&fit=crop",
+    "laptops-tablets": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=1600&auto=format&fit=crop",
+    accessories: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1600&auto=format&fit=crop",
+  },
+  xiaomi: {
+    all: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=1600&auto=format&fit=crop",
+    phones: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=1600&auto=format&fit=crop",
+    accessories: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=1600&auto=format&fit=crop",
+  },
+  ugreen: {
+    accessories: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=1600&auto=format&fit=crop",
+  },
+  anker: {
+    accessories: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=1600&auto=format&fit=crop",
+  },
+  jbl: {
+    accessories: "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=1600&auto=format&fit=crop",
+  },
+};
 
 export default function DepartmentBrandHero({
   config,
@@ -34,146 +47,183 @@ export default function DepartmentBrandHero({
   department,
 }: DepartmentBrandHeroProps) {
   const [imgError, setImgError] = useState(false);
+  const [logoError, setLogoError] = useState(false);
 
-  const desktopImg = config.desktopBannerUrl || "";
-  const mobileImg = config.mobileBannerUrl || desktopImg;
-  const logoUrl =
-    !config.useDefaultLogo && config.logoOverrideUrl
+  const brandSlug = (brand.slug || "").toLowerCase();
+  const deptSlug = (department.slug || "").toLowerCase();
+
+  // Resolve Banner URL with fallback priority
+  const defaultBrandStudioBanner =
+    BRAND_DEFAULT_STUDIO_BANNERS[brandSlug]?.[deptSlug] ||
+    BRAND_DEFAULT_STUDIO_BANNERS[brandSlug]?.all ||
+    "";
+
+  const resolvedBannerUrl =
+    config.desktopBannerUrl && config.desktopBannerUrl.trim()
+      ? config.desktopBannerUrl
+      : defaultBrandStudioBanner;
+
+  const mobileBannerUrl = config.mobileBannerUrl || resolvedBannerUrl;
+
+  // Resolve Brand Logo with fallback priority
+  const resolvedLogoUrl =
+    !config.useDefaultLogo && config.logoOverrideUrl && config.logoOverrideUrl.trim()
       ? config.logoOverrideUrl
-      : brand.logo_url || (brand as any).logo || "";
+      : brand.logo_url || (brand as any).logo || `https://cdn.simpleicons.org/${brandSlug}/000000`;
 
-  const boxBg = hexToRgba(
-    config.contentBackgroundColor || "#090909",
-    config.contentBackgroundOpacity ?? 85
-  );
-  const overlayOpacity = Math.max(0, Math.min(80, config.imageOverlayOpacity ?? 35)) / 100;
+  // Content defaults matching the reference
+  const eyebrowText =
+    config.eyebrow || `SHOP ${brand.name.toUpperCase()}`;
 
-  // Alignment classes
-  const getPositionClasses = () => {
-    let justify = "justify-start";
-    if (config.horizontalPosition === "center") justify = "justify-center";
-    if (config.horizontalPosition === "right") justify = "justify-end";
+  const headingText =
+    config.heading ||
+    (brandSlug === "apple"
+      ? "Everything Apple. All in one place."
+      : brandSlug === "samsung"
+      ? "Galaxy AI. Everything in one place."
+      : `Everything ${brand.name}. All in one place.`);
 
-    let align = "items-center";
-    if (config.verticalPosition === "top") align = "items-start";
-    if (config.verticalPosition === "bottom") align = "items-end";
+  const descriptionText =
+    config.description ||
+    (brandSlug === "apple"
+      ? "Discover iPhone, Mac, iPad, Watch, AirPods and genuine accessories."
+      : brandSlug === "samsung"
+      ? "Discover Galaxy S Series, Z Fold, Tab, Galaxy Watch, and authentic accessories."
+      : `Explore 100% genuine ${brand.name} devices and authentic accessories with official warranty.`);
 
-    return `flex ${justify} ${align}`;
-  };
+  const primaryCtaText =
+    config.primaryCtaLabel ||
+    (deptSlug === "phones"
+      ? `Explore ${brand.name} Phones`
+      : deptSlug === "laptops-tablets"
+      ? `Explore ${brand.name} Laptops`
+      : `Explore ${brand.name}`);
 
-  const getTextAlignClasses = () => {
-    if (config.textAlignment === "center") return "text-center items-center";
-    if (config.textAlignment === "right") return "text-right items-end";
-    return "text-left items-start";
-  };
+  // Custom colors if explicitly configured in admin
+  const headingColor = config.headingColor || "#090909";
+  const descColor = config.descriptionColor || "#4B4B4B";
+  const eyebrowColor = config.eyebrowColor || "#090909";
+  const ctaBg = config.primaryCtaBackground || "#090909";
+  const ctaText = config.primaryCtaTextColor || "#FFFFFF";
+
+  // Optional background overlay if configured
+  const contentBg =
+    config.contentBackgroundColor && config.contentBackgroundColor !== "transparent" && config.contentBackgroundOpacity && config.contentBackgroundOpacity > 0
+      ? config.contentBackgroundColor
+      : undefined;
 
   return (
-    <div className="relative w-full overflow-hidden select-none bg-neutral-950 rounded-2xl sm:rounded-3xl border border-neutral-800 shadow-2xl mb-8">
-      {/* ── Banner Height Container ── */}
-      <div
-        className="relative w-full flex items-end md:items-center min-h-[380px] sm:min-h-[440px] lg:min-h-[480px]"
-        style={{
-          borderRadius: `${config.borderRadius ?? 16}px`,
-        }}
-      >
-        {/* ── 1. Background Image Layer ── */}
-        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden">
-          {!imgError && desktopImg ? (
+    <div className="relative w-full overflow-hidden bg-[#F5F5F7] rounded-xl sm:rounded-2xl border border-neutral-200/80 mb-8 select-none">
+      {/* ── Banner Height Container (400-440px desktop) ── */}
+      <div className="relative w-full min-h-[380px] sm:min-h-[420px] lg:h-[440px] flex items-center">
+        
+        {/* ── 1. Right-Side Studio Composition Image Layer ── */}
+        <div className="absolute inset-0 w-full h-full pointer-events-none overflow-hidden flex justify-end items-center">
+          {!imgError && resolvedBannerUrl ? (
             <picture className="w-full h-full block">
-              {mobileImg && <source media="(max-width: 767px)" srcSet={mobileImg} />}
+              {mobileBannerUrl && <source media="(max-width: 767px)" srcSet={mobileBannerUrl} />}
               <img
-                src={desktopImg}
-                alt={config.bannerAlt || `${brand.name} ${department.name}`}
+                src={resolvedBannerUrl}
+                alt={config.bannerAlt || `${brand.name} ${department.name} Studio Banner`}
                 loading="eager"
                 decoding="async"
-                className="w-full h-full object-cover max-md:object-[center_top] block transition-transform duration-700 ease-out"
+                className="w-full h-full object-cover lg:object-contain lg:object-right transition-transform duration-700 ease-out"
                 onError={() => setImgError(true)}
               />
             </picture>
           ) : (
-            // Neutral Luxury Fallback
-            <div className="w-full h-full bg-gradient-to-br from-neutral-900 via-neutral-950 to-black flex items-center justify-center relative">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-neutral-800/40 via-transparent to-transparent pointer-events-none" />
+            // Apple Studio Default SVG Multi-Device Graphic if image fails
+            <div className="w-full lg:w-1/2 h-full flex items-center justify-center p-8 opacity-40">
+              <span className="text-4xl lg:text-6xl font-black text-neutral-300 tracking-tighter">
+                {brand.name.toUpperCase()}
+              </span>
             </div>
           )}
         </div>
 
-        {/* ── 2. Color / Gradient Overlays ── */}
+        {/* ── 2. Subtle Left-To-Right Readability Blend Gradient ── */}
         <div
-          className="absolute inset-0 pointer-events-none z-[1]"
+          className="absolute inset-0 pointer-events-none z-[1] hidden md:block"
           style={{
-            backgroundColor:
-              overlayOpacity > 0
-                ? hexToRgba(config.imageOverlayColor || "#000000", overlayOpacity * 100)
-                : "transparent",
             background:
-              desktopImg
-                ? "linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.15) 80%, transparent 100%)"
-                : undefined,
+              "linear-gradient(90deg, #F5F5F7 0%, #F5F5F7 35%, rgba(245,245,247,0.85) 50%, rgba(245,245,247,0.1) 75%, transparent 100%)",
           }}
         />
 
-        {/* ── 3. Real HTML Overlay Content Box ── */}
-        <div className={`relative z-10 w-full h-full p-6 sm:p-10 lg:p-12 ${getPositionClasses()}`}>
+        {/* Mobile Gradient Overlay */}
+        <div
+          className="absolute inset-0 pointer-events-none z-[1] md:hidden"
+          style={{
+            background:
+              "linear-gradient(0deg, rgba(245,245,247,0.96) 0%, rgba(245,245,247,0.8) 50%, rgba(245,245,247,0.2) 100%)",
+          }}
+        />
+
+        {/* ── 3. Clean Left Editorial Content Overlay (NO nested card) ── */}
+        <div className="relative z-10 w-full max-w-xl p-6 sm:p-10 lg:p-12 flex flex-col items-start justify-center text-left">
           <div
             style={{
-              backgroundColor: boxBg,
-              borderRadius: `${config.borderRadius ?? 16}px`,
+              backgroundColor: contentBg,
+              borderRadius: config.borderRadius ? `${config.borderRadius}px` : undefined,
             }}
-            className={`relative max-w-xl w-full p-6 sm:p-8 flex flex-col ${getTextAlignClasses()} backdrop-blur-md shadow-2xl border border-white/10`}
+            className="w-full"
           >
-            {/* Brand Logo Display */}
-            {logoUrl && (
-              <div className="mb-4 p-2 bg-white/10 backdrop-blur-sm rounded-xl border border-white/10 inline-flex items-center justify-center max-w-[140px] max-h-[44px]">
+            {/* Clean Brand Logo */}
+            {resolvedLogoUrl && !logoError ? (
+              <div className="mb-4 h-9 sm:h-11 w-auto max-w-[160px] flex items-center">
                 <img
-                  src={logoUrl}
-                  alt={config.logoAlt || `${brand.name} Logo`}
-                  className="max-h-8 max-w-[120px] w-auto h-auto object-contain brightness-0 invert"
+                  src={resolvedLogoUrl}
+                  alt={`${brand.name} logo`}
+                  className="max-h-9 sm:max-h-11 w-auto object-contain object-left"
+                  onError={() => setLogoError(true)}
                 />
+              </div>
+            ) : (
+              <div className="mb-4 text-xl sm:text-2xl font-black tracking-tight text-neutral-900 font-mono">
+                {brand.name}
               </div>
             )}
 
             {/* Eyebrow */}
-            <div className="flex items-center gap-2 mb-2 select-none">
+            <div className="mb-2 select-none">
               <span
-                style={{ color: config.eyebrowColor || "#ED0712" }}
-                className="text-[10px] sm:text-xs font-black tracking-widest uppercase font-mono flex items-center gap-1.5"
+                style={{ color: eyebrowColor }}
+                className="text-[11px] sm:text-xs font-bold tracking-[0.2em] uppercase font-mono"
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                {config.eyebrow || `OFFICIAL ${brand.name.toUpperCase()} ${department.name.toUpperCase()}`}
+                {eyebrowText}
               </span>
             </div>
 
-            {/* Main Heading */}
+            {/* Main Headline */}
             <h1
-              style={{ color: config.headingColor || "#FFFFFF" }}
-              className="text-2xl sm:text-3xl lg:text-4xl font-extrabold tracking-tight leading-[1.15] mb-2 sm:mb-3"
+              style={{ color: headingColor }}
+              className="text-3xl sm:text-4xl lg:text-[42px] font-extrabold tracking-tight leading-[1.1] mb-3"
             >
-              {config.heading || `Explore ${brand.name} in ${department.name}`}
+              {headingText}
             </h1>
 
             {/* Description */}
-            {config.description && (
+            {descriptionText && (
               <p
-                style={{ color: config.descriptionColor || "#E5E5E5" }}
-                className="text-xs sm:text-sm font-medium leading-relaxed mb-6 opacity-90"
+                style={{ color: descColor }}
+                className="text-xs sm:text-sm lg:text-[15px] font-medium leading-relaxed mb-6 max-w-md"
               >
-                {config.description}
+                {descriptionText}
               </p>
             )}
 
             {/* CTAs */}
             <div className="flex flex-wrap items-center gap-3">
-              {config.primaryCtaEnabled !== false && config.primaryCtaLabel && (
+              {config.primaryCtaEnabled !== false && (
                 <Link
-                  href={config.primaryCtaUrl || `#products`}
+                  href={config.primaryCtaUrl || "#products"}
                   style={{
-                    backgroundColor: config.primaryCtaBackground || "#ED0712",
-                    color: config.primaryCtaTextColor || "#FFFFFF",
+                    backgroundColor: ctaBg,
+                    color: ctaText,
                   }}
-                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold tracking-wide uppercase transition-all duration-200 hover:brightness-110 active:scale-98 shadow-md"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-lg text-xs sm:text-sm font-bold transition-all duration-200 hover:opacity-90 active:scale-98 shadow-xs cursor-pointer"
                 >
-                  <span>{config.primaryCtaLabel}</span>
+                  <span>{primaryCtaText}</span>
                   <ArrowRight className="w-4 h-4" />
                 </Link>
               )}
@@ -181,11 +231,7 @@ export default function DepartmentBrandHero({
               {config.secondaryCtaEnabled && config.secondaryCtaLabel && (
                 <Link
                   href={config.secondaryCtaUrl || "/contact"}
-                  style={{
-                    backgroundColor: config.secondaryCtaBackground || "rgba(255,255,255,0.12)",
-                    color: config.secondaryCtaTextColor || "#FFFFFF",
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-5 sm:px-6 py-2.5 rounded-xl text-xs sm:text-sm font-bold tracking-wide transition-all duration-200 hover:bg-white/20 active:scale-98 border border-white/10"
+                  className="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg text-xs sm:text-sm font-semibold text-neutral-800 bg-white/80 hover:bg-white border border-neutral-300 transition-all active:scale-98 shadow-2xs cursor-pointer"
                 >
                   <PhoneCall className="w-3.5 h-3.5" />
                   <span>{config.secondaryCtaLabel}</span>
@@ -194,6 +240,7 @@ export default function DepartmentBrandHero({
             </div>
           </div>
         </div>
+
       </div>
     </div>
   );
