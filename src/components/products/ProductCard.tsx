@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, Heart, Check } from "lucide-react";
+import { ShoppingBag, Heart, Check, Star, ShieldCheck } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
@@ -20,8 +20,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const [imageError, setImageError] = useState(false);
 
   const isWishlisted = isInWishlist(product.id);
-  const isOutOfStock = product.stock_status === "out_of_stock" || (typeof product.stock_count === "number" && product.stock_count <= 0);
-  const isLowStock = !isOutOfStock && (product.stock_status === "low_stock" || (typeof product.stock_count === "number" && product.stock_count <= 2));
+  const isOutOfStock =
+    product.stock_status === "out_of_stock" ||
+    (typeof product.stock_count === "number" && product.stock_count <= 0);
+  const isLowStock =
+    !isOutOfStock &&
+    (product.stock_status === "low_stock" ||
+      (typeof product.stock_count === "number" && product.stock_count <= 2));
 
   // Calculate discount percentage safely
   const hasDiscount =
@@ -33,11 +38,21 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
     : 0;
 
+  const isNew =
+    product.featured ||
+    product.is_new_arrival ||
+    (product.created_at &&
+      Date.now() - new Date(product.created_at).getTime() < 30 * 24 * 60 * 60 * 1000);
+
+  const isPreOrder =
+    product.stock_status === "pre_order" ||
+    (isOutOfStock && (product.productType === "phone" || (product.category_name || "").toLowerCase().includes("laptop") || (product.name || "").toLowerCase().includes("macbook")));
+
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (isOutOfStock) return;
+    if (isOutOfStock && !isPreOrder) return;
 
     addToCart({
       productId: product.id,
@@ -71,126 +86,151 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       ? product.images[0]
       : "/placeholder-phone.webp";
 
-  const isMobileOrLaptop =
-    product.productType === "phone" ||
-    (product.category_name || "").toLowerCase().includes("phone") ||
-    (product.category_name || "").toLowerCase().includes("mobile") ||
-    (product.category_name || "").toLowerCase().includes("smartphone") ||
-    (product.category_name || "").toLowerCase().includes("laptop") ||
-    (product.category_name || "").toLowerCase().includes("macbook") ||
-    (product.category_name || "").toLowerCase().includes("ipad") ||
-    (product.category_name || "").toLowerCase().includes("tablet") ||
-    (product.name || "").toLowerCase().includes("iphone") ||
-    (product.name || "").toLowerCase().includes("galaxy") ||
-    (product.name || "").toLowerCase().includes("macbook") ||
-    Boolean(product.hasStorageVariants);
+  // Color Swatches
+  const colorDots =
+    product.colors && product.colors.length > 0
+      ? product.colors.slice(0, 4)
+      : ["#2C2C2E", "#E3E4E5", "#D4AF37", "#4A4946"];
 
   return (
     <div
-      className={`group relative bg-white border border-neutral-200/70 rounded-2xl overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-[2px] hover:border-neutral-400 hover:shadow-sm motion-reduce:hover:transform-none ${className}`}
+      className={`group relative bg-white border border-neutral-200/80 rounded-2xl overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-1 hover:border-neutral-400 hover:shadow-md ${className}`}
     >
       {/* ── Clickable Link Body ── */}
       <Link
         href={`/products/${product.slug}`}
-        className="block flex-1 flex flex-col h-full focus:outline-none rounded-2xl cursor-pointer"
+        className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
-        {/* ── 1. Image Container ── */}
-        <div className="relative aspect-square bg-[#FAFAFA] p-3 sm:p-3.5 flex items-center justify-center overflow-hidden rounded-t-2xl">
+        {/* ── 1. Image Container (Light-grey #FAFAFA, no watermarks) ── */}
+        <div className="relative aspect-square bg-[#FAFAFA] p-4 flex items-center justify-center overflow-hidden rounded-t-2xl">
           
-          {/* Top-Left Out-of-Stock Status Badge */}
-          {isOutOfStock && (
-            <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
-              <span className={`${isMobileOrLaptop ? "bg-amber-600 text-white" : "bg-neutral-800/90 text-white"} text-[10px] font-semibold px-2 py-0.5 rounded-md`}>
-                {isMobileOrLaptop ? "Pre-Order Available" : "Sold Out"}
-              </span>
-            </div>
-          )}
-
-          {/* Bottom-Left Offer/Discount Badge (Anchored on Image Bottom Edge) */}
-          {hasDiscount && (
-            <div className="absolute bottom-0 left-0 z-10">
-              <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
+          {/* Top-Left Badges */}
+          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+            {hasDiscount ? (
+              <span className="bg-[#ED0712] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
                 -{discountPercent}% OFF
               </span>
-            </div>
-          )}
+            ) : isPreOrder ? (
+              <span className="bg-[#ED0712] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
+                Pre-Order
+              </span>
+            ) : isNew ? (
+              <span className="bg-[#090909] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
+                New
+              </span>
+            ) : null}
+          </div>
 
-          {/* Bottom-Right Wishlist Button */}
+          {/* Top-Right Wishlist Button */}
           <button
             type="button"
             onClick={handleToggleWishlist}
             aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
-            className="absolute bottom-2.5 right-2.5 z-20 w-8 h-8 rounded-full bg-white/95 backdrop-blur-sm border border-neutral-200/80 flex items-center justify-center text-neutral-600 hover:scale-110 active:scale-95 transition-all shadow-xs cursor-pointer"
+            className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200/80 flex items-center justify-center text-neutral-400 hover:text-red-500 hover:scale-110 active:scale-95 transition-all shadow-2xs cursor-pointer"
           >
             <Heart
               className={`w-3.5 h-3.5 transition-colors ${
-                isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-500 hover:text-neutral-900"
+                isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-400"
               }`}
             />
           </button>
 
-          {/* Product Image with smooth Apple hover zoom */}
-          {mainImage && !imageError ? (
+          {/* Product Image (object-contain, smooth hover zoom) */}
+          <div className="w-full h-full flex items-center justify-center p-2">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImageError(true)}
-              className="w-full h-full object-contain transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.02] motion-reduce:transform-none"
+              className="w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
             />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-300">
-              <ShoppingBag className="w-10 h-10 opacity-30" />
-            </div>
-          )}
+          </div>
         </div>
 
         {/* ── 2. Details Section ── */}
         <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white">
           <div>
-            {/* Category Name */}
-            <span className="text-[10px] font-bold uppercase tracking-widest text-neutral-400 block mb-1">
-              {product.category_name || "STREET MOBILE"}
+            {/* Category Label */}
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 block mb-1">
+              {product.category_name || "SMARTPHONES"}
             </span>
 
             {/* Product Title */}
-            <h3 className="font-bold text-sm sm:text-base text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors min-h-[2.5rem] mb-2">
+            <h3 className="font-bold text-sm sm:text-[15px] text-neutral-900 line-clamp-1 group-hover:text-neutral-600 transition-colors mb-0.5">
               {product.name}
             </h3>
+
+            {/* Warranty Subtitle */}
+            <span className="text-xs text-neutral-400 font-medium block mb-2.5">
+              {product.warranty || "1 Year Official Warranty"}
+            </span>
+
+            {/* Price Row */}
+            <div className="flex items-center gap-2 mb-2.5">
+              <span className="font-extrabold text-sm sm:text-base text-neutral-900">
+                {formatPrice(product.price)}
+              </span>
+              {hasDiscount && (
+                <span className="text-xs text-neutral-400 line-through font-normal">
+                  {formatPrice(product.old_price!)}
+                </span>
+              )}
+            </div>
+
+            {/* Color Swatch Dots */}
+            <div className="flex items-center gap-1.5 mb-3">
+              {colorDots.map((hex, idx) => (
+                <span
+                  key={idx}
+                  style={{ backgroundColor: hex.startsWith("#") ? hex : "#444" }}
+                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block"
+                />
+              ))}
+            </div>
           </div>
 
-          {/* Pricing */}
-          <div className="flex items-center flex-wrap gap-2 mb-3">
-            <span className="font-black text-base sm:text-lg text-neutral-900">
-              {formatPrice(product.price)}
-            </span>
-            {hasDiscount && (
-              <span className="text-xs text-neutral-400 line-through font-medium">
-                {formatPrice(product.old_price!)}
+          {/* Rating & Stock Status Row */}
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
+            <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
+              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <span>4.8</span>
+              <span className="text-neutral-400 font-normal">(125)</span>
+            </div>
+
+            <div className="flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full ${isOutOfStock ? "bg-neutral-400" : isLowStock ? "bg-amber-500" : "bg-emerald-500"}`} />
+              <span className="text-[11px] font-semibold text-neutral-700">
+                {isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock"}
               </span>
-            )}
+            </div>
           </div>
         </div>
       </Link>
 
-      {/* ── 3. Bottom Add to Bag Action (Independent from Link) ── */}
-      <div className="px-4 pb-4 bg-white border-t border-neutral-100 pt-2.5">
-        {isOutOfStock && isMobileOrLaptop ? (
+      {/* ── 3. Bottom Full-Width Black Add to Bag Action ── */}
+      <div className="px-4 pb-4 bg-white">
+        {isOutOfStock && !isPreOrder ? (
+          <button
+            type="button"
+            disabled
+            className="w-full py-2.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-400 cursor-not-allowed flex items-center justify-center gap-2"
+          >
+            <span>Sold Out</span>
+          </button>
+        ) : isPreOrder ? (
           <Link
             href={`/products/${product.slug}?book=true`}
-            className="w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-2xs transition-all active:scale-[0.98] cursor-pointer"
+            className="w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-[#090909] hover:bg-neutral-800 text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
           >
+            <ShoppingBag className="w-3.5 h-3.5" />
             <span>Pre-Order / Book</span>
           </Link>
         ) : (
           <button
             type="button"
-            disabled={isOutOfStock}
             onClick={handleAddToCart}
-            className={`w-full py-2.5 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-2xs cursor-pointer ${
-              isOutOfStock
-                ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
-                : added
+            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
+              added
                 ? "bg-emerald-600 text-white"
                 : "bg-black text-white hover:bg-neutral-800"
             }`}
@@ -198,14 +238,12 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           >
             {added ? (
               <>
-                <Check className="w-4 h-4" />
-                <span>Added</span>
+                <Check className="w-3.5 h-3.5" />
+                <span>Added to Bag</span>
               </>
-            ) : isOutOfStock ? (
-              <span>Sold Out</span>
             ) : (
               <>
-                <ShoppingBag className="w-4 h-4" />
+                <ShoppingBag className="w-3.5 h-3.5" />
                 <span>Add to Bag</span>
               </>
             )}

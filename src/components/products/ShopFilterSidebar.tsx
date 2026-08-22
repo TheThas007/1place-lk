@@ -1,177 +1,40 @@
 "use client";
 
-import React, { useState, useMemo, useRef } from "react";
-import { Search, ChevronDown, ChevronUp, X, Check, SlidersHorizontal } from "lucide-react";
+import React, { useState, useMemo } from "react";
+import { ChevronDown, ChevronUp, Check } from "lucide-react";
 import { Category, Product } from "@/lib/types";
-
-/* ─────────────────────────────────────────────────────────────
-   HELPERS & SANITIZATION
-───────────────────────────────────────────────────────────── */
-const KNOWN_BRANDS = [
-  "Apple", "Samsung", "Redmi", "Xiaomi", "Honor",
-  "Oppo", "Vivo", "Realme", "Google", "OnePlus",
-  "JBL", "LENYES", "UGREEN", "Anker", "Baseus", "Oraimo", "Soundcore",
-];
-
-const INVALID_REGEX = /^(abc|eg002|eg001|test|testing|none|null|undefined|sample|\d{1,2})$/i;
-
-function isValidLabel(label: string): boolean {
-  if (!label || label.trim().length < 2) return false;
-  const clean = label.trim().toLowerCase();
-  if (INVALID_REGEX.test(clean)) return false;
-  if (/^[a-z]\d{3,}$/i.test(clean)) return false; // e.g. eg002
-  return true;
-}
 
 export function detectProductBrand(product: Product): string {
   const rawBrand = (product.brand_name || product.brandName || product.brand || "").trim();
-  const rawCat = (product.category_name || product.categoryName || "").trim();
   const name = (product.name || "").toLowerCase();
 
-  const REAL = ["apple", "samsung", "redmi", "xiaomi", "honor", "oppo", "vivo", "realme",
-    "google", "oneplus", "jbl", "lenyes", "ugreen", "anker", "baseus", "oraimo", "soundcore"];
+  const REAL = [
+    "Apple", "Samsung", "Google", "Xiaomi", "Redmi", "Honor", "OnePlus",
+    "Oppo", "Vivo", "Realme", "JBL", "UGREEN", "Anker", "Baseus", "Oraimo", "Sony", "Bose"
+  ];
 
-  if (rawBrand && rawBrand.toLowerCase() !== "standard" && REAL.includes(rawBrand.toLowerCase()))
+  if (rawBrand) {
+    const match = REAL.find((b) => b.toLowerCase() === rawBrand.toLowerCase());
+    if (match) return match;
     return rawBrand;
-  if (rawBrand && rawBrand.toLowerCase() !== "standard" && isValidLabel(rawBrand))
-    return rawBrand;
-
-  const fromCat = REAL.find((b) => b === rawCat.toLowerCase());
-  if (fromCat) return rawCat;
-
-  if (name.includes("apple") || name.includes("iphone") || name.includes("airpods") ||
-      name.includes("ipad")  || name.includes("macbook") || name.includes("apple watch"))
-    return "Apple";
-  if (name.includes("samsung") || name.includes("galaxy")) return "Samsung";
-  if (name.includes("redmi") || (name.includes("xiaomi") && !name.includes("samsung"))) return "Redmi";
-  if (name.includes("honor"))     return "Honor";
-  if (name.includes("oppo"))      return "Oppo";
-  if (name.includes("vivo"))      return "Vivo";
-  if (name.includes("realme"))    return "Realme";
-  if (name.includes("jbl"))       return "JBL";
-  if (name.includes("lenyes"))    return "LENYES";
-  if (name.includes("ugreen"))    return "UGREEN";
-  if (name.includes("anker"))     return "Anker";
-  if (name.includes("baseus"))    return "Baseus";
-  if (name.includes("oraimo"))    return "Oraimo";
-  if (name.includes("soundcore")) return "Soundcore";
-
-  return rawBrand && isValidLabel(rawBrand) ? rawBrand : "Other";
-}
-
-export function detectProductCondition(product: Product): string {
-  const spec = product.specifications || {};
-  const cond = (spec["Condition"] || spec["condition"] || "").trim();
-  if (cond && isValidLabel(cond)) return cond;
-
-  const tags = (product.tags || []).join(" ").toLowerCase();
-  const name = (product.name || "").toLowerCase();
-
-  if (tags.includes("pre-owned") || name.includes("pre-owned") || name.includes("used"))
-    return "Pre-Owned";
-  if (tags.includes("refurbished") || name.includes("refurbished"))
-    return "Refurbished";
-  if (tags.includes("sealed") || name.includes("sealed"))
-    return "Sealed";
-
-  return "Brand New";
-}
-
-export function detectProductStorage(product: Product): string[] {
-  const results = new Set<string>();
-
-  if (product.storage_options && Array.isArray(product.storage_options)) {
-    product.storage_options.forEach((s) => {
-      if (s && isValidLabel(s)) results.add(s.toUpperCase().trim());
-    });
   }
 
-  // Also check specifications or product name
-  const name = product.name || "";
-  const match = name.match(/\b(32GB|64GB|128GB|256GB|512GB|1TB|2TB)\b/i);
-  if (match) {
-    results.add(match[1].toUpperCase());
+  for (const b of REAL) {
+    if (name.includes(b.toLowerCase())) return b;
   }
 
-  return Array.from(results);
+  return "Other";
 }
 
 function fmtLKR(val: number) {
   return "LKR " + val.toLocaleString("en-LK");
 }
 
-/* ─────────────────────────────────────────────────────────────
-   DUAL RANGE SLIDER COMPONENT
-───────────────────────────────────────────────────────────── */
-function DualRangeSlider({
-  min, max, low, high, onChange,
-}: {
-  min: number; max: number; low: number; high: number;
-  onChange: (low: number, high: number) => void;
-}) {
-  const trackRef = useRef<HTMLDivElement>(null);
-  const pct = (v: number) => Math.max(0, Math.min(100, ((v - min) / Math.max(1, max - min)) * 100));
-
-  const drag = (handle: "low" | "high", e: React.MouseEvent | React.TouchEvent) => {
-    e.preventDefault();
-    const track = trackRef.current;
-    if (!track) return;
-
-    const move = (clientX: number) => {
-      const rect = track.getBoundingClientRect();
-      const ratio = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
-      const raw = Math.round(min + ratio * (max - min));
-      if (handle === "low") onChange(Math.min(raw, high - 1000), high);
-      if (handle === "high") onChange(low, Math.max(raw, low + 1000));
-    };
-
-    const onMove = (ev: MouseEvent | TouchEvent) => {
-      const x = ev instanceof MouseEvent ? ev.clientX : ev.touches[0].clientX;
-      move(x);
-    };
-    const onUp = () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchend", onUp);
-    };
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("touchmove", onMove, { passive: false });
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchend", onUp);
-  };
-
-  return (
-    <div className="relative h-6 flex items-center select-none" ref={trackRef}>
-      <div className="absolute w-full h-1.5 bg-neutral-200 rounded-full" />
-      <div
-        className="absolute h-1.5 bg-black rounded-full"
-        style={{ left: `${pct(low)}%`, width: `${pct(high) - pct(low)}%` }}
-      />
-      <div
-        className="absolute w-5 h-5 bg-white border-2 border-black rounded-full shadow-md cursor-grab active:cursor-grabbing z-10 -translate-x-1/2"
-        style={{ left: `${pct(low)}%` }}
-        onMouseDown={(e) => drag("low", e)}
-        onTouchStart={(e) => drag("low", e)}
-      />
-      <div
-        className="absolute w-5 h-5 bg-black border-2 border-black rounded-full shadow-md cursor-grab active:cursor-grabbing z-10 -translate-x-1/2"
-        style={{ left: `${pct(high)}%` }}
-        onMouseDown={(e) => drag("high", e)}
-        onTouchStart={(e) => drag("high", e)}
-      />
-    </div>
-  );
-}
-
-/* ─────────────────────────────────────────────────────────────
-   SHOP FILTER SIDEBAR PROPS
-───────────────────────────────────────────────────────────── */
 export interface ShopFilterSidebarProps {
   allProducts: Product[];
   categories: Category[];
   selectedCategories: string[];
-  onToggleCategory: (catIdOrSlug: string) => void;
+  onToggleCategory: (catId: string) => void;
   onClearCategories: () => void;
   selectedBrands: string[];
   onToggleBrand: (brand: string) => void;
@@ -188,29 +51,19 @@ export interface ShopFilterSidebarProps {
   priceError: string;
   onApplyPrice: () => void;
   selectedAvailability: string[];
-  onToggleAvailability: (val: string) => void;
-  selectedConditions: string[];
-  onToggleCondition: (val: string) => void;
-  selectedStorage: string[];
-  onToggleStorage: (val: string) => void;
-  selectedWarranties: string[];
-  onToggleWarranty: (val: string) => void;
+  onToggleAvailability: (avail: string) => void;
   onApplyAll?: () => void;
   onClearAll: () => void;
   onClose?: () => void;
 }
 
 export default function ShopFilterSidebar({
-  allProducts,
-  categories,
-  selectedCategories,
+  allProducts = [],
+  categories = [],
+  selectedCategories = [],
   onToggleCategory,
-  onClearCategories,
-  selectedBrands,
+  selectedBrands = [],
   onToggleBrand,
-  onClearBrands,
-  priceMin,
-  priceMax,
   sliderLow,
   sliderHigh,
   onSliderChange,
@@ -220,369 +73,344 @@ export default function ShopFilterSidebar({
   setPendingMax,
   priceError,
   onApplyPrice,
-  selectedAvailability,
+  selectedAvailability = [],
   onToggleAvailability,
-  selectedConditions,
-  onToggleCondition,
-  selectedStorage,
-  onToggleStorage,
-  selectedWarranties,
-  onToggleWarranty,
-  onApplyAll,
   onClearAll,
-  onClose,
 }: ShopFilterSidebarProps) {
-  // Collapsible Accordion States
-  const [openCat, setOpenCat] = useState(true);
-  const [openBrand, setOpenBrand] = useState(true);
-  const [openPrice, setOpenPrice] = useState(true);
+  // Collapsible sections state
+  const [openSections, setOpenSections] = useState({
+    category: true,
+    brand: true,
+    price: true,
+    availability: true,
+  });
 
-  // Show More / Less States (initial: 6 items)
-  const [showMoreCat, setShowMoreCat] = useState(false);
-  const [showMoreBrand, setShowMoreBrand] = useState(false);
+  const [showAllCategories, setShowAllCategories] = useState(false);
+  const [showAllBrands, setShowAllBrands] = useState(false);
 
-  // Search input queries inside sections (ONLY shown if options >= 12)
-  const [catSearch, setCatSearch] = useState("");
-  const [brandSearch, setBrandSearch] = useState("");
+  const toggleSection = (section: keyof typeof openSections) => {
+    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
+  };
 
-  /* ───────────────────────────────────────────────────────────
-     1. EXTRACT & SANITIZE CATEGORIES
-  ─────────────────────────────────────────────────────────── */
-  const sanitizedCategories = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; slug: string; count: number }>();
+  // Deduplicated Categories with counts
+  const categoryCounts = useMemo(() => {
+    const map = new Map<string, { id: string; name: string; count: number }>();
 
-    // From Firestore categories prop
-    categories.forEach((c) => {
-      if (c && c.name) {
-        const cleanName = c.name.replace(/[\u0080-\uFFFF]/g, "").trim();
-        const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanName.toLowerCase());
-        if (cleanName && !isBrand && isValidLabel(cleanName)) {
-          const key = cleanName.toLowerCase();
-          map.set(key, {
-            id: c.id || c.slug || cleanName,
-            name: cleanName,
-            slug: c.slug || cleanName.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
-            count: 0,
-          });
-        }
-      }
-    });
-
-    // From products catalog
-    allProducts.forEach((p) => {
-      const rawCat = (p.category_name || p.categoryName || "").trim();
-      const cleanCat = rawCat.replace(/[\u0080-\uFFFF]/g, "").trim();
-      const isBrand = KNOWN_BRANDS.some((b) => b.toLowerCase() === cleanCat.toLowerCase());
-
-      if (cleanCat && !isBrand && isValidLabel(cleanCat)) {
-        const key = cleanCat.toLowerCase();
-        if (!map.has(key)) {
-          map.set(key, {
-            id: `cat-${key.replace(/[^a-z0-9]+/g, "-")}`,
-            name: cleanCat,
-            slug: key.replace(/[^a-z0-9]+/g, "-"),
-            count: 0,
-          });
-        }
-        map.get(key)!.count += 1;
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
-  }, [categories, allProducts]);
-
-  const filteredCategories = useMemo(() => {
-    if (!catSearch.trim()) return sanitizedCategories;
-    return sanitizedCategories.filter((c) =>
-      c.name.toLowerCase().includes(catSearch.toLowerCase())
-    );
-  }, [sanitizedCategories, catSearch]);
-
-  /* ───────────────────────────────────────────────────────────
-     2. EXTRACT & SANITIZE BRANDS
-  ─────────────────────────────────────────────────────────── */
-  const sanitizedBrands = useMemo(() => {
-    const map = new Map<string, number>();
+    // Normalization mapping for case/synonym duplicates
+    const normalize = (name: string) => {
+      const lower = name.toLowerCase().trim();
+      if (lower.includes("smart phone") || lower.includes("smartphone") || lower.includes("phone")) return "Smartphones";
+      if (lower.includes("laptop") || lower.includes("macbook") || lower.includes("tablet") || lower.includes("tab") || lower.includes("ipad")) return "Laptops & Tablets";
+      if (lower.includes("audio") || lower.includes("headphone") || lower.includes("earphone") || lower.includes("speaker") || lower.includes("airpod")) return "Audio";
+      if (lower.includes("wearable") || lower.includes("watch") || lower.includes("band")) return "Wearables";
+      if (lower.includes("power") || lower.includes("battery") || lower.includes("charger") || lower.includes("cable") || lower.includes("adapter")) return "Power Banks & Cables";
+      if (lower.includes("case") || lower.includes("cover") || lower.includes("tempered") || lower.includes("gimbal") || lower.includes("selfie")) return "Accessories";
+      return name.trim();
+    };
 
     allProducts.forEach((p) => {
-      const b = detectProductBrand(p);
-      if (b && b !== "Other" && isValidLabel(b)) {
-        map.set(b, (map.get(b) || 0) + 1);
+      const rawName = p.category_name || p.categoryName || "Accessories";
+      const normalizedName = normalize(rawName);
+      const rawId = p.category_id || p.category_slug || normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+
+      const existing = map.get(normalizedName);
+      if (existing) {
+        existing.count += 1;
+      } else {
+        map.set(normalizedName, { id: rawId, name: normalizedName, count: 1 });
       }
     });
 
-    // Prioritize known brands, then other found brands
-    const fromKnown = KNOWN_BRANDS.filter((b) => map.has(b));
-    const extra = Array.from(map.keys()).filter((b) => !KNOWN_BRANDS.includes(b));
-    const list = [...fromKnown, ...extra];
-
-    return list.map((b) => ({ name: b, count: map.get(b) || 0 }));
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
   }, [allProducts]);
 
-  const filteredBrands = useMemo(() => {
-    if (!brandSearch.trim()) return sanitizedBrands;
-    return sanitizedBrands.filter((b) =>
-      b.name.toLowerCase().includes(brandSearch.toLowerCase())
-    );
-  }, [sanitizedBrands, brandSearch]);
+  // Deduplicated Brands with counts
+  const brandCounts = useMemo(() => {
+    const map = new Map<string, { name: string; count: number }>();
+
+    allProducts.forEach((p) => {
+      const brand = detectProductBrand(p);
+      if (brand && brand !== "Other") {
+        const existing = map.get(brand);
+        if (existing) {
+          existing.count += 1;
+        } else {
+          map.set(brand, { name: brand, count: 1 });
+        }
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.count - a.count);
+  }, [allProducts]);
+
+  // Total In-stock count
+  const inStockCount = useMemo(() => {
+    return allProducts.filter(
+      (p) => p.stock_status !== "out_of_stock" && (typeof p.stock_count !== "number" || p.stock_count > 0)
+    ).length;
+  }, [allProducts]);
+
+  const visibleCategories = showAllCategories ? categoryCounts : categoryCounts.slice(0, 5);
+  const visibleBrands = showAllBrands ? brandCounts : brandCounts.slice(0, 5);
+
+  const hasAnyFilter =
+    selectedCategories.length > 0 ||
+    selectedBrands.length > 0 ||
+    selectedAvailability.length > 0 ||
+    pendingMin ||
+    pendingMax;
 
   return (
-    <div className="flex flex-col gap-5 text-neutral-900 text-xs">
+    <div className="w-full text-neutral-900 select-none text-xs">
+      
+      {/* ── Top Header: Filters & Clear All ── */}
+      <div className="flex items-center justify-between pb-3.5 mb-2 border-b border-neutral-200">
+        <span className="font-extrabold text-sm text-neutral-900 tracking-tight">
+          Filters
+        </span>
+        {hasAnyFilter && (
+          <button
+            type="button"
+            onClick={onClearAll}
+            className="text-xs font-semibold text-neutral-400 hover:text-red-600 transition-colors cursor-pointer"
+          >
+            Clear all
+          </button>
+        )}
+      </div>
 
-      {/* ══════════════════════════════════════════════════════════
-         1. CATEGORIES
-      ══════════════════════════════════════════════════════════ */}
-      <div className="border-b border-neutral-100 pb-4">
+      {/* ── 1. Category Section ── */}
+      <div className="py-3 border-b border-neutral-100">
         <button
           type="button"
-          onClick={() => setOpenCat(!openCat)}
-          className="w-full flex items-center justify-between py-1 text-left group"
+          onClick={() => toggleSection("category")}
+          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
         >
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
-            Categories
-            {selectedCategories.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
-                {selectedCategories.length}
-              </span>
-            )}
-          </span>
-          {openCat ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+          <span>Category</span>
+          {openSections.category ? (
+            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+          )}
         </button>
 
-        {openCat && (
-          <div className="mt-3 space-y-2">
-            {/* Show search ONLY if options >= 12 */}
-            {sanitizedCategories.length >= 12 && (
-              <div className="relative mb-2">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search categories..."
-                  value={catSearch}
-                  onChange={(e) => setCatSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
-                />
-              </div>
-            )}
+        {openSections.category && (
+          <div className="mt-2.5 space-y-2">
+            {visibleCategories.map((cat) => {
+              const isSelected = selectedCategories.includes(cat.id) || selectedCategories.includes(cat.name);
+              return (
+                <label
+                  key={cat.id}
+                  className="flex items-center justify-between cursor-pointer group py-0.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleCategory(cat.id)}
+                      className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
+                    />
+                    <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
+                      {cat.name}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-neutral-400 font-medium font-mono">
+                    ({cat.count})
+                  </span>
+                </label>
+              );
+            })}
 
-            {/* List */}
-            <div className="space-y-1.5">
-              {(showMoreCat ? filteredCategories : filteredCategories.slice(0, 6)).map((cat) => {
-                const isSelected = selectedCategories.some(
-                  (c) =>
-                    c.toLowerCase() === cat.id.toLowerCase() ||
-                    c.toLowerCase() === cat.slug.toLowerCase() ||
-                    c.toLowerCase() === cat.name.toLowerCase()
-                );
-                const disabled = cat.count === 0;
-
-                return (
-                  <label
-                    key={cat.id}
-                    className={`flex items-center justify-between py-1 cursor-pointer select-none group ${
-                      disabled ? "opacity-35 pointer-events-none" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={disabled}
-                        onChange={() => onToggleCategory(cat.slug || cat.id)}
-                        className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                      <span className={`truncate max-w-[140px] ${isSelected ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                        {cat.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-neutral-400 font-medium">({cat.count})</span>
-                  </label>
-                );
-              })}
-            </div>
-
-            {/* Show More / Show Less Toggle */}
-            {filteredCategories.length > 6 && (
+            {categoryCounts.length > 5 && (
               <button
                 type="button"
-                onClick={() => setShowMoreCat(!showMoreCat)}
-                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 transition-colors"
+                onClick={() => setShowAllCategories(!showAllCategories)}
+                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 block cursor-pointer"
               >
-                {showMoreCat ? "Show Less" : `+ Show ${filteredCategories.length - 6} more`}
+                {showAllCategories ? "Show less" : "Show more"}
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-         2. BRANDS
-      ══════════════════════════════════════════════════════════ */}
-      <div className="border-b border-neutral-100 pb-4">
+      {/* ── 2. Brand Section ── */}
+      <div className="py-3 border-b border-neutral-100">
         <button
           type="button"
-          onClick={() => setOpenBrand(!openBrand)}
-          className="w-full flex items-center justify-between py-1 text-left group"
+          onClick={() => toggleSection("brand")}
+          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
         >
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-900 flex items-center gap-1.5">
-            Brands
-            {selectedBrands.length > 0 && (
-              <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
-                {selectedBrands.length}
-              </span>
-            )}
-          </span>
-          {openBrand ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+          <span>Brand</span>
+          {openSections.brand ? (
+            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+          )}
         </button>
 
-        {openBrand && (
-          <div className="mt-3 space-y-2">
-            {/* Show search ONLY if options >= 12 */}
-            {sanitizedBrands.length >= 12 && (
-              <div className="relative mb-2">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-neutral-400" />
-                <input
-                  type="text"
-                  placeholder="Search brands..."
-                  value={brandSearch}
-                  onChange={(e) => setBrandSearch(e.target.value)}
-                  className="w-full pl-8 pr-3 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
-                />
-              </div>
-            )}
+        {openSections.brand && (
+          <div className="mt-2.5 space-y-2">
+            {visibleBrands.map((b) => {
+              const isSelected = selectedBrands.includes(b.name);
+              return (
+                <label
+                  key={b.name}
+                  className="flex items-center justify-between cursor-pointer group py-0.5"
+                >
+                  <div className="flex items-center gap-2.5">
+                    <input
+                      type="checkbox"
+                      checked={isSelected}
+                      onChange={() => onToggleBrand(b.name)}
+                      className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
+                    />
+                    <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
+                      {b.name}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-neutral-400 font-medium font-mono">
+                    ({b.count})
+                  </span>
+                </label>
+              );
+            })}
 
-            {/* List */}
-            <div className="space-y-1.5">
-              {(showMoreBrand ? filteredBrands : filteredBrands.slice(0, 6)).map((brand) => {
-                const isSelected = selectedBrands.some((b) => b.toLowerCase() === brand.name.toLowerCase());
-                const disabled = brand.count === 0;
-
-                return (
-                  <label
-                    key={brand.name}
-                    className={`flex items-center justify-between py-1 cursor-pointer select-none group ${
-                      disabled ? "opacity-35 pointer-events-none" : ""
-                    }`}
-                  >
-                    <div className="flex items-center gap-2.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        disabled={disabled}
-                        onChange={() => onToggleBrand(brand.name)}
-                        className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black cursor-pointer"
-                      />
-                      <span className={`truncate max-w-[140px] ${isSelected ? "font-bold text-black" : "text-neutral-600 group-hover:text-black"}`}>
-                        {brand.name}
-                      </span>
-                    </div>
-                    <span className="text-[10px] text-neutral-400 font-medium">({brand.count})</span>
-                  </label>
-                );
-              })}
-            </div>
-
-            {/* Show More / Show Less Toggle */}
-            {filteredBrands.length > 6 && (
+            {brandCounts.length > 5 && (
               <button
                 type="button"
-                onClick={() => setShowMoreBrand(!showMoreBrand)}
-                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 transition-colors"
+                onClick={() => setShowAllBrands(!showAllBrands)}
+                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 block cursor-pointer"
               >
-                {showMoreBrand ? "Show Less" : `+ Show ${filteredBrands.length - 6} more`}
+                {showAllBrands ? "Show less" : "Show more"}
               </button>
             )}
           </div>
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-         3. PRICE RANGE
-      ══════════════════════════════════════════════════════════ */}
-      <div className="border-b border-neutral-100 pb-4">
+      {/* ── 3. Price Range Section ── */}
+      <div className="py-3 border-b border-neutral-100">
         <button
           type="button"
-          onClick={() => setOpenPrice(!openPrice)}
-          className="w-full flex items-center justify-between py-1 text-left group"
+          onClick={() => toggleSection("price")}
+          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
         >
-          <span className="text-[11px] font-black uppercase tracking-wider text-neutral-900">
-            Price Range (LKR)
-          </span>
-          {openPrice ? <ChevronUp className="w-4 h-4 text-neutral-400" /> : <ChevronDown className="w-4 h-4 text-neutral-400" />}
+          <span>Price</span>
+          {openSections.price ? (
+            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+          )}
         </button>
 
-        {openPrice && (
-          <div className="mt-4 space-y-3">
-            <DualRangeSlider
-              min={priceMin}
-              max={priceMax}
-              low={sliderLow}
-              high={sliderHigh}
-              onChange={onSliderChange}
-            />
+        {openSections.price && (
+          <div className="mt-2.5 space-y-2">
+            {[
+              { label: "Under LKR 50,000", min: 0, max: 50000 },
+              { label: "LKR 50,000 – LKR 100,000", min: 50000, max: 100000 },
+              { label: "LKR 100,000 – LKR 200,000", min: 100000, max: 200000 },
+              { label: "Over LKR 200,000", min: 200000, max: 0 },
+            ].map((tier, idx) => {
+              const isSelected =
+                (tier.max === 0 && Number(pendingMin) >= 200000 && !pendingMax) ||
+                (Number(pendingMin) === tier.min && Number(pendingMax) === tier.max);
 
-            <div className="flex items-center justify-between text-[10px] font-bold text-neutral-500">
-              <span>{fmtLKR(sliderLow)}</span>
-              <span>{fmtLKR(sliderHigh)}</span>
-            </div>
+              return (
+                <label
+                  key={idx}
+                  onClick={() => {
+                    if (isSelected) {
+                      setPendingMin("");
+                      setPendingMax("");
+                      onSliderChange(0, 1000000);
+                    } else {
+                      setPendingMin(tier.min ? tier.min.toString() : "");
+                      setPendingMax(tier.max ? tier.max.toString() : "");
+                      onSliderChange(tier.min, tier.max || 1000000);
+                    }
+                    setTimeout(onApplyPrice, 10);
+                  }}
+                  className="flex items-center gap-2.5 cursor-pointer group py-0.5"
+                >
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => {}}
+                    className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
+                  />
+                  <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
+                    {tier.label}
+                  </span>
+                </label>
+              );
+            })}
 
-            <div className="flex items-center gap-2">
+            {/* Custom Min / Max Inputs */}
+            <div className="pt-2 flex items-center gap-1.5">
               <input
                 type="number"
                 value={pendingMin}
                 onChange={(e) => setPendingMin(e.target.value)}
-                placeholder="Min"
-                className="w-full px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
+                placeholder="Min LKR"
+                className="w-1/2 px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black font-mono"
               />
-              <span className="text-neutral-400 text-xs">-</span>
+              <span className="text-neutral-400">-</span>
               <input
                 type="number"
                 value={pendingMax}
                 onChange={(e) => setPendingMax(e.target.value)}
-                placeholder="Max"
-                className="w-full px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black"
+                placeholder="Max LKR"
+                className="w-1/2 px-2.5 py-1.5 bg-neutral-50 border border-neutral-200 rounded-lg text-xs outline-none focus:border-black font-mono"
               />
+              <button
+                type="button"
+                onClick={onApplyPrice}
+                className="px-2.5 py-1.5 bg-black text-white rounded-lg text-xs font-bold hover:bg-neutral-800 transition-colors"
+              >
+                Go
+              </button>
             </div>
-
-            {priceError && <p className="text-[10px] text-red-600 font-bold">{priceError}</p>}
-
-            <button
-              type="button"
-              onClick={onApplyPrice}
-              className="w-full py-2 bg-neutral-100 hover:bg-black hover:text-white rounded-xl text-xs font-bold text-neutral-800 transition-colors shadow-2xs"
-            >
-              Set Price Range
-            </button>
+            {priceError && <p className="text-[10px] text-red-500">{priceError}</p>}
           </div>
         )}
       </div>
 
-      {/* ══════════════════════════════════════════════════════════
-         BOTTOM ACTIONS (Clear All & Apply)
-      ══════════════════════════════════════════════════════════ */}
-      <div className="pt-3 border-t border-neutral-100 flex flex-col gap-2">
-        {onApplyAll && (
-          <button
-            type="button"
-            onClick={() => {
-              onApplyAll();
-              onClose?.();
-            }}
-            className="w-full py-3 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors shadow-2xs"
-          >
-            Apply Filters
-          </button>
-        )}
+      {/* ── 4. Availability Section ── */}
+      <div className="py-3">
         <button
           type="button"
-          onClick={() => {
-            onClearAll();
-            onClose?.();
-          }}
-          className="w-full py-1.5 text-xs font-bold text-neutral-400 hover:text-black transition-colors"
+          onClick={() => toggleSection("availability")}
+          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
         >
-          Clear All
+          <span>Availability</span>
+          {openSections.availability ? (
+            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
+          ) : (
+            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
+          )}
         </button>
+
+        {openSections.availability && (
+          <div className="mt-2.5 space-y-2">
+            <label className="flex items-center justify-between cursor-pointer group py-0.5">
+              <div className="flex items-center gap-2.5">
+                <input
+                  type="checkbox"
+                  checked={selectedAvailability.includes("in_stock")}
+                  onChange={() => onToggleAvailability("in_stock")}
+                  className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
+                />
+                <span className={`text-xs ${selectedAvailability.includes("in_stock") ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
+                  In Stock
+                </span>
+              </div>
+              <span className="text-[11px] text-neutral-400 font-medium font-mono">
+                ({inStockCount})
+              </span>
+            </label>
+          </div>
+        )}
       </div>
 
     </div>

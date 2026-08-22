@@ -11,7 +11,7 @@ export interface Product {
   specifications: Record<string, string>;
   warranty: string;
   brand_warranty?: string;
-  stock_status: "in_stock" | "low_stock" | "out_of_stock";
+  stock_status: "in_stock" | "low_stock" | "out_of_stock" | "pre_order";
   stock_count?: number;
   colors: string[];
   storage_options: string[];

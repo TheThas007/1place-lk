@@ -1,47 +1,42 @@
 "use client";
 
-import React, { useState, useMemo, useEffect, useRef, useCallback } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useSearchParams, useRouter, usePathname } from "next/navigation";
-import type { Variants } from "framer-motion";
-import { motion, AnimatePresence } from "framer-motion";
 import {
   SlidersHorizontal,
   X,
   Package,
   RotateCcw,
-  MessageCircle,
+  LayoutGrid,
+  List,
+  ChevronLeft,
+  ChevronRight,
+  Filter,
+  Check,
 } from "lucide-react";
 import { Product, Category, Brand } from "@/lib/types";
 import ProductCard from "@/components/products/ProductCard";
-import ShopSearchBar from "@/components/products/ShopSearchBar";
-import ShopCategoryChips, { QUICK_CATEGORIES } from "@/components/products/ShopCategoryChips";
-import ShopResultsToolbar, {
-  SortOptionValue,
-  ActiveFilterChip,
-} from "@/components/products/ShopResultsToolbar";
-import ShopFilterSidebar, {
-  detectProductBrand,
-  detectProductCondition,
-  detectProductStorage,
-} from "@/components/products/ShopFilterSidebar";
+import ShopFilterSidebar, { detectProductBrand } from "@/components/products/ShopFilterSidebar";
 
-/* ─────────────────────────────────────────────────────────────
-   ANIMATION VARIANTS
-───────────────────────────────────────────────────────────── */
-const cardVariants: Variants = {
-  hidden: { opacity: 0, y: 15, scale: 0.98 },
-  show: {
-    opacity: 1,
-    y: 0,
-    scale: 1,
-    transition: { duration: 0.35, ease: [0.16, 1, 0.3, 1] },
-  },
-  exit: { opacity: 0, scale: 0.96, transition: { duration: 0.18 } },
-};
+interface ProductsClientProps {
+  initialProducts: Product[];
+  categories: Category[];
+  brands?: Brand[];
+}
 
-/* ─────────────────────────────────────────────────────────────
-   EFFECTIVE SELLING PRICE HELPER
-───────────────────────────────────────────────────────────── */
+const PRIMARY_CATEGORY_TABS = [
+  { id: "all", label: "All" },
+  { id: "phones", label: "Phones", filterKeywords: ["phone", "smartphone", "iphone", "galaxy", "redmi", "pixel"] },
+  { id: "laptops-tablets", label: "Laptop & Tab", filterKeywords: ["laptop", "macbook", "tablet", "tab", "ipad"] },
+  { id: "audio", label: "Audio", filterKeywords: ["audio", "headphone", "earphone", "speaker", "airpod", "buds"] },
+  { id: "wearables", label: "Wearables", filterKeywords: ["watch", "band", "wearable"] },
+  { id: "power", label: "Power", filterKeywords: ["power", "battery", "charger", "cable", "adapter"] },
+  { id: "accessories", label: "Accessories", filterKeywords: ["accessory", "case", "cover", "tempered", "gimbal"] },
+];
+
+const ITEMS_PER_PAGE = 16;
+
 function getEffectivePrice(p: Product): number {
   if (p.sale_price && p.sale_price > 0 && p.sale_price < p.price) {
     return p.sale_price;
@@ -49,558 +44,278 @@ function getEffectivePrice(p: Product): number {
   return p.price || 0;
 }
 
-function fmtLKR(val: number) {
-  return "LKR " + val.toLocaleString("en-LK");
-}
-
-/* ─────────────────────────────────────────────────────────────
-   MAIN COMPONENT
-───────────────────────────────────────────────────────────── */
 export default function ProductsClient({
-  initialProducts,
-  categories,
+  initialProducts = [],
+  categories = [],
   brands = [],
-}: {
-  initialProducts: Product[];
-  categories: Category[];
-  brands?: Brand[];
-}) {
+}: ProductsClientProps) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
 
-  /* ── 1. Search Query State ── */
-  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
-
-  /* ── 2. Category State ── */
-  const [selectedQuickCategory, setSelectedQuickCategory] = useState<string>(
-    () => searchParams.get("cat_chip") || "all"
+  /* ── 1. Category Tab State ── */
+  const [activePrimaryTab, setActivePrimaryTab] = useState<string>(
+    () => searchParams.get("tab") || "all"
   );
+
+  /* ── 2. Filters State ── */
   const [selectedCategories, setSelectedCategories] = useState<string[]>(() => {
     const p = searchParams.get("category");
     return p ? p.split(",").filter(Boolean) : [];
   });
 
-  /* ── 3. Brand State ── */
   const [selectedBrands, setSelectedBrands] = useState<string[]>(() => {
     const p = searchParams.get("brand");
     return p ? p.split(",").filter(Boolean) : [];
   });
 
-  /* ── 4. Price State ── */
-  const { catalogMin, catalogMax } = useMemo(() => {
-    const prices = initialProducts.map((p) => getEffectivePrice(p)).filter(Boolean);
-    return {
-      catalogMin: prices.length ? Math.min(...prices) : 0,
-      catalogMax: prices.length ? Math.max(...prices) : 500000,
-    };
-  }, [initialProducts]);
-
-  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
-  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
-  const [quickPriceMax, setQuickPriceMax] = useState<number | null>(() => {
-    const qp = searchParams.get("quickPrice");
-    return qp ? parseInt(qp) : null;
-  });
-  const [pendingMin, setPendingMin] = useState(searchParams.get("minPrice") || "");
-  const [pendingMax, setPendingMax] = useState(searchParams.get("maxPrice") || "");
-  const [priceError, setPriceError] = useState("");
-  const [sliderLow, setSliderLow] = useState(
-    () => parseInt(searchParams.get("minPrice") || "0") || catalogMin
-  );
-  const [sliderHigh, setSliderHigh] = useState(
-    () => parseInt(searchParams.get("maxPrice") || "0") || catalogMax
-  );
-
-  /* ── 5. Availability State ── */
   const [inStockOnly, setInStockOnly] = useState(searchParams.get("stock") === "in_stock");
   const [selectedAvailability, setSelectedAvailability] = useState<string[]>(() => {
     const p = searchParams.get("avail");
     return p ? p.split(",").filter(Boolean) : [];
   });
 
-  /* ── 6. Condition, Storage, Warranty State ── */
-  const [selectedConditions, setSelectedConditions] = useState<string[]>(() => {
-    const p = searchParams.get("condition");
-    return p ? p.split(",").filter(Boolean) : [];
-  });
-  const [selectedStorage, setSelectedStorage] = useState<string[]>(() => {
-    const p = searchParams.get("storage");
-    return p ? p.split(",").filter(Boolean) : [];
-  });
-  const [selectedWarranties, setSelectedWarranties] = useState<string[]>(() => {
-    const p = searchParams.get("warranty");
-    return p ? p.split(",").filter(Boolean) : [];
-  });
+  const [searchQuery, setSearchQuery] = useState(searchParams.get("search") || "");
+  const [sortKey, setSortKey] = useState<string>(searchParams.get("sort") || "featured");
+  const [viewMode, setViewMode] = useState<"grid" | "list">("grid");
 
-  /* ── 7. Quick Deals & Sorting State ── */
-  const [newArrivalsOnly, setNewArrivalsOnly] = useState(searchParams.get("new") === "true");
-  const [featuredOnly, setFeaturedOnly] = useState(searchParams.get("featured") === "true");
-  const [onSaleOnly, setOnSaleOnly] = useState(searchParams.get("sale") === "true");
-  const [sortKey, setSortKey] = useState<SortOptionValue>(
-    () => (searchParams.get("sort") as SortOptionValue) || "price-desc"
-  );
+  /* ── 3. Price State ── */
+  const [pendingMin, setPendingMin] = useState(searchParams.get("minPrice") || "");
+  const [pendingMax, setPendingMax] = useState(searchParams.get("maxPrice") || "");
+  const [minPrice, setMinPrice] = useState(searchParams.get("minPrice") || "");
+  const [maxPrice, setMaxPrice] = useState(searchParams.get("maxPrice") || "");
+  const [priceError, setPriceError] = useState("");
+  const [sliderLow, setSliderLow] = useState(0);
+  const [sliderHigh, setSliderHigh] = useState(1000000);
 
-  /* ── 8. Mobile Drawer State ── */
+  /* ── 4. Pagination State ── */
+  const [currentPage, setCurrentPage] = useState<number>(() => {
+    const p = searchParams.get("page");
+    return p ? Math.max(1, parseInt(p)) : 1;
+  });
+  const [mobileVisibleCount, setMobileVisibleCount] = useState(ITEMS_PER_PAGE);
+
+  /* ── 5. Mobile Filter Drawer ── */
   const [showMobileFilters, setShowMobileFilters] = useState(false);
 
-  /* ─────────────────────────────────────────────────────────────
-     URL PARAMS SYNC HELPER
-  ───────────────────────────────────────────────────────────── */
+  /* ── URL Parameter Synchronization ── */
   const updateUrlParams = useCallback(
-    (updates: Record<string, string | null>) => {
+    (newParams: Record<string, string | null>) => {
       const params = new URLSearchParams(searchParams.toString());
-      Object.entries(updates).forEach(([key, val]) => {
+
+      Object.entries(newParams).forEach(([key, val]) => {
         if (val === null || val === "" || val === undefined) {
           params.delete(key);
         } else {
           params.set(key, val);
         }
       });
-      const qs = params.toString();
-      router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+
+      const q = params.toString();
+      router.push(q ? `${pathname}?${q}` : pathname, { scroll: false });
     },
-    [router, pathname, searchParams]
+    [pathname, router, searchParams]
   );
 
-  /* ── ESC closes mobile drawer ── */
-  useEffect(() => {
-    if (!showMobileFilters) return;
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setShowMobileFilters(false);
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [showMobileFilters]);
-
-  /* ── Synchronize state when browser back/forward is used ── */
-  useEffect(() => {
-    setSearchQuery(searchParams.get("search") || "");
-    setSelectedQuickCategory(searchParams.get("cat_chip") || "all");
-
-    const catParam = searchParams.get("category");
-    setSelectedCategories(catParam ? catParam.split(",").filter(Boolean) : []);
-
-    const brandParam = searchParams.get("brand");
-    setSelectedBrands(brandParam ? brandParam.split(",").filter(Boolean) : []);
-
-    const pMin = searchParams.get("minPrice") || "";
-    const pMax = searchParams.get("maxPrice") || "";
-    setMinPrice(pMin);
-    setPendingMin(pMin);
-    setMaxPrice(pMax);
-    setPendingMax(pMax);
-    if (pMin) setSliderLow(parseInt(pMin));
-    if (pMax) setSliderHigh(parseInt(pMax));
-
-    const qp = searchParams.get("quickPrice");
-    setQuickPriceMax(qp ? parseInt(qp) : null);
-
-    setInStockOnly(searchParams.get("stock") === "in_stock");
-    const availParam = searchParams.get("avail");
-    setSelectedAvailability(availParam ? availParam.split(",").filter(Boolean) : []);
-
-    const condParam = searchParams.get("condition");
-    setSelectedConditions(condParam ? condParam.split(",").filter(Boolean) : []);
-
-    const storParam = searchParams.get("storage");
-    setSelectedStorage(storParam ? storParam.split(",").filter(Boolean) : []);
-
-    const warrParam = searchParams.get("warranty");
-    setSelectedWarranties(warrParam ? warrParam.split(",").filter(Boolean) : []);
-
-    setNewArrivalsOnly(searchParams.get("new") === "true");
-    setFeaturedOnly(searchParams.get("featured") === "true");
-    setOnSaleOnly(searchParams.get("sale") === "true");
-    setSortKey((searchParams.get("sort") as SortOptionValue) || "price-desc");
-  }, [searchParams]);
-
-  /* ─────────────────────────────────────────────────────────────
-     EVENT HANDLERS
-  ───────────────────────────────────────────────────────────── */
-  const handleSearchChange = (q: string) => {
-    setSearchQuery(q);
+  const handlePrimaryTabChange = (tabId: string) => {
+    setActivePrimaryTab(tabId);
+    setCurrentPage(1);
+    updateUrlParams({ tab: tabId === "all" ? null : tabId, page: null });
   };
 
-  const handleSearchSubmit = (q: string) => {
-    setSearchQuery(q);
-    updateUrlParams({ search: q || null });
-  };
-
-  const handleQuickCategorySelect = (chipId: string) => {
-    setSelectedQuickCategory(chipId);
-    if (chipId === "all") {
-      updateUrlParams({ cat_chip: null });
-    } else {
-      updateUrlParams({ cat_chip: chipId });
-    }
-  };
-
-  const handleToggleCategory = (catIdOrSlug: string) => {
-    const next = selectedCategories.some(
-      (c) => c.toLowerCase() === catIdOrSlug.toLowerCase()
-    )
-      ? selectedCategories.filter((c) => c.toLowerCase() !== catIdOrSlug.toLowerCase())
-      : [...selectedCategories, catIdOrSlug];
-
-    setSelectedCategories(next);
-    updateUrlParams({ category: next.length ? next.join(",") : null });
+  const handleToggleCategory = (catId: string) => {
+    const updated = selectedCategories.includes(catId)
+      ? selectedCategories.filter((c) => c !== catId)
+      : [...selectedCategories, catId];
+    setSelectedCategories(updated);
+    setCurrentPage(1);
+    updateUrlParams({ category: updated.length ? updated.join(",") : null, page: null });
   };
 
   const handleClearCategories = () => {
     setSelectedCategories([]);
-    updateUrlParams({ category: null });
+    setCurrentPage(1);
+    updateUrlParams({ category: null, page: null });
   };
 
   const handleToggleBrand = (brandName: string) => {
-    const next = selectedBrands.some((b) => b.toLowerCase() === brandName.toLowerCase())
-      ? selectedBrands.filter((b) => b.toLowerCase() !== brandName.toLowerCase())
+    const updated = selectedBrands.includes(brandName)
+      ? selectedBrands.filter((b) => b !== brandName)
       : [...selectedBrands, brandName];
-
-    setSelectedBrands(next);
-    updateUrlParams({ brand: next.length ? next.join(",") : null });
+    setSelectedBrands(updated);
+    setCurrentPage(1);
+    updateUrlParams({ brand: updated.length ? updated.join(",") : null, page: null });
   };
 
   const handleClearBrands = () => {
     setSelectedBrands([]);
-    updateUrlParams({ brand: null });
-  };
-
-  const handleSliderChange = (low: number, high: number) => {
-    setSliderLow(low);
-    setSliderHigh(high);
-    setPendingMin(String(low));
-    setPendingMax(String(high));
-  };
-
-  const handleApplyPrice = () => {
-    const mn = pendingMin ? parseInt(pendingMin) : 0;
-    const mx = pendingMax ? parseInt(pendingMax) : Infinity;
-    if (pendingMin && pendingMax && mn > mx) {
-      setPriceError("Min price cannot be greater than max price.");
-      return;
-    }
-    setPriceError("");
-    setMinPrice(pendingMin);
-    setMaxPrice(pendingMax);
-    updateUrlParams({
-      minPrice: pendingMin || null,
-      maxPrice: pendingMax || null,
-    });
-  };
-
-  const handleToggleQuickPrice = (val: number | null) => {
-    setQuickPriceMax(val);
-    updateUrlParams({ quickPrice: val ? String(val) : null });
-  };
-
-  const handleToggleAvailability = (val: string) => {
-    const next = selectedAvailability.includes(val)
-      ? selectedAvailability.filter((x) => x !== val)
-      : [...selectedAvailability, val];
-    setSelectedAvailability(next);
-    updateUrlParams({ avail: next.length ? next.join(",") : null });
-  };
-
-  const handleToggleCondition = (val: string) => {
-    const next = selectedConditions.some((c) => c.toLowerCase() === val.toLowerCase())
-      ? selectedConditions.filter((c) => c.toLowerCase() !== val.toLowerCase())
-      : [...selectedConditions, val];
-    setSelectedConditions(next);
-    updateUrlParams({ condition: next.length ? next.join(",") : null });
-  };
-
-  const handleToggleStorage = (val: string) => {
-    const next = selectedStorage.some((s) => s.toLowerCase() === val.toLowerCase())
-      ? selectedStorage.filter((s) => s.toLowerCase() !== val.toLowerCase())
-      : [...selectedStorage, val];
-    setSelectedStorage(next);
-    updateUrlParams({ storage: next.length ? next.join(",") : null });
-  };
-
-  const handleToggleWarranty = (val: string) => {
-    const next = selectedWarranties.some((w) => w.toLowerCase() === val.toLowerCase())
-      ? selectedWarranties.filter((w) => w.toLowerCase() !== val.toLowerCase())
-      : [...selectedWarranties, val];
-    setSelectedWarranties(next);
-    updateUrlParams({ warranty: next.length ? next.join(",") : null });
+    setCurrentPage(1);
+    updateUrlParams({ brand: null, page: null });
   };
 
   const handleToggleInStock = () => {
     const next = !inStockOnly;
     setInStockOnly(next);
-    updateUrlParams({ stock: next ? "in_stock" : null });
+    setCurrentPage(1);
+    updateUrlParams({ stock: next ? "in_stock" : null, page: null });
   };
 
-  const handleToggleOnSale = () => {
-    const next = !onSaleOnly;
-    setOnSaleOnly(next);
-    updateUrlParams({ sale: next ? "true" : null });
+  const handleToggleAvailability = (avail: string) => {
+    const updated = selectedAvailability.includes(avail)
+      ? selectedAvailability.filter((a) => a !== avail)
+      : [...selectedAvailability, avail];
+    setSelectedAvailability(updated);
+    setCurrentPage(1);
+    updateUrlParams({ avail: updated.length ? updated.join(",") : null, page: null });
   };
 
-  const handleToggleNewArrivals = () => {
-    const next = !newArrivalsOnly;
-    setNewArrivalsOnly(next);
-    updateUrlParams({ new: next ? "true" : null });
+  const handleApplyPrice = () => {
+    setMinPrice(pendingMin);
+    setMaxPrice(pendingMax);
+    setCurrentPage(1);
+    updateUrlParams({
+      minPrice: pendingMin || null,
+      maxPrice: pendingMax || null,
+      page: null,
+    });
   };
 
-  const handleSortChange = (key: SortOptionValue) => {
-    setSortKey(key);
-    updateUrlParams({ sort: key !== "featured" ? key : null });
+  const handleSortChange = (newSort: string) => {
+    setSortKey(newSort);
+    updateUrlParams({ sort: newSort === "featured" ? null : newSort });
   };
 
   const handleClearAll = () => {
-    setSearchQuery("");
-    setSelectedQuickCategory("all");
+    setActivePrimaryTab("all");
     setSelectedCategories([]);
     setSelectedBrands([]);
-    setMinPrice("");
-    setMaxPrice("");
-    setPendingMin("");
-    setPendingMax("");
-    setSliderLow(catalogMin);
-    setSliderHigh(catalogMax);
-    setPriceError("");
-    setQuickPriceMax(null);
     setInStockOnly(false);
     setSelectedAvailability([]);
-    setSelectedConditions([]);
-    setSelectedStorage([]);
-    setSelectedWarranties([]);
-    setNewArrivalsOnly(false);
-    setFeaturedOnly(false);
-    setOnSaleOnly(false);
-    setSortKey("price-desc");
-    router.replace(pathname, { scroll: false });
+    setPendingMin("");
+    setPendingMax("");
+    setMinPrice("");
+    setMaxPrice("");
+    setSearchQuery("");
+    setSortKey("featured");
+    setCurrentPage(1);
+    router.push(pathname, { scroll: false });
   };
 
-  /* ─────────────────────────────────────────────────────────────
-     PRODUCT FILTERING & SORTING LOGIC
-  ───────────────────────────────────────────────────────────── */
+  /* ── Filtered and Sorted Products ── */
   const filteredProducts = useMemo(() => {
-    let list = initialProducts.filter((product) => {
-      // 1. Search Query (Typo-tolerant multi-token)
-      if (searchQuery && searchQuery.trim().length > 0) {
-        const tokens = searchQuery.trim().toLowerCase().split(/\s+/).filter(Boolean);
-        const name = (product.name || "").toLowerCase();
-        const brand = detectProductBrand(product).toLowerCase();
-        const cat = (product.category_name || product.categoryName || "").toLowerCase();
-        const code = (product.code || "").toLowerCase();
-        const tags = (product.tags || []).join(" ").toLowerCase();
-        const specs = Object.values(product.specifications || {}).join(" ").toLowerCase();
-        const desc = (product.description || "").toLowerCase();
-        const blob = `${name} ${brand} ${cat} ${code} ${tags} ${specs} ${desc}`;
+    return initialProducts
+      .filter((p) => {
+        // 1. Primary Tab Filter
+        if (activePrimaryTab && activePrimaryTab !== "all") {
+          const tabObj = PRIMARY_CATEGORY_TABS.find((t) => t.id === activePrimaryTab);
+          if (tabObj && tabObj.filterKeywords) {
+            const pName = (p.name || "").toLowerCase();
+            const pCat = (p.category_name || p.categoryName || "").toLowerCase();
+            const pGroup = (p.productType || "").toLowerCase();
 
-        const matchesAllTokens = tokens.every((tok) => blob.includes(tok));
-        if (!matchesAllTokens) return false;
-      }
-
-      // 2. Quick Category Chips
-      if (selectedQuickCategory && selectedQuickCategory !== "all") {
-        const quickDef = QUICK_CATEGORIES.find((c) => c.id === selectedQuickCategory);
-        if (quickDef && quickDef.matchKeys.length > 0) {
-          const pCat = (product.category_name || product.categoryName || product.category_slug || "").toLowerCase();
-          const pName = (product.name || "").toLowerCase();
-          const pTags = (product.tags || []).join(" ").toLowerCase();
-          const matchesQuick = quickDef.matchKeys.some(
-            (k) => pCat.includes(k) || pName.includes(k) || pTags.includes(k)
-          );
-          if (!matchesQuick) return false;
+            const matchesTab = tabObj.filterKeywords.some(
+              (kw) => pName.includes(kw) || pCat.includes(kw) || pGroup.includes(kw)
+            );
+            if (!matchesTab) return false;
+          }
         }
-      }
 
-      // 3. Sidebar Multi-Categories & Group Keywords
-      if (selectedCategories.length > 0) {
-        const matchesSidebarCat = selectedCategories.some((target) => {
-          const t = target.toLowerCase();
-          const pCat = (product.category_name || product.categoryName || product.category_slug || "").toLowerCase();
-          const pName = (product.name || "").toLowerCase();
-          const pId = (product.category_id || "").toLowerCase();
+        // 2. Sidebar Categories
+        if (selectedCategories.length > 0) {
+          const cName = (p.category_name || p.categoryName || "").toLowerCase();
+          const cId = (p.category_id || p.category_slug || "").toLowerCase();
 
-          // Intelligent match for group names
-          if (t === "smartphones" || t === "phones" || t === "smart-phones") {
-            return pCat.includes("phone") || pCat.includes("smartphone") || pCat.includes("iphone") || pName.includes("phone") || pName.includes("iphone") || pId === "cat-smartphones";
+          const matchesCategory = selectedCategories.some((sel) => {
+            const s = sel.toLowerCase();
+            return cName.includes(s) || cId.includes(s) || s.includes(cName);
+          });
+          if (!matchesCategory) return false;
+        }
+
+        // 3. Brand
+        if (selectedBrands.length > 0) {
+          const brand = detectProductBrand(p);
+          if (!selectedBrands.includes(brand)) return false;
+        }
+
+        // 4. In Stock Only
+        if (inStockOnly || selectedAvailability.includes("in_stock")) {
+          if (p.stock_status === "out_of_stock" || (typeof p.stock_count === "number" && p.stock_count <= 0)) {
+            return false;
           }
-          if (t === "laptops" || t === "laptop" || t === "tablets" || t === "laptops-tablets") {
-            return pCat.includes("laptop") || pCat.includes("macbook") || pCat.includes("tablet") || pCat.includes("ipad") || pCat.includes("tab") || pName.includes("macbook") || pName.includes("laptop") || pName.includes("ipad") || pId === "cat-laptops" || pId === "cat-tablets";
-          }
-          if (t === "accessories" || t === "accessory" || t === "audio" || t === "other") {
-            const isMainPhoneOrLaptop = (pCat === "smartphones" || pCat === "iphone" || pCat === "phones") && !pCat.includes("case") && !pCat.includes("accessory");
-            const isLaptopDevice = (pCat === "laptop" || pCat === "laptops" || pCat === "macbook") && !pCat.includes("bag") && !pCat.includes("stand");
-            if (isMainPhoneOrLaptop || isLaptopDevice) return false;
-            return true;
-          }
+        }
 
-          return (
-            pId === t ||
-            pCat === t ||
-            pCat.includes(t) ||
-            (product.category_slug || "").toLowerCase() === t
-          );
-        });
-        if (!matchesSidebarCat) return false;
-      }
+        // 5. Price Filter
+        const effPrice = getEffectivePrice(p);
+        if (minPrice && effPrice < Number(minPrice)) return false;
+        if (maxPrice && effPrice > Number(maxPrice)) return false;
 
-      // 4. Brands (Multi-select)
-      if (selectedBrands.length > 0) {
-        const detected = detectProductBrand(product).toLowerCase();
-        const rawBrand = (product.brand_name || product.brandName || product.brand || "").toLowerCase();
-        const matchesBrand = selectedBrands.some((b) => {
-          const bl = b.toLowerCase();
-          return detected === bl || rawBrand === bl || (product.name || "").toLowerCase().includes(bl);
-        });
-        if (!matchesBrand) return false;
-      }
+        // 6. Search Query
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const pName = (p.name || "").toLowerCase();
+          const pBrand = (p.brand_name || p.brand || "").toLowerCase();
+          const pCat = (p.category_name || "").toLowerCase();
+          const pDesc = (p.description || "").toLowerCase();
 
-      // 5. Price & Quick Price Cap
-      const effPrice = getEffectivePrice(product);
-      const minP = minPrice ? parseInt(minPrice) : 0;
-      let maxP = maxPrice ? parseInt(maxPrice) : Infinity;
-      if (quickPriceMax && quickPriceMax < maxP) {
-        maxP = quickPriceMax;
-      }
-      if (effPrice < minP || effPrice > maxP) return false;
+          const matchesSearch =
+            pName.includes(q) || pBrand.includes(q) || pCat.includes(q) || pDesc.includes(q);
+          if (!matchesSearch) return false;
+        }
 
-      // 6. Availability
-      if (inStockOnly && product.stock_status === "out_of_stock") return false;
-      if (selectedAvailability.length > 0) {
-        const currentStatus = product.stock_status || "in_stock";
-        if (!selectedAvailability.includes(currentStatus)) return false;
-      }
+        return true;
+      })
+      .sort((a, b) => {
+        const pa = getEffectivePrice(a);
+        const pb = getEffectivePrice(b);
 
-      // 7. Condition
-      if (selectedConditions.length > 0) {
-        const cond = detectProductCondition(product).toLowerCase();
-        const matchesCond = selectedConditions.some((c) => c.toLowerCase() === cond);
-        if (!matchesCond) return false;
-      }
-
-      // 8. Storage
-      if (selectedStorage.length > 0) {
-        const storages = detectProductStorage(product).map((s) => s.toLowerCase());
-        const matchesStorage = selectedStorage.some((s) => storages.includes(s.toLowerCase()));
-        if (!matchesStorage) return false;
-      }
-
-      // 9. Warranty
-      if (selectedWarranties.length > 0) {
-        const warr = (product.warranty || product.brand_warranty || "").toLowerCase();
-        const matchesWarr = selectedWarranties.some((w) => warr.includes(w.toLowerCase()));
-        if (!matchesWarr) return false;
-      }
-
-      // 10. Deals & Flags
-      if (newArrivalsOnly && !product.is_new_arrival) return false;
-      if (featuredOnly && !product.featured) return false;
-      if (
-        onSaleOnly &&
-        !(
-          (product.old_price && product.old_price > product.price) ||
-          (product.sale_price && product.sale_price < product.price)
-        )
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-
-    // Sort Results
-    list = [...list].sort((a, b) => {
-      const pa = getEffectivePrice(a);
-      const pb = getEffectivePrice(b);
-
-      if (sortKey === "price-asc") {
-        return pa - pb;
-      }
-      if (sortKey === "price-desc") {
-        return pb - pa;
-      }
-      if (sortKey === "newest") {
-        const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-        const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-        if (dateA !== dateB) return dateB - dateA;
-        return (b.is_new_arrival ? 1 : 0) - (a.is_new_arrival ? 1 : 0);
-      }
-      if (sortKey === "biggest-discount") {
-        const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
-        const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
-        return discB - discA;
-      }
-      // Default: Featured
-      if (a.featured !== b.featured) {
+        if (sortKey === "price_asc" || sortKey === "price-asc") return pa - pb;
+        if (sortKey === "price_desc" || sortKey === "price-desc") return pb - pa;
+        if (sortKey === "newest") {
+          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        }
+        if (sortKey === "discount" || sortKey === "biggest-discount") {
+          const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
+          const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
+          return discB - discA;
+        }
+        // Default: Featured
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-      }
-      const dateA = a.created_at ? new Date(a.created_at).getTime() : 0;
-      const dateB = b.created_at ? new Date(b.created_at).getTime() : 0;
-      return dateB - dateA;
-    });
-
-    return list;
+      });
   }, [
     initialProducts,
-    searchQuery,
-    selectedQuickCategory,
+    activePrimaryTab,
     selectedCategories,
     selectedBrands,
-    minPrice,
-    maxPrice,
-    quickPriceMax,
     inStockOnly,
     selectedAvailability,
-    selectedConditions,
-    selectedStorage,
-    selectedWarranties,
-    newArrivalsOnly,
-    featuredOnly,
-    onSaleOnly,
+    minPrice,
+    maxPrice,
+    searchQuery,
     sortKey,
   ]);
 
-  /* ─────────────────────────────────────────────────────────────
-     ACTIVE FILTER CHIPS LIST (Short, clean customer-facing labels)
-  ───────────────────────────────────────────────────────────── */
-  const activeFilterChips: ActiveFilterChip[] = useMemo(() => {
-    const chips: ActiveFilterChip[] = [];
+  /* ── Active Filter Chips ── */
+  const activeChips = useMemo(() => {
+    const chips: { id: string; label: string; onRemove: () => void }[] = [];
 
-    // Search Query
-    if (searchQuery.trim()) {
+    if (activePrimaryTab !== "all") {
+      const t = PRIMARY_CATEGORY_TABS.find((tab) => tab.id === activePrimaryTab);
       chips.push({
-        id: "search",
-        label: `"${searchQuery.trim()}"`,
-        onRemove: () => {
-          setSearchQuery("");
-          updateUrlParams({ search: null });
-        },
+        id: "tab",
+        label: t?.label || activePrimaryTab,
+        onRemove: () => handlePrimaryTabChange("all"),
       });
     }
 
-    // Quick Category
-    if (selectedQuickCategory && selectedQuickCategory !== "all") {
-      const qDef = QUICK_CATEGORIES.find((c) => c.id === selectedQuickCategory);
-      chips.push({
-        id: `qcat-${selectedQuickCategory}`,
-        label: qDef ? qDef.label : selectedQuickCategory,
-        onRemove: () => {
-          setSelectedQuickCategory("all");
-          updateUrlParams({ cat_chip: null });
-        },
-      });
-    }
-
-    // Sidebar Categories
     selectedCategories.forEach((c) => {
-      const catObj = categories.find(
-        (cat) => cat.id === c || cat.slug === c || cat.name.toLowerCase() === c.toLowerCase()
-      );
       chips.push({
         id: `cat-${c}`,
-        label: catObj ? catObj.name : c,
+        label: c,
         onRemove: () => handleToggleCategory(c),
       });
     });
 
-    // Brands
     selectedBrands.forEach((b) => {
       chips.push({
         id: `brand-${b}`,
@@ -609,134 +324,66 @@ export default function ProductsClient({
       });
     });
 
-    // Price
-    if (minPrice || maxPrice) {
-      const mn = minPrice ? parseInt(minPrice) : 0;
-      const mx = maxPrice ? parseInt(maxPrice) : 0;
-      let label = "";
-      if (!mn && mx) label = `Under ${fmtLKR(mx)}`;
-      else if (mn && !mx) label = `Above ${fmtLKR(mn)}`;
-      else if (mn && mx) label = `${fmtLKR(mn)} – ${fmtLKR(mx)}`;
-      else label = "Price Filter";
-
-      chips.push({
-        id: "price-range",
-        label,
-        onRemove: () => {
-          setMinPrice("");
-          setMaxPrice("");
-          setPendingMin("");
-          setPendingMax("");
-          setSliderLow(catalogMin);
-          setSliderHigh(catalogMax);
-          updateUrlParams({ minPrice: null, maxPrice: null });
-        },
-      });
-    }
-
-    // Quick Price Cap
-    if (quickPriceMax) {
-      chips.push({
-        id: `quick-price-${quickPriceMax}`,
-        label: `Under ${fmtLKR(quickPriceMax)}`,
-        onRemove: () => handleToggleQuickPrice(null),
-      });
-    }
-
-    // Availability
     if (inStockOnly) {
       chips.push({
-        id: "in-stock",
+        id: "instock",
         label: "In Stock",
         onRemove: handleToggleInStock,
       });
     }
 
-    selectedAvailability.forEach((a) => {
-      const label = a === "in_stock" ? "In Stock" : a === "low_stock" ? "Low Stock" : "Out of Stock";
+    if (minPrice || maxPrice) {
+      const mn = minPrice ? `From LKR ${Number(minPrice).toLocaleString()}` : "";
+      const mx = maxPrice ? `Up to LKR ${Number(maxPrice).toLocaleString()}` : "";
       chips.push({
-        id: `avail-${a}`,
-        label,
-        onRemove: () => handleToggleAvailability(a),
-      });
-    });
-
-    // Condition
-    selectedConditions.forEach((c) => {
-      chips.push({
-        id: `cond-${c}`,
-        label: c,
-        onRemove: () => handleToggleCondition(c),
-      });
-    });
-
-    // Storage
-    selectedStorage.forEach((s) => {
-      chips.push({
-        id: `storage-${s}`,
-        label: s,
-        onRemove: () => handleToggleStorage(s),
-      });
-    });
-
-    // Warranty
-    selectedWarranties.forEach((w) => {
-      let cleanW = w;
-      const lower = w.toLowerCase();
-      if (lower.includes("6 month") || lower.includes("six month")) cleanW = "6 Months";
-      else if (lower.includes("3 month") || lower.includes("three month")) cleanW = "3 Months";
-      else if (lower.includes("1 year apple") || lower.includes("apple care")) cleanW = "1 Yr Apple Care";
-      else if (lower.includes("1 year") || lower.includes("one year")) cleanW = "1 Year";
-      else if (lower.includes("2 year") || lower.includes("two year")) cleanW = "2 Years";
-      else cleanW = w.replace(/warranty|limited/gi, "").trim() || w;
-
-      chips.push({
-        id: `warr-${w}`,
-        label: `Warranty: ${cleanW}`,
-        onRemove: () => handleToggleWarranty(w),
-      });
-    });
-
-    // Flags
-    if (newArrivalsOnly) {
-      chips.push({
-        id: "flag-new",
-        label: "New Arrivals",
-        onRemove: handleToggleNewArrivals,
+        id: "price",
+        label: [mn, mx].filter(Boolean).join(" - "),
+        onRemove: () => {
+          setPendingMin("");
+          setPendingMax("");
+          setMinPrice("");
+          setMaxPrice("");
+          updateUrlParams({ minPrice: null, maxPrice: null, page: null });
+        },
       });
     }
-    if (onSaleOnly) {
+
+    if (searchQuery.trim()) {
       chips.push({
-        id: "flag-sale",
-        label: "Best Deals",
-        onRemove: handleToggleOnSale,
+        id: "search",
+        label: `"${searchQuery.trim()}"`,
+        onRemove: () => {
+          setSearchQuery("");
+          updateUrlParams({ search: null, page: null });
+        },
       });
     }
 
     return chips;
   }, [
-    searchQuery,
-    selectedQuickCategory,
+    activePrimaryTab,
     selectedCategories,
     selectedBrands,
+    inStockOnly,
     minPrice,
     maxPrice,
-    quickPriceMax,
-    inStockOnly,
-    selectedAvailability,
-    selectedConditions,
-    selectedStorage,
-    selectedWarranties,
-    newArrivalsOnly,
-    onSaleOnly,
-    categories,
-    catalogMin,
-    catalogMax,
+    searchQuery,
+    updateUrlParams,
   ]);
 
-  /* ─────────────────────────────────────────────────────────────
-     SIDEBAR PROPS
-  ───────────────────────────────────────────────────────────── */
+  /* ── Pagination ── */
+  const totalPages = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE) || 1;
+  const paginatedProducts = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredProducts.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredProducts, currentPage]);
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+    updateUrlParams({ page: page === 1 ? null : page.toString() });
+    window.scrollTo({ top: 180, behavior: "smooth" });
+  };
+
   const sidebarProps = {
     allProducts: initialProducts,
     categories,
@@ -746,11 +393,14 @@ export default function ProductsClient({
     selectedBrands,
     onToggleBrand: handleToggleBrand,
     onClearBrands: handleClearBrands,
-    priceMin: catalogMin,
-    priceMax: catalogMax,
+    priceMin: 0,
+    priceMax: 1000000,
     sliderLow,
     sliderHigh,
-    onSliderChange: handleSliderChange,
+    onSliderChange: (low: number, high: number) => {
+      setSliderLow(low);
+      setSliderHigh(high);
+    },
     pendingMin,
     pendingMax,
     setPendingMin,
@@ -759,267 +409,320 @@ export default function ProductsClient({
     onApplyPrice: handleApplyPrice,
     selectedAvailability,
     onToggleAvailability: handleToggleAvailability,
-    selectedConditions,
-    onToggleCondition: handleToggleCondition,
-    selectedStorage,
-    onToggleStorage: handleToggleStorage,
-    selectedWarranties,
-    onToggleWarranty: handleToggleWarranty,
-    onApplyAll: () => setShowMobileFilters(false),
     onClearAll: handleClearAll,
   };
 
-  /* ════════════════════════════════════════════════════════════
-     RENDER
-  ════════════════════════════════════════════════════════════ */
   return (
-    <div className="bg-white min-h-screen text-neutral-900 pb-20">
-
-      {/* ── 1. Page Header & Hero Discovery Hub (Compact connected layout) ── */}
-      <section className="bg-white border-b border-neutral-100 pt-5 sm:pt-6 pb-4 sm:pb-5">
-        <div className="max-w-[1440px] mx-auto px-4 lg:px-8 text-center sm:text-left">
-          
-          {/* Title */}
-          <div className="space-y-0.5 mb-4">
-            <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-neutral-400 block">
-              STREET MOBILE CATALOG
-            </span>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight">
-              SHOP ALL
-            </h1>
-          </div>
-
-          {/* ── Main Search Bar (Desktop width ~880px, centered) ── */}
-          <div className="mb-4">
-            <ShopSearchBar
-              searchQuery={searchQuery}
-              onSearchChange={handleSearchChange}
-              onSearchSubmit={handleSearchSubmit}
-              products={initialProducts}
-            />
-          </div>
-
-          {/* ── Quick Category Chips (Outline Lucide icons, smooth scroll & edge fade) ── */}
-          <div>
-            <ShopCategoryChips
-              selectedCategoryId={selectedQuickCategory}
-              onSelectCategory={handleQuickCategorySelect}
-            />
-          </div>
-
-        </div>
-      </section>
-
-      {/* ── 2. Sticky Mobile Control Bar ── */}
-      <div className="lg:hidden sticky top-[56px] sm:top-[64px] z-20 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 py-2.5 px-4 flex items-center justify-between shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setShowMobileFilters(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black text-white text-xs font-bold shadow-2xs hover:bg-neutral-800 transition-colors"
+    <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-4 sm:pt-6">
+        
+        {/* ── 1. Breadcrumb ── */}
+        <nav
+          aria-label="Breadcrumb"
+          className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-4 select-none"
         >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Filters</span>
-          {activeFilterChips.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
-              {activeFilterChips.length}
-            </span>
-          )}
-        </button>
+          <Link href="/" className="hover:text-black transition-colors">
+            Home
+          </Link>
+          <span className="text-neutral-400">/</span>
+          <span className="text-black font-bold">Shop All</span>
+        </nav>
 
-        <span className="text-xs font-bold text-neutral-500">
-          {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"}
-        </span>
-
-        {/* Mobile Sort */}
-        <div className="relative">
-          <select
-            value={sortKey}
-            onChange={(e) => handleSortChange(e.target.value as SortOptionValue)}
-            className="appearance-none pl-3 pr-7 py-1.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 outline-none cursor-pointer"
-          >
-            <option value="featured">Sort: Featured</option>
-            <option value="newest">Sort: Newest</option>
-            <option value="price-asc">Sort: Price: Low to High</option>
-            <option value="price-desc">Sort: Price: High to Low</option>
-            <option value="biggest-discount">Sort: Biggest Discount</option>
-          </select>
-        </div>
-      </div>
-
-      {/* ── 3. Main Catalog Container (Tightened desktop spacing: max 32px to toolbar) ── */}
-      <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-4 sm:pt-6 pb-12">
-
-        {/* ── Results Toolbar (Desktop & Tablet: single horizontal row) ── */}
-        <div className="mb-4">
-          <ShopResultsToolbar
-            totalCount={filteredProducts.length}
-            activeFilters={activeFilterChips}
-            onClearAll={handleClearAll}
-            sortKey={sortKey}
-            onSortChange={handleSortChange}
-            onOpenMobileFilters={() => setShowMobileFilters(true)}
-          />
+        {/* ── 2. Compact Page Heading ── */}
+        <div className="mb-6">
+          <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+            Shop All Products
+          </h1>
+          <p className="text-sm sm:text-base text-neutral-500 font-medium mt-1">
+            Discover genuine phones, laptops and accessories.
+          </p>
         </div>
 
-        {/* ── Two-Column Layout (Sidebar 250-260px, aligned top) ── */}
-        <div className="flex flex-col lg:flex-row gap-6 xl:gap-8 items-start">
-
-          {/* Desktop Filter Sidebar (Width 255px) */}
-          <aside className="hidden lg:block w-[255px] shrink-0">
-            <div className="sticky top-[100px] bg-white border border-neutral-200/80 rounded-2xl p-4.5 shadow-2xs">
-              <ShopFilterSidebar {...sidebarProps} />
-            </div>
-          </aside>
-
-          {/* Product Results Grid */}
-          <main className="flex-1 min-w-0 w-full">
-            {filteredProducts.length === 0 ? (
-              /* ── 4. Empty State ── */
-              <div className="text-center py-14 sm:py-16 px-4 bg-[#FAFAFB] rounded-3xl border border-neutral-200/80 shadow-2xs max-w-2xl mx-auto my-2">
-                <div className="w-14 h-14 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center mx-auto mb-3 shadow-2xs">
-                  <Package className="w-7 h-7 text-neutral-400" />
-                </div>
-                
-                <h3 className="text-base sm:text-lg font-black text-neutral-900 tracking-tight">
-                  No products match your search or selected filters.
-                </h3>
-                
-                <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 max-w-md mx-auto font-medium">
-                  Try clearing your active filters, expanding your price range, or checking for typo variations in your search term.
-                </p>
-
-                {/* Actions */}
-                <div className="flex flex-wrap items-center justify-center gap-2.5 mt-5">
-                  {activeFilterChips.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={handleClearAll}
-                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-all shadow-2xs"
-                    >
-                      <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Clear Filters</span>
-                    </button>
-                  )}
-
-                  <button
-                    type="button"
-                    onClick={handleClearAll}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-white border border-neutral-300 text-neutral-800 text-xs font-bold hover:border-black hover:text-black transition-all shadow-2xs"
-                  >
-                    <span>View All Products</span>
-                  </button>
-
-                  <a
-                    href="https://wa.me/94774141118?text=Hello%20Street%20Mobile,%20I'm%20looking%20for%20a%20product%20on%20your%20website"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-full bg-[#25D366] text-white text-xs font-bold hover:bg-[#1EBE5D] transition-all shadow-2xs"
-                  >
-                    <MessageCircle className="w-4 h-4" />
-                    <span>Chat on WhatsApp</span>
-                  </a>
-                </div>
-              </div>
-            ) : (
-              /* ── 5. Product Grid with Strict Alignment & Larger Images ── */
-              <AnimatePresence mode="popLayout">
-                <motion.div
-                  key={filteredProducts.map((p) => p.id).join("-")}
-                  initial="hidden"
-                  animate="show"
-                  className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-5"
+        {/* ── 3. Primary Category Underline Navigation Tabs ── */}
+        <div className="flex items-center justify-start border-b border-neutral-200 mb-6 overflow-x-auto whitespace-nowrap custom-scrollbar">
+          <div className="flex items-center gap-2 sm:gap-6 px-1">
+            {PRIMARY_CATEGORY_TABS.map((tab) => {
+              const isActive = activePrimaryTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => handlePrimaryTabChange(tab.id)}
+                  className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                    isActive
+                      ? "text-black font-extrabold border-b-2 border-[#ED0712] -mb-[1px]"
+                      : "text-neutral-600 hover:text-black border-b-2 border-transparent"
+                  }`}
                 >
-                  {filteredProducts.map((product) => (
-                    <motion.div key={product.id} variants={cardVariants} className="h-full">
-                      <ProductCard product={product} className="h-full" />
-                    </motion.div>
-                  ))}
-                </motion.div>
-              </AnimatePresence>
-            )}
-          </main>
-
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
+          </div>
         </div>
 
-      </div>
+        {/* ── 4. Compact Toolbar Row ── */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+          {/* Left: Filtered Count */}
+          <div className="text-sm font-bold text-neutral-900">
+            {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+          </div>
 
-      {/* ── 6. Mobile Filter Full-Height Bottom Sheet / Drawer ── */}
-      <AnimatePresence>
-        {showMobileFilters && (
-          <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
-            {/* Backdrop */}
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setShowMobileFilters(false)}
-              className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-            />
-
-            {/* Bottom Sheet Drawer */}
-            <motion.div
-              initial={{ y: "100%" }}
-              animate={{ y: 0 }}
-              exit={{ y: "100%" }}
-              transition={{ type: "spring", damping: 28, stiffness: 300 }}
-              className="relative bg-white rounded-t-3xl max-h-[88vh] flex flex-col z-10 shadow-2xl overflow-hidden"
+          {/* Right: Filters Button, In Stock, Sort, View Toggle */}
+          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+            {/* Filters Button (Mobile & Desktop Toggle) */}
+            <button
+              type="button"
+              onClick={() => setShowMobileFilters(true)}
+              className="px-3.5 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
             >
-              {/* Header */}
-              <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-20">
-                <div className="flex items-center gap-2">
-                  <SlidersHorizontal className="w-4 h-4 text-black" />
-                  <h3 className="font-black text-sm text-black">
-                    Filter Products
-                  </h3>
-                  {activeFilterChips.length > 0 && (
-                    <span className="px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-black">
-                      {activeFilterChips.length}
-                    </span>
-                  )}
-                </div>
+              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-500" />
+              <span>Filters</span>
+              {activeChips.length > 0 && (
+                <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
+                  {activeChips.length}
+                </span>
+              )}
+            </button>
 
+            {/* In Stock Toggle */}
+            <button
+              type="button"
+              onClick={handleToggleInStock}
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+                inStockOnly
+                  ? "bg-black text-white border-black"
+                  : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
+              }`}
+            >
+              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
+                {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
+              </span>
+              <span>In Stock</span>
+            </button>
+
+            {/* Sort Dropdown */}
+            <div className="relative">
+              <select
+                value={sortKey}
+                onChange={(e) => handleSortChange(e.target.value)}
+                className="bg-white border border-neutral-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+              >
+                <option value="featured">Featured</option>
+                <option value="newest">Newest</option>
+                <option value="price_asc">Price: Low to High</option>
+                <option value="price_desc">Price: High to Low</option>
+                <option value="discount">Highest Discount</option>
+              </select>
+            </div>
+
+            {/* View Mode Toggle */}
+            <div className="hidden sm:flex items-center bg-white border border-neutral-200 rounded-lg p-0.5 shadow-2xs">
+              <button
+                type="button"
+                onClick={() => setViewMode("grid")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "grid" ? "bg-neutral-100 text-black font-bold" : "text-neutral-400 hover:text-black"
+                }`}
+                title="Grid View"
+              >
+                <LayoutGrid className="w-3.5 h-3.5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode("list")}
+                className={`p-1.5 rounded-md transition-colors ${
+                  viewMode === "list" ? "bg-neutral-100 text-black font-bold" : "text-neutral-400 hover:text-black"
+                }`}
+                title="List View"
+              >
+                <List className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── 5. Active Filter Chips Row ── */}
+        {activeChips.length > 0 && (
+          <div className="flex items-center gap-2 flex-wrap mb-6 pb-2">
+            <span className="text-xs font-bold text-neutral-500">Active Filters:</span>
+            {activeChips.map((chip) => (
+              <span
+                key={chip.id}
+                className="inline-flex items-center gap-1.5 px-3 py-1 bg-neutral-100 border border-neutral-200/80 rounded-full text-xs font-semibold text-neutral-800"
+              >
+                <span>{chip.label}</span>
                 <button
                   type="button"
-                  onClick={() => setShowMobileFilters(false)}
-                  className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors"
-                  aria-label="Close filters"
+                  onClick={chip.onRemove}
+                  className="p-0.5 rounded-full hover:bg-neutral-200 text-neutral-500 hover:text-black cursor-pointer"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-3 h-3" />
                 </button>
-              </div>
+              </span>
+            ))}
 
-              {/* Scrollable Filters Body */}
-              <div className="p-5 overflow-y-auto flex-1 overscroll-contain">
-                <ShopFilterSidebar
-                  {...sidebarProps}
-                  onClose={() => setShowMobileFilters(false)}
-                />
-              </div>
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-xs font-bold text-[#ED0712] hover:text-red-700 ml-2 cursor-pointer transition-colors"
+            >
+              Clear all
+            </button>
+          </div>
+        )}
 
-              {/* Sticky Mobile Apply Footer */}
-              <div className="p-4 bg-white border-t border-neutral-100 flex items-center gap-3 sticky bottom-0 z-20">
+        {/* ── 6. Two-Column Layout (Sidebar + Product Grid) ── */}
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          
+          {/* Desktop Filter Sidebar (240px wide, sticky below navbar) */}
+          <aside className="hidden lg:block w-[240px] shrink-0 sticky top-28 self-start bg-white">
+            <ShopFilterSidebar {...sidebarProps} />
+          </aside>
+
+          {/* Main Product Grid Area */}
+          <main className="flex-1 min-w-0 w-full">
+            {filteredProducts.length === 0 ? (
+              /* Empty State */
+              <div className="bg-[#FAFAFB] border border-neutral-200/80 rounded-3xl p-12 text-center max-w-lg mx-auto shadow-2xs my-8">
+                <div className="w-14 h-14 rounded-2xl bg-white border border-neutral-200 flex items-center justify-center mx-auto mb-4 text-neutral-400 shadow-2xs">
+                  <Package className="w-7 h-7" />
+                </div>
+                <h3 className="text-base font-extrabold text-neutral-900 tracking-tight mb-1">
+                  No products match your filters.
+                </h3>
+                <p className="text-xs text-neutral-500 mb-5">
+                  Try clearing your selected filters or searching for another term.
+                </p>
                 <button
                   type="button"
                   onClick={handleClearAll}
-                  className="py-3 px-4 rounded-xl border border-neutral-200 text-xs font-bold text-neutral-600 hover:text-black transition-colors"
+                  className="px-5 py-2.5 bg-black hover:bg-neutral-800 text-white rounded-xl text-xs font-bold transition-all shadow-xs"
                 >
-                  Reset
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => setShowMobileFilters(false)}
-                  className="flex-1 py-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm flex items-center justify-center gap-2"
-                >
-                  <span>Show {filteredProducts.length} Products</span>
+                  Clear all filters
                 </button>
               </div>
+            ) : (
+              /* Product Grid (4 Columns Desktop) */
+              <div>
+                <div
+                  className={
+                    viewMode === "grid"
+                      ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
+                      : "grid grid-cols-1 gap-4"
+                  }
+                >
+                  {paginatedProducts.map((product) => (
+                    <ProductCard key={product.id} product={product} />
+                  ))}
+                </div>
 
-            </motion.div>
+                {/* ── 7. Desktop Pagination Controls ── */}
+                {totalPages > 1 && (
+                  <div className="mt-12 pt-6 border-t border-neutral-200 flex items-center justify-between">
+                    <button
+                      type="button"
+                      disabled={currentPage === 1}
+                      onClick={() => handlePageChange(currentPage - 1)}
+                      className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                    >
+                      <ChevronLeft className="w-3.5 h-3.5" />
+                      <span>Previous</span>
+                    </button>
+
+                    <div className="flex items-center gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
+                        <button
+                          key={pageNum}
+                          type="button"
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
+                            currentPage === pageNum
+                              ? "bg-black text-white shadow-xs"
+                              : "text-neutral-600 hover:bg-neutral-100"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      ))}
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => handlePageChange(currentPage + 1)}
+                      className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                    >
+                      <span>Next</span>
+                      <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
+          </main>
+        </div>
+
+      </div>
+
+      {/* ── 8. Mobile Filter Full-Height Bottom Sheet / Drawer ── */}
+      {showMobileFilters && (
+        <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
+          {/* Backdrop */}
+          <div
+            onClick={() => setShowMobileFilters(false)}
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+          />
+
+          {/* Drawer Sheet */}
+          <div className="relative bg-white rounded-t-3xl max-h-[88vh] flex flex-col z-10 shadow-2xl overflow-hidden">
+            {/* Header */}
+            <div className="p-4 border-b border-neutral-100 flex items-center justify-between sticky top-0 bg-white z-20">
+              <div className="flex items-center gap-2">
+                <SlidersHorizontal className="w-4 h-4 text-black" />
+                <h3 className="font-extrabold text-sm text-black">Filter Products</h3>
+                {activeChips.length > 0 && (
+                  <span className="px-2 py-0.5 rounded-full bg-black text-white text-[10px] font-black">
+                    {activeChips.length}
+                  </span>
+                )}
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="p-1.5 rounded-full hover:bg-neutral-100 text-neutral-500 hover:text-black transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Body */}
+            <div className="p-5 overflow-y-auto flex-1 overscroll-contain">
+              <ShopFilterSidebar {...sidebarProps} />
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 bg-white border-t border-neutral-100 flex items-center gap-3 sticky bottom-0 z-20">
+              <button
+                type="button"
+                onClick={handleClearAll}
+                className="py-3 px-4 rounded-xl border border-neutral-200 text-xs font-bold text-neutral-600 hover:text-black transition-colors"
+              >
+                Reset
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setShowMobileFilters(false)}
+                className="flex-1 py-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors shadow-sm flex items-center justify-center gap-2"
+              >
+                <span>Show {filteredProducts.length} Products</span>
+              </button>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
-
+        </div>
+      )}
     </div>
   );
 }
