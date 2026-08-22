@@ -96,6 +96,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const [uploadingBanner, setUploadingBanner] = useState<string | null>(null);
 
   const fetchBrandsAndDepartments = async () => {
     setLoading(true);
@@ -158,76 +159,84 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         show_on_homepage: true,
         featured: false,
         order: brands.length + 1,
-        seo_title: "",
-        seo_description: "",
       };
       setFormData(newBrand);
 
-      // Default configs for new brand
-      const dummyBrand: Brand = {
-        id: "brand-new",
-        name: "New Brand",
-        slug: "new-brand",
-        assigned_departments: ["phones"],
-      };
+      // Automated Draft Configs for newly added brand
       const configs: Record<string, DepartmentBrandPageConfig> = {};
       for (const dept of departments) {
-        configs[dept.slug] = generateDefaultDepartmentPageConfig(dept.slug, dummyBrand);
+        configs[dept.slug] = generateDefaultDepartmentPageConfig(dept.slug, {
+          id: `brand-temp`,
+          name: "New Brand",
+          slug: "new-brand",
+          status: "active",
+          enabled: true,
+        });
       }
       setPageConfigs(configs);
       setActivePageDeptSlug("phones");
     }
-
     setModalSubTab("general");
     setIsModalOpen(true);
+    setSaveSuccess(false);
   };
 
-  // Toggle department assignment
   const handleToggleDepartment = (deptSlug: string) => {
     const current = formData.assigned_departments || [];
-    const next = current.includes(deptSlug)
-      ? current.filter((s) => s !== deptSlug)
-      : [...current, deptSlug];
-
-    setFormData((prev) => ({ ...prev, assigned_departments: next }));
+    let updated: string[];
+    if (current.includes(deptSlug)) {
+      if (current.length === 1) {
+        alert("A brand must be assigned to at least one department.");
+        return;
+      }
+      updated = current.filter((s) => s !== deptSlug);
+    } else {
+      updated = [...current, deptSlug];
+    }
+    setFormData({ ...formData, assigned_departments: updated });
+    if (!updated.includes(activePageDeptSlug)) {
+      setActivePageDeptSlug(updated[0] || "phones");
+    }
   };
 
-  // Update current department page config in state
   const handleUpdateActivePageConfig = (updates: Partial<DepartmentBrandPageConfig>) => {
     setPageConfigs((prev) => {
-      const current = prev[activePageDeptSlug] || generateDefaultDepartmentPageConfig(activePageDeptSlug, formData as Brand);
+      const current = prev[activePageDeptSlug] || generateDefaultDepartmentPageConfig(
+        activePageDeptSlug,
+        (editingBrand || { id: "temp", name: formData.name || "", slug: formData.slug || "" }) as Brand
+      );
       return {
         ...prev,
-        [activePageDeptSlug]: { ...current, ...updates },
+        [activePageDeptSlug]: {
+          ...current,
+          ...updates,
+          updatedAt: new Date().toISOString(),
+        },
       };
     });
   };
 
-  // Copy config from another department
-  const handleCopyConfigFromDept = (sourceDeptSlug: string) => {
-    const source = pageConfigs[sourceDeptSlug];
-    if (!source) return;
-    handleUpdateActivePageConfig({
-      eyebrow: source.eyebrow,
-      heading: source.heading,
-      description: source.description,
-      desktopBannerUrl: source.desktopBannerUrl,
-      tabletBannerUrl: source.tabletBannerUrl,
-      mobileBannerUrl: source.mobileBannerUrl,
-      headingColor: source.headingColor,
-      descriptionColor: source.descriptionColor,
-      eyebrowColor: source.eyebrowColor,
-      accentColor: source.accentColor,
-      primaryCtaBackground: source.primaryCtaBackground,
-      primaryCtaTextColor: source.primaryCtaTextColor,
-      contentBackgroundColor: source.contentBackgroundColor,
-      contentBackgroundOpacity: source.contentBackgroundOpacity,
-      imageOverlayOpacity: source.imageOverlayOpacity,
-    });
-    alert(`Copied configuration from ${sourceDeptSlug}!`);
+  const handleBannerUpload = async (file: File, type: "desktop" | "tablet" | "mobile") => {
+    setUploadingBanner(type);
+    try {
+      const url = await uploadImageWithFallback(file, "brand-banners");
+      if (url) {
+        if (type === "desktop") {
+          handleUpdateActivePageConfig({ desktopBannerUrl: url });
+        } else if (type === "tablet") {
+          handleUpdateActivePageConfig({ tabletBannerUrl: url });
+        } else {
+          handleUpdateActivePageConfig({ mobileBannerUrl: url });
+        }
+      }
+    } catch (err) {
+      console.error("Banner upload failed:", err);
+      alert("Failed to upload banner image. Please try entering a URL instead.");
+    } finally {
+      setUploadingBanner(null);
+    }
   };
 
-  // Save Brand and all assigned Department Page Configs
   const handleSaveBrand = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name?.trim()) {
@@ -235,176 +244,160 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       return;
     }
 
-    const slug = (formData.slug || formData.name).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    setIsSaving(true);
+    const slug =
+      formData.slug?.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-") ||
+      formData.name.toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
+    setIsSaving(true);
     try {
-      const brandPayload: Brand = {
+      const brandToSave: Brand = {
         id: editingBrand?.id || `brand-${slug}`,
         name: formData.name.trim(),
         slug,
-        logo_url: formData.logo_url || "",
-        icon_url: formData.icon_url || "",
+        logo_url: formData.logo_url?.trim() || "",
+        icon_url: formData.icon_url?.trim() || "",
         description: formData.description || "",
         assigned_departments: formData.assigned_departments || ["phones"],
-        status: formData.status || "active",
+        status: formData.enabled !== false ? "active" : "inactive",
         enabled: formData.enabled !== false,
         show_on_homepage: formData.show_on_homepage !== false,
-        featured: formData.featured || false,
+        featured: Boolean(formData.featured),
         order: Number(formData.order) || 1,
-        seo_title: formData.seo_title || "",
+        seo_title: formData.seo_title || `${formData.name} Products | Street Mobile`,
         seo_description: formData.seo_description || "",
+        updatedAt: new Date().toISOString(),
       };
 
-      // 1. Save Brand
-      await saveBrandToDb(brandPayload);
+      await saveBrandToDb(brandToSave);
 
-      // 2. Save all active department page configs
-      for (const deptSlug of brandPayload.assigned_departments || []) {
-        const config = pageConfigs[deptSlug] || generateDefaultDepartmentPageConfig(deptSlug, brandPayload);
-        await saveDepartmentBrandPageConfig({
-          ...config,
-          brandId: brandPayload.id,
-          brandSlug: brandPayload.slug,
-          departmentSlug: deptSlug,
-        });
+      // Save each department page configuration
+      for (const deptSlug of brandToSave.assigned_departments || ["phones"]) {
+        const config = pageConfigs[deptSlug];
+        if (config) {
+          const configToSave: DepartmentBrandPageConfig = {
+            ...config,
+            id: `${deptSlug}_${slug}`,
+            brandId: brandToSave.id,
+            brandSlug: slug,
+            departmentSlug: deptSlug,
+            enabled: true,
+            status: "published",
+            updatedAt: new Date().toISOString(),
+          };
+          await saveDepartmentBrandPageConfig(configToSave);
+        }
       }
 
       setSaveSuccess(true);
+      await fetchBrandsAndDepartments();
       setTimeout(() => {
-        setSaveSuccess(false);
         setIsModalOpen(false);
       }, 1000);
-
-      await fetchBrandsAndDepartments();
     } catch (err) {
-      console.error("Failed to save brand & department pages:", err);
-      alert("Failed to save brand. Please check your internet connection.");
+      console.error("Failed to save brand:", err);
+      alert("Failed to save brand details.");
     } finally {
       setIsSaving(false);
     }
   };
 
-  const handleDeleteBrand = async (id: string, name: string) => {
-    if (confirm(`Are you sure you want to delete brand "${name}"? This action cannot be undone.`)) {
-      try {
-        await deleteBrandFromDb(id);
-        await fetchBrandsAndDepartments();
-      } catch (err) {
-        alert("Failed to delete brand.");
-      }
+  const handleDeleteBrand = async (brandId: string, brandName: string) => {
+    if (!confirm(`Are you sure you want to delete brand "${brandName}"? This will also remove all its department page configurations.`)) {
+      return;
+    }
+    try {
+      await deleteBrandFromDb(brandId);
+      await fetchBrandsAndDepartments();
+    } catch (e) {
+      console.error("Failed to delete brand:", e);
+      alert("Failed to delete brand.");
     }
   };
 
-  // Duplicate brand detector
-  const duplicateWarnings = useMemo(() => {
-    const map = new Map<string, Brand[]>();
-    brands.forEach((b) => {
-      const cleanName = (b.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
-      const arr = map.get(cleanName) || [];
-      arr.push(b);
-      map.set(cleanName, arr);
-    });
-    return Array.from(map.values()).filter((arr) => arr.length > 1);
-  }, [brands]);
-
-  // Filtered Brands List
+  // Filtered Brands
   const filteredBrands = useMemo(() => {
     return brands.filter((b) => {
-      const matchesSearch =
-        (b.name || "").toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (b.slug || "").toLowerCase().includes(searchQuery.toLowerCase());
-
-      if (!matchesSearch) return false;
-
       if (selectedDeptFilter !== "all") {
-        const assigned = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
-        if (!assigned.includes(selectedDeptFilter)) return false;
+        const depts = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
+        if (!depts.includes(selectedDeptFilter)) return false;
       }
-
+      if (searchQuery.trim()) {
+        const q = searchQuery.toLowerCase();
+        const matchName = b.name.toLowerCase().includes(q);
+        const matchSlug = b.slug.toLowerCase().includes(q);
+        return matchName || matchSlug;
+      }
       return true;
     });
-  }, [brands, searchQuery, selectedDeptFilter]);
+  }, [brands, selectedDeptFilter, searchQuery]);
+
+  const activeDepartment =
+    departments.find((d) => d.slug === activePageDeptSlug) || departments[0] || {
+      id: "dept-phones",
+      name: "Phones",
+      slug: "phones",
+    };
 
   const activePageConfig =
     pageConfigs[activePageDeptSlug] ||
-    generateDefaultDepartmentPageConfig(activePageDeptSlug, formData as Brand);
-
-  const activeDepartment =
-    departments.find((d) => d.slug === activePageDeptSlug) || DEFAULT_DEPARTMENTS[0];
+    generateDefaultDepartmentPageConfig(
+      activePageDeptSlug,
+      (editingBrand || { id: "temp", name: formData.name || "Brand", slug: formData.slug || "brand" }) as Brand
+    );
 
   return (
-    <div className="space-y-8 font-sans">
-      {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
+    <div className="space-y-6">
+      {/* ── TOP ACTION BAR ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5 border border-white/10 p-5 rounded-3xl">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
-              Brand &amp; Multi-Department Management
-            </h1>
-            <span className="px-3 py-0.5 rounded-full text-[11px] font-black uppercase bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              {brands.length} Brands
-            </span>
-          </div>
-          <p className="text-xs text-white/50 mt-1">
-            Configure department-specific landing pages, banner overlays, and category navigation for every brand.
+          <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
+            <Tag className="w-5 h-5 text-red-500" />
+            Brands &amp; Shop by Brand Catalog
+          </h2>
+          <p className="text-xs text-white/50 mt-0.5">
+            Manage brands, assign them to departments, and configure full-frame banner artwork.
           </p>
         </div>
 
         <button
           type="button"
           onClick={() => handleOpenModal()}
-          className="flex items-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 shrink-0 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer"
         >
-          <Plus className="w-4 h-4" /> Add New Brand
+          <Plus className="w-4 h-4" />
+          <span>Add New Brand</span>
         </button>
       </div>
 
-      {/* ── Duplicate Brand Warnings ── */}
-      {duplicateWarnings.length > 0 && (
-        <div className="p-4 bg-amber-500/10 border border-amber-500/30 rounded-2xl flex items-start gap-3">
-          <AlertTriangle className="w-5 h-5 text-amber-400 shrink-0 mt-0.5" />
-          <div className="text-xs">
-            <span className="font-bold text-amber-300">Duplicate Brand Name Detected: </span>
-            <span className="text-white/80">
-              {duplicateWarnings.map((group) => group.map((b) => b.name).join(" & ")).join(", ")}
-            </span>
-            <p className="text-white/50 text-[11px] mt-0.5">
-              Consider merging or removing obsolete records to ensure optimal customer navigation and SEO.
-            </p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Department Filter Tabs & Search ── */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-lg">
-        {/* Department Filter Pills */}
-        <div className="flex items-center gap-1.5 overflow-x-auto custom-scrollbar pb-1 sm:pb-0">
+      {/* ── FILTER & SEARCH TOOLBAR ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 border border-white/10 p-3 rounded-2xl">
+        {/* Department Filters */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
           <button
             type="button"
             onClick={() => setSelectedDeptFilter("all")}
-            className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
               selectedDeptFilter === "all"
-                ? "bg-blue-600 text-white shadow-md"
-                : "bg-white/5 text-white/60 hover:text-white"
+                ? "bg-white text-black shadow"
+                : "bg-white/5 text-white/70 hover:text-white"
             }`}
           >
-            All Brands ({brands.length})
+            All Departments ({brands.length})
           </button>
           {departments.map((dept) => {
-            const count = brands.filter((b) =>
-              (b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group)).includes(dept.slug)
-            ).length;
-
+            const count = brands.filter((b) => {
+              const depts = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
+              return depts.includes(dept.slug);
+            }).length;
             return (
               <button
                 key={dept.slug}
                 type="button"
                 onClick={() => setSelectedDeptFilter(dept.slug)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 cursor-pointer ${
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
                   selectedDeptFilter === dept.slug
-                    ? "bg-blue-600 text-white shadow-md"
-                    : "bg-white/5 text-white/60 hover:text-white"
+                    ? "bg-red-600 text-white shadow"
+                    : "bg-white/5 text-white/70 hover:text-white"
                 }`}
               >
                 {dept.name} ({count})
@@ -420,64 +413,64 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search brand name or slug..."
-            className="w-full bg-white/5 border border-white/10 pl-8 pr-3 py-1.5 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-semibold"
+            placeholder="Search brands by name or slug..."
+            className="w-full bg-white/5 border border-white/10 pl-8 pr-3 py-1.5 rounded-xl text-xs text-white placeholder-white/40 outline-none focus:border-red-500"
           />
         </div>
       </div>
 
-      {/* ── Brands Table ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+      {/* ── BRANDS TABLE ── */}
+      <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-white/5 text-white/60 border-b border-white/10 uppercase tracking-wider text-[10px] font-black">
+          <table className="w-full text-left text-xs text-white/80">
+            <thead className="bg-black/40 text-white/40 uppercase tracking-widest text-[10px] font-bold border-b border-white/10">
               <tr>
-                <th className="py-3.5 px-5">Brand</th>
-                <th className="py-3.5 px-4">Assigned Departments</th>
-                <th className="py-3.5 px-4">Status</th>
-                <th className="py-3.5 px-4">Homepage</th>
-                <th className="py-3.5 px-5 text-right">Actions</th>
+                <th className="py-3 px-5">Brand</th>
+                <th className="py-3 px-4">Slug</th>
+                <th className="py-3 px-4">Assigned Departments</th>
+                <th className="py-3 px-4">Status</th>
+                <th className="py-3 px-4">Homepage</th>
+                <th className="py-3 px-5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5 text-white/80">
+            <tbody className="divide-y divide-white/5">
               {filteredBrands.map((brand) => {
-                const assigned =
-                  brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
-
+                const depts = brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
                 return (
-                  <tr key={brand.id} className="hover:bg-white/[0.02] transition-colors">
-                    {/* Brand & Logo */}
+                  <tr key={brand.id} className="hover:bg-white/5 transition-colors">
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-white p-1.5 flex items-center justify-center border border-white/10 shrink-0">
+                        <div className="w-9 h-9 rounded-xl bg-white/10 p-1 flex items-center justify-center border border-white/10">
                           {brand.logo_url ? (
                             <img
                               src={brand.logo_url}
                               alt={brand.name}
-                              className="max-h-7 max-w-7 object-contain"
+                              className="w-full h-full object-contain filter brightness-0 invert"
                             />
                           ) : (
-                            <Tag className="w-4 h-4 text-black/40" />
+                            <span className="font-extrabold text-xs text-white/60">
+                              {brand.name.slice(0, 2).toUpperCase()}
+                            </span>
                           )}
                         </div>
                         <div>
-                          <div className="font-bold text-white text-sm">{brand.name}</div>
-                          <span className="text-[11px] font-mono text-white/40">/{brand.slug}</span>
+                          <span className="font-extrabold text-white block">{brand.name}</span>
+                          <span className="text-[10px] text-white/40">{brand.id}</span>
                         </div>
                       </div>
                     </td>
-
-                    {/* Assigned Departments */}
+                    <td className="py-3 px-4 font-mono text-white/60 text-[11px]">{brand.slug}</td>
                     <td className="py-3 px-4">
-                      <div className="flex flex-wrap gap-1.5">
-                        {assigned.map((dSlug) => {
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        {depts.map((dSlug) => {
                           const dept = departments.find((d) => d.slug === dSlug);
                           return (
                             <Link
                               key={dSlug}
                               href={`/shop-by-brand/${dSlug}/${brand.slug}`}
                               target="_blank"
-                              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border border-blue-500/20 text-[10px] font-bold transition-colors"
+                              className="px-2 py-0.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[10px] font-bold border border-blue-500/20 transition-colors flex items-center gap-1"
+                              title={`View ${brand.name} in ${dept?.name || dSlug}`}
                             >
                               <span>{dept?.name || dSlug}</span>
                               <ExternalLink className="w-2.5 h-2.5 opacity-60" />
@@ -486,21 +479,15 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         })}
                       </div>
                     </td>
-
-                    {/* Status */}
                     <td className="py-3 px-4">
-                      <span
-                        className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
-                          brand.enabled !== false && brand.status !== "inactive"
-                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                            : "bg-neutral-500/10 text-neutral-400 border-neutral-500/20"
-                        }`}
-                      >
+                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                        brand.enabled !== false && brand.status !== "inactive"
+                          ? "bg-emerald-500/20 text-emerald-400"
+                          : "bg-red-500/20 text-red-400"
+                      }`}>
                         {brand.enabled !== false && brand.status !== "inactive" ? "Active" : "Inactive"}
                       </span>
                     </td>
-
-                    {/* Show on Homepage */}
                     <td className="py-3 px-4">
                       {brand.show_on_homepage !== false ? (
                         <span className="text-emerald-400 font-bold text-[11px]">Visible</span>
@@ -508,8 +495,6 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         <span className="text-white/40 text-[11px]">Hidden</span>
                       )}
                     </td>
-
-                    {/* Actions */}
                     <td className="py-3 px-5 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <button
@@ -520,7 +505,6 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         >
                           <Edit className="w-3.5 h-3.5" />
                         </button>
-
                         <button
                           type="button"
                           onClick={() => handleDeleteBrand(brand.id, brand.name)}
@@ -551,11 +535,11 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                   {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add New Brand"}
                 </h2>
                 <p className="text-xs text-white/50">
-                  Manage brand details, department assignments, and landing page hero configurations.
+                  Configure brand details, assigned departments, and full-frame banner artwork.
                 </p>
               </div>
 
-              {/* Sub-Tabs Switcher */}
+              {/* Sub-Tabs */}
               <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
                 <button
                   type="button"
@@ -636,7 +620,6 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
                       />
                       
-                      {/* Logo Presets */}
                       <div className="flex items-center gap-1.5 flex-wrap mt-2">
                         <span className="text-[10px] text-white/40">Presets:</span>
                         {BRAND_LOGO_PRESETS.slice(0, 8).map((preset) => (
@@ -730,12 +713,12 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 </div>
               )}
 
-              {/* SUBTAB 3: DEPARTMENT PAGES CONFIGURATION */}
+              {/* SUBTAB 3: DEPARTMENT PAGES (BANNER ARTWORK & PAGE HEADINGS) */}
               {modalSubTab === "pages" && (
                 <div className="space-y-6">
                   {/* Department Sub-Selector */}
-                  <div className="flex items-center gap-2 border-b border-white/10 pb-3">
-                    <span className="text-xs font-bold text-white/50">Editing Page for:</span>
+                  <div className="flex items-center gap-2 border-b border-white/10 pb-3 overflow-x-auto">
+                    <span className="text-xs font-bold text-white/50 whitespace-nowrap">Department Page:</span>
                     {(formData.assigned_departments || ["phones"]).map((dSlug) => {
                       const dept = departments.find((d) => d.slug === dSlug);
                       return (
@@ -743,7 +726,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                           key={dSlug}
                           type="button"
                           onClick={() => setActivePageDeptSlug(dSlug)}
-                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
+                          className={`px-3 py-1 rounded-xl text-xs font-bold transition-all whitespace-nowrap cursor-pointer ${
                             activePageDeptSlug === dSlug
                               ? "bg-blue-600 text-white shadow"
                               : "bg-white/5 text-white/60 hover:text-white"
@@ -753,39 +736,129 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         </button>
                       );
                     })}
-
-                    <button
-                      type="button"
-                      onClick={() => handleCopyConfigFromDept(formData.assigned_departments?.[0] || "phones")}
-                      className="ml-auto text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1"
-                    >
-                      <Copy className="w-3 h-3" /> Duplicate Config from First Dept
-                    </button>
                   </div>
 
-                  {/* Banner Image & Guidance */}
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                  {/* ── BANNER ARTWORK SECTION ── */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
                     <div className="flex items-center justify-between">
                       <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                        <ImageIcon className="w-3.5 h-3.5 text-blue-400" />
-                        Department Banner Image
+                        <ImageIcon className="w-4 h-4 text-blue-400" />
+                        Full-Frame Promotional Banner Artwork
                       </span>
-                      <span className="text-[10px] font-mono text-emerald-400 font-bold">
-                        Recommended: 1600 × 500px (WebP / JPG)
-                      </span>
+                      <label className="flex items-center gap-2 text-xs font-bold text-white cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={activePageConfig.bannerEnabled !== false}
+                          onChange={(e) => handleUpdateActivePageConfig({ bannerEnabled: e.target.checked })}
+                          className="accent-blue-600 rounded"
+                        />
+                        Banner Enabled
+                      </label>
                     </div>
 
-                    <input
-                      type="url"
-                      value={activePageConfig.desktopBannerUrl || ""}
-                      onChange={(e) => handleUpdateActivePageConfig({ desktopBannerUrl: e.target.value })}
-                      placeholder="Desktop Banner URL (https://images.unsplash.com/...)"
-                      className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
-                    />
+                    {/* Image Size Guidance */}
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[11px] bg-black/30 p-3 rounded-xl border border-white/5">
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-blue-400 block">Desktop (≥ 1024px)</span>
+                        <span className="text-white/60">Recommended: 1600 × 500px</span>
+                        <span className="text-white/40 block">Ratio: 16:5 · Max 1.5MB</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-amber-400 block">Tablet (768–1023px)</span>
+                        <span className="text-white/60">Recommended: 1200 × 600px</span>
+                        <span className="text-white/40 block">Ratio: 2:1 · Max 1.2MB</span>
+                      </div>
+                      <div className="space-y-0.5">
+                        <span className="font-bold text-emerald-400 block">Mobile (&lt; 768px)</span>
+                        <span className="text-white/60">Recommended: 900 × 1100px</span>
+                        <span className="text-white/40 block">Ratio: ~4:5 · Max 1MB</span>
+                      </div>
+                    </div>
 
-                    {/* Live Thumbnail */}
+                    {/* Desktop Banner Input */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-white/80">Desktop Banner Image URL (16:5)</label>
+                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-3 h-3" />
+                          <span>{uploadingBanner === "desktop" ? "Uploading..." : "Upload File"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleBannerUpload(file, "desktop");
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={activePageConfig.desktopBannerUrl || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ desktopBannerUrl: e.target.value })}
+                        placeholder="https://images.unsplash.com/... (1600 × 500px)"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* Tablet Banner Input */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-white/80">Tablet Banner Image URL (2:1 Optional)</label>
+                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-3 h-3" />
+                          <span>{uploadingBanner === "tablet" ? "Uploading..." : "Upload File"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleBannerUpload(file, "tablet");
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={activePageConfig.tabletBannerUrl || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ tabletBannerUrl: e.target.value })}
+                        placeholder="Optional tablet banner (1200 × 600px)"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* Mobile Banner Input */}
+                    <div className="space-y-1.5 text-xs">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-white/80">Mobile Banner Image URL (4:5 Optional)</label>
+                        <label className="text-[11px] font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 cursor-pointer">
+                          <Upload className="w-3 h-3" />
+                          <span>{uploadingBanner === "mobile" ? "Uploading..." : "Upload File"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) handleBannerUpload(file, "mobile");
+                            }}
+                          />
+                        </label>
+                      </div>
+                      <input
+                        type="url"
+                        value={activePageConfig.mobileBannerUrl || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ mobileBannerUrl: e.target.value })}
+                        placeholder="Optional mobile banner (900 × 1100px)"
+                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                      />
+                    </div>
+
+                    {/* Banner Live Thumbnail Preview */}
                     {activePageConfig.desktopBannerUrl && (
-                      <div className="relative w-full h-32 rounded-xl overflow-hidden border border-white/10">
+                      <div className="relative w-full aspect-[16/5] rounded-xl overflow-hidden border border-white/10 bg-neutral-900">
                         <img
                           src={activePageConfig.desktopBannerUrl}
                           alt="Banner Preview"
@@ -793,125 +866,71 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         />
                       </div>
                     )}
+
+                    {/* Banner Link Destination Settings */}
+                    <div className="pt-2 border-t border-white/10 space-y-3 text-xs">
+                      <label className="flex items-center gap-2 font-bold text-white cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(activePageConfig.linkEnabled)}
+                          onChange={(e) => handleUpdateActivePageConfig({ linkEnabled: e.target.checked })}
+                          className="accent-blue-600 rounded"
+                        />
+                        Make Complete Banner Clickable
+                      </label>
+
+                      {activePageConfig.linkEnabled && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pl-6">
+                          <div>
+                            <label className="block text-white/60 mb-1">Destination URL</label>
+                            <input
+                              type="text"
+                              value={activePageConfig.destinationUrl || ""}
+                              onChange={(e) => handleUpdateActivePageConfig({ destinationUrl: e.target.value })}
+                              placeholder="/products/iphone-16-pro or https://..."
+                              className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none focus:border-blue-500 font-mono text-xs"
+                            />
+                          </div>
+                          <div className="flex items-center pt-5">
+                            <label className="flex items-center gap-2 text-white/80 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={Boolean(activePageConfig.openInNewTab)}
+                                onChange={(e) => handleUpdateActivePageConfig({ openInNewTab: e.target.checked })}
+                                className="accent-blue-600 rounded"
+                              />
+                              Open Link in New Tab
+                            </label>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
-                  {/* HTML Overlay Text & CTAs */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
-                    <div>
-                      <label className="block text-white/70 font-bold mb-1">Eyebrow Tagline</label>
-                      <input
-                        type="text"
-                        value={activePageConfig.eyebrow || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ eyebrow: e.target.value })}
-                        placeholder="OFFICIAL APPLE STORE"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-semibold"
-                      />
-                    </div>
+                  {/* ── PAGE CONTENT HEADINGS (BELOW BANNER & TABS) ── */}
+                  <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 text-xs">
+                    <span className="font-bold text-white block">Product Section Heading &amp; Subtitle</span>
 
                     <div>
-                      <label className="block text-white/70 font-bold mb-1">Main Headline</label>
+                      <label className="block text-white/70 font-bold mb-1">Section Heading</label>
                       <input
                         type="text"
-                        value={activePageConfig.heading || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ heading: e.target.value })}
-                        placeholder="iPhone 16 Pro Max"
+                        value={activePageConfig.productSectionHeading || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ productSectionHeading: e.target.value })}
+                        placeholder={`e.g. ${formData.name} ${activeDepartment.name}`}
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
                       />
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className="block text-white/70 font-bold mb-1">Description</label>
+                    <div>
+                      <label className="block text-white/70 font-bold mb-1">Section Description</label>
                       <textarea
                         rows={2}
-                        value={activePageConfig.description || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ description: e.target.value })}
-                        placeholder="Explore the latest flagships with official warranty..."
+                        value={activePageConfig.productSectionDescription || ""}
+                        onChange={(e) => handleUpdateActivePageConfig({ productSectionDescription: e.target.value })}
+                        placeholder={`Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
                         className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 resize-none"
                       />
-                    </div>
-
-                    <div>
-                      <label className="block text-white/70 font-bold mb-1">Primary CTA Label</label>
-                      <input
-                        type="text"
-                        value={activePageConfig.primaryCtaLabel || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ primaryCtaLabel: e.target.value })}
-                        placeholder="Explore All iPhones"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-bold"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-white/70 font-bold mb-1">Primary CTA Destination</label>
-                      <input
-                        type="text"
-                        value={activePageConfig.primaryCtaUrl || ""}
-                        onChange={(e) => handleUpdateActivePageConfig({ primaryCtaUrl: e.target.value })}
-                        placeholder="#products"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 font-mono"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Colors & Appearance */}
-                  <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                    <span className="text-xs font-bold text-white flex items-center gap-1.5">
-                      <Palette className="w-3.5 h-3.5 text-amber-400" />
-                      Theme &amp; Accent Colors
-                    </span>
-
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                      <div>
-                        <label className="block text-white/60 text-[11px] mb-1">Heading Color</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={activePageConfig.headingColor || "#FFFFFF"}
-                            onChange={(e) => handleUpdateActivePageConfig({ headingColor: e.target.value })}
-                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
-                          />
-                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.headingColor || "#FFFFFF"}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-white/60 text-[11px] mb-1">CTA Background</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={activePageConfig.primaryCtaBackground || "#ED0712"}
-                            onChange={(e) => handleUpdateActivePageConfig({ primaryCtaBackground: e.target.value })}
-                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
-                          />
-                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.primaryCtaBackground || "#ED0712"}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-white/60 text-[11px] mb-1">Content Box Bg</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={activePageConfig.contentBackgroundColor || "#090909"}
-                            onChange={(e) => handleUpdateActivePageConfig({ contentBackgroundColor: e.target.value })}
-                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
-                          />
-                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.contentBackgroundColor || "#090909"}</span>
-                        </div>
-                      </div>
-
-                      <div>
-                        <label className="block text-white/60 text-[11px] mb-1">Eyebrow Accent</label>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="color"
-                            value={activePageConfig.eyebrowColor || "#ED0712"}
-                            onChange={(e) => handleUpdateActivePageConfig({ eyebrowColor: e.target.value })}
-                            className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20"
-                          />
-                          <span className="font-mono text-white/70 text-[11px]">{activePageConfig.eyebrowColor || "#ED0712"}</span>
-                        </div>
-                      </div>
                     </div>
                   </div>
                 </div>
@@ -922,7 +941,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-white">
-                      Live Preview: {formData.name} in {activeDepartment.name}
+                      Previewing: {formData.name} in {activeDepartment.name}
                     </span>
 
                     <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
@@ -956,41 +975,75 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                     </div>
                   </div>
 
-                  <div className="bg-[#020617] border border-white/5 rounded-2xl p-4 flex items-center justify-center overflow-x-auto min-h-[340px]">
-                    <div
-                      className="transition-all duration-300 w-full"
-                      style={{
-                        maxWidth: previewDevice === "mobile" ? "375px" : previewDevice === "tablet" ? "768px" : "100%",
+                  {/* Render Live Hero */}
+                  <div className={`mx-auto bg-white rounded-2xl p-6 border border-white/20 transition-all ${
+                    previewDevice === "mobile" ? "max-w-xs" : previewDevice === "tablet" ? "max-w-2xl" : "w-full"
+                  }`}>
+                    {/* Breadcrumbs Preview */}
+                    <div className="text-[10px] text-neutral-500 font-medium mb-3 select-none">
+                      Home / Shop by Brand / {activeDepartment.name} / <span className="text-black font-bold">{formData.name}</span>
+                    </div>
+
+                    <DepartmentBrandHero
+                      config={activePageConfig}
+                      brand={{
+                        id: editingBrand?.id || "temp",
+                        name: formData.name || "Brand Name",
+                        slug: formData.slug || "brand",
+                        logo_url: formData.logo_url || "",
+                        status: "active",
                       }}
-                    >
-                      <DepartmentBrandHero
-                        config={activePageConfig}
-                        brand={formData as Brand}
-                        department={activeDepartment}
-                      />
+                      department={activeDepartment}
+                    />
+
+                    {/* Underline Category Tabs Preview */}
+                    <div className="flex items-center gap-4 border-b border-neutral-200 mb-4 pb-2 text-xs font-semibold text-neutral-600">
+                      <span className="text-black font-extrabold border-b-2 border-red-600 pb-2 -mb-2.5">
+                        All {activeDepartment.name}
+                      </span>
+                      <span>Featured Lineup</span>
+                      <span>Accessories</span>
+                    </div>
+
+                    {/* Section Headings Preview */}
+                    <div className="mt-4">
+                      <h3 className="text-base font-extrabold text-neutral-900">
+                        {activePageConfig.productSectionHeading || `${formData.name} ${activeDepartment.name}`}
+                      </h3>
+                      <p className="text-xs text-neutral-500 mt-0.5">
+                        {activePageConfig.productSectionDescription || `Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
+                      </p>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Modal Footer Actions */}
+              {/* Modal Footer */}
               <div className="flex items-center justify-between pt-4 border-t border-white/10 shrink-0">
                 <button
                   type="button"
                   onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                  className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs transition-colors cursor-pointer"
                 >
                   Cancel
                 </button>
 
-                <button
-                  type="submit"
-                  disabled={isSaving}
-                  className="flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
-                >
-                  <Save className="w-4 h-4" />
-                  {isSaving ? "Saving..." : saveSuccess ? "Saved Successfully!" : "Save Brand & Department Pages"}
-                </button>
+                <div className="flex items-center gap-2">
+                  {saveSuccess && (
+                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                      <CheckCircle2 className="w-3.5 h-3.5" /> Saved successfully!
+                    </span>
+                  )}
+
+                  <button
+                    type="submit"
+                    disabled={isSaving}
+                    className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
+                    <Save className="w-3.5 h-3.5" />
+                    <span>{isSaving ? "Saving..." : "Save Brand & Pages"}</span>
+                  </button>
+                </div>
               </div>
             </form>
           </div>

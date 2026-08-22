@@ -153,41 +153,31 @@ export function generateDefaultDepartmentPageConfig(
       : "Collection";
 
   // Contextual default headlines
-  let heading = `Explore Genuine ${brandName} ${deptName}`;
-  let eyebrow = `OFFICIAL ${brandName.toUpperCase()} ${deptName.toUpperCase()}`;
-  let description = `Browse 100% authentic ${brandName} products with official warranty, same-day delivery, and competitive prices at Street Mobile.`;
-  let primaryCtaLabel = `Shop ${brandName} ${deptName}`;
+  let productSectionHeading = `${brandName} ${deptName}`;
+  let productSectionDescription = `Explore genuine ${brandName} ${deptName.toLowerCase()} models available at Street Mobile.`;
   let defaultBannerUrl = "";
 
   if (departmentSlug === "phones" && brand.slug === "apple") {
-    eyebrow = "IPHONE 16 SERIES & GENUINE APPLE PHONES";
-    heading = "iPhone. Titanium. Built for Greatness.";
-    description = "Discover the latest iPhone flagships with official Apple warranty and guaranteed best price in Sri Lanka.";
-    primaryCtaLabel = "Explore All iPhones";
+    productSectionHeading = "Apple Phones";
+    productSectionDescription = "Explore genuine Apple iPhone models available at Street Mobile.";
     defaultBannerUrl = "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1600&auto=format&fit=crop";
   } else if (departmentSlug === "laptops-tablets" && brand.slug === "apple") {
-    eyebrow = "MACBOOK & IPAD COLLECTION";
-    heading = "MacBook & iPad. Supercharged by Apple Silicon.";
-    description = "Unleash extreme performance with MacBook Air, MacBook Pro, and iPad Pro with genuine Apple care warranty.";
-    primaryCtaLabel = "Explore Mac & iPad";
+    productSectionHeading = "Apple MacBook & iPad";
+    productSectionDescription = "Explore Apple laptops and tablets available at Street Mobile.";
     defaultBannerUrl = "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1600&auto=format&fit=crop";
   } else if (departmentSlug === "accessories" && brand.slug === "apple") {
-    eyebrow = "GENUINE APPLE ACCESSORIES";
-    heading = "AirPods, MagSafe & Original Adapters";
-    description = "Enhance your Apple ecosystem with authentic fast adapters, MagSafe chargers, and AirPods.";
-    primaryCtaLabel = "Shop Apple Accessories";
+    productSectionHeading = "Apple Accessories";
+    productSectionDescription = "Explore genuine Apple accessories available at Street Mobile.";
     defaultBannerUrl = "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?q=80&w=1600&auto=format&fit=crop";
   } else if (departmentSlug === "phones" && brand.slug === "samsung") {
-    eyebrow = "SAMSUNG GALAXY FLAGSHIPS";
-    heading = "Galaxy AI. The Next Era of Mobile.";
-    description = "Experience industry-leading cameras, Dynamic AMOLED displays, and S-Pen capabilities on Galaxy S25 Series.";
-    primaryCtaLabel = "Shop Galaxy Phones";
+    productSectionHeading = "Samsung Galaxy Phones";
+    productSectionDescription = "Explore genuine Samsung Galaxy smartphones available at Street Mobile.";
     defaultBannerUrl = "https://images.unsplash.com/photo-1610945265064-3234eb261763?q=80&w=1600&auto=format&fit=crop";
   }
 
   // Category navigation tabs
   const categoryTabs: DepartmentBrandCategoryTab[] = [
-    { id: "tab-all", enabled: true, label: "All Products", slug: "all", order: 1 },
+    { id: "tab-all", enabled: true, label: `All ${deptName}`, slug: "all", order: 1 },
   ];
 
   return {
@@ -198,10 +188,9 @@ export function generateDefaultDepartmentPageConfig(
     departmentSlug,
     enabled: true,
     status: "published",
-    useDefaultLogo: true,
-    logoAlt: `${brandName} Logo`,
-    logoWidth: 140,
-    useDefaultBanner: false,
+
+    // Banner-Only Hero
+    bannerEnabled: true,
     desktopBannerUrl: defaultBannerUrl,
     tabletBannerUrl: defaultBannerUrl,
     mobileBannerUrl: defaultBannerUrl,
@@ -209,41 +198,18 @@ export function generateDefaultDepartmentPageConfig(
     desktopFocalPosition: "center",
     tabletFocalPosition: "center",
     mobileFocalPosition: "center",
-    eyebrow,
-    heading,
-    description,
-    primaryCtaEnabled: true,
-    primaryCtaLabel,
-    primaryCtaUrl: `/shop-by-brand/${departmentSlug}/${brand.slug}`,
-    secondaryCtaEnabled: true,
-    secondaryCtaLabel: "Contact Store",
-    secondaryCtaUrl: "/contact",
-    openInNewTab: false,
-    horizontalPosition: "left",
-    verticalPosition: "center",
-    textAlignment: "left",
-    mobileLayout: "overlay",
-    headingColor: "#FFFFFF",
-    descriptionColor: "#E5E5E5",
-    eyebrowColor: "#ED0712",
-    accentColor: "#ED0712",
-    primaryCtaBackground: "#ED0712",
-    primaryCtaTextColor: "#FFFFFF",
-    secondaryCtaBackground: "rgba(255,255,255,0.15)",
-    secondaryCtaTextColor: "#FFFFFF",
-    contentBackgroundColor: "#090909",
-    contentBackgroundOpacity: 85,
-    imageOverlayColor: "#000000",
-    imageOverlayOpacity: 35,
-    desktopBannerHeight: 480,
-    tabletBannerHeight: 400,
-    mobileBannerHeight: 420,
-    borderRadius: 16,
+    linkEnabled: false,
+    useDefaultBrandBanner: false,
+
+    // Page Content Section
+    productSectionHeading,
+    productSectionDescription,
+
     categoryTabs,
     hideEmptyTabs: true,
     relatedSectionEnabled: true,
-    relatedSectionHeading: "Related & Compatible Gear",
-    relatedDisplayMode: "rail",
+    relatedSectionHeading: `${brandName} Accessories`,
+    relatedDisplayMode: "grid",
     noIndex: false,
   };
 }

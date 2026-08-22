@@ -44,6 +44,7 @@ export async function generateMetadata({
     `${brandName} ${deptName} in Sri Lanka | Official Store | Street Mobile`;
   const description =
     config?.seoDescription ||
+    config?.productSectionDescription ||
     config?.description ||
     `Shop 100% genuine ${brandName} ${deptName} with official company warranty, best prices, and islandwide fast delivery at Street Mobile Vavuniya.`;
 

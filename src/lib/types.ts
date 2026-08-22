@@ -99,6 +99,8 @@ export interface Brand {
   logoScale?: number;
   seo_title?: string;
   seo_description?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface BrandDepartmentRelation {
@@ -134,15 +136,9 @@ export interface DepartmentBrandPageConfig {
 
   enabled: boolean;
   status: "draft" | "scheduled" | "published" | "archived";
-  startsAt?: string;
-  endsAt?: string;
 
-  useDefaultLogo: boolean;
-  logoOverrideUrl?: string;
-  logoAlt?: string;
-  logoWidth?: number;
-
-  useDefaultBanner: boolean;
+  // ── Banner-Only Hero (Single externally designed artwork) ──
+  bannerEnabled?: boolean;
   desktopBannerUrl?: string;
   tabletBannerUrl?: string;
   mobileBannerUrl?: string;
@@ -152,58 +148,50 @@ export interface DepartmentBrandPageConfig {
   tabletFocalPosition?: string;
   mobileFocalPosition?: string;
 
-  eyebrow?: string;
-  heading: string;
-  description?: string;
-
-  primaryCtaEnabled: boolean;
-  primaryCtaLabel?: string;
-  primaryCtaUrl?: string;
-
-  secondaryCtaEnabled: boolean;
-  secondaryCtaLabel?: string;
-  secondaryCtaUrl?: string;
+  linkEnabled?: boolean;
+  destinationType?: "category" | "subcategory" | "product" | "collection" | "page" | "custom";
+  destinationId?: string;
+  destinationUrl?: string;
   openInNewTab?: boolean;
+  useDefaultBrandBanner?: boolean;
 
-  horizontalPosition: "left" | "center" | "right";
-  verticalPosition: "top" | "center" | "bottom";
-  textAlignment: "left" | "center" | "right";
-  mobileLayout: "overlay" | "stacked";
+  // ── Page Content Section (Below Tabs) ──
+  productSectionHeading?: string;
+  productSectionDescription?: string;
 
-  headingColor: string;
-  descriptionColor: string;
-  eyebrowColor: string;
-  accentColor: string;
-
-  primaryCtaBackground: string;
-  primaryCtaTextColor: string;
-  secondaryCtaBackground: string;
-  secondaryCtaTextColor: string;
-
-  contentBackgroundColor: string;
-  contentBackgroundOpacity: number;
-  imageOverlayColor: string;
-  imageOverlayOpacity: number;
-
-  desktopBannerHeight: number;
-  tabletBannerHeight: number;
-  mobileBannerHeight: number;
-  borderRadius: number;
-
-  categoryTabs: DepartmentBrandCategoryTab[];
+  // ── Category Navigation Tabs ──
+  categoryTabs?: DepartmentBrandCategoryTab[];
   defaultCategoryTabId?: string;
-  hideEmptyTabs: boolean;
+  hideEmptyTabs?: boolean;
 
-  relatedSectionEnabled: boolean;
+  // ── Related Showcase ──
+  relatedSectionEnabled?: boolean;
   relatedSectionHeading?: string;
   relatedCategoryIds?: string[];
   relatedProductIds?: string[];
-  relatedDisplayMode: "grid" | "rail";
+  relatedDisplayMode?: "grid" | "rail";
 
+  // ── SEO ──
   seoTitle?: string;
   seoDescription?: string;
   seoImageUrl?: string;
   noIndex?: boolean;
+
+  // Legacy fields preserved for backward compatibility
+  heading?: string;
+  description?: string;
+  eyebrow?: string;
+  primaryCtaLabel?: string;
+  primaryCtaUrl?: string;
+  primaryCtaEnabled?: boolean;
+  secondaryCtaLabel?: string;
+  secondaryCtaUrl?: string;
+  secondaryCtaEnabled?: boolean;
+  useDefaultLogo?: boolean;
+  logoOverrideUrl?: string;
+  logoAlt?: string;
+  useDefaultBanner?: boolean;
+  borderRadius?: number;
 
   updatedAt?: string;
   updatedBy?: string;

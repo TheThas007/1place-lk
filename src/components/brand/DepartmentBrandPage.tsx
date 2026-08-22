@@ -7,13 +7,13 @@ import {
   ChevronRight,
   Filter,
   SlidersHorizontal,
-  ArrowUpDown,
   Search,
   X,
   Heart,
   ShoppingBag,
   Check,
   Star,
+  ShieldCheck,
 } from "lucide-react";
 import { DepartmentBrandPageConfig, Brand, Department, Product, Category } from "@/lib/types";
 import DepartmentBrandHero from "./DepartmentBrandHero";
@@ -30,7 +30,7 @@ interface DepartmentBrandPageProps {
   allBrands: Brand[];
 }
 
-// ── Reusable 4-Column Product Card Matching the Reference Design ──
+// ── Reusable 4-Column Product Card Matching the Reference Image ──
 function BrandProductCard({ product }: { product: Product }) {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist } = useWishlist();
@@ -61,10 +61,22 @@ function BrandProductCard({ product }: { product: Product }) {
       ? product.images[0]
       : "/placeholder-phone.webp";
 
+  // Variant Specs summary (e.g. "256GB | Natural Titanium")
+  const defaultStorage =
+    product.storage_options && product.storage_options.length > 0
+      ? product.storage_options[0]
+      : "128GB";
+
+  const defaultColorName =
+    product.colors && product.colors.length > 0 && typeof product.colors[0] === "string"
+      ? product.colors[0]
+      : "Standard";
+
   // Color Swatches
-  const colorDots = product.colors && product.colors.length > 0
-    ? product.colors.slice(0, 4)
-    : ["#4A4946", "#8F8A81", "#E3E4E5", "#2C2C2E"];
+  const colorDots =
+    product.colors && product.colors.length > 0
+      ? product.colors.slice(0, 4)
+      : ["#4A4946", "#8F8A81", "#E3E4E5", "#2C2C2E"];
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -104,17 +116,17 @@ function BrandProductCard({ product }: { product: Product }) {
       <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col focus:outline-none">
         
         {/* ── Top Badges & Image Box ── */}
-        <div className="relative aspect-[4/3] sm:aspect-square bg-[#F8F8FA] p-4 flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/3] sm:aspect-square bg-[#FAFAFA] p-4 flex items-center justify-center overflow-hidden">
           
-          {/* Top-Left Badge: Discount or New */}
+          {/* Top-Left Badge: Discount (Red) or NEW (Black) */}
           <div className="absolute top-3 left-3 z-10">
             {hasDiscount ? (
               <span className="bg-[#ED0712] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-2xs">
                 {discountPercent}% OFF
               </span>
             ) : isNew ? (
-              <span className="bg-[#ED0712] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-2xs">
-                New
+              <span className="bg-[#090909] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-2xs">
+                NEW
               </span>
             ) : null}
           </div>
@@ -148,18 +160,24 @@ function BrandProductCard({ product }: { product: Product }) {
         {/* ── Details Section ── */}
         <div className="p-4 flex-1 flex flex-col justify-between">
           <div>
+            {/* Warranty Subtitle with Shield Icon */}
+            <div className="flex items-center gap-1 text-[11px] text-neutral-500 font-medium mb-1">
+              <ShieldCheck className="w-3.5 h-3.5 text-neutral-400" />
+              <span>{product.warranty || "1 Year Warranty"}</span>
+            </div>
+
             {/* Product Title */}
             <h3 className="font-bold text-sm sm:text-[15px] text-neutral-900 line-clamp-1 group-hover:text-neutral-600 transition-colors mb-0.5">
               {product.name}
             </h3>
 
-            {/* Warranty Subtitle */}
-            <span className="text-xs text-neutral-400 font-medium block mb-2">
-              {product.warranty || "1 Year Official Warranty"}
+            {/* Specs Line (Storage | Color) */}
+            <span className="text-xs text-neutral-500 font-normal block mb-2">
+              {defaultStorage} | {defaultColorName}
             </span>
 
             {/* Price Row */}
-            <div className="flex items-center gap-2 mb-3">
+            <div className="flex items-center gap-2 mb-2.5">
               <span className="font-extrabold text-sm sm:text-base text-neutral-900">
                 {formatPrice(product.price)}
               </span>
@@ -175,18 +193,18 @@ function BrandProductCard({ product }: { product: Product }) {
               {colorDots.map((hex, idx) => (
                 <span
                   key={idx}
-                  style={{ backgroundColor: hex }}
+                  style={{ backgroundColor: hex.startsWith("#") ? hex : "#333" }}
                   className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block"
                 />
               ))}
             </div>
           </div>
 
-          {/* Rating & Stock Line */}
-          <div className="flex items-center justify-between text-xs pt-1 border-t border-neutral-100">
+          {/* Rating & Live Stock Status */}
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
             <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
-              <span>4.8</span>
+              <Star className="w-3 h-3 fill-red-500 text-red-500" />
+              <span>4.9</span>
               <span className="text-neutral-400 font-normal">(128)</span>
             </div>
 
@@ -200,7 +218,7 @@ function BrandProductCard({ product }: { product: Product }) {
         </div>
       </Link>
 
-      {/* ── Full-Width Black Add to Bag Action ── */}
+      {/* ── Solid Black Add to Bag Action ── */}
       <div className="px-4 pb-4 bg-white">
         <button
           type="button"
@@ -223,7 +241,10 @@ function BrandProductCard({ product }: { product: Product }) {
           ) : isOutOfStock ? (
             <span>Sold Out</span>
           ) : (
-            <span>Add to Bag</span>
+            <>
+              <ShoppingBag className="w-3.5 h-3.5" />
+              <span>Add to Bag</span>
+            </>
           )}
         </button>
       </div>
@@ -244,7 +265,9 @@ export default function DepartmentBrandPage({
 
   const selectedCategoryParam = searchParams.get("category") || "all";
   const [selectedCategory, setSelectedCategory] = useState(selectedCategoryParam);
-  const [sortBy, setSortBy] = useState<string>("featured");
+  const [selectedStorage, setSelectedStorage] = useState<string>("all");
+  const [selectedColour, setSelectedColour] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<string>("popularity");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showFilterDrawer, setShowFilterDrawer] = useState(false);
@@ -253,7 +276,7 @@ export default function DepartmentBrandPage({
     setSelectedCategory(selectedCategoryParam);
   }, [selectedCategoryParam]);
 
-  // Compute all categories present among these department-brand products
+  // Compute all available categories from products
   const availableCategories = useMemo(() => {
     const map = new Map<string, { slug: string; name: string; count: number }>();
     products.forEach((p) => {
@@ -276,46 +299,55 @@ export default function DepartmentBrandPage({
     return Array.from(map.values());
   }, [products]);
 
-  // Category navigation tabs matching reference (e.g. All Products, iPhone, MacBook, iPad, Apple Watch, AirPods, Accessories)
+  // Underline category tabs matching reference
   const categoryNavigationTabs = useMemo(() => {
-    const tabs = [{ slug: "all", label: "All Products", count: products.length }];
+    const deptLabel = department.name || "Products";
+    const tabs = [{ slug: "all", label: `All ${deptLabel}`, count: products.length }];
 
-    // If Apple
-    if (brand.slug.toLowerCase() === "apple") {
-      const appleOrder = ["iphone", "macbook", "ipad", "apple-watch", "airpods", "accessories"];
-      appleOrder.forEach((slug) => {
-        const cat = availableCategories.find((c) => c.slug.includes(slug) || slug.includes(c.slug));
-        const label =
-          slug === "iphone"
-            ? "iPhone"
-            : slug === "macbook"
-            ? "MacBook"
-            : slug === "ipad"
-            ? "iPad"
-            : slug === "apple-watch"
-            ? "Apple Watch"
-            : slug === "airpods"
-            ? "AirPods"
-            : "Accessories";
-
+    if (brand.slug.toLowerCase() === "apple" && department.slug === "phones") {
+      const applePhoneTabs = [
+        { slug: "iphone-16", label: "iPhone 16" },
+        { slug: "iphone-15", label: "iPhone 15" },
+        { slug: "iphone-14", label: "iPhone 14" },
+        { slug: "refurbished", label: "Refurbished" },
+        { slug: "accessories", label: "Accessories" },
+      ];
+      applePhoneTabs.forEach((item) => {
+        const cat = availableCategories.find(
+          (c) => c.slug.includes(item.slug) || item.slug.includes(c.slug)
+        );
         tabs.push({
-          slug,
-          label,
+          slug: item.slug,
+          label: item.label,
           count: cat ? cat.count : 0,
         });
       });
       return tabs;
     }
 
-    // Default dynamic tabs for other brands
+    if (brand.slug.toLowerCase() === "dell") {
+      const dellTabs = [
+        { slug: "xps", label: "XPS" },
+        { slug: "inspiron", label: "Inspiron" },
+        { slug: "latitude", label: "Latitude" },
+        { slug: "gaming", label: "Gaming" },
+        { slug: "accessories", label: "Accessories" },
+      ];
+      dellTabs.forEach((item) => {
+        tabs.push({ slug: item.slug, label: item.label, count: 0 });
+      });
+      return tabs;
+    }
+
+    // Dynamic tabs for any other brand
     availableCategories.forEach((c) => {
       tabs.push({ slug: c.slug, label: c.name, count: c.count });
     });
 
     return tabs;
-  }, [brand.slug, products.length, availableCategories]);
+  }, [brand.slug, department.slug, department.name, products.length, availableCategories]);
 
-  // Handle Tab Change
+  // Handle Tab Change with URL sync
   const handleTabChange = (catSlug: string) => {
     setSelectedCategory(catSlug);
     const params = new URLSearchParams(searchParams.toString());
@@ -353,17 +385,26 @@ export default function DepartmentBrandPage({
           const matchesCategory =
             cSlug.includes(selectedCategory.toLowerCase()) ||
             selectedCategory.toLowerCase().includes(cSlug) ||
-            pName.includes(selectedCategory.toLowerCase());
+            pName.includes(selectedCategory.toLowerCase().replace(/-/g, " "));
 
           if (!matchesCategory) return false;
         }
 
-        // Search Query
+        // Search query
         if (searchQuery.trim()) {
           const q = searchQuery.toLowerCase();
           const matchesName = (p.name || "").toLowerCase().includes(q);
           const matchesDesc = (p.description || "").toLowerCase().includes(q);
           if (!matchesName && !matchesDesc) return false;
+        }
+
+        // Storage filter
+        if (selectedStorage !== "all") {
+          const pName = (p.name || "").toLowerCase();
+          const hasStorage =
+            p.storage_options?.includes(selectedStorage) ||
+            pName.includes(selectedStorage.toLowerCase());
+          if (!hasStorage) return false;
         }
 
         // In-stock only filter
@@ -380,27 +421,26 @@ export default function DepartmentBrandPage({
           return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
         }
         if (sortBy === "discount") {
-          const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
-          const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
+          const discA =
+            a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
+          const discB =
+            b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
           return discB - discA;
         }
+        // Popularity / Featured default
         return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
       });
-  }, [products, selectedCategory, searchQuery, inStockOnly, sortBy]);
+  }, [products, selectedCategory, searchQuery, selectedStorage, inStockOnly, sortBy]);
 
-  // Section Heading & Subtitle computed dynamically
-  const activeTabObj = categoryNavigationTabs.find((t) => t.slug === selectedCategory);
-  const sectionTitle =
-    selectedCategory === "all"
-      ? `${brand.name} ${department.name}`
-      : `${brand.name} ${activeTabObj?.label || selectedCategory}`;
+  // Section Heading & Description from admin config or defaults
+  const sectionHeading =
+    config.productSectionHeading || `${brand.name} ${department.name}`;
 
-  const sectionSubtitle =
-    selectedCategory === "all"
-      ? `Explore genuine ${brand.name} products available at Street Mobile.`
-      : `Explore the latest ${brand.name} ${activeTabObj?.label || selectedCategory} models available at Street Mobile.`;
+  const sectionDescription =
+    config.productSectionDescription ||
+    `Explore genuine ${brand.name} ${department.name.toLowerCase()} models available at Street Mobile.`;
 
-  // Related Products Showcase at bottom
+  // Related Products Showcase
   const relatedProducts = useMemo(() => {
     return products.slice(0, 4);
   }, [products]);
@@ -409,7 +449,7 @@ export default function DepartmentBrandPage({
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
       <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-4 sm:pt-6">
         
-        {/* ── Breadcrumb Navigation ── */}
+        {/* ── Breadcrumb Navigation: Home / Shop by Brand / [Department] / [Brand] ── */}
         <nav
           aria-label="Breadcrumb"
           className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-6 select-none"
@@ -418,19 +458,23 @@ export default function DepartmentBrandPage({
             Home
           </Link>
           <span className="text-neutral-400">/</span>
-          <Link href="/products" className="hover:text-black transition-colors">
-            Brands
+          <Link href="/categories" className="hover:text-black transition-colors">
+            Shop by Brand
           </Link>
+          <span className="text-neutral-400">/</span>
+          <span className="hover:text-black transition-colors cursor-pointer">
+            {department.name}
+          </span>
           <span className="text-neutral-400">/</span>
           <span className="text-black font-bold">{brand.name}</span>
         </nav>
 
-        {/* ── Premium Light Editorial Hero Banner ── */}
+        {/* ── Banner-Only Hero (Single externally designed full-frame artwork) ── */}
         <DepartmentBrandHero config={config} brand={brand} department={department} />
 
-        {/* ── Clean Horizontal Category Navigation Tabs ── */}
-        <div className="flex items-center justify-center border-b border-neutral-200 mb-8 overflow-x-auto whitespace-nowrap custom-scrollbar">
-          <div className="flex items-center gap-2 sm:gap-6 px-2">
+        {/* ── Horizontal Underline Category Navigation Tabs ── */}
+        <div className="flex items-center justify-start sm:justify-start border-b border-neutral-200 mb-8 overflow-x-auto whitespace-nowrap custom-scrollbar">
+          <div className="flex items-center gap-2 sm:gap-6 px-1">
             {categoryNavigationTabs.map((tab) => {
               const isActive = selectedCategory === tab.slug;
               return (
@@ -451,28 +495,29 @@ export default function DepartmentBrandPage({
           </div>
         </div>
 
-        {/* ── Section Title & Filter/Sort Toolbar ── */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
-          {/* Left: Dynamic Title and Description */}
-          <div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-              {sectionTitle}
-            </h2>
-            <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-1">
-              {sectionSubtitle}
-            </p>
-          </div>
+        {/* ── Department-Brand Heading + Search & Filter Toolbar ── */}
+        <div className="mb-6">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+            {sectionHeading}
+          </h1>
+          <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-1">
+            {sectionDescription}
+          </p>
+        </div>
 
-          {/* Right: Search + Sort Dropdown + Filters Button */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3">
-            {/* Search within brand */}
+        {/* ── Clean Filter/Sort Toolbar Row ── */}
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-8">
+          
+          {/* Left: Search + Storage + Colours + In Stock */}
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-1">
+            {/* Search Input */}
             <div className="relative w-full sm:w-64">
               <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Search ${brand.name} products...`}
+                placeholder={`Search ${brand.name} ${department.name.toLowerCase()}...`}
                 className="w-full bg-white border border-neutral-200 pl-8 pr-7 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none focus:border-black shadow-2xs"
               />
               {searchQuery && (
@@ -486,19 +531,57 @@ export default function DepartmentBrandPage({
               )}
             </div>
 
-            {/* In-Stock Toggle Button */}
+            {/* Storage Filter */}
+            <div className="relative">
+              <select
+                value={selectedStorage}
+                onChange={(e) => setSelectedStorage(e.target.value)}
+                className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+              >
+                <option value="all">All Storage</option>
+                <option value="128GB">128GB</option>
+                <option value="256GB">256GB</option>
+                <option value="512GB">512GB</option>
+                <option value="1TB">1TB</option>
+              </select>
+            </div>
+
+            {/* Colours Filter */}
+            <div className="relative">
+              <select
+                value={selectedColour}
+                onChange={(e) => setSelectedColour(e.target.value)}
+                className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+              >
+                <option value="all">All Colours</option>
+                <option value="titanium">Natural Titanium</option>
+                <option value="black">Black Titanium</option>
+                <option value="white">White Titanium</option>
+                <option value="desert">Desert Titanium</option>
+                <option value="blue">Blue</option>
+                <option value="pink">Pink</option>
+              </select>
+            </div>
+
+            {/* In-Stock Only Checkbox Button */}
             <button
               type="button"
               onClick={() => setInStockOnly(!inStockOnly)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs ${
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
                 inStockOnly
                   ? "bg-black text-white border-black"
                   : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
               }`}
             >
-              In Stock Only
+              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
+                {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
+              </span>
+              <span>In Stock Only</span>
             </button>
+          </div>
 
+          {/* Right: Sort By + Filters Button */}
+          <div className="flex items-center gap-2.5 sm:gap-3">
             {/* Sort Dropdown */}
             <div className="relative">
               <select
@@ -506,8 +589,8 @@ export default function DepartmentBrandPage({
                 onChange={(e) => setSortBy(e.target.value)}
                 className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
               >
-                <option value="featured">Sort: Featured</option>
-                <option value="newest">Sort: Newest</option>
+                <option value="popularity">Sort by: Popularity</option>
+                <option value="newest">Sort by: Newest</option>
                 <option value="price_asc">Price: Low to High</option>
                 <option value="price_desc">Price: High to Low</option>
                 <option value="discount">Highest Discount</option>
@@ -550,6 +633,8 @@ export default function DepartmentBrandPage({
                 type="button"
                 onClick={() => {
                   setSelectedCategory("all");
+                  setSelectedStorage("all");
+                  setSelectedColour("all");
                   setSearchQuery("");
                   setInStockOnly(false);
                 }}
@@ -561,7 +646,7 @@ export default function DepartmentBrandPage({
           )}
         </div>
 
-        {/* ── Related / Compatible Showcase Rail at Bottom ── */}
+        {/* ── Related Showcase at Bottom ── */}
         {relatedProducts.length > 0 && (
           <div className="mt-16 pt-10 border-t border-neutral-200">
             <div className="flex items-center justify-between mb-6">
