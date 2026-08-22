@@ -314,33 +314,80 @@ export default function FeaturedCollections({ settings }: FeaturedCollectionsPro
   // Show 4 cards in the strict 2x2 grid
   const displayCards = activeCards.slice(0, 4);
 
+  const firstCard = displayCards[0];
+  const lifestyleImage =
+    firstCard?.mobile_image_url ||
+    firstCard?.desktop_image_url ||
+    "https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=800";
+
   return (
-    <ScrollReveal
-      as="section"
-      id="featured-collections"
-      stagger={0.07}
-      yOffset={20}
-      className="w-full bg-white flex flex-col justify-start overflow-hidden rounded-none font-sans"
-    >
-      {/* ── Compact Editorial Section Header ── */}
-      <div data-reveal-item className="w-full text-center pt-10 pb-5 sm:pt-12 sm:pb-6 px-4 shrink-0">
-        <h2 className="text-[clamp(28px,2.4vw,42px)] font-semibold text-[#090909] tracking-[-0.035em] leading-tight">
-          {liveSettings.title || "Featured Collections"}
-        </h2>
-        <p className="text-[14px] sm:text-[16px] font-normal text-neutral-500 max-w-xl mx-auto leading-normal mt-1.5">
-          {liveSettings.subtitle || "Discover technology selected for the way you live, work and connect."}
-        </p>
-      </div>
-
-      {/* ── Desktop Full-Width 2×2 Grid (All 4 visible in 1 screen, 8px gap, square edges) ── */}
-      <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 lg:grid-rows-2 gap-2 px-2 pb-2 lg:h-[calc(100svh-var(--navbar-height,68px)-110px)] lg:min-h-[580px] lg:max-h-[820px]">
-        {displayCards.map((card, index) => (
-          <div key={card.id || index} data-reveal-item className="w-full h-full">
-            <CollectionCard card={card} index={index} />
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Lifestyle Banner ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2.5 select-none">
+        <div className="relative w-full rounded-2xl bg-black border border-neutral-800 p-4 sm:p-5 overflow-hidden shadow-xs min-h-[140px] sm:min-h-[150px] flex items-center justify-between text-white">
+          {/* Right Floating Lifestyle Image with Dark Left Fade */}
+          <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none overflow-hidden">
+            <img
+              src={lifestyleImage}
+              alt="Welcome to Street Mobile"
+              className="w-full h-full object-cover object-center"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=800";
+              }}
+            />
+            <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
           </div>
-        ))}
+
+          {/* Left Text & CTA Content */}
+          <div className="relative z-10 max-w-[62%] flex flex-col justify-center">
+            <h3 className="text-[17px] font-black text-white leading-tight tracking-tight mb-1">
+              {firstCard?.title || "Welcome to Street Mobile!"}
+            </h3>
+            <p className="text-neutral-300 text-[11px] leading-snug line-clamp-2 mb-3">
+              {firstCard?.subtitle || "Your trusted destination for the latest tech."}
+            </p>
+            <div>
+              <Link
+                href={resolveDestinationUrl(firstCard || ({} as any))}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-black font-bold text-xs rounded-full shadow-sm hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
+              >
+                <span>{firstCard?.primary_cta_text || "Learn More"}</span>
+                <ChevronRight className="w-3.5 h-3.5 text-black" />
+              </Link>
+            </div>
+          </div>
+        </div>
       </div>
 
-    </ScrollReveal>
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="featured-collections"
+          stagger={0.07}
+          yOffset={20}
+          className="w-full bg-white flex flex-col justify-start overflow-hidden rounded-none font-sans"
+        >
+          {/* ── Compact Editorial Section Header ── */}
+          <div data-reveal-item className="w-full text-center pt-10 pb-5 sm:pt-12 sm:pb-6 px-4 shrink-0">
+            <h2 className="text-[clamp(28px,2.4vw,42px)] font-semibold text-[#090909] tracking-[-0.035em] leading-tight">
+              {liveSettings.title || "Featured Collections"}
+            </h2>
+            <p className="text-[14px] sm:text-[16px] font-normal text-neutral-500 max-w-xl mx-auto leading-normal mt-1.5">
+              {liveSettings.subtitle || "Discover technology selected for the way you live, work and connect."}
+            </p>
+          </div>
+
+          {/* ── Desktop Full-Width 2×2 Grid (All 4 visible in 1 screen, 8px gap, square edges) ── */}
+          <div className="w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-2 lg:grid-rows-2 gap-2 px-2 pb-2 lg:h-[calc(100svh-var(--navbar-height,68px)-110px)] lg:min-h-[580px] lg:max-h-[820px]">
+            {displayCards.map((card, index) => (
+              <div key={card.id || index} data-reveal-item className="w-full h-full">
+                <CollectionCard card={card} index={index} />
+              </div>
+            ))}
+          </div>
+        </ScrollReveal>
+      </div>
+    </>
   );
 }

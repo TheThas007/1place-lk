@@ -183,18 +183,67 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
   };
 
   return (
-    <section className="py-16 bg-white border-b border-neutral-100 relative overflow-hidden">
-      <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        
-        {/* Title Header */}
-        <div className="text-center mb-10">
-          <h2 className="text-3xl sm:text-4xl font-black text-[#090909] tracking-tight">
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Category Icon Rail ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
+        {/* Header */}
+        <div className="mb-2.5">
+          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
             Shop by Category
           </h2>
-          <p className="text-neutral-500 text-sm font-medium mt-1">
-            Explore popular device categories and genuine smartphone accessories
-          </p>
         </div>
+
+        {/* Horizontal Category Rail */}
+        <div className="flex gap-2 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+          {activeCategories.map((item, i) => {
+            const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
+            const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
+
+            return (
+              <Link
+                key={`mob-cat-${item.id || i}`}
+                href={targetUrl}
+                className="w-[84px] sm:w-[92px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all snap-start text-center"
+              >
+                <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                  {hasCustomImg ? (
+                    <img
+                      src={item.image_url}
+                      alt={item.name}
+                      loading="lazy"
+                      className="max-h-7 max-w-7 object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <div className="scale-75">
+                      {renderCategoryDefaultIcon(item.name, item.slug)}
+                    </div>
+                  )}
+                </div>
+                <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full">
+                  {item.name}
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <section className="py-16 bg-white border-b border-neutral-100 relative overflow-hidden">
+          <div className="max-w-7xl mx-auto px-4 lg:px-6">
+            {/* Title Header */}
+            <div className="text-center mb-10">
+              <h2 className="text-3xl sm:text-4xl font-black text-[#090909] tracking-tight">
+                Shop by Category
+              </h2>
+              <p className="text-neutral-500 text-sm font-medium mt-1">
+                Explore popular device categories and genuine smartphone accessories
+              </p>
+            </div>
 
         {/* Carousel Container with Left/Right Chevrons */}
         <div
@@ -269,7 +318,9 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
           </div>
         </div>
 
-      </div>
-    </section>
+        </div>
+      </section>
+    </div>
+  </>
   );
 }

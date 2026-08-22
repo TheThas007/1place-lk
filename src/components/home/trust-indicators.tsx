@@ -8,7 +8,7 @@ import {
   Variants,
   AnimatePresence,
 } from "framer-motion";
-import { Truck, ShieldCheck, Wrench, CreditCard, X, ArrowRight } from "lucide-react";
+import { Truck, ShieldCheck, Wrench, CreditCard, X, ArrowRight, Tag, RotateCcw } from "lucide-react";
 
 /* ─── Data ─── */
 const features = [
@@ -159,23 +159,25 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
 
   return (
     <>
-      {/* ── Mobile Feature Strip (Exact Reference Matching) ── */}
+      {/* ── Mobile Feature Strip (Exact Reference Matching: 4 items in 1 row) ── */}
       {mode !== "full_only" && (
-        <div className="md:hidden w-full bg-white px-4 py-2 select-none">
-          <div className="w-full py-2.5 px-4 bg-white border border-neutral-200/90 rounded-2xl flex items-center justify-around text-xs font-bold text-neutral-900 shadow-2xs">
-            <div className="flex items-center gap-1.5">
-              <ShieldCheck className="w-4 h-4 text-neutral-800" />
-              <span className="text-[11px] font-bold">Genuine</span>
+        <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2 select-none">
+          <div className="w-full py-2 px-2.5 bg-white border border-[#E8E8E8] rounded-xl flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-neutral-800 shadow-2xs">
+            <div className="flex items-center gap-1 shrink-0">
+              <ShieldCheck className="w-3.5 h-3.5 text-neutral-700 stroke-[1.75]" />
+              <span>100% Genuine</span>
             </div>
-            <span className="text-neutral-300 font-light select-none">|</span>
-            <div className="flex items-center gap-1.5">
-              <Truck className="w-4 h-4 text-neutral-800" />
-              <span className="text-[11px] font-bold">Delivery</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <Tag className="w-3.5 h-3.5 text-neutral-700 stroke-[1.75]" />
+              <span>Best Prices</span>
             </div>
-            <span className="text-neutral-300 font-light select-none">|</span>
-            <div className="flex items-center gap-1.5">
-              <CreditCard className="w-4 h-4 text-neutral-800" />
-              <span className="text-[11px] font-bold">Secure Pay</span>
+            <div className="flex items-center gap-1 shrink-0">
+              <RotateCcw className="w-3.5 h-3.5 text-neutral-700 stroke-[1.75]" />
+              <span>Easy Returns</span>
+            </div>
+            <div className="flex items-center gap-1 shrink-0">
+              <Truck className="w-3.5 h-3.5 text-neutral-700 stroke-[1.75]" />
+              <span>Islandwide</span>
             </div>
           </div>
         </div>

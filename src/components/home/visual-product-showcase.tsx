@@ -130,18 +130,64 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
     showcase.enable_animation !== false;
 
   return (
-    <section
-      aria-label={showcase.section_title || "Featured Visual Showcase"}
-      className="relative w-full overflow-hidden select-none transition-colors duration-500"
-      style={backgroundStyle}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
-      onKeyDown={handleKeyDown}
-      tabIndex={0}
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Editorial Banner ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2.5 select-none">
+        <div
+          style={backgroundStyle}
+          className="relative w-full rounded-2xl overflow-hidden border border-[#E8E8E8] shadow-xs min-h-[180px] sm:min-h-[200px] flex flex-col justify-between items-center text-center pt-4 px-3 pb-0"
+        >
+          {/* Top Typography & Badges */}
+          <div className="relative z-10 flex flex-col items-center">
+            {hasTitle && (
+              <h2 className="text-[19px] sm:text-xl font-black text-[#1D1D1F] tracking-tight leading-tight mb-1.5">
+                {currentSlide.title}
+              </h2>
+            )}
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
+              <span className="bg-black text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
+                New
+              </span>
+              <span className="text-[11px] font-medium text-neutral-700">
+                {currentSlide.subtitle || "Pre-order now"}
+              </span>
+            </div>
+          </div>
+
+          {/* Bottom Floating Product Visual */}
+          <div className="relative w-full flex items-end justify-center mt-2 max-h-[125px] overflow-hidden">
+            <Link
+              href={targetProductUrl}
+              aria-label={`View ${currentSlide.title || "featured product"}`}
+              className="w-full flex items-end justify-center"
+            >
+              <img
+                src={currentSlide.mobile_image || currentSlide.desktop_image || "/placeholder-phone.webp"}
+                alt={currentSlide.title || "Featured Visual"}
+                loading="lazy"
+                className="max-h-[120px] w-auto object-contain object-bottom scale-105"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                }}
+              />
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <section
+        aria-label={showcase.section_title || "Featured Visual Showcase"}
+        className="hidden md:block relative w-full overflow-hidden select-none transition-colors duration-500"
+        style={backgroundStyle}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onKeyDown={handleKeyDown}
+        tabIndex={0}
+      >
       <div className="relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col justify-between items-center min-h-[480px] sm:min-h-[560px] md:min-h-[620px] lg:min-h-[680px] xl:min-h-[720px] pt-6 sm:pt-8 md:pt-10 pb-0">
         <AnimatePresence mode="wait">
           <motion.div
@@ -300,5 +346,6 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
         )}
       </div>
     </section>
+  </>
   );
 }

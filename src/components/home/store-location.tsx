@@ -28,19 +28,71 @@ export default function StoreLocation() {
   }, []);
 
   return (
-    <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
-      {/* Decorative gradient orb */}
-      <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Store Card ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
+        <div className="bg-white border border-[#E8E8E8] rounded-2xl p-3 flex flex-col gap-3 shadow-2xs overflow-hidden">
+          {/* Top: Aerial / Storefront Visual */}
+          <div className="relative w-full h-[125px] rounded-xl overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=800"
+              alt="Vavuniya Store Location"
+              loading="lazy"
+              className="w-full h-full object-cover object-center"
+            />
+          </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
-        <motion.div
-          ref={containerRef}
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, margin: "-60px" }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-          className="bg-white/60 backdrop-blur-[24px] saturate-[180%] rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80"
-        >
+          {/* Bottom: Store Information */}
+          <div className="flex flex-col gap-2">
+            <h3 className="text-[16px] font-black text-neutral-900 tracking-tight">
+              Visit Our Store in Vavuniya
+            </h3>
+
+            <div className="flex items-start gap-2 text-neutral-600 text-[11px] font-medium">
+              <MapPin className="w-3.5 h-3.5 text-neutral-700 shrink-0 mt-0.5" />
+              <span>{siteSettings.address || "No. 125, Main Street, Vavuniya, Sri Lanka"}</span>
+            </div>
+
+            <div className="flex items-start gap-2 text-neutral-600 text-[11px] font-medium">
+              <Clock className="w-3.5 h-3.5 text-neutral-700 shrink-0 mt-0.5" />
+              <span>Mon - Sat: 9:00 AM - 7:00 PM | Sun: 9:00 AM - 2:00 PM</span>
+            </div>
+
+            <div className="flex items-center gap-2 text-neutral-600 text-[11px] font-medium">
+              <Phone className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
+              <span>{siteSettings.phone || "+94 77 123 4567"}</span>
+            </div>
+
+            <div className="pt-1">
+              <a
+                href={siteSettings.google_maps_link || "https://maps.google.com"}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="w-full py-2 bg-black text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm hover:bg-neutral-800 active:scale-98 transition-all cursor-pointer"
+              >
+                <span>Get Directions</span>
+                <span className="text-sm leading-none">→</span>
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
+          {/* Decorative gradient orb */}
+          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
+
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
+            <motion.div
+              ref={containerRef}
+              initial={{ opacity: 0, y: 20 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: "-60px" }}
+              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white/60 backdrop-blur-[24px] saturate-[180%] rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80"
+            >
           <div className="grid lg:grid-cols-2">
             {/* Map Area */}
             <div className="h-[400px] lg:h-auto bg-gray-900 relative overflow-hidden min-h-[350px] flex items-center justify-center">
@@ -142,5 +194,7 @@ export default function StoreLocation() {
         </motion.div>
       </div>
     </section>
+    </div>
+  </>
   );
 }

@@ -139,66 +139,50 @@ export default function NewArrivalsSection({
   return (
     <>
       {/* ── Mobile Layout (< 768px): Exact Reference Matching ── */}
-      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
         {/* Mobile Header: Title & View All */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-black text-neutral-900 tracking-tight">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
             New Arrivals
           </h2>
           <Link
             href="/products?new=true"
             className="text-xs font-bold text-[#ED0712] hover:underline"
           >
-            View All
+            View all
           </Link>
         </div>
 
-        {/* Mobile Horizontal Carousel */}
-        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4">
-          {/* 1. Feature Teaser Card */}
-          <div className="w-[155px] shrink-0 bg-[#090909] text-white rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden shadow-xs">
-            <div>
-              <span className="text-[9px] font-black uppercase text-[#ED0712] tracking-wider block mb-1">
-                JUST LANDED
-              </span>
-              <h3 className="font-extrabold text-[15px] text-white leading-tight">
-                Latest tech.<br />First look.
-              </h3>
-            </div>
-
-            <div className="my-2 flex items-center justify-center">
-              <img
-                src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=400"
-                alt="Latest Tech"
-                className="w-24 h-24 object-contain scale-110"
-              />
-            </div>
-
-            <Link
-              href="/products?new=true"
-              className="text-[11px] font-bold text-white/90 hover:text-white flex items-center gap-1.5 pt-1"
-            >
-              <span>Explore</span>
-              <ArrowRight className="w-3 h-3 text-white" />
-            </Link>
-          </div>
-
-          {/* 2. Horizontal Product Cards */}
+        {/* Mobile Horizontal Snap Rail */}
+        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
           {newArrivalProducts.map((product) => {
             const hasDiscount =
               product.old_price &&
               typeof product.old_price === "number" &&
               product.old_price > product.price;
 
+            const discountPercent = hasDiscount
+              ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
+              : 0;
+
             const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+            const brandName = product.brand_name || product.brand || "";
 
             return (
               <div
-                key={`mob-${product.id}`}
-                className="w-[155px] shrink-0 bg-white border border-neutral-200/90 rounded-2xl overflow-hidden p-2.5 flex flex-col justify-between shadow-2xs"
+                key={`mob-na-${product.id}`}
+                className="w-[142px] sm:w-[152px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl overflow-hidden p-2 flex flex-col justify-between shadow-2xs snap-start hover:border-neutral-400 transition-colors"
               >
                 <Link href={`/products/${product.slug}`} className="block flex-1">
-                  <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-2 p-1">
+                  {/* Brand Label */}
+                  {brandName && (
+                    <span className="text-[9px] font-black tracking-wider uppercase text-blue-600 truncate block mb-1">
+                      {brandName}
+                    </span>
+                  )}
+
+                  {/* 1:1 Image Container with Bottom-Left Offer Badge */}
+                  <div className="relative aspect-square bg-[#F7F7F7] rounded-lg flex items-center justify-center overflow-hidden mb-1.5 p-1">
                     <img
                       src={mainImage}
                       alt={product.name}
@@ -208,13 +192,22 @@ export default function NewArrivalsSection({
                         (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                       }}
                     />
+
+                    {/* Offer Badge (Bottom-Left) */}
+                    {hasDiscount && (
+                      <span className="product-offer-badge absolute left-1 bottom-1 z-2 bg-[#ED0712] text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none">
+                        -{discountPercent}% OFF
+                      </span>
+                    )}
                   </div>
 
-                  <h4 className="font-bold text-[11px] text-neutral-900 line-clamp-2 leading-tight mb-1.5 h-7">
+                  {/* Product Title (Max 2 lines) */}
+                  <h3 className="font-bold text-[11px] text-neutral-900 line-clamp-2 leading-tight mb-1 h-7">
                     {product.name}
-                  </h4>
+                  </h3>
 
-                  <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                  {/* Prices */}
+                  <div className="flex items-center gap-1.5 flex-wrap">
                     <span className="font-black text-xs text-[#ED0712]">
                       {formatPrice(product.price)}
                     </span>
@@ -225,15 +218,6 @@ export default function NewArrivalsSection({
                     )}
                   </div>
                 </Link>
-
-                <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-neutral-100">
-                  <div className="flex items-center gap-0.5 text-neutral-700 font-semibold">
-                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
-                    <span>4.8</span>
-                    <span className="text-neutral-400">(256)</span>
-                  </div>
-                  <span className="text-emerald-600 font-bold">In Stock</span>
-                </div>
               </div>
             );
           })}

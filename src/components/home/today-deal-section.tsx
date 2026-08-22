@@ -307,69 +307,54 @@ export default function TodayDealSection({
   return (
     <>
       {/* ── Mobile Today's Deal Section (Exact Reference Matching) ── */}
-      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
-        {/* Header: Title + Countdown + View All */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <h2 className="text-lg font-black text-neutral-900 tracking-tight">
-              Today&apos;s Deal
-            </h2>
-            <span className="relative flex h-2.5 w-2.5">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ED0712] opacity-75" />
-              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ED0712]" />
-            </span>
-            <span
-              suppressHydrationWarning
-              className="text-xs font-black text-[#ED0712] font-mono tracking-wider"
-            >
-              {mounted
-                ? `${padZero(hours)} : ${padZero(minutes)} : ${padZero(seconds)}`
-                : "08 : 24 : 16"}
-            </span>
-          </div>
-          <Link
-            href={activeCtaUrl || "/products?sale=true"}
-            className="text-xs font-bold text-[#ED0712] hover:underline"
-          >
-            View All
-          </Link>
-        </div>
-
-        {/* Banner Card */}
-        <div className="relative w-full rounded-2xl bg-black border border-neutral-800 p-5 overflow-hidden shadow-sm text-white min-h-[190px] flex flex-col justify-between">
-          {/* Top-Right Discount Badge */}
-          <div className="absolute top-3.5 right-3.5 z-20">
-            <span className="bg-[#ED0712] text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
-              UP TO 20% OFF
-            </span>
-          </div>
-
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2.5 select-none">
+        <div className="relative w-full rounded-2xl bg-black border border-neutral-800 p-4 overflow-hidden shadow-xs text-white min-h-[145px] sm:min-h-[155px] flex items-center justify-between">
           {/* Right Floating Product Photos */}
-          <div className="absolute right-0 bottom-0 top-4 w-[58%] pointer-events-none flex items-end justify-end overflow-hidden">
+          <div className="absolute right-0 bottom-0 top-0 w-[48%] pointer-events-none flex items-center justify-end overflow-hidden">
             <img
-              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=600"
-              alt="Today Deal Devices"
-              className="w-full h-full object-contain object-right-bottom scale-110 translate-x-2 translate-y-1"
+              src={mobileImg || desktopImg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=600"}
+              alt={deal.imageAlt || "Today Only"}
+              className="w-full h-full object-contain object-right scale-110 translate-x-2"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = mobileImg || desktopImg || "/placeholder-phone.webp";
+                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=600";
               }}
             />
           </div>
 
-          {/* Left Text & CTA */}
-          <div className="relative z-10 max-w-[62%]">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#ED0712] block mb-1">
-              TODAY ONLY
-            </span>
-            <h3 className="text-2xl font-black text-white leading-[1.1] tracking-tight mb-3.5">
-              Power Up.<br />Pay Less.
+          {/* Left Text, Countdown & CTA */}
+          <div className="relative z-10 max-w-[58%] flex flex-col justify-center">
+            <h3 className="text-[17px] font-black text-white leading-tight tracking-tight mb-0.5">
+              {deal.heading || "Today Only. Better Prices."}
             </h3>
-            <Link
-              href={activeCtaUrl || "/products?sale=true"}
-              className="inline-flex items-center justify-center px-4 py-2 bg-[#ED0712] hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95 cursor-pointer"
-            >
-              <span>Shop Deals</span>
-            </Link>
+            <p className="text-white/60 text-[11px] leading-snug mb-2 font-medium">
+              {deal.description || "Special deals. Limited time."}
+            </p>
+
+            {/* Red Countdown Timer Boxes */}
+            <div className="flex items-center gap-1 mb-2.5 select-none" suppressHydrationWarning>
+              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
+                {mounted ? padZero(hours) : "12"}
+              </span>
+              <span className="text-white/40 text-xs font-bold">:</span>
+              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
+                {mounted ? padZero(minutes) : "45"}
+              </span>
+              <span className="text-white/40 text-xs font-bold">:</span>
+              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
+                {mounted ? padZero(seconds) : "30"}
+              </span>
+            </div>
+
+            {/* White Pill Button */}
+            <div>
+              <Link
+                href={activeCtaUrl || "/products?sale=true"}
+                className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white hover:bg-neutral-100 text-black font-bold text-xs rounded-full shadow-sm transition-transform active:scale-95 cursor-pointer"
+              >
+                <span>{activeCtaLabel || "Shop Now"}</span>
+                <ArrowRight className="w-3 h-3 text-black" />
+              </Link>
+            </div>
           </div>
         </div>
       </div>

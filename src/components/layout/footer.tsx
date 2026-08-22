@@ -93,11 +93,108 @@ export default function Footer() {
   const policyLinks = settings.policy_links && settings.policy_links.length > 0 ? settings.policy_links : DEFAULT_FOOTER_SETTINGS.policy_links;
 
   return (
-    <footer
-      className="w-full bg-[#090909] text-white border-0 rounded-none shadow-none font-sans select-none relative z-20 pb-16 lg:pb-0"
-      style={{ borderRadius: 0 }}
-      role="contentinfo"
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Compact Footer ── */}
+      <footer className="md:hidden w-full bg-[#090909] text-white px-4 pt-6 pb-24 border-t border-neutral-800/80 font-sans select-none">
+        <div className="flex flex-col gap-5 max-w-md mx-auto">
+          {/* Logo & Description */}
+          <div>
+            <div className="flex items-center gap-2 mb-1.5">
+              <span className="font-black text-sm tracking-wider uppercase text-white">
+                STREET MOBILE
+              </span>
+            </div>
+            <p className="text-white/60 text-[11px] leading-relaxed max-w-xs">
+              {settings.description || "Your trusted destination for the latest smartphones and accessories."}
+            </p>
+
+            {/* Social Icons */}
+            <div className="flex items-center gap-3.5 mt-3 text-white/70">
+              <a
+                href={settings.facebook_url || "https://facebook.com"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Facebook"
+                className="hover:text-white transition-colors"
+              >
+                <FacebookIcon className="w-4 h-4" />
+              </a>
+              <a
+                href={settings.instagram_url || "https://instagram.com"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="Instagram"
+                className="hover:text-white transition-colors"
+              >
+                <InstagramIcon className="w-4 h-4" />
+              </a>
+              <a
+                href={settings.tiktok_url || "https://tiktok.com"}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="TikTok"
+                className="hover:text-white transition-colors"
+              >
+                <TikTokIcon className="w-4 h-4" />
+              </a>
+            </div>
+          </div>
+
+          {/* 2-Column Links: Shop & Help */}
+          <div className="grid grid-cols-2 gap-4 text-xs pt-1 border-t border-neutral-800/60">
+            {/* Shop Links */}
+            <div>
+              <span className="font-bold text-white uppercase text-[10px] tracking-wider block mb-2">
+                Shop
+              </span>
+              <div className="flex flex-col space-y-1.5 text-white/60 text-[11px]">
+                {shopLinks.slice(0, 5).map((l) => (
+                  <Link key={l.id || l.href} href={l.href} className="hover:text-white">
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+
+            {/* Help Links */}
+            <div>
+              <span className="font-bold text-white uppercase text-[10px] tracking-wider block mb-2">
+                Help
+              </span>
+              <div className="flex flex-col space-y-1.5 text-white/60 text-[11px]">
+                {helpLinks.slice(0, 5).map((l) => (
+                  <Link key={l.id || l.href} href={l.href} className="hover:text-white">
+                    {l.label}
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          {/* Copyright & Legal */}
+          <div className="pt-3 border-t border-neutral-800/60 flex flex-col gap-1.5 text-[10px] text-white/40">
+            <p className="m-0">
+              {settings.copyright_text || "© 2026 Street Mobile. All rights reserved."}
+            </p>
+            <div className="flex items-center gap-3">
+              <Link href="/privacy-policy" className="hover:text-white/70">
+                Privacy Policy
+              </Link>
+              <span>•</span>
+              <Link href="/terms-and-conditions" className="hover:text-white/70">
+                Terms &amp; Conditions
+              </Link>
+            </div>
+          </div>
+        </div>
+      </footer>
+
+      {/* ── Desktop Layout ── */}
+      <footer
+        className="hidden md:block w-full bg-[#090909] text-white border-0 rounded-none shadow-none font-sans select-none relative z-20 pb-16 lg:pb-0"
+        style={{ borderRadius: 0 }}
+        role="contentinfo"
+      >
       {/* ── Main Footer Container (max-w: 1320px, 4-Column Layout with Subtle Stagger) ── */}
       <ScrollReveal yOffset={14} stagger={0.06} className="max-w-[1320px] mx-auto px-6 pt-16 pb-12">
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-14 items-start">
@@ -287,5 +384,6 @@ export default function Footer() {
         </div>
       </div>
     </footer>
+  </>
   );
 }

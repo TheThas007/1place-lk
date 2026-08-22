@@ -157,25 +157,26 @@ export default function CategoriesSection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Matching ── */}
-      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
+      {/* ── Mobile Layout (< 768px): Exact 2-Row 5-Column Brand Grid ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
         {/* Mobile Header: Title & View All */}
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-lg font-black text-neutral-900 tracking-tight">
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
             Shop by Brand
           </h2>
           <Link
             href="/products"
             className="text-xs font-bold text-[#ED0712] hover:underline"
           >
-            View All
+            View all
           </Link>
         </div>
 
-        {/* Mobile Horizontal Brand Cards Rail */}
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4">
+        {/* 5-Column 2-Row Brand Grid */}
+        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
           {liveBrands
             .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
+            .slice(0, 10)
             .map((brand) => {
               const targetLink = `/shop-by-brand/${activeDeptSlug}/${brand.slug}`;
               const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
@@ -184,20 +185,20 @@ export default function CategoriesSection({
                 <Link
                   key={`mob-brand-${brand.id || brand.slug}`}
                   href={targetLink}
-                  className="min-w-[125px] shrink-0 bg-white border border-neutral-200/90 rounded-xl px-3.5 py-2.5 h-12 flex items-center justify-center gap-2 shadow-2xs hover:border-black active:scale-95 transition-all"
+                  className="bg-white border border-[#E8E8E8] rounded-[10px] h-[52px] sm:h-[60px] flex items-center justify-center p-1.5 shadow-2xs hover:border-black active:scale-95 transition-all"
                 >
                   {logoUrl ? (
                     <img
                       src={logoUrl}
                       alt={brand.name}
                       loading="lazy"
-                      className="max-h-7 max-w-[85px] object-contain"
+                      className="max-h-6 sm:max-h-7 max-w-[85%] object-contain"
                       onError={(e) => {
                         (e.target as HTMLImageElement).style.display = "none";
                       }}
                     />
                   ) : (
-                    <span className="text-xs font-black text-black tracking-tight">
+                    <span className="text-[10px] sm:text-xs font-black text-black tracking-tight text-center truncate">
                       {brand.name}
                     </span>
                   )}

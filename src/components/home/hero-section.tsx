@@ -213,35 +213,63 @@ export default function HeroSection() {
   return (
     <>
       {/* ── Mobile Hero Banner Card (Exact Reference Matching) ── */}
-      <div className="md:hidden w-full bg-white px-4 pt-3 pb-2">
-        <div className="relative w-full rounded-2xl bg-gradient-to-r from-[#DCE0E5] via-[#E8EBEF] to-[#F1F3F6] border border-neutral-200/80 p-5 overflow-hidden shadow-2xs min-h-[220px] flex flex-col justify-between">
-          {/* Floating Studio Mockup Image */}
-          <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none flex items-center justify-end overflow-hidden">
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 pt-2.5 pb-2 select-none">
+        <div className="relative w-full rounded-2xl bg-[#090909] border border-neutral-800 p-4 sm:p-5 overflow-hidden shadow-xs min-h-[190px] sm:min-h-[210px] flex flex-col justify-between text-white">
+          {/* Floating Phone Image on Right */}
+          <div className="absolute right-0 top-0 bottom-0 w-[50%] pointer-events-none flex items-center justify-end overflow-hidden">
             <img
-              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800"
-              alt="Titanium Flagship"
-              className="w-full h-full object-contain object-right scale-110 translate-x-2"
+              src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
+              alt={currentSlide.alt || line1Text || "Latest Smartphones"}
+              className="w-full h-full object-cover object-center scale-105"
               onError={(e) => {
-                (e.target as HTMLImageElement).src = mobileBg || desktopBg || "/placeholder-phone.webp";
+                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800";
               }}
             />
           </div>
 
           {/* Left Text & CTA Content */}
-          <div className="relative z-10 max-w-[62%]">
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-800 block mb-1">
-              FLAGSHIP LAUNCH
+          <div className="relative z-10 max-w-[60%]">
+            <span className="inline-block bg-[#0284c7] text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-1.5 uppercase tracking-wide">
+              {currentSlide.campaign_label || "NEW ARRIVAL"}
             </span>
-            <h1 className="text-[22px] sm:text-2xl font-black text-black leading-tight tracking-tight mb-3">
-              Titanium power.<br />Built for pros.
+            <h1 className="text-[20px] sm:text-[22px] font-black text-white leading-tight tracking-tight mb-1.5">
+              {line1Text || "Latest Smartphones."}
+              {line2Text ? <br /> : " "}
+              {line2Text || "Ultimate Performance."}
             </h1>
+            <p className="text-neutral-400 text-[10px] sm:text-[11px] leading-snug line-clamp-2 mb-3">
+              {currentSlide.description || "Discover the latest devices with power that keeps up with you."}
+            </p>
             <Link
               href={currentSlide.primary_button_url || "/products"}
-              className="inline-flex items-center justify-center px-4 py-2 bg-black hover:bg-neutral-800 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95 cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-black font-bold text-xs rounded-full shadow-sm hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
             >
-              <span>Shop Now</span>
+              <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+              <ArrowRight className="w-3 h-3 text-black" />
             </Link>
           </div>
+
+          {/* Slider Indicator Dots at Bottom */}
+          {slides.length > 1 && (
+            <div className="relative z-10 flex items-center gap-1.5 pt-2">
+              {slides.map((_, idx) => {
+                const isActive = idx === currentIndex;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentIndex(idx)}
+                    aria-label={`Slide ${idx + 1}`}
+                    className={`transition-all duration-300 rounded-full cursor-pointer ${
+                      isActive
+                        ? "w-2 h-2 bg-[#ED0712]"
+                        : "w-1.5 h-1.5 bg-white/40 hover:bg-white/70"
+                    }`}
+                  />
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
 

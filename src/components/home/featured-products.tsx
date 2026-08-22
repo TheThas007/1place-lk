@@ -74,49 +74,70 @@ export default function FeaturedProducts({
   }
 
   return (
-    <ScrollReveal
-      as="section"
-      id="featured-products"
-      stagger={0.06}
-      yOffset={20}
-      className="pt-16 pb-6 sm:pt-20 sm:pb-8 lg:pt-24 lg:pb-10 bg-background relative overflow-hidden font-sans"
-    >
-      {/* Background Glow */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-emerald-500/5 to-purple-500/5 blur-3xl rounded-full pointer-events-none" />
-
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
-        <div data-reveal-item className="flex items-end justify-between mb-12">
-          <div>
-            <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2 text-foreground">
-              Featured Products
-            </h2>
-            <p className="text-muted-foreground">Our handpicked premium selection.</p>
-          </div>
+    <>
+      {/* ── Mobile Layout (< 768px): Strict 2-Column Product Grid ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
+        {/* Mobile Header: Title & View All */}
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
+            Featured Products
+          </h2>
           <Link
             href="/products?featured=true"
-            className="hidden sm:flex items-center gap-2 text-sm font-semibold text-foreground hover:text-emerald-400 transition-all duration-300 group"
+            className="text-xs font-bold text-[#ED0712] hover:underline"
           >
-            View All <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+            View all
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+        {/* 2-Column Product Grid */}
+        <div className="grid grid-cols-2 gap-2.5">
           {featuredProducts.map((product) => (
-            <div key={product.id} data-reveal-item className="h-full">
+            <div key={`mob-fp-${product.id}`} className="h-full">
               <ProductCard product={product} />
             </div>
           ))}
         </div>
-
-        <div data-reveal-item className="mt-8 sm:hidden">
-          <Link
-            href="/products?featured=true"
-            className="flex items-center justify-center gap-2 text-sm font-semibold w-full py-4 border border-zinc-800 rounded-xl hover:bg-zinc-900 transition-colors text-white"
-          >
-            View All Products
-          </Link>
-        </div>
       </div>
-    </ScrollReveal>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="featured-products"
+          stagger={0.06}
+          yOffset={20}
+          className="pt-16 pb-6 sm:pt-20 sm:pb-8 lg:pt-24 lg:pb-10 bg-background relative overflow-hidden font-sans"
+        >
+          {/* Background Glow */}
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-to-tr from-emerald-500/5 to-purple-500/5 blur-3xl rounded-full pointer-events-none" />
+
+          <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
+            <div data-reveal-item className="flex items-end justify-between mb-12">
+              <div>
+                <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-2 text-foreground">
+                  Featured Products
+                </h2>
+                <p className="text-muted-foreground">Our handpicked premium selection.</p>
+              </div>
+              <Link
+                href="/products?featured=true"
+                className="hidden sm:flex items-center gap-2 text-sm font-semibold text-foreground hover:text-emerald-400 transition-all duration-300 group"
+              >
+                View All <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {featuredProducts.map((product) => (
+                <div key={product.id} data-reveal-item className="h-full">
+                  <ProductCard product={product} />
+                </div>
+              ))}
+            </div>
+          </div>
+        </ScrollReveal>
+      </div>
+    </>
   );
 }

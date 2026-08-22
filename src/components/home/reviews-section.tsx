@@ -487,13 +487,86 @@ export default function ReviewsSection({
     currentSettings.endlessScrollEnabled !== false && !isReducedMotion && baseItems.length > 1;
 
   return (
-    <ScrollReveal
-      as="section"
-      id="reviews-section"
-      stagger={0.06}
-      yOffset={20}
-      className="py-12 sm:py-16 lg:py-[72px] bg-white border-b border-neutral-200/80 relative overflow-hidden font-sans select-none"
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Reviews Rail ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3.5 select-none">
+        {/* Header & Rating Summary */}
+        <div className="text-center mb-3">
+          <h2 className="text-[17px] sm:text-lg font-black text-neutral-900 tracking-tight mb-1">
+            Loved by Customers Across Sri Lanka
+          </h2>
+          <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold">
+            <span>{overallRating.toFixed(1)}</span>
+            <div className="flex items-center text-emerald-500">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+              ))}
+            </div>
+            <span className="text-neutral-400 font-normal">
+              ({totalReviewsCount.toLocaleString()}+ Reviews)
+            </span>
+          </div>
+        </div>
+
+        {/* Horizontal Reviews Rail */}
+        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+          {displayReviews.map((rev, idx) => {
+            const authorInitial = (rev.author_name || "C").charAt(0).toUpperCase();
+            const avatarColorClass =
+              idx % 3 === 0
+                ? "bg-emerald-600"
+                : idx % 3 === 1
+                ? "bg-green-600"
+                : "bg-red-600";
+
+            return (
+              <div
+                key={`mob-rev-${rev.id || idx}`}
+                className="w-[235px] sm:w-[260px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl p-3 flex flex-col justify-between shadow-2xs snap-start"
+              >
+                {/* Top: Stars & Time */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center text-emerald-500">
+                    {[...Array(rev.rating || 5)].map((_, i) => (
+                      <Star key={i} className="w-3 h-3 fill-emerald-500 text-emerald-500" />
+                    ))}
+                  </div>
+                  <span className="text-[10px] text-neutral-400 font-medium">
+                    {rev.review_date || "Recent"}
+                  </span>
+                </div>
+
+                {/* Text */}
+                <p className="text-[11px] text-neutral-800 leading-relaxed font-normal my-2 line-clamp-3">
+                  {rev.text}
+                </p>
+
+                {/* Bottom Avatar & Name */}
+                <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
+                  <div
+                    className={`w-5 h-5 rounded-full ${avatarColorClass} text-white font-bold text-[10px] flex items-center justify-center shrink-0`}
+                  >
+                    {authorInitial}
+                  </div>
+                  <span className="text-xs font-bold text-neutral-900 truncate">
+                    {rev.author_name}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="reviews-section"
+          stagger={0.06}
+          yOffset={20}
+          className="py-12 sm:py-16 lg:py-[72px] bg-white border-b border-neutral-200/80 relative overflow-hidden font-sans select-none"
+        >
       {/* ── Centred Content Container (1240px max-width, width: calc(100% - 48px)) ── */}
       <div className="max-w-[1240px] w-[calc(100%-48px)] mx-auto relative z-10">
         {/* ── Section Title Header ── */}
@@ -641,5 +714,7 @@ export default function ReviewsSection({
         )}
       </div>
     </ScrollReveal>
+    </div>
+  </>
   );
 }

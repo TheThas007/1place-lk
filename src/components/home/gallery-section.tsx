@@ -365,13 +365,65 @@ export default function GallerySection({
     baseItems.length > 1;
 
   return (
-    <ScrollReveal
-      as="section"
-      id="gallery-section"
-      stagger={0.06}
-      yOffset={20}
-      className="relative py-12 sm:py-16 lg:py-[72px] bg-[#FAFAFA] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Horizontal Gallery Rail ── */}
+      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between mb-2.5">
+          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
+            Life at Street Mobile
+          </h2>
+          <Link
+            href="/gallery"
+            className="text-xs font-bold text-[#ED0712] hover:underline"
+          >
+            View all
+          </Link>
+        </div>
+
+        {/* Horizontal Photo Rail */}
+        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+          {visibleImages.map((image, idx) => {
+            const titleText = image.caption || image.title || "Life at Street Mobile";
+            const validPostUrl = validateUrl(image.post_url) || "/gallery";
+
+            return (
+              <a
+                key={`mob-gal-${image.id || idx}`}
+                href={validPostUrl}
+                target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
+                rel="noopener noreferrer"
+                className="w-[110px] sm:w-[125px] shrink-0 aspect-[3/4] rounded-xl overflow-hidden relative shadow-2xs snap-start block group cursor-pointer"
+              >
+                <img
+                  src={image.image_url}
+                  alt={titleText}
+                  loading="lazy"
+                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                  }}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex items-end p-2">
+                  <p className="text-white text-[10px] font-bold leading-tight line-clamp-2 m-0">
+                    {titleText}
+                  </p>
+                </div>
+              </a>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="gallery-section"
+          stagger={0.06}
+          yOffset={20}
+          className="relative py-12 sm:py-16 lg:py-[72px] bg-[#FAFAFA] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
+        >
       {/* ── Content Container (1320px Max-Width, Width: calc(100% - 48px)) ── */}
       <div className="relative max-w-[1320px] w-[calc(100%-48px)] mx-auto">
         {/* ── Header Row (2-Column Alignment with Action Button) ── */}
@@ -500,5 +552,7 @@ export default function GallerySection({
         )}
       </div>
     </ScrollReveal>
+    </div>
+  </>
   );
 }

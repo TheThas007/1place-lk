@@ -393,8 +393,8 @@ export default function Header() {
                 </kbd>
               </button>
 
-              {/* Wishlist button */}
-              <div className="group/item relative flex items-center justify-center">
+              {/* Wishlist button (Hidden on mobile < 768px - accessible in bottom nav) */}
+              <div className="hidden md:flex group/item relative items-center justify-center">
                 <Link
                   href="/wishlist"
                   className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200 relative"
