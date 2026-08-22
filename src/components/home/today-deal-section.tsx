@@ -262,6 +262,7 @@ export default function TodayDealSection({
                 </span>
               ) : (
                 <div
+                  suppressHydrationWarning
                   style={{
                     backgroundColor: deal.countdownBackgroundColor || "#FFFFFF",
                     color: deal.countdownTextColor || "#090909",
@@ -317,8 +318,13 @@ export default function TodayDealSection({
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ED0712] opacity-75" />
               <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ED0712]" />
             </span>
-            <span className="text-xs font-black text-[#ED0712] font-mono tracking-wider">
-              {padZero(hours)} : {padZero(minutes)} : {padZero(seconds)}
+            <span
+              suppressHydrationWarning
+              className="text-xs font-black text-[#ED0712] font-mono tracking-wider"
+            >
+              {mounted
+                ? `${padZero(hours)} : ${padZero(minutes)} : ${padZero(seconds)}`
+                : "08 : 24 : 16"}
             </span>
           </div>
           <Link
