@@ -824,3 +824,66 @@ export interface FeaturedCollectionsSettings {
   cards: FeaturedCollectionCard[];
 }
 
+// ===== Today's Deal Promotional Banner Settings =====
+export type TodayDealStatus = "draft" | "scheduled" | "live" | "expired";
+export type TodayDealFocalPosition = "left" | "center" | "right";
+export type TodayDealBoxPosition = "left" | "center" | "right";
+export type TodayDealVerticalAlignment = "top" | "center" | "bottom";
+export type TodayDealContentAlignment = "left" | "center" | "right";
+export type TodayDealMobileLayout = "overlay" | "stacked";
+export type TodayDealExpiryAction = "hide" | "deal-ended" | "replacement-cta" | "keep-banner";
+
+export interface TodayDealSettings {
+  enabled: boolean;
+  status?: TodayDealStatus;
+
+  eyebrow: string;
+  heading: string;
+  description: string;
+
+  desktopImageUrl: string;
+  mobileImageUrl?: string;
+  imageAlt: string;
+  desktopFocalPosition: TodayDealFocalPosition;
+  mobileFocalPosition: TodayDealFocalPosition;
+
+  bannerUrl?: string;
+  ctaEnabled: boolean;
+  ctaLabel: string;
+  ctaUrl: string;
+  openInNewTab: boolean;
+
+  boxPosition: TodayDealBoxPosition;
+  verticalAlignment: TodayDealVerticalAlignment;
+  contentAlignment: TodayDealContentAlignment;
+  mobileLayout: TodayDealMobileLayout;
+
+  boxBackgroundColor: string;
+  boxBackgroundOpacity: number;
+  headingColor: string;
+  descriptionColor: string;
+  eyebrowColor: string;
+  accentColor: string;
+  ctaBackgroundColor: string;
+  ctaTextColor: string;
+  countdownBackgroundColor: string;
+  countdownTextColor: string;
+  imageOverlayOpacity: number;
+  boxWidth: number;
+  boxPadding: number;
+  borderRadius: number;
+
+  countdownEnabled: boolean;
+  startsAt?: string | null;
+  endsAt?: string | null;
+  timezone: string;
+  showDays: boolean;
+  expiryAction: TodayDealExpiryAction;
+  replacementCtaLabel?: string;
+  replacementCtaUrl?: string;
+
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+

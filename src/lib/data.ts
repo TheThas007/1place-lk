@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings } from "./types";
 
 export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
   enabled: true,
@@ -1129,5 +1129,53 @@ export const DEFAULT_MOTION_SETTINGS: MotionSettings = {
   motionIntensity: "balanced",
   enableHeroParallax: true,
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// DEFAULT TODAY'S DEAL PROMOTIONAL BANNER SETTINGS
+// ══════════════════════════════════════════════════════════════════════════
+export const DEFAULT_TODAY_DEAL_SETTINGS: TodayDealSettings = {
+  enabled: true,
+  status: "live",
+  eyebrow: "TODAY'S DEAL",
+  heading: "Today Only. Better Prices.",
+  description: "Limited-time savings on selected devices & accessories.",
+  desktopImageUrl: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1600&auto=format&fit=crop",
+  mobileImageUrl: "",
+  imageAlt: "Today's Deal promotional devices and accessories",
+  desktopFocalPosition: "center",
+  mobileFocalPosition: "center",
+  bannerUrl: "/products",
+  ctaEnabled: true,
+  ctaLabel: "Shop Today's Deals",
+  ctaUrl: "/products",
+  openInNewTab: false,
+  boxPosition: "left",
+  verticalAlignment: "center",
+  contentAlignment: "left",
+  mobileLayout: "stacked",
+  boxBackgroundColor: "#090909",
+  boxBackgroundOpacity: 100,
+  headingColor: "#FFFFFF",
+  descriptionColor: "#E5E5E5",
+  eyebrowColor: "#ED0712",
+  accentColor: "#ED0712",
+  ctaBackgroundColor: "#ED0712",
+  ctaTextColor: "#FFFFFF",
+  countdownBackgroundColor: "#FFFFFF",
+  countdownTextColor: "#090909",
+  imageOverlayOpacity: 0,
+  boxWidth: 40,
+  boxPadding: 32,
+  borderRadius: 8,
+  countdownEnabled: true,
+  startsAt: new Date().toISOString(),
+  endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
+  timezone: "Asia/Colombo",
+  showDays: false,
+  expiryAction: "deal-ended",
+  replacementCtaLabel: "Browse All Deals",
+  replacementCtaUrl: "/products",
+};
+
 
 

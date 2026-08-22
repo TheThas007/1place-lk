@@ -47,9 +47,9 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings } from "@/lib/firestore-client";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -68,12 +68,14 @@ import BrandsTab from "@/components/admin/tabs/BrandsTab";
 import GalleryTab from "@/components/admin/tabs/GalleryTab";
 import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
 import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
+import TodayDealTab from "@/components/admin/tabs/TodayDealTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
   | "brands"
+  | "today-deal"
   | "reviews"
   | "gallery"
   | "hero"
@@ -105,6 +107,7 @@ function DashboardContent() {
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
+  const [todayDealSettings, setTodayDealSettings] = useState<TodayDealSettings>(DEFAULT_TODAY_DEAL_SETTINGS);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -260,6 +263,14 @@ function DashboardContent() {
         if (sc) setShowcaseSettings(sc);
       } catch (err) {
         console.warn("Error fetching showcase settings in admin:", err);
+      }
+
+      // Today's Deal Settings
+      try {
+        const td = await getTodayDealSettings();
+        if (td) setTodayDealSettings(td);
+      } catch (err) {
+        console.warn("Error fetching Today's Deal settings in admin:", err);
       }
     } catch (e) {
       console.error("Dashboard Data Fetch Error:", e);
@@ -1237,6 +1248,16 @@ function DashboardContent() {
           products={products}
           categories={categories}
           initialSettings={showcaseSettings}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5E: TODAY'S DEAL PROMOTIONAL BANNER
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "today-deal" && (
+        <TodayDealTab
+          initialSettings={todayDealSettings}
           onRefresh={refreshData}
         />
       )}

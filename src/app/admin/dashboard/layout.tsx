@@ -28,6 +28,7 @@ import {
   Smartphone,
   Images,
   Tag,
+  Flame,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -39,6 +40,7 @@ const SIDEBAR_ITEMS = [
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
   { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
+  { id: "today-deal", label: "Today's Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
   { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },

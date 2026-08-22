@@ -13,6 +13,7 @@ import StoreLocation from "@/components/home/store-location";
 import QuickCategoriesMobile from "@/components/home/quick-categories-mobile";
 import CampaignPlacement from "@/components/ui/CampaignPlacement";
 import HomeScrollReset from "@/components/home/HomeScrollReset";
+import TodayDealSection from "@/components/home/today-deal-section";
 
 import VisualProductShowcase from "@/components/home/visual-product-showcase";
 import {
@@ -26,6 +27,7 @@ import {
   getShowcaseSettings,
   getFeaturedCollections,
   getNewArrivalsSettings,
+  getTodayDealSettings,
 } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
@@ -44,6 +46,7 @@ export default async function HomePage() {
     showcaseSettings,
     featuredCollectionsSettings,
     newArrivalsSettings,
+    todayDealSettings,
   ] = await Promise.all([
     getCategories(),
     getBrands(),
@@ -55,6 +58,7 @@ export default async function HomePage() {
     getShowcaseSettings(),
     getFeaturedCollections(),
     getNewArrivalsSettings(),
+    getTodayDealSettings(),
   ]);
 
   const jsonLd = {
@@ -155,6 +159,9 @@ export default async function HomePage() {
 
       {/* 8. Shop by Category (Carousel Slider) */}
       <ShopByCategoryCarousel categories={categories} />
+
+      {/* Today's Deal Promotional Banner */}
+      <TodayDealSection settings={todayDealSettings} />
 
       {/* Showcase position: Below Shop by Category */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />

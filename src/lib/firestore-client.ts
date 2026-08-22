@@ -18,6 +18,7 @@ import {
   FooterSettings,
   NewArrivalsSettings,
   MegaMenuSettings,
+  TodayDealSettings,
 } from "./types";
 import {
   products as fallbackProducts,
@@ -33,6 +34,7 @@ import {
   DEFAULT_FOOTER_SETTINGS,
   DEFAULT_NEW_ARRIVALS_SETTINGS,
   DEFAULT_MEGA_MENU_SETTINGS,
+  DEFAULT_TODAY_DEAL_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
 import { cache } from "react";
@@ -399,5 +401,34 @@ export const getMegaMenuSettings = cache(async (): Promise<MegaMenuSettings> => 
   }
   return DEFAULT_MEGA_MENU_SETTINGS;
 });
+
+export const getTodayDealSettings = cache(async (): Promise<TodayDealSettings> => {
+  try {
+    const docRef = doc(db, "settings", "today_deal");
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) {
+      const data = docSnap.data() as TodayDealSettings;
+      return {
+        ...DEFAULT_TODAY_DEAL_SETTINGS,
+        ...data,
+      };
+    }
+
+    // Try alternate siteSettings/todayDeal location if exists
+    const altDocRef = doc(db, "siteSettings", "todayDeal");
+    const altSnap = await getDoc(altDocRef);
+    if (altSnap.exists()) {
+      const data = altSnap.data() as TodayDealSettings;
+      return {
+        ...DEFAULT_TODAY_DEAL_SETTINGS,
+        ...data,
+      };
+    }
+  } catch (e) {
+    console.warn("Offline/Error fetching Today's Deal settings:", e);
+  }
+  return DEFAULT_TODAY_DEAL_SETTINGS;
+});
+
 
 
