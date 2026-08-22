@@ -131,8 +131,8 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
     setLogoError("");
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
-      if (file.size > 5242880) { // 5 MB limit
-        setLogoError("Logo file exceeds 5 MB limit. Please select a smaller file.");
+      if (file.size > 307200) { // 300 KB limit
+        setLogoError("Logo file exceeds recommended 300 KB limit. Please compress logo.");
         return;
       }
       setLogoFile(file);

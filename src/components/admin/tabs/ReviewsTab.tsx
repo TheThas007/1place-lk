@@ -35,8 +35,8 @@ export default function ReviewsTab({
   const [googleSettings, setGoogleSettings] = useState<GoogleReviewsSettings>({
     overall_rating: settings?.overall_rating ?? 4.9,
     total_reviews_count: settings?.total_reviews_count ?? 250,
-    write_review_url: settings?.write_review_url ?? "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
-    view_all_reviews_url: settings?.view_all_reviews_url ?? "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
+    write_review_url: settings?.write_review_url ?? "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
+    view_all_reviews_url: settings?.view_all_reviews_url ?? "https://www.google.com/maps/place/Street+Mobile+Vavuniya",
   });
   const [savingSettings, setSavingSettings] = useState(false);
   const [settingsSuccess, setSettingsSuccess] = useState(false);

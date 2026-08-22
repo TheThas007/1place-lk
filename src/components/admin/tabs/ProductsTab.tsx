@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useMemo } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, writeBatch, onSnapshot, setDoc, collection } from "firebase/firestore";
+import { doc, updateDoc, writeBatch } from "firebase/firestore";
 import { 
   Package, 
   Plus, 
@@ -24,11 +24,8 @@ import {
   Sparkles,
   RefreshCw,
   SlidersHorizontal,
-  Layers,
-  Eye,
-  EyeOff,
+  Layers
 } from "lucide-react";
-import NewArrivalsControl from "@/components/admin/NewArrivalsControl";
 
 const STANDARD_CATEGORIES = [
   "Smartphones",
@@ -68,13 +65,11 @@ const STANDARD_BRANDS = [
 
 export default function ProductsTab({ 
   products, 
-  categories: categoriesProp,
   onDelete, 
   onEdit, 
   onAdd 
 }: { 
   products: Product[]; 
-  categories?: any[];
   onDelete: (id: string) => void;
   onEdit: (product: Product) => void;
   onAdd: (categoryName?: string) => void;
@@ -83,10 +78,6 @@ export default function ProductsTab({
   const [selectedCategoryFilter, setSelectedCategoryFilter] = useState<string>("all");
   const [selectedBrandFilter, setSelectedBrandFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
-
-  // Real-time custom categories and brands from Firestore
-  const [firestoreCategories, setFirestoreCategories] = useState<{ id: string; name: string }[]>([]);
-  const [firestoreBrands, setFirestoreBrands] = useState<{ id: string; name: string }[]>([]);
 
   // Bulk Selection State
   const [selectedProductIds, setSelectedProductIds] = useState<string[]>([]);
@@ -98,74 +89,6 @@ export default function ProductsTab({
   // Accordion Open States (Level 1: Category, Level 2: Brand)
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
-
-  // Homepage Featured Products Visibility State
-  const [showFeaturedProducts, setShowFeaturedProducts] = useState(true);
-  const [notificationMsg, setNotificationMsg] = useState("");
-
-  useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "ui");
-      const unsubscribe = onSnapshot(docRef, (snap) => {
-        if (snap.exists()) {
-          const data = snap.data();
-          if (data.showFeaturedProducts !== undefined) {
-            setShowFeaturedProducts(data.showFeaturedProducts !== false);
-          }
-        }
-      });
-      return () => unsubscribe();
-    } catch {}
-  }, []);
-
-  useEffect(() => {
-    try {
-      const unsubCat = onSnapshot(collection(db, "categories"), (snap) => {
-        const list: { id: string; name: string }[] = [];
-        snap.forEach((docSnap) => {
-          const d = docSnap.data();
-          const name = (d.name || d.category_name || d.title || d.label || "").toString().trim();
-          if (name) {
-            list.push({ id: docSnap.id, name });
-          }
-        });
-        setFirestoreCategories(list);
-      });
-
-      const unsubBrand = onSnapshot(collection(db, "brands"), (snap) => {
-        const list: { id: string; name: string }[] = [];
-        snap.forEach((docSnap) => {
-          const d = docSnap.data();
-          const name = (d.name || d.brand_name || d.title || d.brand || "").toString().trim();
-          if (name) {
-            list.push({ id: docSnap.id, name });
-          }
-        });
-        setFirestoreBrands(list);
-      });
-
-      return () => {
-        unsubCat();
-        unsubBrand();
-      };
-    } catch (e) {
-      console.warn("Error subscribing to categories/brands in ProductsTab:", e);
-    }
-  }, []);
-
-  const handleToggleFeaturedVisibility = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const nextState = e.target.checked;
-    setShowFeaturedProducts(nextState);
-    try {
-      const docRef = doc(db, "settings", "ui");
-      await setDoc(docRef, { showFeaturedProducts: nextState }, { merge: true });
-      setNotificationMsg("Featured Products visibility updated.");
-      setTimeout(() => setNotificationMsg(""), 3500);
-    } catch (err) {
-      console.error("Failed to update Featured Products visibility:", err);
-      setShowFeaturedProducts(!nextState);
-    }
-  };
 
   // 1. Standardize / Clean product classification helper
   const getProductCategory = (p: Product): string => {
@@ -221,44 +144,29 @@ export default function ProductsTab({
     return "Other";
   };
 
-  // Dynamically extract all unique categories across Firestore collection, props, existing products & standard presets
+  // Dynamically extract all unique categories across existing products & standard presets
   const dynamicCategories = useMemo(() => {
     const set = new Set<string>(STANDARD_CATEGORIES);
-    firestoreCategories.forEach((c) => {
-      const clean = (c.name || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-      if (clean) set.add(clean);
-    });
-    if (categoriesProp) {
-      categoriesProp.forEach((c) => {
-        const name = (c.name || c.category_name || c.title || "").toString().replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-        if (name) set.add(name);
-      });
-    }
     products.forEach((p) => {
-      const rawCat = (p.category_name || p.categoryName || (p as any).category || "").toString().trim();
-      const cleanCat = rawCat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-      if (cleanCat && cleanCat !== "General") {
-        set.add(cleanCat);
+      const cat = getProductCategory(p);
+      if (cat && cat.trim()) {
+        set.add(cat.trim());
       }
     });
-    return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
-  }, [firestoreCategories, categoriesProp, products]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
 
-  // Dynamically extract all unique brands across Firestore collection, existing products & standard presets
+  // Dynamically extract all unique brands across existing products & standard presets
   const dynamicBrands = useMemo(() => {
     const set = new Set<string>(STANDARD_BRANDS);
-    firestoreBrands.forEach((b) => {
-      const clean = (b.name || "").trim();
-      if (clean) set.add(clean);
-    });
     products.forEach((p) => {
-      const rawBrand = (p.brand || p.brand_name || p.brandName || "").toString().trim();
-      if (rawBrand && rawBrand !== "Standard" && rawBrand !== "Other") {
-        set.add(rawBrand);
+      const brand = getProductBrand(p);
+      if (brand && brand.trim() && brand !== "Standard") {
+        set.add(brand.trim());
       }
     });
-    return Array.from(set).filter(Boolean).sort((a, b) => a.localeCompare(b));
-  }, [firestoreBrands, products]);
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [products]);
 
   // 2. Filter products based on search, separate Category dropdown, and separate Brand dropdown
   const filteredProducts = useMemo(() => {
@@ -340,18 +248,12 @@ export default function ProductsTab({
     try {
       setIsUpdatingBulk(true);
       const batch = writeBatch(db);
-      const catSlug = bulkCategory.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const catId = `cat-${catSlug}`;
 
       selectedProductIds.forEach((id) => {
         const pRef = doc(db, "products", id);
         batch.update(pRef, {
-          category_id: catId,
-          categoryId: catId,
           category_name: bulkCategory,
           categoryName: bulkCategory,
-          category_slug: catSlug,
-          categorySlug: catSlug,
           updated_at: new Date().toISOString(),
         });
       });
@@ -374,19 +276,13 @@ export default function ProductsTab({
     try {
       setIsUpdatingBulk(true);
       const batch = writeBatch(db);
-      const brandSlug = bulkBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-      const brandId = `brand-${brandSlug}`;
 
       selectedProductIds.forEach((id) => {
         const pRef = doc(db, "products", id);
         batch.update(pRef, {
-          brand: bulkBrand,
           brand_name: bulkBrand,
           brandName: bulkBrand,
-          brand_id: brandId,
-          brandId: brandId,
-          brand_slug: brandSlug,
-          brandSlug: brandSlug,
+          brand: bulkBrand,
           updated_at: new Date().toISOString(),
         });
       });
@@ -439,14 +335,11 @@ export default function ProductsTab({
     }
   };
 
-  // Metrics (Trigger Low Stock alert when stock_status === 'low_stock' OR stock_count <= 2)
+  // Metrics
   const totalCount = filteredProducts.length;
-  const outOfStockCount = filteredProducts.filter((p) => p.stock_status === "out_of_stock" || (typeof p.stock_count === "number" && p.stock_count <= 0)).length;
-  const lowStockCount = filteredProducts.filter((p) => {
-    if (p.stock_status === "out_of_stock" || (typeof p.stock_count === "number" && p.stock_count <= 0)) return false;
-    return p.stock_status === "low_stock" || (typeof p.stock_count === "number" && p.stock_count <= 2);
-  }).length;
-  const inStockCount = totalCount - outOfStockCount - lowStockCount;
+  const inStockCount = filteredProducts.filter((p) => p.stock_status === "in_stock").length;
+  const lowStockCount = filteredProducts.filter((p) => p.stock_status === "low_stock").length;
+  const outOfStockCount = filteredProducts.filter((p) => p.stock_status === "out_of_stock").length;
 
   return (
     <div className="space-y-6 relative pb-24">
@@ -485,54 +378,6 @@ export default function ProductsTab({
             <Plus className="w-4 h-4 stroke-[3]" />
             <span>Universal Add Product</span>
           </button>
-        </div>
-      </div>
-
-      {/* ── New Arrivals Homepage Product Manager ── */}
-      <NewArrivalsControl products={products} />
-
-      {/* ── Featured Products Homepage Visibility Control ── */}
-      <div className="bg-slate-900/90 border border-white/10 p-4 sm:p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div className="flex items-start gap-3.5">
-          <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 border transition-colors ${
-            showFeaturedProducts
-              ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-              : "bg-white/5 border-white/10 text-white/40"
-          }`}>
-            {showFeaturedProducts ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-          </div>
-          <div>
-            <div className="flex items-center gap-2.5 flex-wrap">
-              <h4 className="text-sm font-bold text-white">Show Featured Products on Homepage</h4>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border transition-all ${
-                showFeaturedProducts
-                  ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                  : "bg-white/10 text-white/50 border-white/10"
-              }`}>
-                {showFeaturedProducts ? "Visible" : "Hidden"}
-              </span>
-            </div>
-            <p className="text-xs text-white/50 mt-1">
-              Turn this off to hide the complete Featured Products section from the homepage.
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3 shrink-0 self-end sm:self-auto">
-          {notificationMsg && (
-            <span className="text-xs font-semibold text-emerald-400 flex items-center gap-1.5 animate-pulse">
-              <CheckCircle2 className="w-4 h-4" /> {notificationMsg}
-            </span>
-          )}
-          <label className="relative inline-flex items-center cursor-pointer">
-            <input
-              type="checkbox"
-              checked={showFeaturedProducts}
-              onChange={handleToggleFeaturedVisibility}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 cursor-pointer" />
-          </label>
         </div>
       </div>
 
@@ -854,22 +699,26 @@ export default function ProductsTab({
 
                                       {/* Stock Status Badge */}
                                       <td className="px-4 py-3.5">
-                                        {product.stock_status === "out_of_stock" || (typeof product.stock_count === "number" && product.stock_count <= 0) ? (
-                                          <span className="inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border bg-red-500/10 text-red-400 border-red-500/20">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-red-400" />
-                                            Out of Stock
-                                          </span>
-                                        ) : product.stock_status === "low_stock" || (typeof product.stock_count === "number" && product.stock_count <= 2) ? (
-                                          <span className="inline-flex items-center gap-1.5 text-[9px] font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider border bg-amber-500/20 text-amber-300 border-amber-500/40 animate-pulse shadow-sm">
-                                            <AlertTriangle className="w-2.5 h-2.5 text-amber-400" />
-                                            Low Stock ({product.stock_count && product.stock_count > 0 ? product.stock_count : 2})
-                                          </span>
-                                        ) : (
-                                          <span className="inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border bg-emerald-500/10 text-emerald-400 border-emerald-500/20">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                                            In Stock
-                                          </span>
-                                        )}
+                                        <span
+                                          className={`inline-flex items-center gap-1.5 text-[9px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider border ${
+                                            product.stock_status === "in_stock"
+                                              ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                              : product.stock_status === "low_stock"
+                                              ? "bg-amber-500/10 text-amber-400 border-amber-500/20"
+                                              : "bg-red-500/10 text-red-400 border-red-500/20"
+                                          }`}
+                                        >
+                                          <span
+                                            className={`w-1.5 h-1.5 rounded-full ${
+                                              product.stock_status === "in_stock"
+                                                ? "bg-emerald-400"
+                                                : product.stock_status === "low_stock"
+                                                ? "bg-amber-400"
+                                                : "bg-red-400"
+                                            }`}
+                                          />
+                                          {product.stock_status.replace("_", " ")}
+                                        </span>
                                       </td>
 
                                       {/* Actions */}
@@ -930,10 +779,10 @@ export default function ProductsTab({
               <select
                 value={bulkCategory}
                 onChange={(e) => setBulkCategory(e.target.value)}
-                className="px-3 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-white focus:outline-none max-w-[200px]"
+                className="px-3 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-white focus:outline-none"
               >
-                <option value="">-- Change Category ({dynamicCategories.length}) --</option>
-                {dynamicCategories.map((c) => (
+                <option value="">-- Change Category --</option>
+                {STANDARD_CATEGORIES.map((c) => (
                   <option key={c} value={c}>📁 {c}</option>
                 ))}
               </select>
@@ -943,7 +792,7 @@ export default function ProductsTab({
                 disabled={!bulkCategory || isUpdatingBulk}
                 className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-md"
               >
-                {isUpdatingBulk ? "Updating..." : "Apply"}
+                Apply
               </button>
             </div>
 
@@ -952,10 +801,10 @@ export default function ProductsTab({
               <select
                 value={bulkBrand}
                 onChange={(e) => setBulkBrand(e.target.value)}
-                className="px-3 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-amber-400 focus:outline-none max-w-[180px]"
+                className="px-3 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-amber-400 focus:outline-none"
               >
-                <option value="">-- Change Brand ({dynamicBrands.length}) --</option>
-                {dynamicBrands.map((b) => (
+                <option value="">-- Change Brand --</option>
+                {STANDARD_BRANDS.map((b) => (
                   <option key={b} value={b}>🏷️ {b}</option>
                 ))}
               </select>
@@ -965,7 +814,7 @@ export default function ProductsTab({
                 disabled={!bulkBrand || isUpdatingBulk}
                 className="px-3 py-1.5 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-black rounded-xl text-xs font-bold shadow-md"
               >
-                {isUpdatingBulk ? "Updating..." : "Apply"}
+                Apply
               </button>
             </div>
 

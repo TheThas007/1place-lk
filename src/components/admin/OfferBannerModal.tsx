@@ -848,64 +848,59 @@ export default function OfferBannerModal({
               </h3>
 
               <div
-                className={`relative rounded-none overflow-hidden border border-white/20 bg-black ${
-                  previewDevice === "mobile" ? "aspect-[9/14] max-w-[260px] mx-auto" : "aspect-[16/9] w-full"
+                className={`relative rounded-2xl overflow-hidden border border-white/15 bg-black ${
+                  previewDevice === "mobile" ? "aspect-[9/12] max-w-[260px] mx-auto" : "aspect-[16/9] w-full"
                 }`}
-                style={{ borderRadius: 0 }}
               >
-                {/* Background media */}
-                {formData.desktopImage || formData.mobileImage ? (
+                {/* Background video / image / overlay */}
+                {formData.videoUrl ? (
+                  <video
+                    src={formData.videoUrl}
+                    autoPlay
+                    loop
+                    muted
+                    playsInline
+                    className="w-full h-full object-cover"
+                  />
+                ) : formData.desktopImage ? (
                   <img
-                    src={previewDevice === "mobile" && formData.mobileImage ? formData.mobileImage : (formData.desktopImage || "/images/campaign-headphone-desktop.jpg")}
+                    src={previewDevice === "mobile" && formData.mobileImage ? formData.mobileImage : formData.desktopImage}
                     alt="Preview"
-                    className="w-full h-full object-cover object-[70%_center]"
-                    style={{ borderRadius: 0 }}
+                    className="w-full h-full object-cover"
                   />
                 ) : (
                   <div className="w-full h-full bg-zinc-800 flex items-center justify-center text-white/30 text-xs">
                     No media uploaded
                   </div>
                 )}
-                {/* Directional Overlay */}
                 <div
-                  className="absolute inset-0 pointer-events-none"
-                  style={{
-                    background:
-                      previewDevice === "mobile"
-                        ? "linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.6) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)"
-                        : "linear-gradient(90deg, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.50) 45%, rgba(0,0,0,0.05) 75%, transparent 100%)",
-                  }}
+                  className="absolute inset-0 bg-black"
+                  style={{ opacity: (formData.overlayOpacity || 40) / 100 }}
                 />
 
                 {/* Banner Content */}
-                <div className="absolute inset-0 p-4 flex flex-col justify-end md:justify-center text-left text-white gap-2">
-                  <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-white/80">
-                    {formData.badgeText || formData.promoLabel || "LIMITED-TIME OFFER"}
-                  </span>
-                  <h4 className="text-sm sm:text-base font-bold leading-tight tracking-tight text-white m-0">
-                    {formData.headline || "Sound On. World Off."}
+                <div className="absolute inset-0 p-4 flex flex-col justify-center text-left text-white">
+                  {formData.badgeText && (
+                    <span className="self-start px-2 py-0.5 rounded-full bg-amber-400 text-black text-[9px] font-extrabold uppercase mb-2">
+                      {formData.badgeText}
+                    </span>
+                  )}
+                  <h4 className="text-sm sm:text-base font-bold leading-tight">
+                    {formData.headline || "Headline Here"} <span className="text-amber-400">{formData.highlightText}</span>
                   </h4>
                   {formData.description && (
-                    <p className="text-[10px] text-white/75 line-clamp-2 leading-snug m-0">
-                      {formData.description}
-                    </p>
+                    <p className="text-[10px] text-white/70 mt-1 line-clamp-2">{formData.description}</p>
                   )}
                   {formData.couponCode && (
-                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-black/50 border border-white/20 text-[10px] text-white w-fit">
-                      <span className="text-white/60">Use code</span>
-                      <span className="font-mono font-bold">{formData.couponCode}</span>
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-1 rounded bg-white/10 border border-white/20 text-[10px] font-mono">
+                      <Tag className="w-2.5 h-2.5 text-amber-400" /> CODE: {formData.couponCode}
                     </div>
                   )}
                   {formData.primaryCtaText && (
-                    <div className="pt-1 flex items-center gap-2">
-                      <span className="inline-flex items-center justify-center px-3 py-1.5 rounded-[6px] bg-white text-black text-[10px] font-bold">
+                    <div className="mt-3">
+                      <span className="inline-block px-3 py-1.5 rounded-lg bg-white text-black text-[10px] font-bold">
                         {formData.primaryCtaText}
                       </span>
-                      {formData.secondaryCtaText && (
-                        <span className="text-[10px] text-white/80 underline">
-                          {formData.secondaryCtaText}
-                        </span>
-                      )}
                     </div>
                   )}
                 </div>

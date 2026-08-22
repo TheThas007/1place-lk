@@ -385,23 +385,23 @@ export default function OrdersTab({
   };
 
   return (
-    <div className="space-y-6 text-white min-h-screen font-sans">
+    <div className="space-y-6 text-gray-900 bg-gray-50/50 min-h-screen p-2 sm:p-6 rounded-3xl border border-gray-200/80 font-sans">
       {/* ── Top Header Toolbar ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
+      <div className="bg-white border border-gray-200 rounded-3xl p-5 shadow-sm space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-2xl font-black text-white tracking-tight">Orders Management</h1>
-              <span className="bg-blue-500/20 border border-blue-500/30 text-blue-400 font-extrabold text-xs px-2.5 py-1 rounded-full">
+              <h1 className="text-2xl font-black text-gray-900 tracking-tight">Orders Management</h1>
+              <span className="bg-blue-50 border border-blue-200 text-blue-700 font-extrabold text-xs px-2.5 py-1 rounded-full">
                 {normalizedOrders.length} Orders
               </span>
               {filteredOrders.length !== normalizedOrders.length && (
-                <span className="bg-white/10 text-white/70 font-bold text-xs px-2.5 py-1 rounded-full">
+                <span className="bg-gray-100 text-gray-600 font-bold text-xs px-2.5 py-1 rounded-full">
                   {filteredOrders.length} Filtered
                 </span>
               )}
             </div>
-            <p className="text-xs text-white/50 font-medium mt-1">
+            <p className="text-xs text-gray-500 font-medium mt-1">
               Process customer purchases, track deliveries, manage cash collections and issue invoices
             </p>
           </div>
@@ -411,7 +411,7 @@ export default function OrdersTab({
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                className="px-3.5 py-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white font-bold text-xs rounded-xl transition-all flex items-center gap-2"
+                className="px-3.5 py-2.5 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl transition-all flex items-center gap-2"
                 title="Refresh order records"
               >
                 <RefreshCw className="w-3.5 h-3.5" /> Refresh
@@ -419,14 +419,14 @@ export default function OrdersTab({
             )}
             <button
               onClick={handleExportSelectedCSV}
-              className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2"
+              className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2"
             >
               <Download className="w-3.5 h-3.5" /> Export ({selectedRowIds.length > 0 ? selectedRowIds.length : "All"})
             </button>
             {selectedRowIds.length > 0 && (
               <button
                 onClick={() => setBulkStatusModalOpen(true)}
-                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2 animate-pulse"
+                className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-2 animate-pulse"
               >
                 <SlidersHorizontal className="w-3.5 h-3.5" /> Bulk Update ({selectedRowIds.length})
               </button>
@@ -435,10 +435,10 @@ export default function OrdersTab({
         </div>
 
         {/* Filters Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2 border-t border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-3 pt-2 border-t border-gray-100">
           {/* Search Bar */}
           <div className="relative sm:col-span-2">
-            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
             <input
               type="text"
               value={searchQuery}
@@ -447,12 +447,12 @@ export default function OrdersTab({
                 setCurrentPage(1);
               }}
               placeholder="Search Order ID, Customer, Phone, Email..."
-              className="w-full pl-10 pr-8 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs text-white placeholder-white/30 outline-none focus:border-blue-500 transition-all font-medium"
+              className="w-full pl-10 pr-8 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 outline-none focus:border-blue-500 transition-all font-medium"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery("")}
-                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white"
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -464,7 +464,7 @@ export default function OrdersTab({
             <select
               value={dateRange}
               onChange={(e) => setDateRange(e.target.value as any)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-medium cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-blue-500 font-medium"
             >
               <option value="all">📅 All Time</option>
               <option value="today">Today</option>
@@ -478,7 +478,7 @@ export default function OrdersTab({
             <select
               value={paymentMethodFilter}
               onChange={(e) => setPaymentMethodFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-medium cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-blue-500 font-medium"
             >
               <option value="all">💳 All Methods</option>
               <option value="cod">Cash on Delivery (COD)</option>
@@ -492,7 +492,7 @@ export default function OrdersTab({
             <select
               value={paymentStatusFilter}
               onChange={(e) => setPaymentStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-medium cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-blue-500 font-medium"
             >
               <option value="all">💲 All Payment Status</option>
               <option value="pending">Pending</option>
@@ -507,7 +507,7 @@ export default function OrdersTab({
             <select
               value={orderStatusFilter}
               onChange={(e) => setOrderStatusFilter(e.target.value)}
-              className="w-full px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs text-white outline-none focus:border-blue-500 font-medium cursor-pointer"
+              className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-700 outline-none focus:border-blue-500 font-medium"
             >
               <option value="all">📦 All Order Status</option>
               <option value="pending">Pending</option>
@@ -527,17 +527,17 @@ export default function OrdersTab({
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         {/* LEFT COLUMN: ORDERS TABLE (xl:col-span-8 or 7) */}
         <div className="xl:col-span-7 space-y-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+          <div className="bg-white border border-gray-200 rounded-3xl overflow-hidden shadow-sm">
             <div className="overflow-x-auto">
               <table className="w-full text-left border-collapse min-w-[700px]">
                 <thead>
-                  <tr className="border-b border-white/10 bg-white/5 text-[11px] font-black text-white/50 uppercase tracking-wider select-none">
+                  <tr className="border-b border-gray-200 bg-gray-50/80 text-[11px] font-black text-gray-500 uppercase tracking-wider select-none">
                     <th className="px-4 py-3.5 w-10 text-center">
                       <input
                         type="checkbox"
                         checked={selectedRowIds.length === paginatedOrders.length && paginatedOrders.length > 0}
                         onChange={handleToggleSelectAll}
-                        className="w-4 h-4 rounded border-white/20 bg-zinc-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                        className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                       />
                     </th>
                     <th className="px-4 py-3.5">Order ID</th>
@@ -549,13 +549,13 @@ export default function OrdersTab({
                     <th className="px-4 py-3.5 text-right">Total</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-white/5 text-xs">
+                <tbody className="divide-y divide-gray-100 text-xs">
                   {paginatedOrders.length === 0 ? (
                     <tr>
-                      <td colSpan={8} className="px-6 py-12 text-center text-white/40">
-                        <PackageCheck className="w-10 h-10 mx-auto mb-2 text-white/20" />
-                        <p className="font-bold text-white/70">No orders found matching filters.</p>
-                        <p className="text-xs text-white/40 mt-1">Try resetting search parameters.</p>
+                      <td colSpan={8} className="px-6 py-12 text-center text-gray-400">
+                        <PackageCheck className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                        <p className="font-bold text-gray-600">No orders found matching filters.</p>
+                        <p className="text-xs text-gray-400 mt-1">Try resetting search parameters.</p>
                       </td>
                     </tr>
                   ) : (
@@ -571,8 +571,8 @@ export default function OrdersTab({
                           }}
                           className={`cursor-pointer transition-colors ${
                             isSelected
-                              ? "bg-blue-600/20 border-l-4 border-l-blue-500 font-medium"
-                              : "hover:bg-white/5"
+                              ? "bg-blue-50/80 border-l-4 border-l-blue-600 font-medium"
+                              : "hover:bg-gray-50/80"
                           }`}
                         >
                           <td className="px-4 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
@@ -580,22 +580,22 @@ export default function OrdersTab({
                               type="checkbox"
                               checked={selectedRowIds.includes(ord.id)}
                               onChange={() => handleToggleSelectRow(ord.id)}
-                              className="w-4 h-4 rounded border-white/20 bg-zinc-900 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                             />
                           </td>
 
                           {/* Order ID */}
-                          <td className="px-4 py-3.5 whitespace-nowrap font-mono font-bold text-white">
+                          <td className="px-4 py-3.5 whitespace-nowrap font-mono font-bold text-gray-900">
                             #{ord.id.slice(-7).toUpperCase()}
                             {ord.needsReview && (
-                              <span className="ml-1.5 px-1.5 py-0.5 bg-amber-500/20 text-amber-300 border border-amber-500/30 font-sans font-bold text-[9px] rounded">
+                              <span className="ml-1.5 px-1.5 py-0.5 bg-amber-100 text-amber-800 font-sans font-bold text-[9px] rounded">
                                 Review
                               </span>
                             )}
                           </td>
 
                           {/* Order Date */}
-                          <td className="px-4 py-3.5 whitespace-nowrap text-white/50">
+                          <td className="px-4 py-3.5 whitespace-nowrap text-gray-500">
                             {new Date(ord.createdAt).toLocaleDateString("en-GB", {
                               day: "2-digit",
                               month: "short",
@@ -603,7 +603,7 @@ export default function OrdersTab({
                           </td>
 
                           {/* Customer Name */}
-                          <td className="px-4 py-3.5 whitespace-nowrap font-semibold text-white max-w-[140px] truncate">
+                          <td className="px-4 py-3.5 whitespace-nowrap font-semibold text-gray-900 max-w-[140px] truncate">
                             {ord.customerName}
                           </td>
 
@@ -612,10 +612,10 @@ export default function OrdersTab({
                             <span
                               className={`px-2 py-0.5 rounded-md font-bold text-[10px] uppercase border ${
                                 ord.paymentMethod === "PayHere"
-                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                  ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : ord.paymentMethod === "COD"
-                                  ? "bg-white/10 text-white/70 border-white/20"
-                                  : "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                  ? "bg-gray-100 text-gray-700 border-gray-200"
+                                  : "bg-emerald-50 text-emerald-700 border-emerald-200"
                               }`}
                             >
                               {ord.paymentMethod}
@@ -627,12 +627,12 @@ export default function OrdersTab({
                             <span
                               className={`px-2 py-0.5 rounded-full font-bold text-[10px] border ${
                                 ord.paymentStatus === "Paid"
-                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : ord.paymentStatus === "Failed" || ord.paymentStatus === "Cancelled"
-                                  ? "bg-red-500/20 text-red-300 border-red-500/30"
+                                  ? "bg-red-50 text-red-700 border-red-200"
                                   : ord.paymentStatus === "Refunded"
-                                  ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
-                                  : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}
                             >
                               {ord.paymentStatus}
@@ -644,14 +644,14 @@ export default function OrdersTab({
                             <span
                               className={`px-2 py-0.5 rounded-full font-bold text-[10px] border ${
                                 ord.orderStatus === "Delivered"
-                                  ? "bg-emerald-500/20 text-emerald-300 border-emerald-500/30"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                   : ord.orderStatus === "Shipped" || ord.orderStatus === "Out for Delivery"
-                                  ? "bg-blue-500/20 text-blue-300 border-blue-500/30"
+                                  ? "bg-blue-50 text-blue-700 border-blue-200"
                                   : ord.orderStatus === "Packed" || ord.orderStatus === "Processing"
-                                  ? "bg-purple-500/20 text-purple-300 border-purple-500/30"
+                                  ? "bg-purple-50 text-purple-700 border-purple-200"
                                   : ord.orderStatus === "Cancelled"
-                                  ? "bg-red-500/20 text-red-300 border-red-500/30"
-                                  : "bg-amber-500/20 text-amber-300 border-amber-500/30"
+                                  ? "bg-red-50 text-red-700 border-red-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}
                             >
                               {ord.orderStatus}
@@ -659,7 +659,7 @@ export default function OrdersTab({
                           </td>
 
                           {/* Total Price - Right aligned, single line */}
-                          <td className="px-4 py-3.5 whitespace-nowrap font-mono font-bold text-white text-right">
+                          <td className="px-4 py-3.5 whitespace-nowrap font-mono font-bold text-gray-900 text-right">
                             {formatLKR(ord.grandTotal)}
                           </td>
                         </tr>
@@ -672,7 +672,7 @@ export default function OrdersTab({
 
             {/* Pagination Controls Footer */}
             {totalPages > 1 && (
-              <div className="px-6 py-4 bg-white/5 border-t border-white/10 flex items-center justify-between text-xs text-white/60 select-none">
+              <div className="px-6 py-4 bg-gray-50/80 border-t border-gray-200 flex items-center justify-between text-xs text-gray-600 select-none">
                 <span>
                   Showing page <strong>{currentPage}</strong> of <strong>{totalPages}</strong> ({filteredOrders.length} total orders)
                 </span>
@@ -680,14 +680,14 @@ export default function OrdersTab({
                   <button
                     disabled={currentPage === 1}
                     onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                    className="p-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/10 disabled:opacity-40 transition-all"
+                    className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-40 transition-all"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </button>
                   <button
                     disabled={currentPage === totalPages}
                     onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                    className="p-2 bg-zinc-900 border border-white/10 rounded-xl hover:bg-white/10 disabled:opacity-40 transition-all"
+                    className="p-2 bg-white border border-gray-200 rounded-xl hover:bg-gray-100 disabled:opacity-40 transition-all"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -715,10 +715,10 @@ export default function OrdersTab({
               onOpenDeleteModal={() => setDeleteModalOpen(true)}
             />
           ) : (
-            <div className="bg-[#0F172A] border border-dashed border-white/15 rounded-3xl p-12 text-center text-white/40">
-              <FileText className="w-10 h-10 mx-auto mb-2 text-white/20" />
-              <p className="font-bold text-white/70">Select an order</p>
-              <p className="text-xs text-white/40 mt-1">Click any order in the left table to inspect details.</p>
+            <div className="bg-white border border-dashed border-gray-300 rounded-3xl p-12 text-center text-gray-400">
+              <FileText className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+              <p className="font-bold text-gray-600">Select an order</p>
+              <p className="text-xs text-gray-400 mt-1">Click any order in the left table to inspect details.</p>
             </div>
           )}
         </div>
@@ -726,13 +726,13 @@ export default function OrdersTab({
 
       {/* ── MOBILE FULL-SCREEN DRAWER (FOR SCREEN WIDTH < XL) ── */}
       {mobileDrawerOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 xl:hidden bg-black/70 backdrop-blur-sm flex justify-end animate-in fade-in">
-          <div className="w-full max-w-lg bg-[#0F172A] border-l border-white/10 text-white h-full overflow-y-auto p-5 space-y-6 shadow-2xl animate-in slide-in-from-right">
-            <div className="flex items-center justify-between pb-3 border-b border-white/10">
-              <h2 className="font-extrabold text-base text-white">Order Details #{selectedOrder.id.slice(-8)}</h2>
+        <div className="fixed inset-0 z-50 xl:hidden bg-black/60 backdrop-blur-sm flex justify-end animate-in fade-in">
+          <div className="w-full max-w-lg bg-white h-full overflow-y-auto p-5 space-y-6 shadow-2xl animate-in slide-in-from-right">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+              <h2 className="font-extrabold text-base text-gray-900">Order Details #{selectedOrder.id.slice(-8)}</h2>
               <button
                 onClick={() => setMobileDrawerOpen(false)}
-                className="p-2 text-white/40 hover:text-white rounded-full hover:bg-white/10"
+                className="p-2 text-gray-400 hover:text-gray-600 rounded-full hover:bg-gray-100"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -758,18 +758,18 @@ export default function OrdersTab({
 
       {/* ── CANCEL ORDER MODAL ── */}
       {cancelModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 text-white rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-black text-rose-400 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-red-600 flex items-center gap-2">
                 <AlertCircle className="w-5 h-5" /> Cancel Order #{selectedOrder.id.slice(-8)}
               </h3>
-              <button onClick={() => setCancelModalOpen(false)} className="text-white/40 hover:text-white">
+              <button onClick={() => setCancelModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-gray-600">
               Please enter the mandatory reason for cancelling this customer order:
             </p>
 
@@ -779,14 +779,14 @@ export default function OrdersTab({
               value={cancelReason}
               onChange={(e) => setCancelReason(e.target.value)}
               placeholder="e.g. Customer requested cancellation, Item out of stock..."
-              className="w-full p-3 bg-zinc-950 border border-white/15 rounded-xl text-xs font-medium text-white placeholder-white/30 outline-none focus:border-red-500 resize-none"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 outline-none focus:border-red-500 resize-none"
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setCancelModalOpen(false)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl"
               >
                 Keep Order
               </button>
@@ -794,7 +794,7 @@ export default function OrdersTab({
                 type="button"
                 onClick={handleCancelOrderSubmit}
                 disabled={!cancelReason.trim()}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl disabled:opacity-40"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl disabled:opacity-40"
               >
                 Confirm Cancellation
               </button>
@@ -805,18 +805,18 @@ export default function OrdersTab({
 
       {/* ── DELETE ORDER MODAL ── */}
       {deleteModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 text-white rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-black text-rose-400 flex items-center gap-2">
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-red-600 flex items-center gap-2">
                 <Trash2 className="w-5 h-5" /> Permanently Delete Order
               </h3>
-              <button onClick={() => setDeleteModalOpen(false)} className="text-white/40 hover:text-white">
+              <button onClick={() => setDeleteModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <p className="text-xs text-white/60">
+            <p className="text-xs text-gray-600">
               Are you sure you want to delete order <strong>#{selectedOrder.id}</strong>? This action cannot be undone. Please state the deletion reason:
             </p>
 
@@ -826,14 +826,14 @@ export default function OrdersTab({
               value={deleteReason}
               onChange={(e) => setDeleteReason(e.target.value)}
               placeholder="e.g. Duplicate test order removal..."
-              className="w-full p-3 bg-zinc-950 border border-white/15 rounded-xl text-xs font-medium text-white placeholder-white/30 outline-none focus:border-red-500 resize-none"
+              className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl text-xs font-medium text-gray-900 outline-none focus:border-red-500 resize-none"
             />
 
             <div className="flex items-center justify-end gap-3 pt-2">
               <button
                 type="button"
                 onClick={() => setDeleteModalOpen(false)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl"
               >
                 Cancel
               </button>
@@ -841,7 +841,7 @@ export default function OrdersTab({
                 type="button"
                 onClick={handleDeleteOrderSubmit}
                 disabled={!deleteReason.trim()}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white font-bold text-xs rounded-xl disabled:opacity-40"
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl disabled:opacity-40"
               >
                 Confirm Delete Record
               </button>
@@ -852,24 +852,24 @@ export default function OrdersTab({
 
       {/* ── BULK STATUS UPDATE MODAL ── */}
       {bulkStatusModalOpen && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 text-white rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-black text-white flex items-center gap-2">
-                <SlidersHorizontal className="w-5 h-5 text-blue-400" /> Bulk Update ({selectedRowIds.length} Orders)
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white border border-gray-200 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h3 className="text-base font-black text-gray-900 flex items-center gap-2">
+                <SlidersHorizontal className="w-5 h-5 text-blue-600" /> Bulk Update ({selectedRowIds.length} Orders)
               </h3>
-              <button onClick={() => setBulkStatusModalOpen(false)} className="text-white/40 hover:text-white">
+              <button onClick={() => setBulkStatusModalOpen(false)} className="text-gray-400 hover:text-gray-600">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
             <div className="space-y-3 text-xs">
               <div>
-                <label className="block font-bold text-white/80 mb-1">Set New Order Status</label>
+                <label className="block font-bold text-gray-700 mb-1">Set New Order Status</label>
                 <select
                   value={bulkOrderStatus}
                   onChange={(e) => setBulkOrderStatus(e.target.value)}
-                  className="w-full p-2.5 bg-zinc-950 border border-white/15 rounded-xl text-xs text-white font-bold outline-none cursor-pointer"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 font-bold outline-none"
                 >
                   <option value="Processing">Processing</option>
                   <option value="Packed">Packed</option>
@@ -880,11 +880,11 @@ export default function OrdersTab({
               </div>
 
               <div>
-                <label className="block font-bold text-white/80 mb-1">Set New Payment Status</label>
+                <label className="block font-bold text-gray-700 mb-1">Set New Payment Status</label>
                 <select
                   value={bulkPaymentStatus}
                   onChange={(e) => setBulkPaymentStatus(e.target.value)}
-                  className="w-full p-2.5 bg-zinc-950 border border-white/15 rounded-xl text-xs text-white font-bold outline-none cursor-pointer"
+                  className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 font-bold outline-none"
                 >
                   <option value="Pending">Pending</option>
                   <option value="Paid">Paid</option>
@@ -897,14 +897,14 @@ export default function OrdersTab({
               <button
                 type="button"
                 onClick={() => setBulkStatusModalOpen(false)}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-xl"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold text-xs rounded-xl"
               >
                 Cancel
               </button>
               <button
                 type="button"
                 onClick={handleApplyBulkStatus}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/30"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-sm"
               >
                 Apply to {selectedRowIds.length} Orders
               </button>
@@ -917,7 +917,7 @@ export default function OrdersTab({
 }
 
 /**
- * ── STICKY ORDER DETAILS CARD COMPONENT (DARK THEME) ──
+ * ── STICKY ORDER DETAILS CARD COMPONENT (PURE WHITE MINIMAL STYLE) ──
  */
 function OrderDetailsCard({
   order,
@@ -950,14 +950,14 @@ function OrderDetailsCard({
   const whatsappUrl = `https://wa.me/${(order.primaryPhone || "").replace(/[^0-9]/g, "")}?text=${encodeURIComponent(whatsappMsg)}`;
 
   return (
-    <div className="sticky top-6 bg-[#0F172A] border border-white/10 rounded-3xl p-5 sm:p-6 shadow-xl space-y-6 text-white">
+    <div className="sticky top-6 bg-white border border-gray-200 rounded-3xl p-5 sm:p-6 shadow-sm space-y-6 text-gray-900">
       {/* Top Header & PDF Action Buttons */}
-      <div className="flex items-start justify-between pb-4 border-b border-white/10 gap-3">
+      <div className="flex items-start justify-between pb-4 border-b border-gray-100 gap-3">
         <div>
-          <span className="text-[10px] font-bold text-white/40 uppercase tracking-widest block">Selected Order</span>
-          <h2 className="text-lg font-black text-white font-mono">#{order.id}</h2>
-          <p className="text-xs text-white/50 mt-0.5 flex items-center gap-1">
-            <Clock className="w-3.5 h-3.5 text-white/40" />
+          <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block">Selected Order</span>
+          <h2 className="text-lg font-black text-gray-900 font-mono">#{order.id}</h2>
+          <p className="text-xs text-gray-500 mt-0.5 flex items-center gap-1">
+            <Clock className="w-3.5 h-3.5 text-gray-400" />
             Placed {new Date(order.createdAt).toLocaleString("en-GB")}
           </p>
         </div>
@@ -965,14 +965,14 @@ function OrderDetailsCard({
         <div className="flex items-center gap-1.5 shrink-0">
           <button
             onClick={() => printOrderInvoice(order)}
-            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
             title="Download PDF Invoice"
           >
             <Printer className="w-4 h-4" /> Invoice
           </button>
           <button
             onClick={() => printPackingSlip(order)}
-            className="p-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
+            className="p-2 bg-gray-100 hover:bg-gray-200 text-gray-800 rounded-xl font-bold text-xs transition-colors flex items-center gap-1"
             title="Download Packing Slip"
           >
             <PackageCheck className="w-4 h-4" /> Packing
@@ -981,41 +981,41 @@ function OrderDetailsCard({
       </div>
 
       {/* Customer Info Card */}
-      <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
-        <span className="text-[10px] font-extrabold text-white/40 uppercase tracking-wider block">Customer & Delivery</span>
+      <div className="bg-gray-50/80 border border-gray-200/80 rounded-2xl p-4 space-y-3">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Customer & Delivery</span>
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div>
-            <p className="text-white/40 font-medium">Customer Name</p>
-            <p className="font-extrabold text-white mt-0.5">{order.customerName}</p>
+            <p className="text-gray-400 font-medium">Customer Name</p>
+            <p className="font-extrabold text-gray-900 mt-0.5">{order.customerName}</p>
           </div>
           <div>
-            <p className="text-white/40 font-medium">Primary Phone</p>
-            <p className="font-extrabold text-white font-mono mt-0.5">{order.primaryPhone}</p>
+            <p className="text-gray-400 font-medium">Primary Phone</p>
+            <p className="font-extrabold text-gray-900 font-mono mt-0.5">{order.primaryPhone}</p>
           </div>
         </div>
 
         {order.alternativePhone && (
           <div className="text-xs">
-            <p className="text-white/40 font-medium">Alternative Phone</p>
-            <p className="font-semibold text-white/80 font-mono mt-0.5">{order.alternativePhone}</p>
+            <p className="text-gray-400 font-medium">Alternative Phone</p>
+            <p className="font-semibold text-gray-800 font-mono mt-0.5">{order.alternativePhone}</p>
           </div>
         )}
 
         {order.customerEmail && order.customerEmail !== "Not provided" && (
           <div className="text-xs">
-            <p className="text-white/40 font-medium">Email Address</p>
-            <p className="font-semibold text-white/80 mt-0.5">{order.customerEmail}</p>
+            <p className="text-gray-400 font-medium">Email Address</p>
+            <p className="font-semibold text-gray-800 mt-0.5">{order.customerEmail}</p>
           </div>
         )}
 
-        <div className="text-xs pt-2 border-t border-white/10">
-          <p className="text-white/40 font-medium mb-1 flex items-center gap-1">
-            <MapPin className="w-3.5 h-3.5 text-white/40" /> Delivery Address
+        <div className="text-xs pt-2 border-t border-gray-200/60">
+          <p className="text-gray-400 font-medium mb-1 flex items-center gap-1">
+            <MapPin className="w-3.5 h-3.5 text-gray-400" /> Delivery Address
           </p>
-          <p className="text-white/90 leading-relaxed font-medium bg-zinc-950 p-2.5 rounded-xl border border-white/10">
+          <p className="text-gray-800 leading-relaxed font-medium bg-white p-2.5 rounded-xl border border-gray-200">
             {order.deliveryAddress.address}, {order.deliveryAddress.city}, {order.deliveryAddress.district}, {order.deliveryAddress.province} ({order.deliveryAddress.postalCode})
-            {order.deliveryAddress.landmark && <span className="block text-white/50 mt-1">Landmark: {order.deliveryAddress.landmark}</span>}
-            {order.deliveryAddress.instructions && <span className="block text-white/50 mt-1">Note: {order.deliveryAddress.instructions}</span>}
+            {order.deliveryAddress.landmark && <span className="block text-gray-500 mt-1">Landmark: {order.deliveryAddress.landmark}</span>}
+            {order.deliveryAddress.instructions && <span className="block text-gray-500 mt-1">Note: {order.deliveryAddress.instructions}</span>}
           </p>
         </div>
       </div>
@@ -1025,11 +1025,11 @@ function OrderDetailsCard({
         <div className="grid grid-cols-2 gap-3 text-xs">
           {/* Order Status Control */}
           <div>
-            <label className="block font-extrabold text-white/80 mb-1">Order Status</label>
+            <label className="block font-extrabold text-gray-700 mb-1">Order Status</label>
             <select
               value={order.orderStatus}
               onChange={(e) => onUpdateOrderStatus(order.id, e.target.value as any)}
-              className="w-full p-2.5 bg-zinc-950 border border-white/15 rounded-xl text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="Pending">⏳ Pending</option>
               <option value="Confirmed">✓ Confirmed</option>
@@ -1045,11 +1045,11 @@ function OrderDetailsCard({
 
           {/* Payment Status Control */}
           <div>
-            <label className="block font-extrabold text-white/80 mb-1">Payment Status</label>
+            <label className="block font-extrabold text-gray-700 mb-1">Payment Status</label>
             <select
               value={order.paymentStatus}
               onChange={(e) => onUpdatePaymentStatus(order.id, e.target.value as any)}
-              className="w-full p-2.5 bg-zinc-950 border border-white/15 rounded-xl text-xs font-bold text-white outline-none focus:border-blue-500 cursor-pointer"
+              className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-bold text-gray-900 outline-none focus:border-blue-500 cursor-pointer"
             >
               <option value="Pending">⏳ Pending</option>
               <option value="Paid">✅ Paid</option>
@@ -1065,7 +1065,7 @@ function OrderDetailsCard({
         {order.paymentMethod === "COD" && order.paymentStatus !== "Paid" && (
           <button
             onClick={() => onConfirmCashCollected(order.id)}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-extrabold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center justify-center gap-2"
+            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl transition-all shadow-sm flex items-center justify-center gap-2"
           >
             <Banknote className="w-4 h-4" /> Confirm Cash Collected (Mark Paid)
           </button>
@@ -1073,104 +1073,104 @@ function OrderDetailsCard({
 
         {/* PayHere Online Details */}
         {order.paymentMethod === "PayHere" && (
-          <div className="p-3 bg-blue-950/40 border border-blue-500/30 rounded-xl text-xs space-y-1">
-            <span className="font-extrabold text-blue-300 block">PayHere Gateway Transaction</span>
-            <p className="text-blue-400">Transaction ID: {order.transactionId || "Verified Online"}</p>
+          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs space-y-1">
+            <span className="font-extrabold text-blue-900 block">PayHere Gateway Transaction</span>
+            <p className="text-blue-700">Transaction ID: {order.transactionId || "Verified Online"}</p>
           </div>
         )}
       </div>
 
       {/* Tracking Number & Internal Admin Notes */}
-      <div className="space-y-3 pt-2 border-t border-white/10 text-xs">
+      <div className="space-y-3 pt-2 border-t border-gray-100 text-xs">
         <div>
-          <label className="block font-bold text-white/80 mb-1">Tracking Number</label>
+          <label className="block font-bold text-gray-700 mb-1">Tracking Number</label>
           <input
             type="text"
             value={editingTracking}
             onChange={(e) => setEditingTracking(e.target.value)}
             placeholder="Enter courier tracking code..."
-            className="w-full px-3 py-2 bg-zinc-950 border border-white/15 rounded-xl text-xs font-mono text-white placeholder-white/30 outline-none focus:border-blue-500"
+            className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-900 outline-none focus:border-blue-500"
           />
         </div>
 
         <div>
-          <label className="block font-bold text-white/80 mb-1">Internal Admin Notes</label>
+          <label className="block font-bold text-gray-700 mb-1">Internal Admin Notes</label>
           <textarea
             rows={2}
             value={editingNotes}
             onChange={(e) => setEditingNotes(e.target.value)}
             placeholder="Private notes for staff..."
-            className="w-full p-2.5 bg-zinc-950 border border-white/15 rounded-xl text-xs text-white placeholder-white/30 outline-none focus:border-blue-500 resize-none font-medium"
+            className="w-full p-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 outline-none focus:border-blue-500 resize-none font-medium"
           />
         </div>
 
         <button
           onClick={onSaveDetails}
           disabled={savingDetails}
-          className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30"
+          className="px-4 py-2 bg-gray-900 hover:bg-black text-white font-bold text-xs rounded-xl transition-all shadow-sm"
         >
           {savingDetails ? "Saving..." : "Save Tracking & Notes"}
         </button>
       </div>
 
       {/* Purchased Item Summary List */}
-      <div className="space-y-3 pt-3 border-t border-white/10">
-        <span className="text-[10px] font-extrabold text-white/40 uppercase tracking-wider block">Ordered Items Summary</span>
+      <div className="space-y-3 pt-3 border-t border-gray-100">
+        <span className="text-[10px] font-extrabold text-gray-400 uppercase tracking-wider block">Ordered Items Summary</span>
         <div className="space-y-2 max-h-48 overflow-y-auto pr-1">
           {order.items.map((item, idx) => (
-            <div key={idx} className="flex items-center justify-between p-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs">
+            <div key={idx} className="flex items-center justify-between p-2.5 bg-gray-50 border border-gray-200/80 rounded-xl text-xs">
               <div className="flex items-center gap-2.5 min-w-0">
-                <img src={item.image} alt={item.name} className="w-9 h-9 rounded-lg object-contain bg-zinc-950 border border-white/10 shrink-0" />
+                <img src={item.image} alt={item.name} className="w-9 h-9 rounded-lg object-contain bg-white border border-gray-200 shrink-0" />
                 <div className="truncate">
-                  <p className="font-extrabold text-white truncate">{item.name}</p>
-                  <p className="text-[10px] text-white/50">
+                  <p className="font-extrabold text-gray-900 truncate">{item.name}</p>
+                  <p className="text-[10px] text-gray-500">
                     {[item.storage, item.color, item.ram].filter(Boolean).join(" • ")} × {item.quantity}
                   </p>
                 </div>
               </div>
-              <span className="font-mono font-bold text-white whitespace-nowrap shrink-0">{formatLKR(item.lineTotal)}</span>
+              <span className="font-mono font-bold text-gray-900 whitespace-nowrap shrink-0">{formatLKR(item.lineTotal)}</span>
             </div>
           ))}
         </div>
       </div>
 
       {/* Price Breakdown Footer */}
-      <div className="bg-zinc-900 p-4 rounded-2xl border border-white/10 space-y-2 text-xs">
-        <div className="flex justify-between text-white/60">
+      <div className="bg-gray-50 p-4 rounded-2xl border border-gray-200 space-y-2 text-xs">
+        <div className="flex justify-between text-gray-600">
           <span>Items Subtotal</span>
-          <span className="font-mono font-bold whitespace-nowrap text-white">{formatLKR(order.subtotal)}</span>
+          <span className="font-mono font-bold whitespace-nowrap">{formatLKR(order.subtotal)}</span>
         </div>
         {order.deliveryFee > 0 && (
-          <div className="flex justify-between text-white/60">
+          <div className="flex justify-between text-gray-600">
             <span>Delivery Fee</span>
-            <span className="font-mono font-bold whitespace-nowrap text-white">{formatLKR(order.deliveryFee)}</span>
+            <span className="font-mono font-bold whitespace-nowrap">{formatLKR(order.deliveryFee)}</span>
           </div>
         )}
         {order.codFee > 0 && (
-          <div className="flex justify-between text-white/60">
+          <div className="flex justify-between text-gray-600">
             <span>COD Handling Fee</span>
-            <span className="font-mono font-bold whitespace-nowrap text-white">{formatLKR(order.codFee)}</span>
+            <span className="font-mono font-bold whitespace-nowrap">{formatLKR(order.codFee)}</span>
           </div>
         )}
         {order.discountTotal > 0 && (
-          <div className="flex justify-between text-emerald-400 font-bold">
+          <div className="flex justify-between text-emerald-600 font-bold">
             <span>Discount / Coupon</span>
             <span className="font-mono whitespace-nowrap">-{formatLKR(order.discountTotal)}</span>
           </div>
         )}
-        <div className="pt-2 border-t border-white/10 flex justify-between items-center text-sm">
-          <span className="font-black text-white">Grand Total</span>
-          <span className="font-mono font-black text-base text-blue-400 whitespace-nowrap">{formatLKR(order.grandTotal)}</span>
+        <div className="pt-2 border-t border-gray-200 flex justify-between items-center text-sm">
+          <span className="font-black text-gray-900">Grand Total</span>
+          <span className="font-mono font-black text-base text-blue-600 whitespace-nowrap">{formatLKR(order.grandTotal)}</span>
         </div>
       </div>
 
       {/* Actions Footer Bar */}
-      <div className="pt-3 border-t border-white/10 flex flex-wrap items-center justify-between gap-2">
+      <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
         <a
           href={whatsappUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl transition-all shadow-md flex items-center gap-1.5"
+          className="px-3.5 py-2 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold text-xs rounded-xl transition-all shadow-sm flex items-center gap-1.5"
         >
           <MessageCircle className="w-3.5 h-3.5" /> WhatsApp
         </a>
@@ -1179,14 +1179,14 @@ function OrderDetailsCard({
           {order.orderStatus !== "Cancelled" && (
             <button
               onClick={onOpenCancelModal}
-              className="px-3 py-2 bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 font-bold text-xs rounded-xl border border-amber-500/20 transition-colors"
+              className="px-3 py-2 bg-amber-50 hover:bg-amber-100 text-amber-800 font-bold text-xs rounded-xl border border-amber-200 transition-colors"
             >
               Cancel
             </button>
           )}
           <button
             onClick={onOpenDeleteModal}
-            className="px-3 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-300 font-bold text-xs rounded-xl border border-red-500/20 transition-colors"
+            className="px-3 py-2 bg-red-50 hover:bg-red-100 text-red-700 font-bold text-xs rounded-xl border border-red-200 transition-colors"
           >
             Delete
           </button>

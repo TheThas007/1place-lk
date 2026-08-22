@@ -4,7 +4,7 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div data-admin-root className="min-h-screen w-full">
+    <div data-admin-root className="min-h-screen w-full bg-black text-white">
       {children}
     </div>
   );

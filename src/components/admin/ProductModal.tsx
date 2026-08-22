@@ -31,11 +31,10 @@ import {
 } from "lucide-react";
 import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { addDoc, updateDoc, doc, collection, setDoc, getDocs } from "firebase/firestore";
+import { addDoc, updateDoc, doc, collection, setDoc } from "firebase/firestore";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
-import { DEFAULT_WARRANTY_PRESETS } from "@/lib/warranties-data";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -49,7 +48,36 @@ const DEFAULT_SPEC_KEYS = ["Display", "Processor", "RAM", "Storage", "Battery", 
 const PRESET_RAM = ["4GB", "6GB", "8GB", "12GB", "16GB"];
 const PRESET_STORAGE = ["64GB", "128GB", "256GB", "512GB", "1TB"];
 
-const PRESET_WARRANTIES = DEFAULT_WARRANTY_PRESETS.map((w) => w.title);
+const PRESET_WARRANTIES = [
+  "One Year ABANS Warranty",
+  "18 Month Limited Warranty",
+  "One Month Limited Warranty",
+  "One Year Limited Warranty",
+  "Two Year Limited Warranty",
+  "Three Month Limited Warranty",
+  "Three Year Limited Warranty",
+  "Six Month Limited Warranty",
+  "ANKER 18 MONTHS WARRANTY",
+  "BASEUS 15 MONTH OFFICIAL WARRANTY",
+  "Two Year Brownse Warranty",
+  "One Year Limited Warranty. Warranty Doesn't Cover For Logic Board Error",
+  "One Year GNEXT Warranty",
+  "2 Time Screen Replacement Within 1 Year",
+  "Two Year GNEXT Warranty. With Shield Pro",
+  "18 MONTH TECHSAS WARRANTY",
+  "One Year Limited Warranty. (Six Month for Battery & Charger)",
+  "Two Year JKOA Warranty, Two Year Two Time Screen replacement with Break Free Offer",
+  "One Year JKOA Warranty, One Year One Time Screen replacement with Break Free Offer",
+  "Seven Days Checking Warranty Only!",
+  "One Year Apple Care Warranty",
+  "One Month Checking Warranty. Six Month Software & Service Warranty. Warranty Doesn't Cover For Display",
+  "One Month Checking Warranty. Six Month Software & Service Warranty",
+  "One Year SINGER Warranty",
+  "One Year SOFTLOGIC Warranty, With 1 Year One-Time Break Free Offer",
+  "One Year SOFTLOGIC Warranty",
+  "Two Year SOFTLOGIC Warranty, With 2 Year One-Time Break Free Offer",
+  "One Year TDRA Warranty",
+];
 
 const DEFAULT_BRANDS = [
   "Apple",
@@ -144,11 +172,10 @@ export default function ProductModal({
   const [isCustomBrand, setIsCustomBrand] = useState(false);
   const [customBrandName, setCustomBrandName] = useState("");
 
-  // Pricing & Stock
+  // Pricing & Legacy Stock
   const [basePrice, setBasePrice] = useState<number>(0);
   const [baseOldPrice, setBaseOldPrice] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
-  const [baseStock, setBaseStock] = useState<number>(0);
 
   // Payment Options
   const [allowCod, setAllowCod] = useState(true);
@@ -176,41 +203,24 @@ export default function ProductModal({
   // Warranty Options
   const [warrantyOptions, setWarrantyOptions] = useState<WarrantyOption[]>([]);
   const [selectedPresetWarranty, setSelectedPresetWarranty] = useState("");
-  const [availableWarranties, setAvailableWarranties] = useState<WarrantyOption[]>(DEFAULT_WARRANTY_PRESETS);
 
-  // Helper function to check if category is phone, laptop or tablet (requires RAM & Storage variant matrix)
-  const isDeviceWithStorageAndRam = (catIdOrName: string) => {
+  // Helper function to check if category is phone-related
+  const isPhoneCategory = (catIdOrName: string) => {
     if (!catIdOrName) return false;
     const lower = catIdOrName.toLowerCase();
-    // Exclude all accessories, chargers, cables, earbuds, cases, etc.
-    if (
-      lower.includes("case") ||
-      lower.includes("cover") ||
-      lower.includes("charger") ||
-      lower.includes("adapter") ||
-      lower.includes("cable") ||
-      lower.includes("power") ||
-      lower.includes("bank") ||
-      lower.includes("protector") ||
-      lower.includes("accessory") ||
-      lower.includes("accessories") ||
-      lower.includes("earbud") ||
-      lower.includes("tws") ||
-      lower.includes("headphone") ||
-      lower.includes("speaker") ||
-      lower.includes("watch") ||
-      lower.includes("part") ||
-      lower.includes("repair")
-    ) {
-      return false;
-    }
     return (
-      lower.includes("smartphone") ||
       lower.includes("phone") ||
-      lower.includes("laptop") ||
-      lower.includes("macbook") ||
-      lower.includes("tablet") ||
-      lower.includes("ipad")
+      lower.includes("smartphone") ||
+      lower.includes("iphone") ||
+      lower.includes("samsung") ||
+      lower.includes("xiaomi") ||
+      lower.includes("redmi") ||
+      lower.includes("oppo") ||
+      lower.includes("vivo") ||
+      lower.includes("realme") ||
+      lower.includes("google") ||
+      lower.includes("honor") ||
+      lower.includes("oneplus")
     );
   };
 
@@ -279,7 +289,6 @@ export default function ProductModal({
       setStatus("active");
       setBasePrice(initialData.price || 0);
       setBaseOldPrice(initialData.old_price || null);
-      setBaseStock(initialData.stock_count !== undefined ? initialData.stock_count : (initialData as any).stock || 0);
       if (initialData.old_price && initialData.price && initialData.old_price > initialData.price) {
         setDiscountPercent(Math.round(((initialData.old_price - initialData.price) / initialData.old_price) * 100));
       } else {
@@ -295,10 +304,10 @@ export default function ProductModal({
 
       // Feature Flags detection
       const catNameOrId = initialData.category_name || initialData.category_id || "";
-      const isDevice = isDeviceWithStorageAndRam(catNameOrId);
+      const isPhoneCat = isPhoneCategory(catNameOrId);
       const detectedType: "phone" | "accessory" = initialData.productType
         ? initialData.productType
-        : isDevice
+        : isPhoneCat
         ? "phone"
         : "accessory";
 
@@ -323,9 +332,9 @@ export default function ProductModal({
 
       setHasStorageVariants(detectedHasStorage);
 
-      // Spec Rows (Optional)
+      // Spec Rows
       const rows = Object.entries(initialData.specifications || {}).map(([key, value]) => ({ key, value }));
-      setSpecRows(rows);
+      setSpecRows(rows.length > 0 ? rows : [{ key: "Display", value: "" }, { key: "Processor", value: "" }]);
 
       // Colours
       if (detectedHasColor) {
@@ -368,6 +377,7 @@ export default function ProductModal({
             duration_value: 1,
             duration_unit: "months",
             additional_price: 0,
+            coverage_details: "Hardware defect warranty from Street Mobile main store.",
             status: "active",
             is_default: true,
           },
@@ -380,6 +390,7 @@ export default function ProductModal({
                   duration_value: 1,
                   duration_unit: "years" as const,
                   additional_price: 0,
+                  coverage_details: "Official manufacturer warranty from authorized service center.",
                   status: "active" as const,
                 },
               ]
@@ -389,15 +400,15 @@ export default function ProductModal({
     } else {
       // Reset New Product
       setName("");
-      setCode("");
+      setCode(`SM-${Math.floor(1000 + Math.random() * 9000)}`);
       setSlug("");
       const defaultCatId = categories[0]?.id || "";
       const defaultCatName = categories[0]?.name || "Smartphones";
-      const isDevice = isDeviceWithStorageAndRam(defaultCatName);
+      const isPhone = isPhoneCategory(defaultCatName);
 
-      setProductType(isDevice ? "phone" : "accessory");
-      setHasColorVariants(isDevice);
-      setHasStorageVariants(isDevice);
+      setProductType(isPhone ? "phone" : "accessory");
+      setHasColorVariants(isPhone);
+      setHasStorageVariants(isPhone);
 
       setCategoryId(defaultCatId);
       setBrand("Apple");
@@ -407,7 +418,6 @@ export default function ProductModal({
       setStatus("active");
       setBasePrice(0);
       setBaseOldPrice(null);
-      setBaseStock(0);
       setAllowCod(true);
       setAllowCard(true);
       setAllowWhatsapp(true);
@@ -415,10 +425,53 @@ export default function ProductModal({
       setMetaDescription("");
       setGeneralImages(["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"]);
 
-      // Specifications are completely optional - start empty
-      setSpecRows([]);
-      setColorVariants([]);
-      setVariantCombos([]);
+      setSpecRows([
+        { key: "Display", value: '6.7" Super AMOLED 120Hz' },
+        { key: "Processor", value: "Octa-Core Flagship CPU" },
+        { key: "Battery", value: "5000 mAh Fast Charging" },
+      ]);
+
+      if (isPhone) {
+        setColorVariants([
+          {
+            id: "col-1",
+            name: "Awesome Black",
+            hex: "#000000",
+            images: ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"],
+            is_default: true,
+            active: true,
+          },
+          {
+            id: "col-2",
+            name: "Awesome White",
+            hex: "#FFFFFF",
+            images: ["https://images.unsplash.com/photo-1610945415295-d9bbf067e59c?q=80&w=800"],
+            is_default: false,
+            active: true,
+          },
+        ]);
+
+        setVariantCombos([
+          {
+            id: "v-1",
+            color_name: "Awesome Black",
+            ram: "8GB",
+            storage: "128GB",
+            sku: "SM-8-128-BLK",
+            price: 165000,
+            old_price: 175000,
+            stock_quantity: 10,
+            reserved_stock: 0,
+            available_stock: 10,
+            low_stock_threshold: 3,
+            status: "active",
+          },
+        ]);
+      } else {
+        // Non-phone / Accessory default: NO colors and NO variant matrix
+        setColorVariants([]);
+        setVariantCombos([]);
+      }
 
       setWarrantyOptions([
         {
@@ -428,6 +481,7 @@ export default function ProductModal({
           duration_value: 1,
           duration_unit: "months",
           additional_price: 0,
+          coverage_details: "Hardware defect warranty provided by Street Mobile Vavuniya.",
           status: "active",
           is_default: true,
         },
@@ -438,29 +492,11 @@ export default function ProductModal({
           duration_value: 1,
           duration_unit: "years",
           additional_price: 0,
+          coverage_details: "Official brand service center warranty.",
           status: "active",
         },
       ]);
     }
-
-    // Fetch custom / newly added warranties from Firestore to supplement presets
-    async function loadCustomWarranties() {
-      try {
-        const snap = await getDocs(collection(db, "warranties"));
-        if (!snap.empty) {
-          const list = snap.docs.map((d) => ({ ...d.data(), id: d.id } as WarrantyOption));
-          const mergedMap = new Map<string, WarrantyOption>();
-          DEFAULT_WARRANTY_PRESETS.forEach((w) => mergedMap.set(w.title.toLowerCase(), w));
-          list.forEach((w) => mergedMap.set(w.title.toLowerCase(), w));
-          setAvailableWarranties(Array.from(mergedMap.values()).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
-        } else {
-          setAvailableWarranties(DEFAULT_WARRANTY_PRESETS);
-        }
-      } catch (e) {
-        setAvailableWarranties(DEFAULT_WARRANTY_PRESETS);
-      }
-    }
-    loadCustomWarranties();
 
     setHasUnsavedChanges(false);
   }, [isOpen, initialData, categories]);
@@ -510,12 +546,12 @@ export default function ProductModal({
       ram: "8GB",
       storage: "128GB",
       sim_type: "Physical SIM + eSIM",
-      sku: code.trim() ? `${code.trim()}-${defaultCol.slice(0, 3).toUpperCase()}-128` : "",
+      sku: code ? `${code}-${defaultCol.slice(0, 3).toUpperCase()}-128` : `SM-${Date.now()}`,
       price: basePrice || 0,
       old_price: baseOldPrice || null,
-      stock_quantity: 0,
+      stock_quantity: 10,
       reserved_stock: 0,
-      available_stock: 0,
+      available_stock: 10,
       low_stock_threshold: 3,
       status: "active",
       warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
@@ -539,8 +575,7 @@ export default function ProductModal({
     if (hasColorVariants) {
       activeColors.forEach((col) => {
         storagePresets.forEach((st) => {
-          const skuPrefix = code.trim() || slug.trim() || brand.slice(0, 3).toUpperCase();
-          const skuStr = `${skuPrefix}-${col.name.slice(0, 3).toUpperCase()}${st ? `-${st}` : ""}`;
+          const skuStr = `${brand.slice(0, 3).toUpperCase()}-${col.name.slice(0, 3).toUpperCase()}${st ? `-${st}` : ""}`;
           newCombos.push({
             id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             color_id: col.id,
@@ -550,11 +585,11 @@ export default function ProductModal({
             storage: st,
             sim_type: "Physical SIM + eSIM",
             sku: skuStr,
-            price: basePrice || 0,
-            old_price: baseOldPrice || null,
-            stock_quantity: 0,
+            price: basePrice || 150000,
+            old_price: baseOldPrice,
+            stock_quantity: 10,
             reserved_stock: 0,
-            available_stock: 0,
+            available_stock: 10,
             low_stock_threshold: 3,
             status: "active",
             image_ref: col.images?.[0] || col.cover_image,
@@ -564,8 +599,7 @@ export default function ProductModal({
       });
     } else if (hasStorageVariants) {
       storagePresets.forEach((st) => {
-        const skuPrefix = code.trim() || slug.trim() || brand.slice(0, 3).toUpperCase();
-        const skuStr = `${skuPrefix}${st ? `-${st}` : ""}`;
+        const skuStr = `${brand.slice(0, 3).toUpperCase()}-${st}`;
         newCombos.push({
           id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           color_name: "Standard",
@@ -574,11 +608,11 @@ export default function ProductModal({
           storage: st,
           sim_type: "Standard",
           sku: skuStr,
-          price: basePrice || 0,
-          old_price: baseOldPrice || null,
-          stock_quantity: 0,
+          price: basePrice || 150000,
+          old_price: baseOldPrice,
+          stock_quantity: 10,
           reserved_stock: 0,
-          available_stock: 0,
+          available_stock: 10,
           low_stock_threshold: 3,
           status: "active",
           warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
@@ -589,7 +623,7 @@ export default function ProductModal({
     if (newCombos.length > 0) {
       setVariantCombos(newCombos);
       setHasUnsavedChanges(true);
-      alert(`Successfully generated ${newCombos.length} variant combinations with 0 initial stock!`);
+      alert(`Successfully generated ${newCombos.length} variant combinations!`);
     } else {
       alert("No variants could be generated. Make sure Color or Storage options are enabled.");
     }
@@ -770,27 +804,27 @@ export default function ProductModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-[#090D14] text-white overflow-hidden flex flex-col animate-in fade-in">
+    <div className="fixed inset-0 z-50 bg-white text-gray-900 overflow-hidden flex flex-col animate-in fade-in">
       {/* ── TOP STICKY EDITOR BAR ── */}
-      <div className="bg-[#0F172A] border-b border-white/10 px-6 py-3.5 flex items-center justify-between shadow-xl shrink-0 select-none">
+      <div className="bg-white border-b border-gray-200 px-6 py-3.5 flex items-center justify-between shadow-xs shrink-0 select-none">
         <div className="flex items-center gap-3">
           <button
             onClick={onClose}
-            className="p-2 text-white/50 hover:text-white rounded-xl hover:bg-white/10 transition-colors"
+            className="p-2 text-gray-500 hover:text-gray-900 rounded-xl hover:bg-gray-100 transition-colors"
             title="Close Editor"
           >
             <X className="w-5 h-5" />
           </button>
           <div>
-            <h2 className="text-base font-black text-white tracking-tight flex items-center gap-2">
+            <h2 className="text-base font-black text-gray-900 tracking-tight flex items-center gap-2">
               {initialData ? `Edit Product: ${initialData.name}` : "Create New Product"}
               {hasUnsavedChanges && (
-                <span className="bg-amber-500/15 border border-amber-500/30 text-amber-400 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   Unsaved Changes
                 </span>
               )}
             </h2>
-            <p className="text-xs text-white/40 font-medium">
+            <p className="text-xs text-gray-500 font-medium">
               Full-page variant manager, colour galleries & warranty config
             </p>
           </div>
@@ -801,14 +835,14 @@ export default function ProductModal({
           <button
             onClick={() => handleSaveProduct("draft")}
             disabled={isSubmitting}
-            className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white/80 hover:text-white font-bold text-xs rounded-xl transition-all border border-white/10"
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-bold text-xs rounded-xl transition-all border border-gray-200"
           >
             Save Draft
           </button>
           <button
             onClick={() => handleSaveProduct("active")}
             disabled={isSubmitting}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2"
+            className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
             {initialData ? "Update Product" : "Publish Product"}
@@ -817,7 +851,7 @@ export default function ProductModal({
       </div>
 
       {/* ── 7 TAB NAVIGATION HEADER ── */}
-      <div className="bg-[#0F172A] border-b border-white/10 px-6 overflow-x-auto shrink-0 select-none custom-scrollbar">
+      <div className="bg-gray-50 border-b border-gray-200 px-6 overflow-x-auto shrink-0 select-none">
         <div className="flex items-center gap-1 min-w-[750px]">
           {[
             { id: 1, label: "1. Basic Info", icon: Tag },
@@ -836,8 +870,8 @@ export default function ProductModal({
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-3 px-4 font-bold text-xs border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${
                   isActive
-                    ? "border-blue-500 text-blue-400 bg-white/5"
-                    : "border-transparent text-white/50 hover:text-white hover:bg-white/5"
+                    ? "border-blue-600 text-blue-600 bg-white"
+                    : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100/60"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -849,55 +883,55 @@ export default function ProductModal({
       </div>
 
       {/* ── TAB BODY CONTENT AREA (SCROLLABLE) ── */}
-      <div className="flex-1 overflow-y-auto p-6 bg-[#090D14] custom-scrollbar">
+      <div className="flex-1 overflow-y-auto p-6 bg-gray-50/40">
         <div className="max-w-5xl mx-auto space-y-6">
 
           {/* ════════════════════════════════════════════════════════════════
               TAB 1: BASIC INFORMATION
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 1 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <h3 className="text-base font-black text-white border-b border-white/10 pb-3">Basic Information</h3>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Basic Information</h3>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Product Name *</label>
+                  <label className="block font-bold text-gray-700 mb-1">Product Name *</label>
                   <input
                     type="text"
                     required
                     value={name}
                     onChange={(e) => handleNameChange(e.target.value)}
                     placeholder="e.g. Samsung Galaxy S24 Ultra 5G"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Product Code / SKU Prefix *</label>
+                  <label className="block font-bold text-gray-700 mb-1">Product Code / SKU Prefix *</label>
                   <input
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     placeholder="e.g. SM-S24U"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-mono font-semibold text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">URL Slug</label>
+                  <label className="block font-bold text-gray-700 mb-1">URL Slug</label>
                   <input
                     type="text"
                     value={slug}
                     onChange={(e) => setSlug(e.target.value)}
                     placeholder="samsung-galaxy-s24-ultra-5g"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-mono text-white/80 placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono text-gray-700 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* Category Selector with Custom Toggle */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-white/80">Category *</label>
+                    <label className="font-bold text-gray-700">Category *</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -906,7 +940,7 @@ export default function ProductModal({
                           setCustomCategoryName("");
                         }
                       }}
-                      className="text-[11px] text-blue-400 hover:text-blue-300 font-bold"
+                      className="text-[11px] text-blue-600 hover:underline font-bold"
                     >
                       {isCustomCategory ? "Select from List" : "+ Add Custom Category"}
                     </button>
@@ -921,7 +955,7 @@ export default function ProductModal({
                         setHasUnsavedChanges(true);
                       }}
                       placeholder="Type custom category (e.g. Smart Glasses)"
-                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
                     />
                   ) : (
                     <select
@@ -931,13 +965,13 @@ export default function ProductModal({
                         setCategoryId(newCatId);
                         const catObj = mergedCategories.find((c) => c.id === newCatId);
                         const catName = catObj?.name || newCatId;
-                        const isDevice = isDeviceWithStorageAndRam(catName);
-                        setProductType(isDevice ? "phone" : "accessory");
-                        setHasColorVariants(isDevice);
-                        setHasStorageVariants(isDevice);
+                        const isPhone = isPhoneCategory(catName);
+                        setProductType(isPhone ? "phone" : "accessory");
+                        setHasColorVariants(isPhone);
+                        setHasStorageVariants(isPhone);
                         setHasUnsavedChanges(true);
                       }}
-                      className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-semibold text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
                     >
                       {mergedCategories.map((c) => (
                         <option key={c.id} value={c.id}>
@@ -951,7 +985,7 @@ export default function ProductModal({
                 {/* Brand Name Selector with Custom Toggle */}
                 <div>
                   <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-white/80">Brand Name *</label>
+                    <label className="font-bold text-gray-700">Brand Name *</label>
                     <button
                       type="button"
                       onClick={() => {
@@ -960,7 +994,7 @@ export default function ProductModal({
                           setCustomBrandName("");
                         }
                       }}
-                      className="text-[11px] text-blue-400 hover:text-blue-300 font-bold"
+                      className="text-[11px] text-blue-600 hover:underline font-bold"
                     >
                       {isCustomBrand ? "Select from List" : "+ Add Custom Brand"}
                     </button>
@@ -975,7 +1009,7 @@ export default function ProductModal({
                         setHasUnsavedChanges(true);
                       }}
                       placeholder="Type custom brand name (e.g. Bose, Sony, Marshall)"
-                      className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-semibold text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
                     />
                   ) : (
                     <select
@@ -984,7 +1018,7 @@ export default function ProductModal({
                         setBrand(e.target.value);
                         setHasUnsavedChanges(true);
                       }}
-                      className="w-full px-3.5 py-2.5 bg-zinc-900 border border-white/10 rounded-xl text-xs font-semibold text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all cursor-pointer"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
                     >
                       {brandOptions.map((b) => (
                         <option key={b} value={b}>
@@ -996,14 +1030,14 @@ export default function ProductModal({
                 </div>
 
                 {/* ── Product Type & Variant Feature Flags Block ── */}
-                <div className="md:col-span-2 bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3.5">
+                <div className="md:col-span-2 bg-gradient-to-r from-blue-50/60 via-slate-50 to-indigo-50/60 border border-blue-100/80 rounded-2xl p-4 space-y-3.5">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-extrabold text-xs text-white flex items-center gap-2">
-                        <Sliders className="w-4 h-4 text-blue-400" />
+                      <h4 className="font-extrabold text-xs text-gray-900 flex items-center gap-2">
+                        <Sliders className="w-4 h-4 text-blue-600" />
                         Product Type & Variant Configurations
                       </h4>
-                      <p className="text-[11px] text-white/40 mt-0.5">
+                      <p className="text-[11px] text-gray-500 mt-0.5">
                         Choose whether this product requires color options or storage variant combinations.
                       </p>
                     </div>
@@ -1012,8 +1046,8 @@ export default function ProductModal({
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1 text-xs">
                     {/* Product Type Setting */}
                     <div>
-                      <label className="block font-bold text-white/70 mb-1.5">Product Type</label>
-                      <div className="inline-flex p-1 bg-zinc-900 border border-white/10 rounded-xl w-full">
+                      <label className="block font-bold text-gray-700 mb-1.5">Product Type</label>
+                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
                         <button
                           type="button"
                           onClick={() => {
@@ -1024,11 +1058,11 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             productType === "phone"
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
-                          📱 Phone / Laptop
+                          📱 Smartphone
                         </button>
                         <button
                           type="button"
@@ -1040,8 +1074,8 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             productType === "accessory"
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
                           🎧 Accessory
@@ -1051,8 +1085,8 @@ export default function ProductModal({
 
                     {/* Color Options Setting */}
                     <div>
-                      <label className="block font-bold text-white/70 mb-1.5">Color Options?</label>
-                      <div className="inline-flex p-1 bg-zinc-900 border border-white/10 rounded-xl w-full">
+                      <label className="block font-bold text-gray-700 mb-1.5">Does this product have color options?</label>
+                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
                         <button
                           type="button"
                           onClick={() => {
@@ -1071,8 +1105,8 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             !hasColorVariants
-                              ? "bg-slate-700 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-slate-800 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
                           No
@@ -1085,8 +1119,8 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             hasColorVariants
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
                           Yes
@@ -1096,8 +1130,8 @@ export default function ProductModal({
 
                     {/* Storage Options Setting */}
                     <div>
-                      <label className="block font-bold text-white/70 mb-1.5">RAM & Storage Options?</label>
-                      <div className="inline-flex p-1 bg-zinc-900 border border-white/10 rounded-xl w-full">
+                      <label className="block font-bold text-gray-700 mb-1.5">Does this product have storage options?</label>
+                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
                         <button
                           type="button"
                           onClick={() => {
@@ -1115,11 +1149,11 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             !hasStorageVariants
-                              ? "bg-slate-700 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-slate-800 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
-                          No (Accessories)
+                          No
                         </button>
                         <button
                           type="button"
@@ -1129,11 +1163,11 @@ export default function ProductModal({
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
                             hasStorageVariants
-                              ? "bg-blue-600 text-white shadow-md"
-                              : "text-white/60 hover:text-white"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
                           }`}
                         >
-                          Yes (Phones/Laptops)
+                          Yes
                         </button>
                       </div>
                     </div>
@@ -1142,7 +1176,7 @@ export default function ProductModal({
 
                 {/* Old / Regular Price */}
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Old Price (Regular Price LKR)</label>
+                  <label className="block font-bold text-gray-700 mb-1">Old Price (Regular Price LKR)</label>
                   <input
                     type="number"
                     min={0}
@@ -1158,14 +1192,14 @@ export default function ProductModal({
                       setHasUnsavedChanges(true);
                     }}
                     placeholder="e.g. 185000"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-mono font-bold text-white/40 line-through outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-500 line-through outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* Offer / Selling Price */}
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">
-                    Offer Price (Selling Price LKR) *
+                  <label className="block font-bold text-gray-700 mb-1">
+                    Offer Price (Selling Price LKR) <span className="text-gray-400 font-normal">(Optional if variants added)</span>
                   </label>
                   <input
                     type="number"
@@ -1182,13 +1216,13 @@ export default function ProductModal({
                       setHasUnsavedChanges(true);
                     }}
                     placeholder="e.g. 165000"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-mono font-black text-blue-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-black text-blue-600 outline-none focus:border-blue-500"
                   />
                 </div>
 
                 {/* Offer Percentage (%) */}
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Offer Discount (%)</label>
+                  <label className="block font-bold text-gray-700 mb-1">Offer Discount (%)</label>
                   <div className="relative">
                     <input
                       type="number"
@@ -1205,49 +1239,31 @@ export default function ProductModal({
                         setHasUnsavedChanges(true);
                       }}
                       placeholder="e.g. 15"
-                      className="w-full px-3.5 py-2.5 pr-14 bg-white/5 border border-white/10 rounded-xl text-xs font-mono font-black text-rose-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                      className="w-full px-3.5 py-2.5 pr-14 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-black text-red-600 outline-none focus:border-blue-500"
                     />
-                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-xs text-rose-400">% OFF</span>
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-xs text-red-600">% OFF</span>
                   </div>
-                </div>
-
-                {/* Stock Quantity */}
-                <div>
-                  <label className="block font-bold text-white/80 mb-1">
-                    Stock Quantity * <span className="text-white/40 font-normal">(Initial inventory count)</span>
-                  </label>
-                  <input
-                    type="number"
-                    min={0}
-                    value={baseStock}
-                    onChange={(e) => {
-                      setBaseStock(Math.max(0, Number(e.target.value) || 0));
-                      setHasUnsavedChanges(true);
-                    }}
-                    placeholder="0"
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-mono font-bold text-emerald-400 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
-                  />
                 </div>
               </div>
 
               <div>
-                <label className="block font-bold text-white/80 mb-1 text-xs">Full Product Description</label>
+                <label className="block font-bold text-gray-700 mb-1 text-xs">Full Product Description</label>
                 <textarea
                   rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Enter complete product features and overview..."
-                  className="w-full p-3.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none leading-relaxed transition-all"
+                  className="w-full p-3.5 bg-gray-50 border border-gray-200 rounded-xl text-xs text-gray-900 outline-none focus:border-blue-500 resize-none leading-relaxed"
                 />
               </div>
 
               <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-white select-none">
+                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-gray-800 select-none">
                   <input
                     type="checkbox"
                     checked={featured}
                     onChange={(e) => setFeatured(e.target.checked)}
-                    className="w-4 h-4 rounded bg-zinc-900 border-white/20 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                   Featured Product (Show on Homepage Grid)
                 </label>
@@ -1259,25 +1275,25 @@ export default function ProductModal({
               TAB 2: MEDIA & COLOUR-SPECIFIC GALLERIES
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 2 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
               <div>
-                <h3 className="text-base font-black text-white border-b border-white/10 pb-3">
+                <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">
                   Product Media & Image Galleries
                 </h3>
-                <p className="text-xs text-white/40 mt-1">
+                <p className="text-xs text-gray-500 mt-1">
                   Upload multiple product images for general view, as well as color-specific gallery thumbnails.
                 </p>
               </div>
 
               {/* ── General Product Gallery Images (Multi-Slot Upload & Auto-Split Paste) ── */}
-              <div className="bg-white/5 border border-white/10 rounded-2xl p-5 space-y-4">
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
                 <div className="flex items-center justify-between flex-wrap gap-2">
                   <div>
-                    <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
-                      <Upload className="w-4 h-4 text-blue-400" />
+                    <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                      <Upload className="w-4 h-4 text-blue-600" />
                       General Product Gallery Images ({generalImages.filter((u) => u && u.trim()).length} Active Images)
                     </h4>
-                    <p className="text-xs text-white/40 mt-0.5">
+                    <p className="text-xs text-gray-500 mt-0.5">
                       Upload or enter 2, 3, 4 or more image URLs for this product. You can paste comma-separated or newline-separated URLs into any slot!
                     </p>
                   </div>
@@ -1288,7 +1304,7 @@ export default function ProductModal({
                       setGeneralImages([...generalImages, ""]);
                       setHasUnsavedChanges(true);
                     }}
-                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md shadow-blue-600/30 flex items-center gap-1.5 transition-all"
+                    className="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
                   >
                     <Plus className="w-3.5 h-3.5" /> Add Image Slot
                   </button>
@@ -1297,19 +1313,19 @@ export default function ProductModal({
                 {/* Individual Image Input Slots */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
                   {(generalImages.length > 0 ? generalImages : ["", "", "", ""]).map((imgUrl, i) => (
-                    <div key={i} className="bg-zinc-900 border border-white/10 rounded-xl p-3 flex items-center gap-3 shadow-md">
+                    <div key={i} className="bg-white border border-gray-200 rounded-xl p-3 flex items-center gap-3 shadow-2xs">
                       {/* Thumbnail Preview */}
-                      <div className="w-12 h-12 shrink-0 bg-zinc-950 border border-white/10 rounded-lg overflow-hidden flex items-center justify-center p-0.5 relative">
+                      <div className="w-12 h-12 shrink-0 bg-gray-50 border border-gray-200 rounded-lg overflow-hidden flex items-center justify-center p-0.5 relative">
                         {imgUrl && imgUrl.trim() ? (
                           <img src={imgUrl.trim()} alt={`Image ${i + 1}`} className="w-full h-full object-contain" />
                         ) : (
-                          <ImageIcon className="w-5 h-5 text-white/20" />
+                          <ImageIcon className="w-5 h-5 text-gray-300" />
                         )}
                       </div>
 
                       {/* URL Input */}
                       <div className="flex-1 min-w-0">
-                        <label className="block text-[10px] font-extrabold text-white/40 mb-0.5 uppercase tracking-wider">
+                        <label className="block text-[10px] font-extrabold text-gray-500 mb-0.5 uppercase tracking-wider">
                           Product Image {i + 1}
                         </label>
                         <input
@@ -1331,7 +1347,7 @@ export default function ProductModal({
                             setHasUnsavedChanges(true);
                           }}
                           placeholder="Paste image URL (e.g. https://i.postimg.cc/...)"
-                          className="w-full px-2.5 py-1.5 bg-zinc-950 border border-white/10 rounded-lg text-xs font-mono text-white placeholder-white/20 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                          className="w-full px-2.5 py-1.5 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono text-gray-800 outline-none focus:border-blue-500"
                         />
                       </div>
 
@@ -1343,7 +1359,7 @@ export default function ProductModal({
                           setGeneralImages(updated.length > 0 ? updated : [""]);
                           setHasUnsavedChanges(true);
                         }}
-                        className="p-1.5 text-white/40 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         title="Remove image slot"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1354,7 +1370,7 @@ export default function ProductModal({
 
                 {/* Bulk Paste / Edit Toggle */}
                 <details className="text-xs group pt-1">
-                  <summary className="font-bold text-white/60 cursor-pointer hover:text-blue-400 select-none">
+                  <summary className="font-bold text-gray-600 cursor-pointer hover:text-blue-600 select-none">
                     ⚡ Bulk Paste / Raw URL Editor (Comma or Newline Separated)
                   </summary>
                   <div className="mt-2 space-y-2">
@@ -1367,18 +1383,18 @@ export default function ProductModal({
                         setHasUnsavedChanges(true);
                       }}
                       placeholder="Paste multiple URLs (One per line or separated by commas)"
-                      className="w-full p-3 bg-zinc-950 border border-white/10 rounded-xl font-mono text-[11px] text-white placeholder-white/20 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                      className="w-full p-3 bg-white border border-gray-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
                     />
                   </div>
                 </details>
               </div>
 
               {!hasColorVariants ? (
-                <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-6 text-center text-xs space-y-3">
-                  <Palette className="w-8 h-8 text-amber-400 mx-auto" />
+                <div className="bg-amber-50/70 border border-amber-200 rounded-2xl p-6 text-center text-xs space-y-3">
+                  <Palette className="w-8 h-8 text-amber-500 mx-auto" />
                   <div>
-                    <h4 className="font-extrabold text-amber-300 text-sm">Color Options Disabled</h4>
-                    <p className="text-amber-200/70 text-xs mt-1 max-w-md mx-auto">
+                    <h4 className="font-extrabold text-amber-900 text-sm">Color Options Disabled</h4>
+                    <p className="text-amber-700 text-xs mt-1 max-w-md mx-auto">
                       Color options are turned OFF for this product. You can save this product without any color variants.
                     </p>
                   </div>
@@ -1388,7 +1404,7 @@ export default function ProductModal({
                       setHasColorVariants(true);
                       setHasUnsavedChanges(true);
                     }}
-                    className="px-4 py-2 bg-amber-500 hover:bg-amber-400 text-black font-bold text-xs rounded-xl shadow-md inline-flex items-center gap-1.5 transition-all"
+                    className="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5"
                   >
                     <Plus className="w-4 h-4" /> Enable Color Options
                   </button>
@@ -1396,30 +1412,30 @@ export default function ProductModal({
               ) : (
                 <>
                   {/* Add New Colour Form */}
-                  <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex flex-wrap items-end gap-3 text-xs">
+                  <div className="bg-gray-50 border border-gray-200 rounded-2xl p-4 flex flex-wrap items-end gap-3 text-xs">
                     <div>
-                      <label className="block font-bold text-white/80 mb-1">Colour Name</label>
+                      <label className="block font-bold text-gray-700 mb-1">Colour Name</label>
                       <input
                         type="text"
                         value={newColorName}
                         onChange={(e) => setNewColorName(e.target.value)}
                         placeholder="e.g. Titanium Natural"
-                        className="px-3 py-2 bg-zinc-900 border border-white/10 rounded-xl font-medium text-white placeholder-white/30 outline-none focus:border-blue-500"
+                        className="px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium outline-none"
                       />
                     </div>
                     <div>
-                      <label className="block font-bold text-white/80 mb-1">Hex Color</label>
+                      <label className="block font-bold text-gray-700 mb-1">Hex Color</label>
                       <input
                         type="color"
                         value={newColorHex}
                         onChange={(e) => setNewColorHex(e.target.value)}
-                        className="w-12 h-9 p-1 bg-zinc-900 border border-white/10 rounded-xl cursor-pointer"
+                        className="w-12 h-9 p-1 bg-white border border-gray-200 rounded-xl cursor-pointer"
                       />
                     </div>
                     <button
                       type="button"
                       onClick={handleAddColour}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl flex items-center gap-1.5"
                     >
                       <Plus className="w-4 h-4" /> Add Colour
                     </button>
@@ -1428,17 +1444,17 @@ export default function ProductModal({
                   {/* Colours List */}
                   <div className="space-y-4">
                     {colorVariants.map((col, cIdx) => (
-                      <div key={col.id} className="bg-zinc-900 border border-white/10 rounded-2xl p-4 space-y-3">
-                        <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                      <div key={col.id} className="bg-gray-50/80 border border-gray-200 rounded-2xl p-4 space-y-3">
+                        <div className="flex items-center justify-between border-b border-gray-200/60 pb-2.5">
                           <div className="flex items-center gap-2.5">
-                            <span className="w-5 h-5 rounded-full border border-white/20 shadow-xs" style={{ backgroundColor: col.hex }} />
-                            <span className="font-extrabold text-sm text-white">{col.name}</span>
-                            {col.is_default && <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">Default</span>}
+                            <span className="w-5 h-5 rounded-full border border-gray-300 shadow-xs" style={{ backgroundColor: col.hex }} />
+                            <span className="font-extrabold text-sm text-gray-900">{col.name}</span>
+                            {col.is_default && <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">Default</span>}
                           </div>
 
                           <button
                             onClick={() => setColorVariants(colorVariants.filter((c) => c.id !== col.id))}
-                            className="text-xs text-red-400 hover:text-red-300 font-bold flex items-center gap-1"
+                            className="text-xs text-red-600 hover:underline font-bold flex items-center gap-1"
                           >
                             <Trash2 className="w-3.5 h-3.5" /> Remove
                           </button>
@@ -1446,7 +1462,7 @@ export default function ProductModal({
 
                         {/* Dedicated Gallery Image URLs for this Colour */}
                         <div className="space-y-2 text-xs">
-                          <label className="block font-bold text-white/80">Dedicated Gallery Image URLs (One URL per line)</label>
+                          <label className="block font-bold text-gray-700">Dedicated Gallery Image URLs (One URL per line)</label>
                           <textarea
                             rows={3}
                             value={(col.images || []).join("\n")}
@@ -1457,14 +1473,14 @@ export default function ProductModal({
                               setColorVariants(updated);
                             }}
                             placeholder="https://images.unsplash.com/photo-..."
-                            className="w-full p-3 bg-zinc-950 border border-white/10 rounded-xl font-mono text-[11px] text-white placeholder-white/20 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
+                            className="w-full p-3 bg-white border border-gray-200 rounded-xl font-mono text-[11px] outline-none focus:border-blue-500"
                           />
                         </div>
 
                         {/* Previews */}
                         <div className="flex flex-wrap gap-2 pt-1">
                           {(col.images || []).map((img, i) => (
-                            <div key={i} className="w-14 h-14 bg-zinc-950 border border-white/10 rounded-xl overflow-hidden p-1">
+                            <div key={i} className="w-14 h-14 bg-white border border-gray-200 rounded-xl overflow-hidden p-1">
                               <img src={img} alt="" className="w-full h-full object-contain" />
                             </div>
                           ))}
@@ -1481,26 +1497,26 @@ export default function ProductModal({
               TAB 3: VARIANTS & STOCK MATRIX TABLE
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 3 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-100 pb-3">
                 <div>
-                  <h3 className="text-base font-black text-white">Variant Combinations & Inventory Matrix</h3>
-                  <p className="text-xs text-white/40 mt-1">Manage SKU, Colour, RAM, Storage, Price and exact Stock per variant</p>
+                  <h3 className="text-base font-black text-gray-900">Variant Combinations & Inventory Matrix</h3>
+                  <p className="text-xs text-gray-500 mt-1">Manage SKU, Colour, RAM, Storage, Price and exact Stock per variant</p>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={handleAddManualVariant}
-                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+                    className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
                   >
                     <Plus className="w-4 h-4" /> Add Variant Row
                   </button>
                   <button
                     type="button"
                     onClick={handleGenerateCombinations}
-                    className="px-3.5 py-2 bg-blue-500/10 text-blue-400 border border-blue-500/30 hover:bg-blue-500/20 font-bold text-xs rounded-xl flex items-center gap-1.5 transition-all"
+                    className="px-3.5 py-2 bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 font-bold text-xs rounded-xl flex items-center gap-1.5"
                   >
-                    <Sparkles className="w-4 h-4 text-blue-400" /> Auto Generate
+                    <Sparkles className="w-4 h-4 text-blue-600" /> Auto Generate
                   </button>
                   {variantCombos.length > 0 && (
                     <button
@@ -1511,7 +1527,7 @@ export default function ProductModal({
                           setHasUnsavedChanges(true);
                         }
                       }}
-                      className="px-3 py-2 bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 font-bold text-xs rounded-xl flex items-center gap-1 transition-all"
+                      className="px-3 py-2 bg-red-50 text-red-600 border border-red-200 hover:bg-red-100 font-bold text-xs rounded-xl flex items-center gap-1"
                     >
                       <Trash2 className="w-3.5 h-3.5" /> Clear All
                     </button>
@@ -1520,191 +1536,34 @@ export default function ProductModal({
               </div>
 
               {!hasColorVariants && !hasStorageVariants ? (
-                /* Standard Single Item Stock & Inventory Card (for Accessories / Single items) */
-                <div className="bg-zinc-900 border border-white/10 rounded-3xl p-6 shadow-xl space-y-6">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-2xl bg-emerald-600 text-white flex items-center justify-center font-black shadow-md shadow-emerald-600/30 shrink-0">
-                        📦
-                      </div>
-                      <div>
-                        <h4 className="font-extrabold text-sm text-white flex items-center gap-2">
-                          Standard Product Inventory & Stock
-                          <span className={`text-[10px] font-black uppercase px-2.5 py-0.5 rounded-full ${
-                            baseStock === 0
-                              ? "bg-red-500/15 text-red-400 border border-red-500/30"
-                              : baseStock <= 3
-                              ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                              : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                          }`}>
-                            {baseStock === 0 ? "Out of Stock" : baseStock <= 3 ? "Low Stock" : "In Stock"}
-                          </span>
-                        </h4>
-                        <p className="text-xs text-white/40 mt-0.5">
-                          Since this accessory has no storage/RAM matrix, manage its live stock quantity and pricing directly here.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
-                    {/* Stock Counter Stepper */}
-                    <div className="bg-zinc-950 border border-white/10 rounded-2xl p-4 space-y-3">
-                      <label className="block font-bold text-xs text-white/80">
-                        Available Stock Units *
-                      </label>
-                      <div className="flex items-center gap-2">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(Math.max(0, baseStock - 1));
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-sm flex items-center justify-center transition-all"
-                        >
-                          -1
-                        </button>
-                        <input
-                          type="number"
-                          min={0}
-                          value={baseStock}
-                          onChange={(e) => {
-                            setBaseStock(Math.max(0, Number(e.target.value) || 0));
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="flex-1 h-10 px-3 bg-zinc-900 border border-white/15 rounded-xl text-center font-mono font-black text-lg text-emerald-400 outline-none focus:border-emerald-500"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(baseStock + 1);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-10 h-10 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 text-white font-black text-sm flex items-center justify-center transition-all"
-                        >
-                          +1
-                        </button>
-                      </div>
-
-                      {/* Quick Adjust Badges */}
-                      <div className="flex items-center gap-1.5 flex-wrap pt-1">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(baseStock + 5);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold transition-colors"
-                        >
-                          +5
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(baseStock + 10);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold transition-colors"
-                        >
-                          +10
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(baseStock + 25);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="px-2.5 py-1 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-400 border border-emerald-500/30 rounded-lg text-[10px] font-bold transition-colors"
-                        >
-                          +25
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(0);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="px-2.5 py-1 bg-red-500/15 hover:bg-red-500/25 text-red-400 border border-red-500/30 rounded-lg text-[10px] font-bold ml-auto transition-colors"
-                        >
-                          Set 0 (Out of Stock)
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Selling Price */}
-                    <div className="bg-zinc-950 border border-white/10 rounded-2xl p-4 space-y-2">
-                      <label className="block font-bold text-xs text-white/80">
-                        Selling Offer Price (LKR) *
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={basePrice || ""}
-                        onChange={(e) => {
-                          const newSelling = Number(e.target.value);
-                          setBasePrice(newSelling);
-                          if (baseOldPrice && baseOldPrice > newSelling) {
-                            setDiscountPercent(Math.round(((baseOldPrice - newSelling) / baseOldPrice) * 100));
-                          } else {
-                            setDiscountPercent(0);
-                          }
-                          setHasUnsavedChanges(true);
-                        }}
-                        placeholder="e.g. 4500"
-                        className="w-full h-10 px-3 bg-zinc-900 border border-white/15 rounded-xl font-mono font-black text-sm text-blue-400 outline-none focus:border-blue-500"
-                      />
-                      <p className="text-[11px] text-white/40">Main price visible on website.</p>
-                    </div>
-
-                    {/* Regular / Old Price */}
-                    <div className="bg-zinc-950 border border-white/10 rounded-2xl p-4 space-y-2">
-                      <label className="block font-bold text-xs text-white/80">
-                        Old / Regular Price (LKR)
-                      </label>
-                      <input
-                        type="number"
-                        min={0}
-                        value={baseOldPrice || ""}
-                        onChange={(e) => {
-                          const oldVal = Number(e.target.value) || null;
-                          setBaseOldPrice(oldVal);
-                          if (oldVal && basePrice && oldVal > basePrice) {
-                            setDiscountPercent(Math.round(((oldVal - basePrice) / oldVal) * 100));
-                          } else {
-                            setDiscountPercent(0);
-                          }
-                          setHasUnsavedChanges(true);
-                        }}
-                        placeholder="e.g. 5500"
-                        className="w-full h-10 px-3 bg-zinc-900 border border-white/15 rounded-xl font-mono font-bold text-sm text-white/40 line-through outline-none focus:border-blue-500"
-                      />
-                      <p className="text-[11px] text-white/40">Strike-through price for showing discounts.</p>
-                    </div>
-                  </div>
+                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 text-center text-xs space-y-2">
+                  <Sliders className="w-8 h-8 text-slate-400 mx-auto" />
+                  <p className="font-extrabold text-slate-900 text-sm">No Variant Matrix Required</p>
+                  <p className="text-slate-600 text-xs max-w-md mx-auto">
+                    This product has no color or storage options enabled. Standard product-level Offer Price (LKR {basePrice.toLocaleString()}) and stock count will be used on the storefront.
+                  </p>
                 </div>
               ) : variantCombos.length === 0 ? (
-                <div className="bg-white/5 border border-dashed border-white/15 rounded-2xl p-8 text-center text-xs space-y-3">
-                  <Sliders className="w-8 h-8 text-white/20 mx-auto" />
+                <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-8 text-center text-xs space-y-3">
+                  <Sliders className="w-8 h-8 text-gray-300 mx-auto" />
                   <div>
-                    <p className="font-extrabold text-white text-sm">No Variants Added Yet</p>
-                    <p className="text-white/40 text-xs mt-1">
-                      {hasStorageVariants
-                        ? "You can add manual variant rows or automatically generate combinations for active colors and storage tiers."
-                        : "You can add color rows for this accessory and enter the stock quantity for each color."}
+                    <p className="font-extrabold text-gray-800 text-sm">No Variants Added Yet</p>
+                    <p className="text-gray-500 text-xs mt-1">
+                      You can add manual variant rows or automatically generate combinations from your active colors.
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-3 pt-1">
                     <button
                       type="button"
                       onClick={handleAddManualVariant}
-                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-emerald-600/30 transition-all"
+                      className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
                     >
                       <Plus className="w-4 h-4" /> Add Manual Variant Row
                     </button>
                     <button
                       type="button"
                       onClick={handleGenerateCombinations}
-                      className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
+                      className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-xs"
                     >
                       <Sparkles className="w-4 h-4" /> Auto Generate Combinations
                     </button>
@@ -1712,31 +1571,31 @@ export default function ProductModal({
                 </div>
               ) : (
                 /* Combinations Table */
-                <div className="overflow-x-auto rounded-2xl border border-white/10 bg-zinc-900">
+                <div className="overflow-x-auto">
                   <table className="w-full text-left border-collapse min-w-[750px] text-xs">
                     <thead>
-                      <tr className="bg-white/5 border-b border-white/10 text-[11px] font-bold text-white/50 uppercase tracking-wider">
+                      <tr className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                         {hasColorVariants && <th className="px-3 py-3">Colour</th>}
-                        {hasStorageVariants && <th className="px-3 py-3">RAM</th>}
+                        <th className="px-3 py-3">RAM</th>
                         {hasStorageVariants && <th className="px-3 py-3">Storage</th>}
-                        {hasStorageVariants && <th className="px-3 py-3">SIM / Variant</th>}
+                        <th className="px-3 py-3">SIM / Variant</th>
                         <th className="px-3 py-3">SKU</th>
                         <th className="px-3 py-3">Offer Price (LKR)</th>
                         <th className="px-3 py-3">Old Price (LKR)</th>
                         <th className="px-3 py-3">Discount</th>
-                        <th className="px-3 py-3">Stock Quantity *</th>
+                        <th className="px-3 py-3">Stock</th>
                         <th className="px-3 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-white/5">
+                    <tbody className="divide-y divide-gray-100">
                       {variantCombos.map((v, vIdx) => {
                         const vOldPrice = v.old_price || 0;
                         const vDiscountPct = vOldPrice > v.price ? Math.round(((vOldPrice - v.price) / vOldPrice) * 100) : 0;
 
                         return (
-                          <tr key={v.id} className="hover:bg-white/5 font-medium transition-colors">
+                          <tr key={v.id} className="hover:bg-gray-50/80 font-medium">
                             {hasColorVariants && (
-                              <td className="px-3 py-3 font-bold text-white">
+                              <td className="px-3 py-3 font-bold text-gray-900">
                                 {colorVariants.length > 0 ? (
                                   <select
                                     value={v.color_name || colorVariants[0]?.name || ""}
@@ -1752,7 +1611,7 @@ export default function ProductModal({
                                       setVariantCombos(updated);
                                       setHasUnsavedChanges(true);
                                     }}
-                                    className="px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white outline-none focus:border-blue-500"
+                                    className="px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                   >
                                     {colorVariants.map((c) => (
                                       <option key={c.id || c.name} value={c.name}>
@@ -1770,27 +1629,23 @@ export default function ProductModal({
                                       setVariantCombos(updated);
                                       setHasUnsavedChanges(true);
                                     }}
-                                    className="w-24 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white outline-none focus:border-blue-500"
+                                    className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                   />
                                 )}
                               </td>
                             )}
-
-                            {hasStorageVariants && (
-                              <td className="px-3 py-3">
-                                <input
-                                  type="text"
-                                  value={v.ram || ""}
-                                  onChange={(e) => {
-                                    const updated = [...variantCombos];
-                                    updated[vIdx].ram = e.target.value;
-                                    setVariantCombos(updated);
-                                  }}
-                                  className="w-16 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white outline-none focus:border-blue-500"
-                                />
-                              </td>
-                            )}
-
+                            <td className="px-3 py-3">
+                              <input
+                                type="text"
+                                value={v.ram || ""}
+                                onChange={(e) => {
+                                  const updated = [...variantCombos];
+                                  updated[vIdx].ram = e.target.value;
+                                  setVariantCombos(updated);
+                                }}
+                                className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                              />
+                            </td>
                             {hasStorageVariants && (
                               <td className="px-3 py-3">
                                 <input
@@ -1801,27 +1656,23 @@ export default function ProductModal({
                                     updated[vIdx].storage = e.target.value;
                                     setVariantCombos(updated);
                                   }}
-                                  className="w-20 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white outline-none focus:border-blue-500"
+                                  className="w-20 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                 />
                               </td>
                             )}
-
-                            {hasStorageVariants && (
-                              <td className="px-3 py-3">
-                                <input
-                                  type="text"
-                                  placeholder="Physical + eSIM"
-                                  value={v.sim_type || ""}
-                                  onChange={(e) => {
-                                    const updated = [...variantCombos];
-                                    updated[vIdx].sim_type = e.target.value;
-                                    setVariantCombos(updated);
-                                  }}
-                                  className="w-32 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white placeholder-white/20 outline-none focus:border-blue-500"
-                                />
-                              </td>
-                            )}
-
+                            <td className="px-3 py-3">
+                              <input
+                                type="text"
+                                placeholder="Physical + eSIM"
+                                value={v.sim_type || ""}
+                                onChange={(e) => {
+                                  const updated = [...variantCombos];
+                                  updated[vIdx].sim_type = e.target.value;
+                                  setVariantCombos(updated);
+                                }}
+                                className="w-32 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800"
+                              />
+                            </td>
                             <td className="px-3 py-3 font-mono">
                               <input
                                 type="text"
@@ -1831,7 +1682,7 @@ export default function ProductModal({
                                   updated[vIdx].sku = e.target.value;
                                   setVariantCombos(updated);
                                 }}
-                                className="w-28 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-mono text-white outline-none focus:border-blue-500"
+                                className="w-28 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-mono"
                               />
                             </td>
                             {/* Offer Price */}
@@ -1844,7 +1695,7 @@ export default function ProductModal({
                                   updated[vIdx].price = Number(e.target.value);
                                   setVariantCombos(updated);
                                 }}
-                                className="w-24 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-black text-blue-400 outline-none focus:border-blue-500"
+                                className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-black text-blue-600"
                               />
                             </td>
                             {/* Old Price */}
@@ -1858,17 +1709,17 @@ export default function ProductModal({
                                   updated[vIdx].old_price = Number(e.target.value) || null;
                                   setVariantCombos(updated);
                                 }}
-                                className="w-24 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-white/40 line-through outline-none focus:border-blue-500"
+                                className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-400 line-through"
                               />
                             </td>
                             {/* Discount % Badge */}
                             <td className="px-3 py-3 font-mono">
                               {vDiscountPct > 0 ? (
-                                <span className="px-2 py-0.5 bg-rose-500/15 text-rose-400 border border-rose-500/30 font-black text-[10px] rounded-md">
+                                <span className="px-2 py-0.5 bg-red-50 text-red-600 border border-red-200 font-black text-[10px] rounded-md">
                                   {vDiscountPct}% OFF
                                 </span>
                               ) : (
-                                <span className="text-white/30 text-[10px]">—</span>
+                                <span className="text-gray-400 text-[10px]">—</span>
                               )}
                             </td>
                             {/* Stock Quantity */}
@@ -1884,7 +1735,7 @@ export default function ProductModal({
                                   updated[vIdx].available_stock = Math.max(0, cnt - (updated[vIdx].reserved_stock || 0));
                                   setVariantCombos(updated);
                                 }}
-                                className="w-16 px-2 py-1 bg-zinc-950 border border-white/15 rounded-lg text-xs font-bold text-emerald-400 outline-none focus:border-blue-500"
+                                className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                               />
                             </td>
                             <td className="px-3 py-3 text-right">
@@ -1894,7 +1745,7 @@ export default function ProductModal({
                                   setVariantCombos(variantCombos.filter((item) => item.id !== v.id));
                                   setHasUnsavedChanges(true);
                                 }}
-                                className="p-1.5 bg-red-500/10 text-red-400 hover:bg-red-500/20 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto transition-colors"
+                                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto transition-colors"
                                 title="Delete variant row"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -1912,28 +1763,15 @@ export default function ProductModal({
           )}
 
           {/* ════════════════════════════════════════════════════════════════
-          {/* ════════════════════════════════════════════════════════════════
-              TAB 4: SPECIFICATIONS (OPTIONAL)
+              TAB 4: SPECIFICATIONS
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 4 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-white/10 pb-3">
-                <div>
-                  <h3 className="text-base font-black text-white flex items-center gap-2">
-                    Technical Specifications
-                    <span className="text-[10px] font-bold bg-white/10 text-white/70 px-2 py-0.5 rounded-full border border-white/10">
-                      Optional
-                    </span>
-                  </h3>
-                  <p className="text-xs text-white/40 mt-0.5">
-                    Specifications are completely optional. For accessories (like chargers, cables, cases), you can leave this empty or add wattage/length.
-                  </p>
-                </div>
-              </div>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Technical Specifications</h3>
 
               {/* Preset Shortcuts */}
               <div className="flex flex-wrap gap-2 text-xs">
-                {["Wattage", "Cable Length", "Output Ports", "Fast Charging", "Compatibility", "Battery", "Display", "Processor", "Weight"].map((key) => (
+                {DEFAULT_SPEC_KEYS.map((key) => (
                   <button
                     key={key}
                     type="button"
@@ -1942,60 +1780,53 @@ export default function ProductModal({
                         setSpecRows([...specRows, { key, value: "" }]);
                       }
                     }}
-                    className="px-3 py-1 bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 font-bold rounded-lg transition-colors"
+                    className="px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-bold rounded-lg"
                   >
                     + {key}
                   </button>
                 ))}
               </div>
 
-              {specRows.length === 0 ? (
-                <div className="p-8 text-center text-white/40 border border-dashed border-white/15 rounded-2xl">
-                  <p className="font-bold text-white/70 text-xs">No specifications added (Optional).</p>
-                  <p className="text-[11px] text-white/40 mt-0.5">Click any button above or click &quot;+ Add Specification Row&quot; if you want to include specs.</p>
-                </div>
-              ) : (
-                <div className="space-y-3 text-xs">
-                  {specRows.map((row, idx) => (
-                    <div key={idx} className="flex gap-3 items-center">
-                      <input
-                        type="text"
-                        placeholder="Spec Key (e.g. Wattage)"
-                        value={row.key}
-                        onChange={(e) => {
-                          const updated = [...specRows];
-                          updated[idx].key = e.target.value;
-                          setSpecRows(updated);
-                        }}
-                        className="w-40 px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl font-bold text-white outline-none focus:border-blue-500"
-                      />
-                      <input
-                        type="text"
-                        placeholder="Spec Value (e.g. 65W Fast Charging / 1.2m)"
-                        value={row.value}
-                        onChange={(e) => {
-                          const updated = [...specRows];
-                          updated[idx].value = e.target.value;
-                          setSpecRows(updated);
-                        }}
-                        className="flex-1 px-3 py-2 bg-zinc-900 border border-white/15 rounded-xl font-medium text-white outline-none focus:border-blue-500"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setSpecRows(specRows.filter((_, i) => i !== idx))}
-                        className="text-red-400 hover:text-red-300 p-1 rounded-lg hover:bg-red-500/10 transition-colors"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <div className="space-y-3 text-xs">
+                {specRows.map((row, idx) => (
+                  <div key={idx} className="flex gap-3 items-center">
+                    <input
+                      type="text"
+                      placeholder="Spec Key (e.g. Display)"
+                      value={row.key}
+                      onChange={(e) => {
+                        const updated = [...specRows];
+                        updated[idx].key = e.target.value;
+                        setSpecRows(updated);
+                      }}
+                      className="w-36 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Spec Value (e.g. 6.7 inch AMOLED)"
+                      value={row.value}
+                      onChange={(e) => {
+                        const updated = [...specRows];
+                        updated[idx].value = e.target.value;
+                        setSpecRows(updated);
+                      }}
+                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSpecRows(specRows.filter((_, i) => i !== idx))}
+                      className="text-red-500 hover:text-red-700 p-1"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ))}
+              </div>
 
               <button
                 type="button"
                 onClick={() => setSpecRows([...specRows, { key: "", value: "" }])}
-                className="px-4 py-2 bg-white/5 hover:bg-white/10 text-white font-bold text-xs rounded-xl border border-white/10 flex items-center gap-1.5 transition-colors"
+                className="px-4 py-2 bg-gray-100 hover:bg-gray-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" /> Add Specification Row
               </button>
@@ -2006,11 +1837,11 @@ export default function ProductModal({
               TAB 5: UNIFIED WARRANTY SYSTEM
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 5 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-3">
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 pb-3">
                 <div>
-                  <h3 className="text-base font-black text-white">Warranty System</h3>
-                  <p className="text-xs text-white/40 mt-1">Configure multiple warranty plans for customers to select on the product page.</p>
+                  <h3 className="text-base font-black text-gray-900">Warranty System</h3>
+                  <p className="text-xs text-gray-500 mt-1">Configure multiple warranty plans for customers to select on the product page.</p>
                 </div>
                 <button
                   type="button"
@@ -2029,28 +1860,28 @@ export default function ProductModal({
                     setWarrantyOptions([...warrantyOptions, newW]);
                     setHasUnsavedChanges(true);
                   }}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-md shadow-blue-600/30 transition-all"
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow-sm"
                 >
                   <Plus className="w-4 h-4" /> Add Warranty Plan
                 </button>
               </div>
 
               {/* Preset Quick Add Dropdown Bar */}
-              <div className="bg-blue-950/40 border border-blue-500/30 rounded-2xl p-4 space-y-2.5">
-                <label className="block font-extrabold text-xs text-blue-300 flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" />
-                  Quick Select Warranty Preset ({availableWarranties.length} Official & Custom Warranties):
+              <div className="bg-gradient-to-r from-blue-50/70 via-indigo-50/50 to-slate-50 border border-blue-100 rounded-2xl p-4 space-y-2.5">
+                <label className="block font-extrabold text-xs text-gray-800 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  Quick Select Warranty Preset (30+ Official Sri Lankan Warranties):
                 </label>
                 <div className="flex flex-wrap sm:flex-nowrap gap-2.5">
                   <select
                     value={selectedPresetWarranty}
                     onChange={(e) => setSelectedPresetWarranty(e.target.value)}
-                    className="flex-1 px-3.5 py-2 bg-zinc-900 border border-white/15 rounded-xl text-xs font-semibold text-white outline-none focus:border-blue-500 shadow-md cursor-pointer"
+                    className="flex-1 px-3.5 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500 shadow-xs"
                   >
-                    <option value="">-- Choose Official or Custom Warranty Preset ({availableWarranties.length} Available) --</option>
-                    {availableWarranties.map((w, idx) => (
-                      <option key={w.id || idx} value={w.title}>
-                        {w.title} ({w.duration_value} {w.duration_unit})
+                    <option value="">-- Choose Official Warranty Preset --</option>
+                    {PRESET_WARRANTIES.map((wTitle, idx) => (
+                      <option key={idx} value={wTitle}>
+                        {wTitle}
                       </option>
                     ))}
                   </select>
@@ -2058,15 +1889,18 @@ export default function ProductModal({
                     type="button"
                     onClick={() => {
                       if (!selectedPresetWarranty) return;
-                      const matched = availableWarranties.find((pw) => pw.title === selectedPresetWarranty);
                       const newW: WarrantyOption = {
                         id: `w-${Date.now()}`,
-                        title: matched ? matched.title : selectedPresetWarranty,
-                        type: matched ? matched.type : "Shop Warranty",
-                        duration_value: matched ? Number(matched.duration_value) || 1 : 1,
-                        duration_unit: (matched?.duration_unit as any) || "months",
-                        additional_price: matched?.additional_price || 0,
-                        coverage_details: "",
+                        title: selectedPresetWarranty,
+                        type: selectedPresetWarranty.toLowerCase().includes("shop") || selectedPresetWarranty.toLowerCase().includes("checking")
+                          ? "Shop Warranty"
+                          : "Manufacturer Warranty",
+                        duration_value: 1,
+                        duration_unit: selectedPresetWarranty.toLowerCase().includes("month")
+                          ? "months"
+                          : "years",
+                        additional_price: 0,
+                        coverage_details: selectedPresetWarranty,
                         status: "active",
                         is_default: warrantyOptions.length === 0,
                       };
@@ -2075,7 +1909,7 @@ export default function ProductModal({
                       setHasUnsavedChanges(true);
                     }}
                     disabled={!selectedPresetWarranty}
-                    className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 whitespace-nowrap shadow-md shadow-blue-600/30 transition-all"
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 whitespace-nowrap shadow-xs"
                   >
                     <Plus className="w-4 h-4" /> Add Selected Warranty
                   </button>
@@ -2085,20 +1919,20 @@ export default function ProductModal({
               {/* Warranty Plans List */}
               <div className="space-y-4">
                 {warrantyOptions.length === 0 ? (
-                  <div className="p-8 text-center text-white/40 border border-dashed border-white/15 rounded-2xl">
-                    <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-white/20" />
-                    <p className="font-bold text-white/70 text-xs">No warranty plans added yet.</p>
-                    <p className="text-[11px] text-white/40">Choose a preset from the dropdown above or click "+ Add Warranty Plan".</p>
+                  <div className="p-8 text-center text-gray-400 border border-dashed border-gray-300 rounded-2xl">
+                    <ShieldCheck className="w-8 h-8 mx-auto mb-2 text-gray-300" />
+                    <p className="font-bold text-gray-600 text-xs">No warranty plans added yet.</p>
+                    <p className="text-[11px] text-gray-400">Choose a preset from the dropdown above or click "+ Add Warranty Plan".</p>
                   </div>
                 ) : (
                   warrantyOptions.map((w, wIdx) => (
-                    <div key={w.id} className="bg-zinc-900 border border-white/10 rounded-2xl p-4 space-y-3 text-xs">
-                      <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                    <div key={w.id} className="bg-gray-50 border border-gray-200 rounded-2xl p-4 space-y-3 text-xs">
+                      <div className="flex items-center justify-between border-b border-gray-200/60 pb-2">
                         <div className="flex items-center gap-2">
-                          <ShieldCheck className="w-4 h-4 text-blue-400" />
-                          <span className="font-extrabold text-white">Warranty Plan #{wIdx + 1}</span>
+                          <ShieldCheck className="w-4 h-4 text-blue-600" />
+                          <span className="font-extrabold text-gray-900">Warranty Plan #{wIdx + 1}</span>
                           {w.is_default && (
-                            <span className="bg-blue-500/20 text-blue-400 border border-blue-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                            <span className="bg-blue-100 text-blue-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                               Default Selection
                             </span>
                           )}
@@ -2109,43 +1943,34 @@ export default function ProductModal({
                             setWarrantyOptions(warrantyOptions.filter((item) => item.id !== w.id));
                             setHasUnsavedChanges(true);
                           }}
-                          className="text-xs text-red-400 hover:text-red-300 font-bold flex items-center gap-1"
+                          className="text-xs text-red-600 hover:underline font-bold flex items-center gap-1"
                         >
                           <Trash2 className="w-3.5 h-3.5" /> Remove
                         </button>
                       </div>
 
-                      <div className="grid grid-cols-1 sm:grid-cols-12 gap-3.5 items-start">
-                        {/* Warranty Title - 6 Cols */}
-                        <div className="sm:col-span-6 space-y-1.5">
-                          <label className="block font-bold text-white/80">Warranty Title *</label>
-                          <div className="space-y-1.5">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-start">
+                        {/* Warranty Title - 2 Cols */}
+                        <div className="md:col-span-2 space-y-1.5">
+                          <label className="block font-bold text-gray-700">Warranty Title *</label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                             <select
-                              value={availableWarranties.some((p) => p.title === w.title) ? w.title : "custom"}
+                              value={PRESET_WARRANTIES.includes(w.title) ? w.title : "custom"}
                               onChange={(e) => {
                                 const val = e.target.value;
                                 if (val !== "custom") {
-                                  const matched = availableWarranties.find((p) => p.title === val);
                                   const updated = [...warrantyOptions];
                                   updated[wIdx].title = val;
-                                  if (matched) {
-                                    updated[wIdx].duration_value = matched.duration_value;
-                                    updated[wIdx].duration_unit = matched.duration_unit;
-                                    updated[wIdx].type = matched.type;
-                                    if (matched.additional_price !== undefined) {
-                                      updated[wIdx].additional_price = matched.additional_price;
-                                    }
-                                  }
                                   setWarrantyOptions(updated);
                                   setHasUnsavedChanges(true);
                                 }
                               }}
-                              className="w-full px-3 py-2 bg-zinc-950 border border-white/15 rounded-xl text-xs font-semibold text-white outline-none focus:border-blue-500 shadow-md cursor-pointer"
+                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500 shadow-xs"
                             >
                               <option value="custom">✍️ Type Custom Warranty Title</option>
-                              {availableWarranties.map((pW, pIdx) => (
-                                <option key={pW.id || pIdx} value={pW.title}>
-                                  {pW.title}
+                              {PRESET_WARRANTIES.map((pW, pIdx) => (
+                                <option key={pIdx} value={pW}>
+                                  {pW}
                                 </option>
                               ))}
                             </select>
@@ -2159,64 +1984,50 @@ export default function ProductModal({
                                 setHasUnsavedChanges(true);
                               }}
                               placeholder="e.g. 1 Year ABANS Warranty"
-                              className="w-full px-3 py-2 bg-zinc-950 border border-white/15 rounded-xl font-bold text-white outline-none focus:border-blue-500 shadow-md"
+                              className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold text-gray-900 outline-none focus:border-blue-500 shadow-xs"
                             />
                           </div>
                         </div>
 
-                        {/* Duration - 3 Cols */}
-                        <div className="sm:col-span-3 space-y-1.5">
-                          <label className="block font-bold text-white/80">Duration</label>
-                          <div className="flex gap-1.5">
-                            <input
-                              type="number"
-                              min={1}
-                              value={w.duration_value || 1}
-                              onChange={(e) => {
-                                const updated = [...warrantyOptions];
-                                updated[wIdx].duration_value = Number(e.target.value);
-                                setWarrantyOptions(updated);
-                                setHasUnsavedChanges(true);
-                              }}
-                              className="w-16 px-2 py-2 bg-zinc-950 border border-white/15 rounded-xl font-bold text-white text-center outline-none focus:border-blue-500"
-                            />
-                            <select
-                              value={w.duration_unit || "months"}
-                              onChange={(e) => {
-                                const updated = [...warrantyOptions];
-                                updated[wIdx].duration_unit = e.target.value as any;
-                                setWarrantyOptions(updated);
-                                setHasUnsavedChanges(true);
-                              }}
-                              className="flex-1 px-2 py-2 bg-zinc-950 border border-white/15 rounded-xl text-xs font-semibold text-white outline-none focus:border-blue-500 cursor-pointer"
-                            >
-                              <option value="months">Months</option>
-                              <option value="years">Years</option>
-                              <option value="days">Days</option>
-                            </select>
-                          </div>
+                        {/* Additional Charge - 1 Col */}
+                        <div>
+                          <label className="block font-bold text-gray-700 mb-1.5">Additional Charge (LKR)</label>
+                          <input
+                            type="number"
+                            min={0}
+                            value={w.additional_price}
+                            onChange={(e) => {
+                              const updated = [...warrantyOptions];
+                              updated[wIdx].additional_price = Number(e.target.value);
+                              setWarrantyOptions(updated);
+                              setHasUnsavedChanges(true);
+                            }}
+                            placeholder="0 (Free)"
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-bold text-blue-600 font-mono outline-none focus:border-blue-500 shadow-xs"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Coverage Details & Default Checkbox */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 items-end pt-1">
+                        <div className="md:col-span-2">
+                          <label className="block font-bold text-gray-700 mb-1">Coverage Details / Notes</label>
+                          <input
+                            type="text"
+                            value={w.coverage_details || ""}
+                            onChange={(e) => {
+                              const updated = [...warrantyOptions];
+                              updated[wIdx].coverage_details = e.target.value;
+                              setWarrantyOptions(updated);
+                              setHasUnsavedChanges(true);
+                            }}
+                            placeholder="e.g. Hardware defect warranty covered by Street Mobile main store."
+                            className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium text-gray-800 outline-none focus:border-blue-500 shadow-xs"
+                          />
                         </div>
 
-                        {/* Additional Charge & Default Checkbox - 3 Cols */}
-                        <div className="sm:col-span-3 space-y-2.5">
-                          <div>
-                            <label className="block font-bold text-white/80 mb-1">Additional Charge (LKR)</label>
-                            <input
-                              type="number"
-                              min={0}
-                              value={w.additional_price}
-                              onChange={(e) => {
-                                const updated = [...warrantyOptions];
-                                updated[wIdx].additional_price = Number(e.target.value);
-                                setWarrantyOptions(updated);
-                                setHasUnsavedChanges(true);
-                              }}
-                              placeholder="0 (Free)"
-                              className="w-full px-3 py-2 bg-zinc-950 border border-white/15 rounded-xl font-bold text-blue-400 font-mono outline-none focus:border-blue-500 shadow-md"
-                            />
-                          </div>
-
-                          <label className="flex items-center gap-2 cursor-pointer select-none pt-1">
+                        <div className="flex items-center h-10">
+                          <label className="flex items-center gap-2 cursor-pointer select-none">
                             <input
                               type="checkbox"
                               checked={w.is_default || false}
@@ -2228,9 +2039,9 @@ export default function ProductModal({
                                 setWarrantyOptions(updated);
                                 setHasUnsavedChanges(true);
                               }}
-                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-zinc-900 border-white/20"
+                              className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-gray-300"
                             />
-                            <span className="font-bold text-white text-xs">Default Selection</span>
+                            <span className="font-bold text-gray-900 text-xs">Set as Default Selection</span>
                           </label>
                         </div>
                       </div>
@@ -2245,38 +2056,38 @@ export default function ProductModal({
               TAB 6: PAYMENTS & DELIVERY
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 6 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <h3 className="text-base font-black text-white border-b border-white/10 pb-3">Payment Options & Delivery</h3>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">Payment Options & Delivery</h3>
 
               <div className="space-y-3 text-xs">
-                <label className="flex items-center gap-3 p-3.5 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
                   <input
                     type="checkbox"
                     checked={allowCod}
                     onChange={(e) => setAllowCod(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-zinc-900 border-white/20"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="font-bold text-white">Allow Cash on Delivery (COD)</span>
+                  <span className="font-bold text-gray-900">Allow Cash on Delivery (COD)</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-3.5 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
                   <input
                     type="checkbox"
                     checked={allowCard}
                     onChange={(e) => setAllowCard(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-zinc-900 border-white/20"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="font-bold text-white">Allow Card Payment (PayHere Online)</span>
+                  <span className="font-bold text-gray-900">Allow Card Payment (PayHere Online)</span>
                 </label>
 
-                <label className="flex items-center gap-3 p-3.5 bg-white/5 border border-white/10 rounded-xl cursor-pointer hover:bg-white/10 transition-colors">
+                <label className="flex items-center gap-3 p-3 bg-gray-50 border border-gray-200 rounded-xl cursor-pointer">
                   <input
                     type="checkbox"
                     checked={allowWhatsapp}
                     onChange={(e) => setAllowWhatsapp(e.target.checked)}
-                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 bg-zinc-900 border-white/20"
+                    className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500"
                   />
-                  <span className="font-bold text-white">Allow Direct WhatsApp Ordering</span>
+                  <span className="font-bold text-gray-900">Allow Direct WhatsApp Ordering</span>
                 </label>
               </div>
             </div>
@@ -2286,12 +2097,12 @@ export default function ProductModal({
               TAB 7: SEO & PUBLISHING
           ════════════════════════════════════════════════════════════════ */}
           {activeTab === 7 && (
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6 animate-in fade-in">
-              <h3 className="text-base font-black text-white border-b border-white/10 pb-3">SEO & Publishing Settings</h3>
+            <div className="bg-white border border-gray-200 rounded-3xl p-6 shadow-sm space-y-6 animate-in fade-in">
+              <h3 className="text-base font-black text-gray-900 border-b border-gray-100 pb-3">SEO & Publishing Settings</h3>
 
               <div className="space-y-4 text-xs">
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Custom SEO Title Tag</label>
+                  <label className="block font-bold text-gray-700 mb-1">Custom SEO Title Tag</label>
                   <input
                     type="text"
                     value={metaTitle}
@@ -2300,13 +2111,13 @@ export default function ProductModal({
                       setHasUnsavedChanges(true);
                     }}
                     placeholder={name || "STREET MOBILE - Buy Phone Online"}
-                    className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl font-semibold text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+                    className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
-                  <p className="text-[11px] text-white/40 mt-1">Leaves default product name if empty, or type custom text to override.</p>
+                  <p className="text-[11px] text-gray-400 mt-1">Leaves default product name if empty, or type custom text to override.</p>
                 </div>
 
                 <div>
-                  <label className="block font-bold text-white/80 mb-1">Meta Description</label>
+                  <label className="block font-bold text-gray-700 mb-1">Meta Description</label>
                   <textarea
                     rows={3}
                     value={metaDescription}
@@ -2315,7 +2126,7 @@ export default function ProductModal({
                       setHasUnsavedChanges(true);
                     }}
                     placeholder={shortDesc || "Short SEO snippet for Google search..."}
-                    className="w-full p-3 bg-white/5 border border-white/10 rounded-xl font-medium text-white placeholder-white/30 outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none text-xs transition-all"
+                    className="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl font-medium text-gray-900 outline-none focus:border-blue-500 resize-none text-xs"
                   />
                 </div>
               </div>
