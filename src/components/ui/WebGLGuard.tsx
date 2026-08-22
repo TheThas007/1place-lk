@@ -51,13 +51,10 @@ export default function WebGLGuard({
   const [timedOut, setTimedOut] = useState(false);
 
   useEffect(() => {
-    // Check WebGL support and reduced motion preference
-    if (prefersReducedMotion() || !isWebGLAvailable()) {
-      setWebglSupported(false);
-      return;
-    }
+    const isSupported = !prefersReducedMotion() && isWebGLAvailable();
+    setWebglSupported(isSupported);
 
-    setWebglSupported(true);
+    if (!isSupported) return;
 
     // Timeout safety net in case 3D textures/shaders hang indefinitely
     const timer = setTimeout(() => {

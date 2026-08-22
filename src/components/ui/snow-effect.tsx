@@ -69,9 +69,8 @@ export default function SnowEffect() {
   const [canRender, setCanRender] = useState(false);
 
   useEffect(() => {
-    if (!prefersReducedMotion() && !isLowPowerDevice() && isWebGLAvailable()) {
-      setCanRender(true);
-    }
+    const isSupported = !prefersReducedMotion() && !isLowPowerDevice() && isWebGLAvailable();
+    setCanRender(Boolean(isSupported));
   }, []);
 
   if (!canRender) return null;

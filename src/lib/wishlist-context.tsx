@@ -60,7 +60,7 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
       loaded.current = true;
     };
     load();
-  }, [user?.uid]);
+  }, [user]);
 
   // Persist wishlist whenever it changes — but only after initial load
   useEffect(() => {
