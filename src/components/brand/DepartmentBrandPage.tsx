@@ -116,16 +116,16 @@ function BrandProductCard({ product }: { product: Product }) {
       <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col focus:outline-none">
         
         {/* ── Top Badges & Image Box ── */}
-        <div className="relative aspect-[4/3] sm:aspect-square bg-[#FAFAFA] p-4 flex items-center justify-center overflow-hidden">
+        <div className="relative aspect-[4/3] sm:aspect-square bg-[#FAFAFA] p-2 sm:p-2.5 flex items-center justify-center overflow-hidden">
           
-          {/* Top-Left Badge: Discount (Red) or NEW (Black) */}
-          <div className="absolute top-3 left-3 z-10">
+          {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
+          <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {hasDiscount ? (
-              <span className="bg-[#ED0712] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-2xs">
-                {discountPercent}% OFF
+              <span className="bg-[#ED0712] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-tr-lg shadow-2xs inline-block">
+                -{discountPercent}% OFF
               </span>
             ) : isNew ? (
-              <span className="bg-[#090909] text-white text-[10px] font-black uppercase px-2 py-0.5 rounded shadow-2xs">
+              <span className="bg-[#090909] text-white text-[10px] font-black uppercase px-2.5 py-1 rounded-tr-lg shadow-2xs inline-block">
                 NEW
               </span>
             ) : null}
@@ -145,14 +145,14 @@ function BrandProductCard({ product }: { product: Product }) {
             />
           </button>
 
-          {/* Centered Product Image */}
-          <div className="w-full h-full flex items-center justify-center p-2">
+          {/* Centered Product Image (Zoomed to fit frame cleanly) */}
+          <div className="w-full h-full flex items-center justify-center">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImgError(true)}
-              className="w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
+              className="w-full h-full object-contain scale-[1.08] transition-transform duration-500 ease-out group-hover:scale-[1.14]"
             />
           </div>
         </div>

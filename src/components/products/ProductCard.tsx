@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { ShoppingBag, Heart, Check, Star, ShieldCheck } from "lucide-react";
+import { ShoppingBag, Heart, Check, Star } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
@@ -46,7 +46,10 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   const isPreOrder =
     product.stock_status === "pre_order" ||
-    (isOutOfStock && (product.productType === "phone" || (product.category_name || "").toLowerCase().includes("laptop") || (product.name || "").toLowerCase().includes("macbook")));
+    (isOutOfStock &&
+      (product.productType === "phone" ||
+        (product.category_name || "").toLowerCase().includes("laptop") ||
+        (product.name || "").toLowerCase().includes("macbook")));
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -58,7 +61,10 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       productId: product.id,
       name: product.name,
       price: product.price,
-      image: product.images && product.images.length > 0 ? product.images[0] : "/placeholder-phone.webp",
+      image:
+        product.images && product.images.length > 0
+          ? product.images[0]
+          : "/placeholder-phone.webp",
       quantity: 1,
       color: product.colors?.[0],
       storage: product.storage_options?.[0],
@@ -101,21 +107,21 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         href={`/products/${product.slug}`}
         className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
-        {/* ── 1. Image Container (Light-grey #FAFAFA, no watermarks) ── */}
-        <div className="relative aspect-square bg-[#FAFAFA] p-4 flex items-center justify-center overflow-hidden rounded-t-2xl">
+        {/* ── 1. Image Container (Light-grey #FAFAFA, relative positioning) ── */}
+        <div className="product-image-container relative aspect-square bg-[#FAFAFA] p-2 sm:p-2.5 flex items-center justify-center overflow-hidden rounded-t-2xl">
           
-          {/* Top-Left Badges */}
-          <div className="absolute top-3 left-3 z-10 flex flex-col gap-1 items-start">
+          {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
+          <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {hasDiscount ? (
-              <span className="bg-[#ED0712] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
+              <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
                 -{discountPercent}% OFF
               </span>
             ) : isPreOrder ? (
-              <span className="bg-[#ED0712] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
-                Pre-Order
+              <span className="bg-amber-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
+                Pre-Order Available
               </span>
             ) : isNew ? (
-              <span className="bg-[#090909] text-white text-[10px] font-black px-2 py-0.5 rounded shadow-2xs uppercase">
+              <span className="bg-neutral-900 text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
                 New
               </span>
             ) : null}
@@ -125,7 +131,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           <button
             type="button"
             onClick={handleToggleWishlist}
-            aria-label={isWishlisted ? `Remove ${product.name} from wishlist` : `Add ${product.name} to wishlist`}
+            aria-label={
+              isWishlisted
+                ? `Remove ${product.name} from wishlist`
+                : `Add ${product.name} to wishlist`
+            }
             className="absolute top-3 right-3 z-10 w-8 h-8 rounded-full bg-white/90 backdrop-blur-sm border border-neutral-200/80 flex items-center justify-center text-neutral-400 hover:text-red-500 hover:scale-110 active:scale-95 transition-all shadow-2xs cursor-pointer"
           >
             <Heart
@@ -135,14 +145,14 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             />
           </button>
 
-          {/* Product Image (object-contain, smooth hover zoom) */}
-          <div className="w-full h-full flex items-center justify-center p-2">
+          {/* Product Image (Zoomed to fit frame cleanly, object-contain) */}
+          <div className="w-full h-full flex items-center justify-center">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImageError(true)}
-              className="w-full h-full object-contain transition-transform duration-500 ease-out group-hover:scale-105"
+              className="w-full h-full object-contain scale-[1.08] transition-transform duration-500 ease-out group-hover:scale-[1.14]"
             />
           </div>
         </div>
@@ -198,9 +208,21 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             </div>
 
             <div className="flex items-center gap-1">
-              <span className={`w-1.5 h-1.5 rounded-full ${isOutOfStock ? "bg-neutral-400" : isLowStock ? "bg-amber-500" : "bg-emerald-500"}`} />
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isOutOfStock
+                    ? "bg-neutral-400"
+                    : isLowStock
+                    ? "bg-amber-500"
+                    : "bg-emerald-500"
+                }`}
+              />
               <span className="text-[11px] font-semibold text-neutral-700">
-                {isOutOfStock ? "Out of Stock" : isLowStock ? "Low Stock" : "In Stock"}
+                {isOutOfStock
+                  ? "Out of Stock"
+                  : isLowStock
+                  ? "Low Stock"
+                  : "In Stock"}
               </span>
             </div>
           </div>
@@ -238,7 +260,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           >
             {added ? (
               <>
-                <Check className="w-3.5 h-3.5" />
+                <Check className="w-4 h-4" />
                 <span>Added to Bag</span>
               </>
             ) : (
