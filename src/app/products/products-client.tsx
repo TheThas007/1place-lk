@@ -779,7 +779,7 @@ export default function ProductsClient({
       <section className="bg-white border-b border-neutral-100 pt-5 sm:pt-6 pb-4 sm:pb-5">
         <div className="max-w-[1440px] mx-auto px-4 lg:px-8 text-center sm:text-left">
           
-          {/* Title & Subtitle */}
+          {/* Title */}
           <div className="space-y-0.5 mb-4">
             <span className="text-[10px] sm:text-xs font-black uppercase tracking-[0.2em] text-neutral-400 block">
               STREET MOBILE CATALOG
@@ -787,9 +787,6 @@ export default function ProductsClient({
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-black text-neutral-900 tracking-tight">
               SHOP ALL
             </h1>
-            <p className="text-neutral-500 text-xs sm:text-sm font-medium max-w-2xl">
-              Explore our full collection of genuine smartphones, high-performance audio gear, authentic accessories, and premium tech.
-            </p>
           </div>
 
           {/* ── Main Search Bar (Desktop width ~880px, centered) ── */}
