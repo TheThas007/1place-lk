@@ -14,6 +14,7 @@ import QuickCategoriesMobile from "@/components/home/quick-categories-mobile";
 import CampaignPlacement from "@/components/ui/CampaignPlacement";
 import HomeScrollReset from "@/components/home/HomeScrollReset";
 import TodayDealSection from "@/components/home/today-deal-section";
+import WeAreNearYouMarquee from "@/components/home/we-are-near-you-marquee";
 
 import VisualProductShowcase from "@/components/home/visual-product-showcase";
 import {
@@ -194,6 +195,9 @@ export default async function HomePage() {
 
       {/* 11. Trust/service strip (Why Choose Street Mobile) */}
       <TrustIndicators />
+
+      {/* 11B. Continuous Stylish Marquee: WE ARE NEAR YOU (No background, transparent text) */}
+      <WeAreNearYouMarquee />
 
       {/* Showcase position: Below Why Choose */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_why_choose" />
