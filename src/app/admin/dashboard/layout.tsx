@@ -26,13 +26,6 @@ import {
   Menu,
   X,
   Smartphone,
-  Images,
-  Tag,
-  LayoutGrid,
-  Globe,
-  Wrench,
-  Building,
-  DollarSign,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -42,29 +35,17 @@ import ProductModal from "@/components/admin/ProductModal";
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
-  { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
-  { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
+  { id: "categories", label: "Brand & Categories", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
-  { id: "repairs", label: "Mobile Repairs", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
-  { id: "suppliers", label: "Suppliers", icon: Building, href: "/admin/dashboard?tab=suppliers" },
-  { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
-  { id: "warranties", label: "Warranty Management", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
-  { id: "collections", label: "Featured Collections", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
-  { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
-  { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
   { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
-  { id: "footer", label: "Footer Settings", icon: Globe, href: "/admin/dashboard?tab=footer" },
   { id: "inventory", label: "Inventory", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
   { id: "payments", label: "Payments", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
   { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
-  { id: "assistant", label: "Streetla Assistant", icon: Sparkles, href: "/admin/dashboard?tab=assistant" },
-  { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
   { id: "settings", label: "Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
 ];
-
 
 import { Suspense } from "react";
 

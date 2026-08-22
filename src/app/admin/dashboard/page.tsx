@@ -47,9 +47,8 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, MotionSettings } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_MOTION_SETTINGS } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts } from "@/lib/data";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -57,37 +56,18 @@ import ProductModal from "@/components/admin/ProductModal";
 import CategoryModal from "@/components/admin/CategoryModal";
 import OfferBannerModal from "@/components/admin/OfferBannerModal";
 import HeroModal from "@/components/admin/HeroModal";
-import GalleryModal from "@/components/admin/GalleryModal";
-import ReviewModal from "@/components/admin/ReviewModal";
 import OrdersTab from "@/components/admin/tabs/OrdersTab";
 import BannersTab from "@/components/admin/tabs/BannersTab";
 import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
 import ProductsTab from "@/components/admin/tabs/ProductsTab";
 import HeroTab from "@/components/admin/tabs/HeroTab";
 import BrandsTab from "@/components/admin/tabs/BrandsTab";
-import WarrantiesTab from "@/components/admin/tabs/WarrantiesTab";
-import GalleryTab from "@/components/admin/tabs/GalleryTab";
-import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
-import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
-import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsTab";
-import AssistantTab from "@/components/admin/tabs/AssistantTab";
-import FooterTab from "@/components/admin/tabs/FooterTab";
-import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
-import RepairsTab from "@/components/admin/tabs/RepairsTab";
-import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
-import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
   | "brands"
-  | "repairs"
-  | "suppliers"
-  | "cashflow"
-  | "warranties"
-  | "collections"
-  | "showcase"
   | "reviews"
   | "gallery"
   | "hero"
@@ -95,13 +75,9 @@ type Tab =
   | "orders"
   | "settings"
   | "banners"
-  | "footer"
   | "inventory"
   | "payments"
-  | "analytics"
-  | "assistant"
-  | "mobile";
-
+  | "analytics";
 
 function DashboardContent() {
   const router = useRouter();
@@ -120,11 +96,8 @@ function DashboardContent() {
   const [reviews, setReviews] = useState<Review[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
   const [heroSlides, setHeroSlides] = useState<HeroSlide[]>([]);
-  const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [customers, setCustomers] = useState<any[]>([]);
-  const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
   const [loading, setLoading] = useState(true);
-
 
   // COD Fee state
   const [codFee, setCodFee] = useState<number>(250);
@@ -158,63 +131,6 @@ function DashboardContent() {
     }
   };
 
-  // Featured Products Visibility state
-  const [showFeaturedProducts, setShowFeaturedProducts] = useState<boolean>(true);
-  const [featuredSavedMsg, setFeaturedSavedMsg] = useState(false);
-
-  useEffect(() => {
-    async function loadUiSettings() {
-      try {
-        const snap = await getDoc(doc(db, "settings", "ui"));
-        if (snap.exists() && snap.data().showFeaturedProducts !== undefined) {
-          setShowFeaturedProducts(snap.data().showFeaturedProducts !== false);
-        }
-      } catch {
-        // Fallback to default true
-      }
-    }
-    loadUiSettings();
-  }, []);
-
-  const handleToggleFeatured = async (checked: boolean) => {
-    setShowFeaturedProducts(checked);
-    try {
-      await setDoc(doc(db, "settings", "ui"), { showFeaturedProducts: checked }, { merge: true });
-      setFeaturedSavedMsg(true);
-      setTimeout(() => setFeaturedSavedMsg(false), 3500);
-    } catch (e) {
-      alert("Failed to update Featured Products visibility");
-      setShowFeaturedProducts(!checked);
-    }
-  };
-
-  // Motion Settings state
-  const [motionSettings, setMotionSettings] = useState<MotionSettings>(DEFAULT_MOTION_SETTINGS);
-  const [motionSavedMsg, setMotionSavedMsg] = useState(false);
-
-  useEffect(() => {
-    async function loadMotionSettings() {
-      try {
-        const snap = await getDoc(doc(db, "settings", "motion"));
-        if (snap.exists()) {
-          setMotionSettings({ ...DEFAULT_MOTION_SETTINGS, ...snap.data() });
-        }
-      } catch {}
-    }
-    loadMotionSettings();
-  }, []);
-
-  const handleSaveMotionSettings = async (newSettings: MotionSettings) => {
-    setMotionSettings(newSettings);
-    try {
-      await setDoc(doc(db, "settings", "motion"), newSettings, { merge: true });
-      setMotionSavedMsg(true);
-      setTimeout(() => setMotionSavedMsg(false), 3500);
-    } catch (e) {
-      alert("Failed to update motion settings");
-    }
-  };
-
   // Filters & Period
   const [period, setPeriod] = useState<"month" | "week" | "today">("month");
   const [productSearch, setProductSearch] = useState("");
@@ -232,13 +148,6 @@ function DashboardContent() {
 
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
-
-  const [isGalleryModalOpen, setIsGalleryModalOpen] = useState(false);
-  const [editingGalleryImage, setEditingGalleryImage] = useState<GalleryImage | null>(null);
-
-  const [googleReviewsSettings, setGoogleReviewsSettings] = useState<GoogleReviewsSettings>(DEFAULT_GOOGLE_REVIEWS_SETTINGS);
-  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-  const [editingReview, setEditingReview] = useState<Review | null>(null);
 
   // Stock Filter & Quick Stock Addition States
   const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "in_stock">("all");
@@ -258,13 +167,7 @@ function DashboardContent() {
       // Categories
       const catSnap = await getDocs(collection(db, "categories"));
       const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
-      const catMap = new Map<string, Category>();
-      fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
-      catList.forEach((c) => {
-        const key = c.id || c.slug;
-        catMap.set(key, { ...catMap.get(key), ...c, id: key });
-      });
-      setCategories(Array.from(catMap.values()));
+      setCategories(catList.length > 0 ? catList : fallbackCategories);
 
       // Orders
       const ordSnap = await getDocs(collection(db, "orders"));
@@ -275,14 +178,7 @@ function DashboardContent() {
       // Reviews
       const revSnap = await getDocs(collection(db, "reviews"));
       const revList = revSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
-      revList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       setReviews(revList);
-
-      // Google Reviews Settings
-      const googleSnap = await getDoc(doc(db, "settings", "google_reviews"));
-      if (googleSnap.exists()) {
-        setGoogleReviewsSettings({ ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...googleSnap.data() });
-      }
 
       // Banners (Guaranteed 100% Unique Keys)
       const banSnap = await getDocs(collection(db, "offer_banners"));
@@ -319,26 +215,11 @@ function DashboardContent() {
       const heroList = heroSnap.docs.map((d) => ({ id: d.id, ...d.data() } as HeroSlide));
       setHeroSlides(heroList);
 
-      // Gallery Images
-      const galSnap = await getDocs(collection(db, "gallery"));
-      const galList = galSnap.docs.map((d) => ({ id: d.id, ...d.data() } as GalleryImage));
-      setGalleryImages(galList);
-
       // Users / Customers
       const userSnap = await getDocs(collection(db, "users"));
       const userList = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
       setCustomers(userList);
-
-      // Visual Product Showcase Settings
-      const showSnap = await getDoc(doc(db, "settings", "visual_product_showcase"));
-      if (showSnap.exists()) {
-        const data = showSnap.data() as VisualShowcaseSettings;
-        if (data && data.tiles && data.tiles.length > 0) {
-          setShowcaseSettings(data);
-        }
-      }
     } catch (e) {
-
       console.error("Dashboard Data Fetch Error:", e);
     } finally {
       setLoading(false);
@@ -658,76 +539,6 @@ function DashboardContent() {
     setHeroSlides((prev) => prev.filter((s) => s.id !== id));
   };
 
-  const handleDeleteGalleryImage = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this gallery image?")) return;
-    try {
-      if (id) {
-        await deleteDoc(doc(db, "gallery", id));
-      }
-    } catch (e) {
-      console.error("Error deleting gallery image:", e);
-      alert("Failed to delete gallery image");
-    }
-    setGalleryImages((prev) => prev.filter((img) => img.id !== id));
-  };
-
-  const handleDeleteReview = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this Google review?")) return;
-    try {
-      if (id) {
-        await deleteDoc(doc(db, "reviews", id));
-      }
-    } catch (e) {
-      console.error("Error deleting review:", e);
-      alert("Failed to delete review");
-    }
-    setReviews((prev) => prev.filter((r) => r.id !== id));
-  };
-
-  const handleToggleReviewVisibility = async (id: string, currentVisible: boolean) => {
-    try {
-      const nextVal = !currentVisible;
-      await updateDoc(doc(db, "reviews", id), { visible: nextVal });
-      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, visible: nextVal } : r)));
-    } catch (e) {
-      console.error("Error toggling review visibility:", e);
-    }
-  };
-
-  const handleToggleReviewFeatured = async (id: string, currentFeatured: boolean) => {
-    try {
-      const nextVal = !currentFeatured;
-      await updateDoc(doc(db, "reviews", id), { featured: nextVal });
-      setReviews((prev) => prev.map((r) => (r.id === id ? { ...r, featured: nextVal } : r)));
-    } catch (e) {
-      console.error("Error toggling review featured:", e);
-    }
-  };
-
-  const handleReorderReview = async (id: string, direction: "up" | "down") => {
-    const index = reviews.findIndex((r) => r.id === id);
-    if (index === -1) return;
-    const targetIdx = direction === "up" ? index - 1 : index + 1;
-    if (targetIdx < 0 || targetIdx >= reviews.length) return;
-
-    const newReviews = [...reviews];
-    const temp = newReviews[index];
-    newReviews[index] = newReviews[targetIdx];
-    newReviews[targetIdx] = temp;
-
-    const updated = newReviews.map((r, i) => ({ ...r, sort_order: i }));
-    setReviews(updated);
-
-    try {
-      await Promise.all([
-        updateDoc(doc(db, "reviews", updated[index].id), { sort_order: updated[index].sort_order }),
-        updateDoc(doc(db, "reviews", updated[targetIdx].id), { sort_order: updated[targetIdx].sort_order }),
-      ]);
-    } catch (e) {
-      console.error("Error updating review order:", e);
-    }
-  };
-
   const handleUpdateOrderStatus = async (id: string, newStatus: string) => {
     try {
       await updateDoc(doc(db, "orders", id), { status: newStatus, orderStatus: newStatus });
@@ -783,45 +594,14 @@ function DashboardContent() {
       {activeTab === "overview" && (
         <div className="space-y-8">
           {/* Header Title */}
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-                Overview Dashboard
-              </h1>
-              <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
-                Here's what's happening with your store today.
-              </p>
-            </div>
-
-            {/* Quick Featured Products Visibility Switch */}
-            <div className="bg-[#0F172A] border border-white/10 p-3 sm:px-4 sm:py-3 rounded-2xl flex items-center gap-3.5 shadow-lg">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white whitespace-nowrap">Featured Products</span>
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-extrabold border ${
-                  showFeaturedProducts
-                    ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
-                    : "bg-white/10 text-white/50 border-white/10"
-                }`}>
-                  {showFeaturedProducts ? "Visible" : "Hidden"}
-                </span>
-              </div>
-              <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                <input
-                  type="checkbox"
-                  checked={showFeaturedProducts}
-                  onChange={(e) => handleToggleFeatured(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500 cursor-pointer" />
-              </label>
-            </div>
+          <div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Overview Dashboard
+            </h1>
+            <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
+              Here's what's happening with your store today.
+            </p>
           </div>
-
-          {featuredSavedMsg && (
-            <div className="p-3 bg-emerald-500/10 border border-emerald-500/30 rounded-xl text-xs font-bold text-emerald-400 flex items-center gap-2 animate-pulse">
-              <Check className="w-4 h-4" /> Featured Products visibility updated.
-            </div>
-          )}
 
           {/* Live Low Stock Warning Alert Banner */}
           {lowStockItems.length > 0 && (
@@ -1209,7 +989,6 @@ function DashboardContent() {
       {activeTab === "products" && (
         <ProductsTab
           products={products}
-          categories={categories}
           onDelete={handleDeleteProduct}
           onEdit={(p: Product) => {
             setEditingProduct(p);
@@ -1255,36 +1034,31 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 4: CATEGORIES TAB
+          TAB 4: CATEGORIES & BRANDS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "categories" && (
-        <CategoriesTab
-          categories={categories}
-          products={products}
-          onAdd={() => {
-            setEditingCategory(null);
-            setIsCategoryModalOpen(true);
-          }}
-          onEdit={(cat: Category) => {
-            setEditingCategory(cat);
-            setIsCategoryModalOpen(true);
-          }}
-          onDelete={handleDeleteCategory}
-        />
+        <div className="space-y-10">
+          <CategoriesTab
+            categories={categories}
+            onAdd={() => {
+              setEditingCategory(null);
+              setIsCategoryModalOpen(true);
+            }}
+            onEdit={(cat: Category) => {
+              setEditingCategory(cat);
+              setIsCategoryModalOpen(true);
+            }}
+            onDelete={handleDeleteCategory}
+          />
+
+          <div className="border-t border-white/10 pt-10">
+            <BrandsTab products={products} />
+          </div>
+        </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 4B: BRANDS TAB
-      ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "brands" && (
         <BrandsTab products={products} />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 4C: WARRANTIES TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "warranties" && (
-        <WarrantiesTab />
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -1326,86 +1100,6 @@ function DashboardContent() {
           onToggleStatus={handleToggleHeroSlideStatus}
         />
       )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5C: STORE GALLERY TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "gallery" && (
-        <GalleryTab
-          images={galleryImages}
-          onAdd={() => {
-            setEditingGalleryImage(null);
-            setIsGalleryModalOpen(true);
-          }}
-          onEdit={(image: GalleryImage) => {
-            setEditingGalleryImage(image);
-            setIsGalleryModalOpen(true);
-          }}
-          onDelete={handleDeleteGalleryImage}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5D: VISUAL PRODUCT SHOWCASE TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "showcase" && (
-        <ShowcaseTab
-          products={products}
-          categories={categories}
-          initialSettings={showcaseSettings}
-          onRefresh={refreshData}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5E: FEATURED COLLECTIONS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "collections" && (
-        <FeaturedCollectionsTab
-          products={products}
-          categories={categories}
-          onRefresh={refreshData}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5F: FOOTER SETTINGS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "footer" && (
-        <FooterTab
-          onRefresh={refreshData}
-        />
-      )}
-
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5G: MOBILE EXPERIENCE TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "mobile" && (
-        <MobileExperienceTab />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5H: REPAIRS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "repairs" && (
-        <RepairsTab />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5I: SUPPLIERS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "suppliers" && (
-        <SuppliersTab />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5J: CASH FLOW TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "cashflow" && (
-        <CashFlowTab />
-      )}
-
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB 6: CUSTOMERS TAB
@@ -1618,23 +1312,36 @@ function DashboardContent() {
           TAB 10: REVIEWS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "reviews" && (
-        <ReviewsTab
-          reviews={reviews}
-          settings={googleReviewsSettings}
-          onAdd={() => {
-            setEditingReview(null);
-            setIsReviewModalOpen(true);
-          }}
-          onEdit={(review: Review) => {
-            setEditingReview(review);
-            setIsReviewModalOpen(true);
-          }}
-          onDelete={handleDeleteReview}
-          onToggleVisibility={handleToggleReviewVisibility}
-          onToggleFeatured={handleToggleReviewFeatured}
-          onReorder={handleReorderReview}
-          onSaveSettings={(newSettings) => setGoogleReviewsSettings(newSettings)}
-        />
+        <div className="space-y-6">
+          <div>
+            <h1 className="text-2xl font-extrabold text-white">Customer Reviews ({reviews.length})</h1>
+            <p className="text-xs text-white/50">Approve, edit or feature customer reviews on the website homepage</p>
+          </div>
+
+          <div className="space-y-4">
+            {reviews.map((r: any) => (
+              <div key={r.id} className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-full bg-blue-600/20 text-blue-400 font-bold flex items-center justify-center text-sm">
+                      {(r.author_name || r.name || "Customer").charAt(0)}
+                    </div>
+                    <div>
+                      <h4 className="font-bold text-sm text-white">{r.author_name || r.name || "Customer"}</h4>
+                      <p className="text-[11px] text-white/40">{r.role || "Verified Buyer"}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 text-amber-400">
+                    {[...Array(r.rating || 5)].map((_, idx) => (
+                      <Star key={idx} className="w-4 h-4 fill-amber-400" />
+                    ))}
+                  </div>
+                </div>
+                <p className="text-xs text-white/80 leading-relaxed italic">"{r.text || r.comment || "Great product and excellent service!"}"</p>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
@@ -1678,194 +1385,6 @@ function DashboardContent() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Left Column: Store Details & COD */}
             <div className="lg:col-span-2 space-y-6">
-              {/* Featured Products Homepage Visibility Control Card */}
-              <div className="bg-[#0F172A] border-2 border-blue-500/30 rounded-3xl p-6 shadow-xl space-y-4">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-bold text-base text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-blue-400" /> Featured Products Homepage Display
-                  </h3>
-                  <span className={`px-3 py-1 rounded-full text-xs font-bold border transition-all ${
-                    showFeaturedProducts
-                      ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                      : "bg-white/10 text-white/50 border-white/10"
-                  }`}>
-                    {showFeaturedProducts ? "Visible" : "Hidden"}
-                  </span>
-                </div>
-
-                <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
-                  <div className="pr-4">
-                    <h4 className="text-sm font-bold text-white">Show Featured Products on Homepage</h4>
-                    <p className="text-xs text-white/50 mt-0.5">
-                      Turn this off to hide the complete Featured Products section from the homepage.
-                    </p>
-                  </div>
-
-                  <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                    <input
-                      type="checkbox"
-                      checked={showFeaturedProducts}
-                      onChange={(e) => handleToggleFeatured(e.target.checked)}
-                      className="sr-only peer"
-                    />
-                    <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-500 cursor-pointer" />
-                  </label>
-                </div>
-
-                {featuredSavedMsg && (
-                  <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
-                    <Check className="w-4 h-4" /> Featured Products visibility updated.
-                  </p>
-                )}
-              </div>
-
-              {/* Apple-Inspired Motion & Smooth Scrolling Experience Card */}
-              <div className="bg-[#0F172A] border-2 border-indigo-500/30 rounded-3xl p-6 shadow-xl space-y-5">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-9 h-9 rounded-xl bg-indigo-500/20 text-indigo-400 flex items-center justify-center font-bold">
-                      <Sliders className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-base text-white">Motion & Smooth Scrolling</h3>
-                      <p className="text-xs text-white/50">Lenis smooth scrolling & GSAP editorial entrance reveals</p>
-                    </div>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleSaveMotionSettings(DEFAULT_MOTION_SETTINGS)}
-                    className="text-xs font-semibold text-white/60 hover:text-white hover:underline transition-colors"
-                  >
-                    Reset to Defaults
-                  </button>
-                </div>
-
-                <div className="space-y-3.5">
-                  {/* 1. Lenis Smooth Scrolling Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <div className="pr-4">
-                      <h4 className="text-sm font-bold text-white">Lenis Smooth Wheel Scrolling</h4>
-                      <p className="text-xs text-white/50 mt-0.5">
-                        Enables high-performance physics-based smooth momentum scrolling on public pages (disabled in admin).
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={motionSettings.enableSmoothScroll !== false}
-                        onChange={(e) =>
-                          handleSaveMotionSettings({
-                            ...motionSettings,
-                            enableSmoothScroll: e.target.checked,
-                          })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
-                    </label>
-                  </div>
-
-                  {/* 2. GSAP ScrollTrigger Reveals Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <div className="pr-4">
-                      <h4 className="text-sm font-bold text-white">Editorial Section Scroll Reveals</h4>
-                      <p className="text-xs text-white/50 mt-0.5">
-                        Calm upward fade animations (0.7-0.9s, power3.out) triggered once when sections enter viewport.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={motionSettings.enableSectionReveals !== false}
-                        onChange={(e) =>
-                          handleSaveMotionSettings({
-                            ...motionSettings,
-                            enableSectionReveals: e.target.checked,
-                          })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
-                    </label>
-                  </div>
-
-                  {/* 3. Hero Parallax Toggle */}
-                  <div className="flex items-center justify-between p-4 bg-white/5 rounded-2xl border border-white/10">
-                    <div className="pr-4">
-                      <h4 className="text-sm font-bold text-white">Hero Scroll-Linked Parallax</h4>
-                      <p className="text-xs text-white/50 mt-0.5">
-                        Subtle 1.03x to 1.0x background scale and max 30px content translation on scroll.
-                      </p>
-                    </div>
-                    <label className="relative inline-flex items-center cursor-pointer shrink-0">
-                      <input
-                        type="checkbox"
-                        checked={motionSettings.enableHeroParallax !== false}
-                        onChange={(e) =>
-                          handleSaveMotionSettings({
-                            ...motionSettings,
-                            enableHeroParallax: e.target.checked,
-                          })
-                        }
-                        className="sr-only peer"
-                      />
-                      <div className="w-12 h-6.5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-500 cursor-pointer" />
-                    </label>
-                  </div>
-
-                  {/* 4. Motion Intensity Selector */}
-                  <div className="p-4 bg-white/5 rounded-2xl border border-white/10 space-y-2.5">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className="text-sm font-bold text-white">Motion Intensity Level</h4>
-                        <p className="text-xs text-white/50">Controls animation distance and duration presets.</p>
-                      </div>
-                      <span className="text-xs font-mono font-bold text-indigo-400 uppercase">
-                        {motionSettings.motionIntensity || "balanced"}
-                      </span>
-                    </div>
-
-                    <div className="grid grid-cols-3 gap-2 pt-1">
-                      {(
-                        [
-                          { key: "minimal", label: "Minimal", desc: "Subtle (12px, 0.5s)" },
-                          { key: "balanced", label: "Balanced", desc: "Apple Default (20px, 0.75s)" },
-                          { key: "off", label: "Off", desc: "Instant / Reduced" },
-                        ] as const
-                      ).map((item) => {
-                        const isSelected = (motionSettings.motionIntensity || "balanced") === item.key;
-                        return (
-                          <button
-                            key={item.key}
-                            type="button"
-                            onClick={() =>
-                              handleSaveMotionSettings({
-                                ...motionSettings,
-                                motionIntensity: item.key,
-                              })
-                            }
-                            className={`p-3 rounded-xl border text-left transition-all cursor-pointer ${
-                              isSelected
-                                ? "bg-indigo-600/30 border-indigo-400 text-white shadow-sm"
-                                : "bg-white/5 border-white/10 text-white/60 hover:bg-white/10 hover:text-white"
-                            }`}
-                          >
-                            <div className="text-xs font-bold">{item.label}</div>
-                            <div className="text-[10px] text-white/40 mt-0.5">{item.desc}</div>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                {motionSavedMsg && (
-                  <p className="text-xs text-emerald-400 font-bold flex items-center gap-1.5 animate-pulse">
-                    <Check className="w-4 h-4" /> Motion & Smooth Scrolling settings saved in real-time.
-                  </p>
-                )}
-              </div>
-
               {/* Store Details Card */}
               <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-5">
                 <h3 className="font-bold text-base text-white flex items-center gap-2">
@@ -1994,13 +1513,6 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: STREET ASSISTANT AI SHOPPING CHATBOT
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "assistant" && (
-        <AssistantTab />
-      )}
-
       {/* Global Product Modal */}
       <ProductModal
         isOpen={isProductModalOpen}
@@ -2022,7 +1534,6 @@ function DashboardContent() {
           refreshData();
         }}
         initialData={editingCategory}
-        existingCategories={categories}
       />
 
       {/* Offer Banner Modal */}
@@ -2039,28 +1550,6 @@ function DashboardContent() {
         onClose={() => setIsHeroModalOpen(false)}
         onSave={handleSaveHeroSlide}
         slide={editingHeroSlide}
-      />
-
-      {/* Gallery Modal */}
-      <GalleryModal
-        isOpen={isGalleryModalOpen}
-        onClose={() => setIsGalleryModalOpen(false)}
-        onSave={() => {
-          setIsGalleryModalOpen(false);
-          refreshData();
-        }}
-        initialData={editingGalleryImage}
-      />
-
-      {/* Review Modal */}
-      <ReviewModal
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        onSave={() => {
-          setIsReviewModalOpen(false);
-          refreshData();
-        }}
-        initialData={editingReview}
       />
 
       {/* Quick Add Stock Modal */}
