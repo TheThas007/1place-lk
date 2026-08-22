@@ -1,3 +1,10 @@
+export interface ProductImageSettings {
+  fit?: "contain" | "cover" | "custom";
+  scale?: number; // 80 - 200, default 100
+  positionX?: number; // -50 - 50, default 0
+  positionY?: number; // -50 - 50, default 0
+}
+
 export interface Product {
   id: string;
   name: string;
@@ -17,6 +24,8 @@ export interface Product {
   storage_options: string[];
   storage_prices?: Record<string, number>;
   images: string[];
+  imageSettings?: ProductImageSettings;
+  productImageSettings?: ProductImageSettings;
   featured: boolean;
   code?: string;
   allow_cod?: boolean;

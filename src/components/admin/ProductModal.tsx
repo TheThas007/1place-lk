@@ -28,8 +28,10 @@ import {
   Sliders,
   CheckCircle2,
   Image as ImageIcon,
+  Heart,
+  RotateCcw,
 } from "lucide-react";
-import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog } from "@/lib/types";
+import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog, ProductImageSettings } from "@/lib/types";
 import { db } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection, setDoc } from "firebase/firestore";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
@@ -189,6 +191,12 @@ export default function ProductModal({
 
   // General Product Image Gallery (For non-color accessories or product-level images)
   const [generalImages, setGeneralImages] = useState<string[]>([]);
+  const [imageSettings, setImageSettings] = useState<ProductImageSettings>({
+    fit: "contain",
+    scale: 100,
+    positionX: 0,
+    positionY: 0,
+  });
   const [specRows, setSpecRows] = useState<{ key: string; value: string }[]>([]);
 
   // Colours List
@@ -301,6 +309,15 @@ export default function ProductModal({
       setMetaTitle((initialData as any).meta_title || (initialData as any).metaTitle || "");
       setMetaDescription((initialData as any).meta_description || (initialData as any).metaDescription || "");
       setGeneralImages(initialData.images || []);
+      setImageSettings(
+        initialData.imageSettings ||
+        initialData.productImageSettings || {
+          fit: "contain",
+          scale: 100,
+          positionX: 0,
+          positionY: 0,
+        }
+      );
 
       // Feature Flags detection
       const catNameOrId = initialData.category_name || initialData.category_id || "";
@@ -424,6 +441,12 @@ export default function ProductModal({
       setMetaTitle("");
       setMetaDescription("");
       setGeneralImages(["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"]);
+      setImageSettings({
+        fit: "contain",
+        scale: 100,
+        positionX: 0,
+        positionY: 0,
+      });
 
       setSpecRows([
         { key: "Display", value: '6.7" Super AMOLED 120Hz' },
@@ -763,6 +786,8 @@ export default function ProductModal({
         stock_count: totalVariantStock,
         featured,
         images: finalImages,
+        imageSettings: imageSettings,
+        productImageSettings: imageSettings,
         colors: colorVariants.map((c) => c.name),
         color_variants: colorVariants,
         variant_combos: enrichedVariantCombos,
@@ -1387,6 +1412,233 @@ export default function ProductModal({
                     />
                   </div>
                 </details>
+              </div>
+
+              {/* ── Product Card Image Frame & Fitting Controls (Per-Product Zoom & Alignment) ── */}
+              <div className="bg-gray-50 border border-gray-200 rounded-2xl p-5 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2">
+                  <div>
+                    <h4 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
+                      <Sliders className="w-4 h-4 text-blue-600" />
+                      Product Card Image Frame &amp; Fitting Controls
+                    </h4>
+                    <p className="text-xs text-gray-500 mt-0.5">
+                      Fine-tune how the primary product image fits inside the 1:1 square card frame across the website.
+                    </p>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageSettings({
+                        fit: "contain",
+                        scale: 100,
+                        positionX: 0,
+                        positionY: 0,
+                      });
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="px-3 py-1.5 bg-white hover:bg-gray-100 text-gray-700 font-bold text-xs rounded-xl border border-gray-200 shadow-2xs transition-all flex items-center gap-1 cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset Image Position</span>
+                  </button>
+                </div>
+
+                {/* Admin Tip / Excessive Whitespace Warning */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 text-xs text-blue-800 flex items-start gap-2.5">
+                  <AlertCircle className="w-4 h-4 shrink-0 text-blue-600 mt-0.5" />
+                  <div>
+                    <span className="font-bold">Image Fitting Tip:</span> This image contains excessive empty space or large white margins (e.g. DJI Osmo, Gimbals, small accessories). Use <strong>Image Zoom</strong> (e.g. 120% &ndash; 160%) or upload a tightly cropped product image so the product occupies 75%&ndash;85% of the frame naturally.
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start pt-1">
+                  {/* Controls Column */}
+                  <div className="lg:col-span-7 space-y-4 text-xs">
+                    {/* 1. Image Fit */}
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1.5">1. Image Fit Mode</label>
+                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
+                        {(["contain", "cover", "custom"] as const).map((mode) => (
+                          <button
+                            key={mode}
+                            type="button"
+                            onClick={() => {
+                              setImageSettings((prev) => ({ ...prev, fit: mode }));
+                              setHasUnsavedChanges(true);
+                            }}
+                            className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold capitalize transition-all cursor-pointer ${
+                              (imageSettings.fit || "contain") === mode
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            {mode}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 2. Image Zoom */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-gray-700">2. Product Image Zoom</label>
+                        <span className="font-mono font-bold text-blue-600 text-xs">
+                          {imageSettings.scale || 100}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={80}
+                        max={200}
+                        step={2}
+                        value={imageSettings.scale || 100}
+                        onChange={(e) => {
+                          setImageSettings((prev) => ({ ...prev, scale: Number(e.target.value) }));
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full accent-blue-600 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 font-mono">
+                        <span>80% (Zoom Out)</span>
+                        <span>100% (Default)</span>
+                        <span>200% (Zoom In)</span>
+                      </div>
+                    </div>
+
+                    {/* 3. Horizontal Position (X) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-gray-700">3. Horizontal Position (X)</label>
+                        <span className="font-mono font-bold text-blue-600 text-xs">
+                          {imageSettings.positionX || 0}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={-50}
+                        max={50}
+                        step={1}
+                        value={imageSettings.positionX || 0}
+                        onChange={(e) => {
+                          setImageSettings((prev) => ({ ...prev, positionX: Number(e.target.value) }));
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full accent-blue-600 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 font-mono">
+                        <span>-50% (Left)</span>
+                        <span>0% (Center)</span>
+                        <span>+50% (Right)</span>
+                      </div>
+                    </div>
+
+                    {/* 4. Vertical Position (Y) */}
+                    <div>
+                      <div className="flex items-center justify-between mb-1">
+                        <label className="font-bold text-gray-700">4. Vertical Position (Y)</label>
+                        <span className="font-mono font-bold text-blue-600 text-xs">
+                          {imageSettings.positionY || 0}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min={-50}
+                        max={50}
+                        step={1}
+                        value={imageSettings.positionY || 0}
+                        onChange={(e) => {
+                          setImageSettings((prev) => ({ ...prev, positionY: Number(e.target.value) }));
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-full accent-blue-600 cursor-pointer"
+                      />
+                      <div className="flex justify-between text-[10px] text-gray-400 mt-0.5 font-mono">
+                        <span>-50% (Up)</span>
+                        <span>0% (Center)</span>
+                        <span>+50% (Down)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Live Preview Card Column */}
+                  <div className="lg:col-span-5 bg-white border border-gray-200 rounded-2xl p-4 space-y-3 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-xs text-gray-700 flex items-center gap-1.5">
+                        <Eye className="w-3.5 h-3.5 text-blue-600" /> Live Product Card Preview
+                      </span>
+                      <span className="text-[10px] font-mono text-gray-400">1:1 Square Frame</span>
+                    </div>
+
+                    {/* Live Card Simulation */}
+                    <div className="w-full max-w-[220px] mx-auto bg-white border border-neutral-200 rounded-2xl overflow-hidden shadow-xs flex flex-col justify-between">
+                      {/* Image Container with 1:1 Aspect Ratio and #F7F7F7 Background */}
+                      <div className="product-image-container relative aspect-square bg-[#F7F7F7] flex items-center justify-center overflow-hidden rounded-t-2xl">
+                        {/* Bottom-Left Offer Badge */}
+                        <div className="product-offer-badge absolute bottom-0 left-0 z-10">
+                          {discountPercent > 0 ? (
+                            <span className="bg-black text-white text-[9px] font-black px-2 py-0.5 rounded-tr-md uppercase tracking-wider shadow-2xs inline-block">
+                              -{discountPercent}% OFF
+                            </span>
+                          ) : (
+                            <span className="bg-neutral-900 text-white text-[9px] font-black px-2 py-0.5 rounded-tr-md uppercase tracking-wider shadow-2xs inline-block">
+                              New
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Top-Right Wishlist Heart */}
+                        <div className="absolute top-2 right-2 z-10 w-6 h-6 rounded-full bg-white/90 border border-neutral-200/80 flex items-center justify-center text-neutral-400 shadow-2xs">
+                          <Heart className="w-3 h-3" />
+                        </div>
+
+                        {/* Live Product Image with Transform Origin Center */}
+                        <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
+                          <img
+                            src={
+                              generalImages[0] ||
+                              colorVariants[0]?.images?.[0] ||
+                              "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"
+                            }
+                            alt="Preview"
+                            style={{
+                              objectPosition: `${50 + (imageSettings.positionX || 0)}% ${50 + (imageSettings.positionY || 0)}%`,
+                              transform: `scale(${(imageSettings.scale || 100) / 100})`,
+                              transformOrigin: "center center",
+                            }}
+                            className={`w-full h-full ${
+                              imageSettings.fit === "cover" ? "object-cover" : "object-contain"
+                            }`}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Details */}
+                      <div className="p-3 bg-white">
+                        <span className="text-[9px] font-extrabold uppercase text-neutral-400 block mb-0.5">
+                          {mergedCategories.find((c) => c.id === categoryId)?.name || customCategoryName || "SMARTPHONES"}
+                        </span>
+                        <h5 className="font-bold text-xs text-neutral-900 line-clamp-1 mb-1">
+                          {name || "Product Name"}
+                        </h5>
+                        <div className="flex items-center gap-1.5 mb-2">
+                          <span className="font-extrabold text-xs text-neutral-900">
+                            {formatLKR(basePrice || 150000)}
+                          </span>
+                          {baseOldPrice && baseOldPrice > basePrice && (
+                            <span className="text-[10px] text-neutral-400 line-through">
+                              {formatLKR(baseOldPrice)}
+                            </span>
+                          )}
+                        </div>
+                        <div className="w-full py-1.5 bg-black text-white text-[10px] font-bold rounded-lg text-center">
+                          Add to Bag
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {!hasColorVariants ? (

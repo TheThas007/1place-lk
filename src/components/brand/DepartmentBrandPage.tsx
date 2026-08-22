@@ -111,12 +111,18 @@ function BrandProductCard({ product }: { product: Product }) {
     toggleWishlist(product.id);
   };
 
+  const imgSettings = product.imageSettings || product.productImageSettings;
+  const isCover = imgSettings?.fit === "cover";
+  const userScale = typeof imgSettings?.scale === "number" ? imgSettings.scale / 100 : 1.0;
+  const posX = typeof imgSettings?.positionX === "number" ? imgSettings.positionX : 0;
+  const posY = typeof imgSettings?.positionY === "number" ? imgSettings.positionY : 0;
+
   return (
     <div className="group relative bg-white border border-neutral-200/90 rounded-xl overflow-hidden hover:shadow-md hover:border-neutral-300 transition-all flex flex-col justify-between h-full">
       <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col focus:outline-none">
         
-        {/* ── Top Badges & Image Box ── */}
-        <div className="relative aspect-[4/3] sm:aspect-square bg-[#FAFAFA] p-2 sm:p-2.5 flex items-center justify-center overflow-hidden">
+        {/* ── Top Badges & Image Box (1:1 square, #F7F7F7) ── */}
+        <div className="product-image-container relative aspect-square bg-[#F7F7F7] flex items-center justify-center overflow-hidden">
           
           {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
@@ -145,14 +151,21 @@ function BrandProductCard({ product }: { product: Product }) {
             />
           </button>
 
-          {/* Centered Product Image (Zoomed to fit frame cleanly) */}
-          <div className="w-full h-full flex items-center justify-center">
+          {/* Centered Product Image (Per-Product Position & Scale) */}
+          <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImgError(true)}
-              className="w-full h-full object-contain scale-[1.08] transition-transform duration-500 ease-out group-hover:scale-[1.14]"
+              style={{
+                objectPosition: `${50 + posX}% ${50 + posY}%`,
+                transform: `scale(${userScale})`,
+                transformOrigin: "center center",
+              }}
+              className={`w-full h-full ${
+                isCover ? "object-cover" : "object-contain"
+              } transition-transform duration-500 ease-out group-hover:scale-[${(userScale * 1.05).toFixed(2)}]`}
             />
           </div>
         </div>

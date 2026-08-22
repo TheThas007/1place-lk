@@ -92,6 +92,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       ? product.images[0]
       : "/placeholder-phone.webp";
 
+  // Per-product image fitting & alignment settings
+  const imgSettings = product.imageSettings || product.productImageSettings;
+  const isCover = imgSettings?.fit === "cover";
+  const userScale = typeof imgSettings?.scale === "number" ? imgSettings.scale / 100 : 1.0;
+  const posX = typeof imgSettings?.positionX === "number" ? imgSettings.positionX : 0;
+  const posY = typeof imgSettings?.positionY === "number" ? imgSettings.positionY : 0;
+
   // Color Swatches
   const colorDots =
     product.colors && product.colors.length > 0
@@ -107,8 +114,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         href={`/products/${product.slug}`}
         className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
-        {/* ── 1. Image Container (Light-grey #FAFAFA, relative positioning) ── */}
-        <div className="product-image-container relative aspect-square bg-[#FAFAFA] p-2 sm:p-2.5 flex items-center justify-center overflow-hidden rounded-t-2xl">
+        {/* ── 1. Image Container (1:1 square, #F7F7F7 background, overflow hidden) ── */}
+        <div className="product-image-container relative aspect-square bg-[#F7F7F7] flex items-center justify-center overflow-hidden rounded-t-2xl">
           
           {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
@@ -145,14 +152,21 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             />
           </button>
 
-          {/* Product Image (Zoomed to fit frame cleanly, object-contain) */}
-          <div className="w-full h-full flex items-center justify-center">
+          {/* Product Image (Centered, Transform Origin Center, Precise Scale & Position) */}
+          <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImageError(true)}
-              className="w-full h-full object-contain scale-[1.08] transition-transform duration-500 ease-out group-hover:scale-[1.14]"
+              style={{
+                objectPosition: `${50 + posX}% ${50 + posY}%`,
+                transform: `scale(${userScale})`,
+                transformOrigin: "center center",
+              }}
+              className={`w-full h-full ${
+                isCover ? "object-cover" : "object-contain"
+              } transition-transform duration-500 ease-out group-hover:scale-[${(userScale * 1.05).toFixed(2)}]`}
             />
           </div>
         </div>
