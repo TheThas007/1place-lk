@@ -32,20 +32,20 @@ function BrandCard({ brand, index }: { brand: Brand; index: number }) {
       <Link
         href={targetLink}
         title={brand.name}
-        className="group relative flex items-center justify-center p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] hover:border-neutral-300/90 hover:-translate-y-1 transition-all duration-300 w-full aspect-[4/3] min-h-[90px] sm:min-h-[120px]"
+        className="group relative flex items-center justify-center p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100/90 shadow-[0_3px_14px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.09)] hover:border-neutral-300 hover:-translate-y-1.5 transition-all duration-300 w-full aspect-[4/3] min-h-[110px] sm:min-h-[140px] md:min-h-[155px]"
       >
-        {/* Centered Genuine Brand Logo */}
+        {/* Centered Large Genuine Brand Logo */}
         <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
             <img
               src={logoUrl}
               alt={brand.logo_alt_text || `${brand.name} logo`}
               loading="lazy"
-              className="max-h-10 sm:max-h-13 max-w-[80%] w-auto h-auto object-contain transition-transform duration-300 ease-out group-hover:scale-108"
+              className="max-h-14 sm:max-h-18 md:max-h-20 max-w-[86%] sm:max-w-[85%] w-auto h-auto object-contain transition-transform duration-300 ease-out group-hover:scale-110"
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="text-base sm:text-xl font-black text-black font-mono tracking-tight select-none">
+            <span className="text-lg sm:text-2xl font-black text-black font-mono tracking-tight select-none">
               {brand.name}
             </span>
           )}
@@ -161,7 +161,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-4.5 lg:gap-5"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 lg:gap-6"
           >
             {visibleBrands.map((brand, i) => (
               <BrandCard key={brand.id || i} brand={brand} index={i} />
