@@ -137,6 +137,20 @@ export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {
   total_reviews_count: 250,
   write_review_url: "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
   view_all_reviews_url: "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
+  endlessScrollEnabled: true,
+  autoplayEnabled: true,
+  direction: "right", // Opposite to Gallery's leftward scroll
+  desktopSpeed: 36,
+  tabletSpeed: 28,
+  mobileSpeed: 20,
+  pauseOnHover: true,
+  pauseOnFocus: true,
+  pauseOnInteraction: true,
+  resumeDelay: 1500,
+  dragEnabled: true,
+  edgeFadeEnabled: true,
+  edgeFadeWidth: 60,
+  edgeFadeColor: "#FFFFFF",
 };
 
 export const getGoogleReviewsSettings = cache(async (): Promise<GoogleReviewsSettings> => {

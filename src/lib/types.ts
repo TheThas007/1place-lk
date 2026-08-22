@@ -306,6 +306,22 @@ export interface GoogleReviewsSettings {
   total_reviews_count: number;
   write_review_url: string;
   view_all_reviews_url: string;
+
+  // Animation configuration
+  endlessScrollEnabled?: boolean;
+  autoplayEnabled?: boolean;
+  direction?: "left" | "right" | "auto-opposite"; // auto-opposite: always opposite to gallery
+  desktopSpeed?: number;
+  tabletSpeed?: number;
+  mobileSpeed?: number;
+  pauseOnHover?: boolean;
+  pauseOnFocus?: boolean;
+  pauseOnInteraction?: boolean;
+  resumeDelay?: number;
+  dragEnabled?: boolean;
+  edgeFadeEnabled?: boolean;
+  edgeFadeWidth?: number;
+  edgeFadeColor?: string;
 }
 
 export interface GalleryImage {

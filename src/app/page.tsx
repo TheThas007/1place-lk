@@ -179,8 +179,12 @@ export default async function HomePage() {
       {/* Showcase position: Below Life at Street Mobile */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
 
-      {/* 10. Google customer reviews */}
-      <ReviewsSection reviews={reviews} settings={googleReviewsSettings} />
+      {/* 10. Google customer reviews (Continuously moves in opposite direction of gallery) */}
+      <ReviewsSection
+        reviews={reviews}
+        settings={googleReviewsSettings}
+        galleryDirection={galleryAnimationSettings?.direction || "left"}
+      />
 
       {/* Showcase position: Below Google Reviews */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_reviews" />
