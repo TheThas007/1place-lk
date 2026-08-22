@@ -144,6 +144,16 @@ export default function StreetAssistant() {
     setMessages([welcomeMsg]);
   }, []);
 
+  // Listen for open-street-assistant custom event (triggered from bottom nav or buttons)
+  useEffect(() => {
+    const handleOpen = () => {
+      setIsOpen(true);
+      setIsMinimized(false);
+    };
+    window.addEventListener("open-street-assistant", handleOpen);
+    return () => window.removeEventListener("open-street-assistant", handleOpen);
+  }, []);
+
   // Show tooltip on customer's first visit per session, auto-hide after 5s
   useEffect(() => {
     const hasShown = sessionStorage.getItem(SESSION_TOOLTIP_KEY);
@@ -415,7 +425,7 @@ export default function StreetAssistant() {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.96 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed bottom-0 right-0 sm:bottom-24 sm:right-6 z-50 w-full sm:w-[410px] h-[92vh] sm:h-[640px] max-h-[680px] bg-white rounded-t-[24px] sm:rounded-[24px] shadow-2xl border border-neutral-200/90 flex flex-col overflow-hidden font-sans text-neutral-900"
+            className="fixed bottom-0 right-0 sm:bottom-24 sm:right-6 z-[70] w-full sm:w-[410px] h-[92vh] sm:h-[640px] max-h-[680px] bg-white rounded-t-[24px] sm:rounded-[24px] shadow-2xl border border-neutral-200/90 flex flex-col overflow-hidden font-sans text-neutral-900"
           >
             {/* ── Chat Header ── */}
             <div className="bg-[#090909] px-4 sm:px-5 py-3 text-white flex items-center justify-between border-b border-white/10 shrink-0">

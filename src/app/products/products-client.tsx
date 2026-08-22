@@ -795,47 +795,73 @@ export default function ProductsClient({
         </div>
       </section>
 
-      {/* ── 2. Sticky Mobile Control Bar ── */}
-      <div className="lg:hidden sticky top-[56px] sm:top-[64px] z-20 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 py-2.5 px-4 flex items-center justify-between shadow-2xs">
-        <button
-          type="button"
-          onClick={() => setShowMobileFilters(true)}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black text-white text-xs font-bold shadow-2xs hover:bg-neutral-800 transition-colors"
-        >
-          <SlidersHorizontal className="w-3.5 h-3.5" />
-          <span>Filters</span>
-          {activeFilterChips.length > 0 && (
-            <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
-              {activeFilterChips.length}
-            </span>
-          )}
-        </button>
-
-        <span className="text-xs font-bold text-neutral-500">
-          {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"}
-        </span>
-
-        {/* Mobile Sort */}
-        <div className="relative">
-          <select
-            value={sortKey}
-            onChange={(e) => handleSortChange(e.target.value as SortOptionValue)}
-            className="appearance-none pl-3 pr-7 py-1.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 outline-none cursor-pointer"
+      {/* ── 2. Sticky Mobile Control Bar & Active Filter Chips ── */}
+      <div className="lg:hidden sticky top-[56px] sm:top-[64px] z-20 bg-white/95 backdrop-blur-md border-b border-neutral-200/80 py-2.5 px-4 shadow-2xs">
+        <div className="flex items-center justify-between">
+          <button
+            type="button"
+            onClick={() => setShowMobileFilters(true)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-black text-white text-xs font-bold shadow-2xs hover:bg-neutral-800 transition-colors"
           >
-            <option value="featured">Sort: Featured</option>
-            <option value="newest">Sort: Newest</option>
-            <option value="price-asc">Sort: Price: Low to High</option>
-            <option value="price-desc">Sort: Price: High to Low</option>
-            <option value="biggest-discount">Sort: Biggest Discount</option>
-          </select>
+            <SlidersHorizontal className="w-3.5 h-3.5" />
+            <span>Filters</span>
+            {activeFilterChips.length > 0 && (
+              <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
+                {activeFilterChips.length}
+              </span>
+            )}
+          </button>
+
+          <span className="text-xs font-bold text-neutral-500">
+            {filteredProducts.length} {filteredProducts.length === 1 ? "Product" : "Products"}
+          </span>
+
+          {/* Mobile Sort */}
+          <div className="relative">
+            <select
+              value={sortKey}
+              onChange={(e) => handleSortChange(e.target.value as SortOptionValue)}
+              className="appearance-none pl-3 pr-7 py-1.5 bg-neutral-100 border border-neutral-200 rounded-xl text-xs font-bold text-neutral-900 outline-none cursor-pointer"
+            >
+              <option value="featured">Sort: Featured</option>
+              <option value="newest">Sort: Newest</option>
+              <option value="price-asc">Sort: Price: Low to High</option>
+              <option value="price-desc">Sort: Price: High to Low</option>
+              <option value="biggest-discount">Sort: Biggest Discount</option>
+            </select>
+          </div>
         </div>
+
+        {/* Mobile Active Filter Chips */}
+        {activeFilterChips.length > 0 && (
+          <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-none pt-2.5 mt-2 border-t border-neutral-100">
+            {activeFilterChips.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={f.onRemove}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black text-white text-[10px] font-bold shrink-0 shadow-2xs"
+              >
+                <span>{f.label}</span>
+                <X className="w-3 h-3 text-neutral-400" />
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={handleClearAll}
+              className="text-[10px] font-bold text-neutral-500 hover:text-black px-1 py-0.5 shrink-0"
+            >
+              Clear All
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── 3. Main Catalog Container (Tightened desktop spacing: max 32px to toolbar) ── */}
       <div className="max-w-[1440px] mx-auto px-4 lg:px-8 pt-4 sm:pt-6 pb-12">
 
-        {/* ── Results Toolbar (Desktop & Tablet: single horizontal row) ── */}
-        <div className="mb-4">
+        {/* ── Results Toolbar (Desktop & Tablet only: single horizontal row) ── */}
+        <div className="mb-4 hidden lg:block">
           <ShopResultsToolbar
             totalCount={filteredProducts.length}
             activeFilters={activeFilterChips}

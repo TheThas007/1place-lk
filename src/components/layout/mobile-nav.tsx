@@ -2,17 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid3X3, Search, ShoppingBag, Heart } from "lucide-react";
+import { Home, Sparkles, LayoutGrid, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
-import { useWishlist } from "@/lib/wishlist-context";
+import { useAuth } from "@/lib/auth-context";
 import { motion } from "framer-motion";
 import { useState, useEffect } from "react";
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
-  const { wishlist } = useWishlist();
+  const { user } = useAuth();
 
   // Hide nav when virtual keyboard is open (prevents overlap with input fields)
   const [keyboardOpen, setKeyboardOpen] = useState(false);
@@ -22,16 +22,16 @@ export default function MobileNav() {
     if (!vv) return;
 
     const handleResize = () => {
-      // If the viewport height shrinks by more than 150px, assume keyboard is open
-      const threshold = window.screen.height * 0.15;
-      setKeyboardOpen(window.screen.height - vv.height > threshold);
+      // Check if visualViewport shrunk significantly compared to window.innerHeight
+      const diff = window.innerHeight - vv.height;
+      setKeyboardOpen(diff > 150);
     };
 
     vv.addEventListener("resize", handleResize);
     return () => vv.removeEventListener("resize", handleResize);
   }, []);
 
-  // Hide bottom nav on admin, checkout, and product detail pages (where sticky purchase bar is active)
+  // Hide bottom nav on admin, checkout, and product detail pages
   if (
     keyboardOpen ||
     pathname.startsWith("/admin") ||
@@ -41,89 +41,85 @@ export default function MobileNav() {
     return null;
   }
 
+  const handleOpenAssistant = () => {
+    window.dispatchEvent(new CustomEvent("open-street-assistant"));
+  };
+
+  const handleOpenCart = () => {
+    window.dispatchEvent(new CustomEvent("open-cart-drawer"));
+  };
+
+  const handleAccountClick = () => {
+    if (!user) {
+      window.dispatchEvent(new CustomEvent("open-auth-modal"));
+    }
+  };
+
   return (
     <nav
-      className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/95 backdrop-blur-xl border-t border-white/10"
+      className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#090D14]/95 backdrop-blur-xl border-t border-white/10"
       style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <div className="grid grid-cols-5 items-center h-[60px] px-1">
-        {/* Home */}
+      <div className="grid grid-cols-5 items-center h-[56px] px-1">
+        {/* 1. For You (Home) */}
         <Link
           href="/"
           className={cn(
             "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname === "/" ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            pathname === "/" ? "text-white font-black" : "text-white/40 hover:text-white/80"
           )}
         >
           <Home className={cn("w-5 h-5 transition-transform", pathname === "/" && "scale-110 text-white")} />
-          <span>Home</span>
+          <span>For You</span>
           {pathname === "/" && (
             <motion.div
               layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
+              className="absolute bottom-0.5 w-1 h-1 rounded-full bg-white"
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
           )}
         </Link>
 
-        {/* Shop / Products */}
-        <Link
-          href="/products"
-          className={cn(
-            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/products") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
-          )}
-        >
-          <Grid3X3 className={cn("w-5 h-5 transition-transform", pathname.startsWith("/products") && "scale-110 text-white")} />
-          <span>Shop</span>
-          {pathname.startsWith("/products") && (
-            <motion.div
-              layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
-        </Link>
-
-        {/* Search */}
+        {/* 2. Assistant (Streetla AI) */}
         <button
-          onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 cursor-pointer"
-        >
-          <Search className="w-5 h-5" />
-          <span>Search</span>
-        </button>
-
-        {/* Wishlist */}
-        <Link
-          href="/wishlist"
-          className={cn(
-            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/wishlist") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
-          )}
+          type="button"
+          onClick={handleOpenAssistant}
+          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/50 hover:text-white transition-all py-1 cursor-pointer"
         >
           <div className="relative">
-            <Heart className={cn("w-5 h-5 transition-transform", pathname.startsWith("/wishlist") && "scale-110 text-white")} />
-            {wishlist.length > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
-                {wishlist.length}
-              </span>
-            )}
+            <Sparkles className="w-5 h-5 text-amber-400" />
           </div>
-          <span>Wishlist</span>
-          {pathname.startsWith("/wishlist") && (
+          <span>Assistant</span>
+        </button>
+
+        {/* 3. Categories (Shop Catalog) */}
+        <Link
+          href="/categories"
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
+            pathname.startsWith("/categories") || pathname === "/products"
+              ? "text-white font-black"
+              : "text-white/40 hover:text-white/80"
+          )}
+        >
+          <LayoutGrid className={cn("w-5 h-5 transition-transform", (pathname.startsWith("/categories") || pathname === "/products") && "scale-110 text-white")} />
+          <span>Categories</span>
+          {(pathname.startsWith("/categories") || pathname === "/products") && (
             <motion.div
               layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
+              className="absolute bottom-0.5 w-1 h-1 rounded-full bg-white"
               transition={{ type: "spring", stiffness: 400, damping: 30 }}
             />
           )}
         </Link>
 
-        {/* Cart */}
-        <button
-          onClick={() => window.dispatchEvent(new CustomEvent("open-cart-drawer"))}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 relative cursor-pointer"
+        {/* 4. Cart */}
+        <Link
+          href="/cart"
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all py-1 relative",
+            pathname === "/cart" ? "text-white font-black" : "text-white/40 hover:text-white/80"
+          )}
         >
           <div className="relative">
             <ShoppingBag className="w-5 h-5" />
@@ -134,7 +130,44 @@ export default function MobileNav() {
             )}
           </div>
           <span>Cart</span>
-        </button>
+          {pathname === "/cart" && (
+            <motion.div
+              layoutId="bottomNavIndicator"
+              className="absolute bottom-0.5 w-1 h-1 rounded-full bg-white"
+              transition={{ type: "spring", stiffness: 400, damping: 30 }}
+            />
+          )}
+        </Link>
+
+        {/* 5. Account */}
+        {user ? (
+          <Link
+            href="/orders"
+            className={cn(
+              "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
+              pathname.startsWith("/orders") ? "text-white font-black" : "text-white/40 hover:text-white/80"
+            )}
+          >
+            <User className="w-5 h-5" />
+            <span>Account</span>
+            {pathname.startsWith("/orders") && (
+              <motion.div
+                layoutId="bottomNavIndicator"
+                className="absolute bottom-0.5 w-1 h-1 rounded-full bg-white"
+                transition={{ type: "spring", stiffness: 400, damping: 30 }}
+              />
+            )}
+          </Link>
+        ) : (
+          <button
+            type="button"
+            onClick={handleAccountClick}
+            className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 cursor-pointer"
+          >
+            <User className="w-5 h-5" />
+            <span>Account</span>
+          </button>
+        )}
       </div>
     </nav>
   );
