@@ -151,18 +151,43 @@ function FeatureCard({
 }
 
 /* ─── Main Section ─── */
-export default function TrustIndicators() {
+export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only" | "full_only" | "both" }) {
   const sectionRef = useRef<HTMLElement>(null);
   const [selectedFeature, setSelectedFeature] = useState<(typeof features)[0] | null>(null);
   const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
   const prefersReducedMotion = useReducedMotion();
 
   return (
-    <section
-      ref={sectionRef}
-      aria-label="Why Choose Street Mobile"
-      className="relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
-    >
+    <>
+      {/* ── Mobile Feature Strip (Exact Reference Matching) ── */}
+      {mode !== "full_only" && (
+        <div className="md:hidden w-full bg-white px-4 py-2 select-none">
+          <div className="w-full py-2.5 px-4 bg-white border border-neutral-200/90 rounded-2xl flex items-center justify-around text-xs font-bold text-neutral-900 shadow-2xs">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-neutral-800" />
+              <span className="text-[11px] font-bold">Genuine</span>
+            </div>
+            <span className="text-neutral-300 font-light select-none">|</span>
+            <div className="flex items-center gap-1.5">
+              <Truck className="w-4 h-4 text-neutral-800" />
+              <span className="text-[11px] font-bold">Delivery</span>
+            </div>
+            <span className="text-neutral-300 font-light select-none">|</span>
+            <div className="flex items-center gap-1.5">
+              <CreditCard className="w-4 h-4 text-neutral-800" />
+              <span className="text-[11px] font-bold">Secure Pay</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Desktop Why Choose Section ── */}
+      {mode !== "strip_only" && (
+        <section
+          ref={sectionRef}
+          aria-label="Why Choose Street Mobile"
+          className="hidden md:block relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
+        >
       <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
         
         {/* Section Header */}
@@ -263,6 +288,8 @@ export default function TrustIndicators() {
           </motion.div>
         )}
       </AnimatePresence>
-    </section>
+        </section>
+      )}
+    </>
   );
 }

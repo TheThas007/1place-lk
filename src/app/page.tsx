@@ -113,17 +113,20 @@ export default async function HomePage() {
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
 
+      {/* Quick Mobile Search & Discovery Shortcuts (Under 768px - Placed right below Top Navbar) */}
+      <QuickCategoriesMobile categories={categories} />
+
       {/* 1. Premium hero banner slider */}
       <HeroSection />
+
+      {/* Trust / Service Feature Strip (On mobile, placed right below hero) */}
+      <TrustIndicators mode="strip_only" />
 
       {/* Showcase position: Below Hero */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_hero" />
 
       {/* 2. Announcement Ticker */}
       <AnnouncementTicker />
-
-      {/* Quick Mobile Categories & Discovery Shortcuts (Under 768px) */}
-      <QuickCategoriesMobile categories={categories} />
 
       {/* 3. New Arrivals */}
       <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
@@ -193,8 +196,8 @@ export default async function HomePage() {
       {/* Showcase position: Above Why Choose Street Mobile */}
       <VisualProductShowcase settings={showcaseSettings} placement="above_why_choose" />
 
-      {/* 11. Trust/service strip (Why Choose Street Mobile) */}
-      <TrustIndicators />
+      {/* 11. Trust/service strip (Why Choose Street Mobile - Desktop Full Grid) */}
+      <TrustIndicators mode="full_only" />
 
       {/* 11B. Continuous Stylish Marquee: WE ARE NEAR YOU (No background, transparent text) */}
       <WeAreNearYouMarquee />

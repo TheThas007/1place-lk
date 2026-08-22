@@ -211,15 +211,50 @@ export default function HeroSection() {
   };
 
   return (
-    <section
-      ref={heroRef}
-      className="group relative w-full w-screen max-w-full bg-black overflow-hidden flex items-center justify-center text-white rounded-none border-none p-0 m-0 h-[500px] sm:h-[540px] md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] min-h-[460px] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] max-h-[580px] md:max-h-none"
-      style={{
-        fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-      }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
-    >
+    <>
+      {/* ── Mobile Hero Banner Card (Exact Reference Matching) ── */}
+      <div className="md:hidden w-full bg-white px-4 pt-3 pb-2">
+        <div className="relative w-full rounded-2xl bg-gradient-to-r from-[#DCE0E5] via-[#E8EBEF] to-[#F1F3F6] border border-neutral-200/80 p-5 overflow-hidden shadow-2xs min-h-[220px] flex flex-col justify-between">
+          {/* Floating Studio Mockup Image */}
+          <div className="absolute right-0 top-0 bottom-0 w-[55%] pointer-events-none flex items-center justify-end overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=800"
+              alt="Titanium Flagship"
+              className="w-full h-full object-contain object-right scale-110 translate-x-2"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = mobileBg || desktopBg || "/placeholder-phone.webp";
+              }}
+            />
+          </div>
+
+          {/* Left Text & CTA Content */}
+          <div className="relative z-10 max-w-[62%]">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-800 block mb-1">
+              FLAGSHIP LAUNCH
+            </span>
+            <h1 className="text-[22px] sm:text-2xl font-black text-black leading-tight tracking-tight mb-3">
+              Titanium power.<br />Built for pros.
+            </h1>
+            <Link
+              href={currentSlide.primary_button_url || "/products"}
+              className="inline-flex items-center justify-center px-4 py-2 bg-black hover:bg-neutral-800 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95 cursor-pointer"
+            >
+              <span>Shop Now</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
+      <section
+        ref={heroRef}
+        className="hidden md:flex group relative w-full w-screen max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none"
+        style={{
+          fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
+        }}
+        onMouseEnter={() => setIsPaused(true)}
+        onMouseLeave={() => setIsPaused(false)}
+      >
       {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
       <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
         <AnimatePresence mode="wait">
@@ -477,6 +512,7 @@ export default function HeroSection() {
           })}
         </div>
       )}
-    </section>
+      </section>
+    </>
   );
 }

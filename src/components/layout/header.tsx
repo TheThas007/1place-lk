@@ -446,7 +446,7 @@ export default function Header() {
               </div>
 
               {/* User icon / Profile avatar */}
-              <div className="group/item relative flex items-center justify-center">
+              <div className="hidden sm:flex group/item relative items-center justify-center">
                 <button
                   onClick={() => (user ? setUserMenuOpen(!userMenuOpen) : setAuthOpen(true))}
                   className="w-10 h-10 flex items-center justify-center rounded-full text-white/60 hover:text-white hover:bg-white/[0.06] hover:scale-105 active:scale-95 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 transition-all duration-200"

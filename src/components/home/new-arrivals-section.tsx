@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, ShoppingBag, Eye, Heart, Check, Sparkles } from "lucide-react";
+import { ArrowRight, ShoppingBag, Eye, Heart, Check, Sparkles, Star } from "lucide-react";
 import { Product, NewArrivalsSettings } from "@/lib/types";
 import { getProducts } from "@/lib/firestore-client";
 import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
@@ -137,13 +137,118 @@ export default function NewArrivalsSection({
   }
 
   return (
-    <ScrollReveal
-      as="section"
-      id="new-arrivals"
-      stagger={0.06}
-      yOffset={20}
-      className="py-12 sm:py-16 bg-[#FAFAFA] border-b border-neutral-100 font-sans"
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Matching ── */}
+      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
+        {/* Mobile Header: Title & View All */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-black text-neutral-900 tracking-tight">
+            New Arrivals
+          </h2>
+          <Link
+            href="/products?new=true"
+            className="text-xs font-bold text-[#ED0712] hover:underline"
+          >
+            View All
+          </Link>
+        </div>
+
+        {/* Mobile Horizontal Carousel */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4">
+          {/* 1. Feature Teaser Card */}
+          <div className="w-[155px] shrink-0 bg-[#090909] text-white rounded-2xl p-4 flex flex-col justify-between relative overflow-hidden shadow-xs">
+            <div>
+              <span className="text-[9px] font-black uppercase text-[#ED0712] tracking-wider block mb-1">
+                JUST LANDED
+              </span>
+              <h3 className="font-extrabold text-[15px] text-white leading-tight">
+                Latest tech.<br />First look.
+              </h3>
+            </div>
+
+            <div className="my-2 flex items-center justify-center">
+              <img
+                src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=400"
+                alt="Latest Tech"
+                className="w-24 h-24 object-contain scale-110"
+              />
+            </div>
+
+            <Link
+              href="/products?new=true"
+              className="text-[11px] font-bold text-white/90 hover:text-white flex items-center gap-1.5 pt-1"
+            >
+              <span>Explore</span>
+              <ArrowRight className="w-3 h-3 text-white" />
+            </Link>
+          </div>
+
+          {/* 2. Horizontal Product Cards */}
+          {newArrivalProducts.map((product) => {
+            const hasDiscount =
+              product.old_price &&
+              typeof product.old_price === "number" &&
+              product.old_price > product.price;
+
+            const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+
+            return (
+              <div
+                key={`mob-${product.id}`}
+                className="w-[155px] shrink-0 bg-white border border-neutral-200/90 rounded-2xl overflow-hidden p-2.5 flex flex-col justify-between shadow-2xs"
+              >
+                <Link href={`/products/${product.slug}`} className="block flex-1">
+                  <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-2 p-1">
+                    <img
+                      src={mainImage}
+                      alt={product.name}
+                      loading="lazy"
+                      className="w-full h-full object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                      }}
+                    />
+                  </div>
+
+                  <h4 className="font-bold text-[11px] text-neutral-900 line-clamp-2 leading-tight mb-1.5 h-7">
+                    {product.name}
+                  </h4>
+
+                  <div className="flex items-center gap-1.5 flex-wrap mb-2">
+                    <span className="font-black text-xs text-[#ED0712]">
+                      {formatPrice(product.price)}
+                    </span>
+                    {hasDiscount && (
+                      <span className="text-[10px] text-neutral-400 line-through">
+                        {formatPrice(product.old_price!)}
+                      </span>
+                    )}
+                  </div>
+                </Link>
+
+                <div className="flex items-center justify-between text-[10px] pt-1.5 border-t border-neutral-100">
+                  <div className="flex items-center gap-0.5 text-neutral-700 font-semibold">
+                    <Star className="w-2.5 h-2.5 fill-amber-400 text-amber-400" />
+                    <span>4.8</span>
+                    <span className="text-neutral-400">(256)</span>
+                  </div>
+                  <span className="text-emerald-600 font-bold">In Stock</span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* ── Desktop Layout (Full 4-Column Grid) ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="new-arrivals"
+          stagger={0.06}
+          yOffset={20}
+          className="py-12 sm:py-16 bg-[#FAFAFA] border-b border-neutral-100 font-sans"
+        >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         
         {/* Section Header */}
@@ -347,12 +452,14 @@ export default function NewArrivalsSection({
 
       </div>
 
-      {/* Quick View Modal */}
-      <QuickViewModal
-        product={quickViewProduct}
-        isOpen={!!quickViewProduct}
-        onClose={() => setQuickViewProduct(null)}
-      />
-    </ScrollReveal>
+        {/* Quick View Modal */}
+        <QuickViewModal
+          product={quickViewProduct}
+          isOpen={!!quickViewProduct}
+          onClose={() => setQuickViewProduct(null)}
+        />
+      </ScrollReveal>
+    </div>
+  </>
   );
 }

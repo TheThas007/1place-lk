@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Grid3X3, Search, ShoppingBag, Heart } from "lucide-react";
+import { Home, LayoutGrid, Search, Heart, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
-import { motion } from "framer-motion";
 
 export default function MobileNav() {
   const pathname = usePathname();
@@ -22,91 +21,100 @@ export default function MobileNav() {
     return null;
   }
 
+  const isHome = pathname === "/";
+  const isShop = pathname.startsWith("/products") || pathname.startsWith("/categories");
+  const isWishlist = pathname.startsWith("/wishlist");
+  const isCart = pathname.startsWith("/cart");
+
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-zinc-950/90 backdrop-blur-xl border-t border-white/10 safe-bottom">
-      <div className="grid grid-cols-5 items-center h-14 sm:h-16 px-1">
-        {/* Home */}
+    <nav className="fixed bottom-0 left-0 right-0 z-50 lg:hidden bg-white border-t border-neutral-200/90 shadow-[0_-4px_16px_rgba(0,0,0,0.05)] safe-bottom">
+      <div className="grid grid-cols-5 items-center h-14 sm:h-16 px-1 max-w-md mx-auto">
+        {/* 1. Home */}
         <Link
           href="/"
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname === "/" ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all relative py-1",
+            isHome ? "text-[#ED0712] font-bold" : "text-neutral-600 hover:text-neutral-900 font-medium"
           )}
         >
-          <Home className={cn("w-5 h-5 transition-transform", pathname === "/" && "scale-110 text-white")} />
+          <Home
+            className={cn(
+              "w-5 h-5 transition-transform",
+              isHome ? "text-[#ED0712] fill-[#ED0712]" : "text-neutral-700"
+            )}
+          />
           <span>Home</span>
-          {pathname === "/" && (
-            <motion.div
-              layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
         </Link>
 
-        {/* Shop / Products */}
+        {/* 2. Shop */}
         <Link
           href="/products"
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/products") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all relative py-1",
+            isShop ? "text-[#ED0712] font-bold" : "text-neutral-600 hover:text-neutral-900 font-medium"
           )}
         >
-          <Grid3X3 className={cn("w-5 h-5 transition-transform", pathname.startsWith("/products") && "scale-110 text-white")} />
+          <LayoutGrid
+            className={cn(
+              "w-5 h-5 transition-transform",
+              isShop ? "text-[#ED0712]" : "text-neutral-700"
+            )}
+          />
           <span>Shop</span>
-          {pathname.startsWith("/products") && (
-            <motion.div
-              layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
         </Link>
 
-        {/* Search */}
+        {/* 3. Search */}
         <button
+          type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 cursor-pointer"
+          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-neutral-600 hover:text-neutral-900 transition-all py-1 cursor-pointer"
         >
-          <Search className="w-5 h-5" />
+          <Search className="w-5 h-5 text-neutral-700" />
           <span>Search</span>
         </button>
 
-        {/* Wishlist */}
+        {/* 4. Wishlist */}
         <Link
           href="/wishlist"
           className={cn(
-            "flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium transition-all relative py-1",
-            pathname.startsWith("/wishlist") ? "text-white font-semibold" : "text-white/40 hover:text-white/80"
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all relative py-1",
+            isWishlist ? "text-[#ED0712] font-bold" : "text-neutral-600 hover:text-neutral-900 font-medium"
           )}
         >
           <div className="relative">
-            <Heart className={cn("w-5 h-5 transition-transform", pathname.startsWith("/wishlist") && "scale-110 text-white")} />
+            <Heart
+              className={cn(
+                "w-5 h-5 transition-transform",
+                isWishlist ? "text-[#ED0712] fill-[#ED0712]" : "text-neutral-700"
+              )}
+            />
             {wishlist.length > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+              <span className="absolute -top-1.5 -right-2 bg-[#ED0712] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
                 {wishlist.length}
               </span>
             )}
           </div>
           <span>Wishlist</span>
-          {pathname.startsWith("/wishlist") && (
-            <motion.div
-              layoutId="bottomNavIndicator"
-              className="absolute bottom-1 w-1 h-1 rounded-full bg-white"
-              transition={{ type: "spring", stiffness: 400, damping: 30 }}
-            />
-          )}
         </Link>
 
-        {/* Cart */}
+        {/* 5. Cart */}
         <button
+          type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("open-cart-drawer"))}
-          className="flex flex-col items-center justify-center gap-0.5 text-[10px] font-medium text-white/40 hover:text-white/80 transition-all py-1 relative cursor-pointer"
+          className={cn(
+            "flex flex-col items-center justify-center gap-0.5 text-[10px] transition-all py-1 relative cursor-pointer",
+            isCart ? "text-[#ED0712] font-bold" : "text-neutral-600 hover:text-neutral-900 font-medium"
+          )}
         >
           <div className="relative">
-            <ShoppingBag className="w-5 h-5" />
+            <ShoppingCart
+              className={cn(
+                "w-5 h-5 transition-transform",
+                isCart ? "text-[#ED0712]" : "text-neutral-700"
+              )}
+            />
             {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-red-600 text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
+              <span className="absolute -top-1.5 -right-2 bg-[#ED0712] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
             )}

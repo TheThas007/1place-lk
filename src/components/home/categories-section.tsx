@@ -156,13 +156,66 @@ export default function CategoriesSection({
   }, [liveBrands, activeDeptSlug]);
 
   return (
-    <ScrollReveal
-      as="section"
-      id="categories-section"
-      stagger={0.05}
-      yOffset={20}
-      className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans"
-    >
+    <>
+      {/* ── Mobile Layout (< 768px): Exact Reference Matching ── */}
+      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
+        {/* Mobile Header: Title & View All */}
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-lg font-black text-neutral-900 tracking-tight">
+            Shop by Brand
+          </h2>
+          <Link
+            href="/products"
+            className="text-xs font-bold text-[#ED0712] hover:underline"
+          >
+            View All
+          </Link>
+        </div>
+
+        {/* Mobile Horizontal Brand Cards Rail */}
+        <div className="flex gap-2.5 overflow-x-auto scrollbar-none pb-2 -mx-4 px-4">
+          {liveBrands
+            .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
+            .map((brand) => {
+              const targetLink = `/shop-by-brand/${activeDeptSlug}/${brand.slug}`;
+              const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+
+              return (
+                <Link
+                  key={`mob-brand-${brand.id || brand.slug}`}
+                  href={targetLink}
+                  className="min-w-[125px] shrink-0 bg-white border border-neutral-200/90 rounded-xl px-3.5 py-2.5 h-12 flex items-center justify-center gap-2 shadow-2xs hover:border-black active:scale-95 transition-all"
+                >
+                  {logoUrl ? (
+                    <img
+                      src={logoUrl}
+                      alt={brand.name}
+                      loading="lazy"
+                      className="max-h-7 max-w-[85px] object-contain"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = "none";
+                      }}
+                    />
+                  ) : (
+                    <span className="text-xs font-black text-black tracking-tight">
+                      {brand.name}
+                    </span>
+                  )}
+                </Link>
+              );
+            })}
+        </div>
+      </div>
+
+      {/* ── Desktop Layout ── */}
+      <div className="hidden md:block">
+        <ScrollReveal
+          as="section"
+          id="categories-section"
+          stagger={0.05}
+          yOffset={20}
+          className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans"
+        >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         {/* Header Title & Subtitle */}
         <div data-reveal-item className="text-center mb-8 space-y-2">
@@ -242,5 +295,7 @@ export default function CategoriesSection({
         </AnimatePresence>
       </div>
     </ScrollReveal>
+    </div>
+  </>
   );
 }

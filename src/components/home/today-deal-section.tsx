@@ -304,14 +304,79 @@ export default function TodayDealSection({
   const squarePosition = deal.squareImagePosition || "right";
 
   return (
-    <section
-      id="todays-deal-section"
-      aria-label="Today's Deal Promotional Banner"
-      style={customBgStyle}
-      className={`relative w-full overflow-hidden select-none bg-black rounded-none border-0 shadow-none my-0 py-0 ${
-        isLivePreview ? "rounded-2xl border border-white/10" : ""
-      } ${className}`}
-    >
+    <>
+      {/* ── Mobile Today's Deal Section (Exact Reference Matching) ── */}
+      <div className="md:hidden w-full bg-white px-4 py-4 border-b border-neutral-100/90 select-none">
+        {/* Header: Title + Countdown + View All */}
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-black text-neutral-900 tracking-tight">
+              Today&apos;s Deal
+            </h2>
+            <span className="relative flex h-2.5 w-2.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#ED0712] opacity-75" />
+              <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-[#ED0712]" />
+            </span>
+            <span className="text-xs font-black text-[#ED0712] font-mono tracking-wider">
+              {padZero(hours)} : {padZero(minutes)} : {padZero(seconds)}
+            </span>
+          </div>
+          <Link
+            href={activeCtaUrl || "/products?sale=true"}
+            className="text-xs font-bold text-[#ED0712] hover:underline"
+          >
+            View All
+          </Link>
+        </div>
+
+        {/* Banner Card */}
+        <div className="relative w-full rounded-2xl bg-black border border-neutral-800 p-5 overflow-hidden shadow-sm text-white min-h-[190px] flex flex-col justify-between">
+          {/* Top-Right Discount Badge */}
+          <div className="absolute top-3.5 right-3.5 z-20">
+            <span className="bg-[#ED0712] text-white text-[9px] font-black px-2 py-1 rounded-md uppercase tracking-wider shadow-sm">
+              UP TO 20% OFF
+            </span>
+          </div>
+
+          {/* Right Floating Product Photos */}
+          <div className="absolute right-0 bottom-0 top-4 w-[58%] pointer-events-none flex items-end justify-end overflow-hidden">
+            <img
+              src="https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=600"
+              alt="Today Deal Devices"
+              className="w-full h-full object-contain object-right-bottom scale-110 translate-x-2 translate-y-1"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = mobileImg || desktopImg || "/placeholder-phone.webp";
+              }}
+            />
+          </div>
+
+          {/* Left Text & CTA */}
+          <div className="relative z-10 max-w-[62%]">
+            <span className="text-[10px] font-extrabold uppercase tracking-widest text-[#ED0712] block mb-1">
+              TODAY ONLY
+            </span>
+            <h3 className="text-2xl font-black text-white leading-[1.1] tracking-tight mb-3.5">
+              Power Up.<br />Pay Less.
+            </h3>
+            <Link
+              href={activeCtaUrl || "/products?sale=true"}
+              className="inline-flex items-center justify-center px-4 py-2 bg-[#ED0712] hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-sm transition-transform active:scale-95 cursor-pointer"
+            >
+              <span>Shop Deals</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Desktop Today's Deal Section ── */}
+      <section
+        id="todays-deal-section"
+        aria-label="Today's Deal Promotional Banner"
+        style={customBgStyle}
+        className={`hidden md:block relative w-full overflow-hidden select-none bg-black rounded-none border-0 shadow-none my-0 py-0 ${
+          isLivePreview ? "rounded-2xl border border-white/10" : ""
+        } ${className}`}
+      >
       {/* ── Outer Height Container matching Offer Banner Screen Fit ── */}
       <div
         className={`relative w-full ${
@@ -431,5 +496,6 @@ export default function TodayDealSection({
         </div>
       </div>
     </section>
+  </>
   );
 }
