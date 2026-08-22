@@ -394,6 +394,19 @@ export const getMegaMenuSettings = cache(async (): Promise<MegaMenuSettings> => 
       return {
         ...DEFAULT_MEGA_MENU_SETTINGS,
         ...data,
+        columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
+      };
+    }
+
+    // Try alternate siteSettings/categoryMegaMenu location
+    const altDocRef = doc(db, "siteSettings", "categoryMegaMenu");
+    const altSnap = await getDoc(altDocRef);
+    if (altSnap.exists()) {
+      const data = altSnap.data() as MegaMenuSettings;
+      return {
+        ...DEFAULT_MEGA_MENU_SETTINGS,
+        ...data,
+        columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
       };
     }
   } catch (e) {

@@ -47,9 +47,9 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc } from "firebase/firestore";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings } from "@/lib/types";
-import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings } from "@/lib/firestore-client";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand } from "@/lib/types";
+import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS, DEFAULT_MEGA_MENU_SETTINGS, DEFAULT_BRANDS } from "@/lib/data";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings, getMegaMenuSettings, getBrands } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -69,11 +69,13 @@ import GalleryTab from "@/components/admin/tabs/GalleryTab";
 import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
 import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 import TodayDealTab from "@/components/admin/tabs/TodayDealTab";
+import MegaMenuTab from "@/components/admin/tabs/MegaMenuTab";
 
 type Tab =
   | "overview"
   | "products"
   | "categories"
+  | "mega-menu"
   | "brands"
   | "today-deal"
   | "reviews"
@@ -101,6 +103,7 @@ function DashboardContent() {
   // Firestore Lists
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [brands, setBrands] = useState<Brand[]>(DEFAULT_BRANDS);
   const [orders, setOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<Review[]>([]);
   const [banners, setBanners] = useState<OfferBanner[]>([]);
@@ -108,6 +111,7 @@ function DashboardContent() {
   const [galleryImages, setGalleryImages] = useState<GalleryImage[]>([]);
   const [showcaseSettings, setShowcaseSettings] = useState<VisualShowcaseSettings>(DEFAULT_SHOWCASE_SETTINGS);
   const [todayDealSettings, setTodayDealSettings] = useState<TodayDealSettings>(DEFAULT_TODAY_DEAL_SETTINGS);
+  const [megaMenuSettings, setMegaMenuSettings] = useState<MegaMenuSettings>(DEFAULT_MEGA_MENU_SETTINGS);
   const [customers, setCustomers] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -271,6 +275,22 @@ function DashboardContent() {
         if (td) setTodayDealSettings(td);
       } catch (err) {
         console.warn("Error fetching Today's Deal settings in admin:", err);
+      }
+
+      // Category Mega Menu Settings
+      try {
+        const mm = await getMegaMenuSettings();
+        if (mm) setMegaMenuSettings(mm);
+      } catch (err) {
+        console.warn("Error fetching Category Mega Menu settings in admin:", err);
+      }
+
+      // Brands List
+      try {
+        const bList = await getBrands();
+        if (bList && bList.length > 0) setBrands(bList);
+      } catch (err) {
+        console.warn("Error fetching brands in admin:", err);
       }
     } catch (e) {
       console.error("Dashboard Data Fetch Error:", e);
@@ -1258,6 +1278,19 @@ function DashboardContent() {
       {activeTab === "today-deal" && (
         <TodayDealTab
           initialSettings={todayDealSettings}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5F: CATEGORY MEGA MENU MANAGEMENT
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "mega-menu" && (
+        <MegaMenuTab
+          initialSettings={megaMenuSettings}
+          categories={categories}
+          brands={brands}
+          products={products}
           onRefresh={refreshData}
         />
       )}

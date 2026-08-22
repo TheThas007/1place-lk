@@ -1,9 +1,9 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
-import { Category, MegaMenuSettings, Subcategory, MegaMenuExploreLink } from "@/lib/types";
+import { Category, MegaMenuSettings, MegaMenuColumn, MegaMenuItem } from "@/lib/types";
 import { DEFAULT_MEGA_MENU_SETTINGS } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
@@ -15,6 +15,7 @@ interface MegaMenuProps {
   onMouseLeave?: () => void;
   categories: Category[];
   initialSettings?: MegaMenuSettings;
+  isPreview?: boolean;
 }
 
 export default function MegaMenu({
@@ -24,13 +25,36 @@ export default function MegaMenu({
   onMouseLeave,
   categories,
   initialSettings,
+  isPreview = false,
 }: MegaMenuProps) {
-  const [settings, setSettings] = useState<MegaMenuSettings>(
-    initialSettings || DEFAULT_MEGA_MENU_SETTINGS
-  );
+  const [settings, setSettings] = useState<MegaMenuSettings>(() => {
+    return {
+      ...DEFAULT_MEGA_MENU_SETTINGS,
+      ...(initialSettings || {}),
+      columns:
+        initialSettings?.columns && initialSettings.columns.length > 0
+          ? initialSettings.columns
+          : DEFAULT_MEGA_MENU_SETTINGS.columns,
+    };
+  });
 
-  // Real-time Firestore Listener for Mega Menu Settings
+  // Keep state synced with parent props (useful for admin live preview)
   useEffect(() => {
+    if (initialSettings) {
+      setSettings((prev) => ({
+        ...prev,
+        ...initialSettings,
+        columns:
+          initialSettings.columns && initialSettings.columns.length > 0
+            ? initialSettings.columns
+            : prev.columns,
+      }));
+    }
+  }, [initialSettings]);
+
+  // Real-time Firestore Listener for Mega Menu Settings (Live Storefront only)
+  useEffect(() => {
+    if (isPreview) return;
     try {
       const unsub = onSnapshot(doc(db, "settings", "mega_menu"), (snap) => {
         if (snap.exists()) {
@@ -38,7 +62,7 @@ export default function MegaMenu({
           setSettings((prev) => ({
             ...prev,
             ...data,
-            explore_links: data.explore_links || prev.explore_links,
+            columns: data.columns && data.columns.length > 0 ? data.columns : prev.columns,
           }));
         }
       });
@@ -46,75 +70,309 @@ export default function MegaMenu({
     } catch (e) {
       console.warn("Realtime mega menu sync unavailable:", e);
     }
-  }, []);
+  }, [isPreview]);
 
-  // Filter Active Main Categories for Column 1
-  const column1Categories = useMemo(() => {
-    const activeCats = categories.filter((c) => {
-      if (c.status === "inactive") return false;
-      if (c.show_in_menu === false) return false;
-      if (c.parent_id) return false; // Filter out subcategories
-      return true;
-    });
+  // Close on Escape key
+  const handleKeyDown = useCallback(
+    (e: KeyboardEvent) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    },
+    [isOpen, onClose]
+  );
 
-    if (settings.selected_category_ids && settings.selected_category_ids.length > 0) {
-      const filtered = activeCats.filter((c) => settings.selected_category_ids!.includes(c.id));
-      if (filtered.length > 0) return filtered;
-    }
+  useEffect(() => {
+    if (isPreview) return;
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [handleKeyDown, isPreview]);
 
-    return activeCats.slice(0, 10);
-  }, [categories, settings.selected_category_ids]);
+  // Normalize and resolve items for each column based on sourceMode
+  const resolvedColumns = useMemo(() => {
+    const activeColumns = (settings.columns || DEFAULT_MEGA_MENU_SETTINGS.columns)
+      .filter((c) => c.enabled !== false)
+      .sort((a, b) => (a.order || 0) - (b.order || 0));
 
-  // Derive Subcategories for Column 2
-  const column2Subcategories = useMemo(() => {
-    // Collect from category subcategories field or children
-    const subList: { name: string; url: string; id: string }[] = [];
+    return activeColumns.map((col) => {
+      let resolvedItems: MegaMenuItem[] = [];
 
-    categories.forEach((cat) => {
-      if (cat.subcategories && cat.subcategories.length > 0) {
-        cat.subcategories.forEach((sub) => {
-          if (sub.status !== "inactive") {
-            subList.push({
-              id: sub.id,
-              name: sub.name,
-              url: sub.destination_url || `/products?category=${cat.slug}&subcategory=${sub.slug}`,
+      // 1. Dynamic extraction from Categories
+      if (col.sourceMode === "dynamic" || col.sourceMode === "mixed") {
+        if (col.dynamicSource === "categories" || !col.dynamicSource) {
+          // Normalize and filter categories (case-insensitive deduplication)
+          const seenNames = new Set<string>();
+          const dynamicList: MegaMenuItem[] = [];
+
+          // Add Shop All as first item if Column 1 / categories
+          if (col.id === "col-categories" || col.order === 1) {
+            dynamicList.push({
+              id: "dyn-all-products",
+              enabled: true,
+              label: "Shop All Products",
+              destinationType: "custom",
+              href: "/products",
+              bold: true,
+              featured: true,
+              order: 0,
             });
           }
-        });
+
+          categories.forEach((cat, idx) => {
+            if (cat.status === "inactive" || cat.show_in_menu === false || cat.parent_id) return;
+            const normName = cat.name.trim().toLowerCase();
+            if (seenNames.has(normName)) return;
+            seenNames.add(normName);
+
+            // Check inclusions / exclusions if configured
+            if (col.includedIds && col.includedIds.length > 0 && !col.includedIds.includes(cat.id)) return;
+            if (col.excludedIds && col.excludedIds.length > 0 && col.excludedIds.includes(cat.id)) return;
+
+            dynamicList.push({
+              id: cat.id || `cat-${idx}`,
+              enabled: true,
+              label: cat.name,
+              destinationType: "category",
+              destinationId: cat.id,
+              href: cat.destination_url || `/products?category=${cat.slug || cat.id}`,
+              bold: col.id === "col-categories" || col.order === 1,
+              order: idx + 1,
+            });
+          });
+
+          // Sort dynamic items
+          if (col.sortBy === "name-asc") {
+            dynamicList.sort((a, b) => a.label.localeCompare(b.label));
+          } else if (col.sortBy === "name-desc") {
+            dynamicList.sort((a, b) => b.label.localeCompare(a.label));
+          }
+
+          resolvedItems = dynamicList;
+        } else if (col.dynamicSource === "subcategories") {
+          // Extract subcategories
+          const subList: MegaMenuItem[] = [];
+          const seenSubs = new Set<string>();
+
+          categories.forEach((cat) => {
+            if (cat.subcategories && cat.subcategories.length > 0) {
+              cat.subcategories.forEach((sub, sIdx) => {
+                if (sub.status === "inactive") return;
+                const norm = sub.name.trim().toLowerCase();
+                if (seenSubs.has(norm)) return;
+                seenSubs.add(norm);
+
+                subList.push({
+                  id: sub.id || `sub-${sIdx}`,
+                  enabled: true,
+                  label: sub.name,
+                  destinationType: "subcategory",
+                  destinationId: sub.id,
+                  href: sub.destination_url || `/products?category=${cat.slug}&subcategory=${sub.slug}`,
+                  bold: false,
+                  order: sIdx,
+                });
+              });
+            }
+          });
+
+          resolvedItems = subList;
+        }
       }
+
+      // 2. Manual items or Mixed mode combination
+      if (col.sourceMode === "manual" || col.sourceMode === "mixed") {
+        const manualItems = (col.items || [])
+          .filter((item) => item.enabled !== false)
+          .sort((a, b) => (a.order || 0) - (b.order || 0));
+
+        if (col.sourceMode === "manual" || resolvedItems.length === 0) {
+          resolvedItems = manualItems;
+        } else {
+          // In mixed mode, combine manual items without duplicating hrefs
+          const existingHrefs = new Set(resolvedItems.map((i) => i.href.toLowerCase()));
+          manualItems.forEach((m) => {
+            if (!existingHrefs.has(m.href.toLowerCase())) {
+              resolvedItems.push(m);
+            }
+          });
+        }
+      }
+
+      // Apply maximumItems limit
+      const maxLimit = col.maximumItems && col.maximumItems > 0 ? col.maximumItems : 15;
+      const slicedItems = resolvedItems.slice(0, maxLimit);
+
+      return {
+        ...col,
+        resolvedItems: slicedItems,
+      };
     });
+  }, [categories, settings.columns]);
 
-    // If no custom subcategories exist in DB, dynamically create popular filter pairings
-    if (subList.length === 0) {
-      return [
-        { id: "sub-iphone", name: "iPhones & Apple Care", url: "/products?category=smartphones&brand=apple" },
-        { id: "sub-galaxy", name: "Samsung Galaxy Flagships", url: "/products?category=smartphones&brand=samsung" },
-        { id: "sub-fast-charge", name: "20W & 35W Fast Adapters", url: "/products?category=chargers-adapters" },
-        { id: "sub-buds", name: "AirPods & Wireless Earbuds", url: "/products?category=earbuds" },
-        { id: "sub-watches", name: "Apple Watch & Galaxy Watch", url: "/products?category=smart-watches" },
-        { id: "sub-cables", name: "Braided Fast Charging Cables", url: "/products?category=charging-cables" },
-        { id: "sub-magsafe", name: "MagSafe Battery Packs", url: "/products?category=power-banks" },
-        { id: "sub-cases", name: "Protective Cases & Display Guards", url: "/products?category=phone-cases" },
-      ];
+  if (!settings.enabled && !isPreview) return null;
+
+  // Visual layout & appearance tokens
+  const bgColor = settings.backgroundColor || "#FFFFFF";
+  const headingColor = settings.headingColor || "#71717A";
+  const primaryTextColor = settings.primaryTextColor || "#090909";
+  const secondaryTextColor = settings.secondaryTextColor || "#27272A";
+  const hoverTextColor = settings.hoverTextColor || "#ED0712";
+  const borderColor = settings.borderColor || "#E5E5E7";
+  const maxHeightPx = settings.maxHeight || 600;
+  const colCount = Math.max(1, Math.min(4, resolvedColumns.length));
+
+  // Determine grid column distribution
+  const getGridColsClass = () => {
+    if (colCount === 2) return "md:grid-cols-2";
+    if (colCount === 3) return "md:grid-cols-12";
+    if (colCount === 4) return "md:grid-cols-4";
+    return "md:grid-cols-12";
+  };
+
+  const getColSpanClass = (col: MegaMenuColumn, index: number) => {
+    if (colCount === 3) {
+      if (index === 0) return "md:col-span-5 lg:col-span-5";
+      if (index === 1) return "md:col-span-4 lg:col-span-4";
+      return "md:col-span-3 lg:col-span-3";
     }
+    return "w-full";
+  };
 
-    if (settings.selected_subcategory_ids && settings.selected_subcategory_ids.length > 0) {
-      const filtered = subList.filter((s) => settings.selected_subcategory_ids!.includes(s.id));
-      if (filtered.length > 0) return filtered;
-    }
+  const contentJSX = (
+    <div
+      style={{
+        backgroundColor: bgColor,
+        borderColor: borderColor,
+        maxHeight: isPreview ? "auto" : `${maxHeightPx}px`,
+      }}
+      className={`w-full border-b shadow-[0_24px_60px_rgba(0,0,0,0.12)] overflow-y-auto custom-scrollbar select-none`}
+    >
+      {/* Centered Content Container */}
+      <div
+        className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-8 lg:py-10"
+        style={{
+          paddingLeft: `${settings.horizontalPadding ?? 48}px`,
+          paddingRight: `${settings.horizontalPadding ?? 48}px`,
+          paddingTop: `${settings.verticalPadding ?? 40}px`,
+          paddingBottom: `${settings.verticalPadding ?? 40}px`,
+        }}
+      >
+        <div
+          className={`grid grid-cols-1 ${getGridColsClass()} gap-8 lg:gap-12 items-start`}
+          style={{ gap: `${settings.columnGap ?? 48}px` }}
+        >
+          {resolvedColumns.map((col, colIdx) => {
+            const isFirstCol = colIdx === 0;
 
-    return subList.slice(0, 10);
-  }, [categories, settings.selected_subcategory_ids]);
+            return (
+              <div
+                key={col.id || `col-${colIdx}`}
+                className={`${getColSpanClass(col, colIdx)} flex flex-col space-y-1.5`}
+              >
+                {/* Column Section Heading */}
+                {col.heading && (
+                  <span
+                    style={{ color: col.headingColor || headingColor }}
+                    className="text-[11px] font-bold uppercase tracking-wider mb-3.5 block select-none"
+                  >
+                    {col.heading}
+                  </span>
+                )}
 
-  // Column 3 Supporting Explore Links
-  const column3Links = useMemo(() => {
-    const links = (settings.explore_links || DEFAULT_MEGA_MENU_SETTINGS.explore_links).filter(
-      (l) => l.status !== "inactive"
-    );
-    return links.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  }, [settings.explore_links]);
+                {/* Column Items */}
+                <div className="flex flex-col space-y-1">
+                  {col.resolvedItems.map((item, itemIdx) => {
+                    const isBold = item.bold ?? isFirstCol;
+                    const isExternal = item.href.startsWith("http");
 
-  if (!settings.enabled) return null;
+                    const itemClass = `group relative inline-flex items-center justify-between gap-3 py-1 transition-all duration-150 rounded-lg outline-none ${
+                      isBold
+                        ? "text-[20px] sm:text-[22px] lg:text-[25px] font-extrabold tracking-tight leading-snug"
+                        : "text-sm font-semibold leading-normal"
+                    }`;
+
+                    const itemStyle: React.CSSProperties = {
+                      color: item.textColor || (isBold ? primaryTextColor : secondaryTextColor),
+                    };
+
+                    const hoverEffectHandler = (e: React.MouseEvent<HTMLElement>) => {
+                      (e.currentTarget as HTMLElement).style.color = hoverTextColor;
+                    };
+                    const leaveEffectHandler = (e: React.MouseEvent<HTMLElement>) => {
+                      (e.currentTarget as HTMLElement).style.color =
+                        item.textColor || (isBold ? primaryTextColor : secondaryTextColor);
+                    };
+
+                    const badgeJSX = item.badgeEnabled && item.badgeLabel && (
+                      <span
+                        style={{ backgroundColor: item.badgeBackgroundColor || "#ED0712" }}
+                        className="px-2 py-0.5 text-[9px] font-black text-white rounded-full uppercase tracking-wider shrink-0 shadow-xs"
+                      >
+                        {item.badgeLabel}
+                      </span>
+                    );
+
+                    const iconJSX = item.iconUrl && (
+                      <img
+                        src={item.iconUrl}
+                        alt=""
+                        className="w-4 h-4 object-contain shrink-0"
+                        onError={(e) => {
+                          (e.target as HTMLElement).style.display = "none";
+                        }}
+                      />
+                    );
+
+                    return isExternal ? (
+                      <a
+                        key={item.id || `item-${colIdx}-${itemIdx}`}
+                        href={item.href}
+                        target={item.openInNewTab ? "_blank" : undefined}
+                        rel="noopener noreferrer"
+                        onClick={onClose}
+                        onMouseEnter={hoverEffectHandler}
+                        onMouseLeave={leaveEffectHandler}
+                        style={itemStyle}
+                        className={itemClass}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {iconJSX}
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {badgeJSX}
+                      </a>
+                    ) : (
+                      <Link
+                        key={item.id || `item-${colIdx}-${itemIdx}`}
+                        href={item.href}
+                        target={item.openInNewTab ? "_blank" : undefined}
+                        onClick={onClose}
+                        onMouseEnter={hoverEffectHandler}
+                        onMouseLeave={leaveEffectHandler}
+                        style={itemStyle}
+                        className={itemClass}
+                      >
+                        <div className="flex items-center gap-2 truncate">
+                          {iconJSX}
+                          <span className="truncate">{item.label}</span>
+                        </div>
+                        {badgeJSX}
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+
+  // If used for Admin Live Preview, render inline without fixed modal positioning
+  if (isPreview) {
+    return <div className="w-full">{contentJSX}</div>;
+  }
 
   return (
     <AnimatePresence>
@@ -139,82 +397,9 @@ export default function MegaMenu({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            className="fixed left-0 right-0 top-[var(--navbar-height,72px)] w-full bg-[#FFFFFF] border-b border-[#E5E5E7] shadow-[0_24px_60px_rgba(0,0,0,0.12)] z-50 overflow-hidden"
+            className="fixed left-0 right-0 top-[var(--navbar-height,72px)] w-full z-50 overflow-hidden"
           >
-            {/* Centered Content Container */}
-            <div className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-10 lg:py-12">
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 lg:gap-12 items-start">
-                
-                {/* ── COLUMN 1: SHOP BY CATEGORY (Large Bold Typography) ── */}
-                <div className="md:col-span-5 lg:col-span-5 flex flex-col space-y-2">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-3 block select-none">
-                    {settings.column1_heading || "Shop by Category"}
-                  </span>
-
-                  {/* Primary Link: Shop All Products */}
-                  <Link
-                    href="/products"
-                    onClick={onClose}
-                    className="text-[22px] sm:text-[24px] lg:text-[26px] font-bold text-[#090909] hover:text-[#6E6E73] transition-colors duration-150 leading-tight block py-1"
-                  >
-                    Shop All Products
-                  </Link>
-
-                  {/* Main Category List */}
-                  {column1Categories.map((cat) => (
-                    <Link
-                      key={`mega-col1-${cat.id}`}
-                      href={cat.destination_url || `/products?category=${cat.slug}`}
-                      onClick={onClose}
-                      className="text-[20px] sm:text-[22px] lg:text-[24px] font-bold text-[#090909] hover:text-[#6E6E73] transition-colors duration-150 leading-tight block py-1"
-                    >
-                      {cat.name}
-                    </Link>
-                  ))}
-                </div>
-
-                {/* ── COLUMN 2: POPULAR SUBCATEGORIES (Refined Clean Text) ── */}
-                <div className="md:col-span-4 lg:col-span-4 flex flex-col space-y-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-3 block select-none">
-                    {settings.column2_heading || "Popular Subcategories"}
-                  </span>
-
-                  {column2Subcategories.map((sub) => (
-                    <Link
-                      key={`mega-col2-${sub.id}`}
-                      href={sub.url}
-                      onClick={onClose}
-                      className="text-[14px] sm:text-[15px] font-medium text-[#090909] hover:text-[#6E6E73] transition-colors duration-150 block py-1.5 leading-snug"
-                    >
-                      {sub.name}
-                    </Link>
-                  ))}
-                </div>
-
-                {/* ── COLUMN 3: MORE TO EXPLORE (Supporting Direct Links) ── */}
-                <div className="md:col-span-3 lg:col-span-3 flex flex-col space-y-1">
-                  <span className="text-[11px] font-semibold uppercase tracking-wider text-[#6E6E73] mb-3 block select-none">
-                    {settings.column3_heading || "More to Explore"}
-                  </span>
-
-                  {column3Links.map((link) => (
-                    <Link
-                      key={`mega-col3-${link.id}`}
-                      href={link.url}
-                      onClick={onClose}
-                      className={`text-[14px] sm:text-[15px] font-medium transition-colors duration-150 block py-1.5 leading-snug ${
-                        link.is_highlighted
-                          ? "text-[#090909] font-semibold hover:text-[#6E6E73]"
-                          : "text-[#090909] hover:text-[#6E6E73]"
-                      }`}
-                    >
-                      {link.label}
-                    </Link>
-                  ))}
-                </div>
-
-              </div>
-            </div>
+            {contentJSX}
           </motion.div>
         </>
       )}

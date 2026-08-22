@@ -188,6 +188,53 @@ export interface Category {
   subcategories?: Subcategory[];
 }
 
+export type MegaMenuDestinationType =
+  | "category"
+  | "subcategory"
+  | "brand"
+  | "product"
+  | "collection"
+  | "page"
+  | "custom";
+
+export type MegaMenuSourceMode = "dynamic" | "manual" | "mixed";
+
+export interface MegaMenuItem {
+  id: string;
+  enabled: boolean;
+  label: string;
+  destinationType: MegaMenuDestinationType;
+  destinationId?: string;
+  href: string;
+  openInNewTab?: boolean;
+  featured?: boolean;
+  bold?: boolean;
+  textColor?: string;
+  badgeEnabled?: boolean;
+  badgeLabel?: string;
+  badgeBackgroundColor?: string;
+  iconUrl?: string;
+  order: number;
+}
+
+export interface MegaMenuColumn {
+  id: string;
+  enabled: boolean;
+  heading: string;
+  headingColor?: string;
+  headingSize?: "sm" | "base" | "lg";
+  sourceMode: MegaMenuSourceMode;
+  dynamicSource?: "categories" | "subcategories" | "brands" | "collections";
+  sortBy?: "manual" | "name-asc" | "name-desc" | "newest" | "product-count" | "featured";
+  maximumItems?: number;
+  hideEmptyItems?: boolean;
+  includedIds?: string[];
+  excludedIds?: string[];
+  width?: number;
+  order: number;
+  items: MegaMenuItem[];
+}
+
 export interface MegaMenuExploreLink {
   id: string;
   label: string;
@@ -199,14 +246,46 @@ export interface MegaMenuExploreLink {
 
 export interface MegaMenuSettings {
   enabled: boolean;
-  column1_heading: string;
-  column2_heading: string;
-  column3_heading: string;
+  interaction?: "click" | "hover";
+  hoverDelay?: number;
+  columns: MegaMenuColumn[];
+
+  // Appearance
+  backgroundColor?: string;
+  headingColor?: string;
+  primaryTextColor?: string;
+  secondaryTextColor?: string;
+  hoverTextColor?: string;
+  hoverBackgroundColor?: string;
+  dividerColor?: string;
+
+  // Layout
+  widthMode?: "viewport" | "container" | "custom";
+  customMaxWidth?: number;
+  minHeight?: number;
+  maxHeight?: number;
+  columnGap?: number;
+  rowGap?: number;
+  horizontalPadding?: number;
+  verticalPadding?: number;
+  borderRadius?: number;
+  borderColor?: string;
+  shadowStrength?: number;
+
+  // Backward compatibility legacy fields
+  column1_heading?: string;
+  column2_heading?: string;
+  column3_heading?: string;
   selected_category_ids?: string[];
   selected_subcategory_ids?: string[];
-  explore_links: MegaMenuExploreLink[];
-  last_updated?: string;
+  explore_links?: MegaMenuExploreLink[];
+
+  // Draft / Publish workflow
   status?: "draft" | "published";
+  updatedAt?: string;
+  updatedBy?: string;
+  publishedAt?: string;
+  draftSettings?: Partial<MegaMenuSettings>;
 }
 
 export interface Review {

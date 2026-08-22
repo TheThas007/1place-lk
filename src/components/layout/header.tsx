@@ -26,10 +26,12 @@ import { useWishlist } from "@/lib/wishlist-context";
 import AuthModal from "@/components/auth/AuthModal";
 import CartDrawer from "@/components/cart/CartDrawer";
 import MegaMenu from "@/components/layout/MegaMenu";
-import { categories as fallbackCategories } from "@/lib/data";
+import { categories as fallbackCategories, DEFAULT_MEGA_MENU_SETTINGS } from "@/lib/data";
 import { getCategories } from "@/lib/firestore-client";
-import { Category } from "@/lib/types";
+import { Category, MegaMenuSettings } from "@/lib/types";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -40,6 +42,7 @@ export default function Header() {
   const [userMenuOpen, setUserMenuOpen] = useState(false);
   const [isCategoriesOpen, setIsCategoriesOpen] = useState(false);
   const [catList, setCatList] = useState<Category[]>(fallbackCategories);
+  const [megaMenuSettings, setMegaMenuSettings] = useState<MegaMenuSettings>(DEFAULT_MEGA_MENU_SETTINGS);
 
   const categoriesRef = useRef<HTMLDivElement>(null);
   const openTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -101,6 +104,24 @@ export default function Header() {
     const handleOpenCart = () => setCartOpen(true);
     window.addEventListener("open-cart-drawer", handleOpenCart);
     return () => window.removeEventListener("open-cart-drawer", handleOpenCart);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const unsub = onSnapshot(doc(db, "settings", "mega_menu"), (snap) => {
+        if (snap.exists()) {
+          const data = snap.data() as MegaMenuSettings;
+          setMegaMenuSettings((prev) => ({
+            ...prev,
+            ...data,
+            columns: data.columns && data.columns.length > 0 ? data.columns : prev.columns,
+          }));
+        }
+      });
+      return () => unsub();
+    } catch (e) {
+      console.warn("Could not listen to mega menu settings:", e);
+    }
   }, []);
 
   useEffect(() => {
@@ -561,6 +582,7 @@ export default function Header() {
         onMouseEnter={handleMouseEnterMegaMenu}
         onMouseLeave={handleMouseLeaveMegaMenu}
         categories={uniqueNavCategories}
+        initialSettings={megaMenuSettings}
       />
 
       {/* Mobile Menu */}
@@ -671,7 +693,7 @@ export default function Header() {
                         initial={{ height: 0, opacity: 0 }}
                         animate={{ height: "auto", opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
-                        className="overflow-hidden pl-2 py-2 space-y-1"
+                        className="overflow-hidden pl-2 py-2 space-y-3"
                       >
                         {/* Prominent Shop All Products */}
                         <Link
@@ -683,49 +705,40 @@ export default function Header() {
                           <ArrowRight className="w-3.5 h-3.5 text-white/60" />
                         </Link>
 
-                        {/* Pure Text Category List (No Icons/Logos) */}
-                        {uniqueNavCategories.map((cat, idx) => (
-                          <Link
-                            key={`nav-mobile-${cat.id || cat.slug || idx}`}
-                            href={cat.destination_url || `/products?category=${cat.slug}`}
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
-                          >
-                            <span className="truncate">{cat.name}</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
-                          </Link>
-                        ))}
-
-                        {/* Supporting Explore Links */}
-                        <div className="pt-2 mt-2 border-t border-white/[0.06]">
-                          <span className="text-[10px] uppercase font-bold tracking-wider text-white/30 px-3.5 block mb-1">
-                            More to Explore
-                          </span>
-                          <Link
-                            href="/products?sort=newest"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
-                          >
-                            <span>New Arrivals</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
-                          </Link>
-                          <Link
-                            href="/products?sort=featured"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
-                          >
-                            <span>Best Sellers</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
-                          </Link>
-                          <Link
-                            href="/products?discount=true"
-                            onClick={() => setIsMobileMenuOpen(false)}
-                            className="flex items-center justify-between px-3.5 py-2 rounded-lg text-xs font-medium text-white/60 hover:text-white hover:bg-white/[0.04] transition-all min-h-[38px]"
-                          >
-                            <span>Latest Offers</span>
-                            <ChevronRight className="w-3.5 h-3.5 text-white/20" />
-                          </Link>
-                        </div>
+                        {/* Render Configured Columns as Accordion Sections */}
+                        {megaMenuSettings.columns
+                          ?.filter((col) => col.enabled !== false)
+                          .map((col, colIdx) => (
+                            <div key={col.id || colIdx} className="space-y-1 pt-1">
+                              <span className="text-[10px] uppercase font-bold tracking-wider text-white/40 px-3.5 block mb-1 select-none">
+                                {col.heading}
+                              </span>
+                              {col.items
+                                ?.filter((it) => it.enabled !== false)
+                                .map((item, itemIdx) => (
+                                  <Link
+                                    key={item.id || itemIdx}
+                                    href={item.href}
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                    className="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-xs font-medium text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                                  >
+                                    <span className={item.bold ? "font-bold text-white truncate" : "truncate"}>
+                                      {item.label}
+                                    </span>
+                                    {item.badgeEnabled && item.badgeLabel ? (
+                                      <span
+                                        style={{ backgroundColor: item.badgeBackgroundColor || "#ED0712" }}
+                                        className="px-2 py-0.5 text-[9px] font-black text-white rounded-full uppercase tracking-wider shrink-0"
+                                      >
+                                        {item.badgeLabel}
+                                      </span>
+                                    ) : (
+                                      <ChevronRight className="w-3.5 h-3.5 text-white/20" />
+                                    )}
+                                  </Link>
+                                ))}
+                            </div>
+                          ))}
                       </motion.div>
                     )}
                   </AnimatePresence>

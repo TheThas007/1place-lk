@@ -29,6 +29,7 @@ import {
   Images,
   Tag,
   Flame,
+  FolderTree,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -39,6 +40,7 @@ const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
   { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
+  { id: "mega-menu", label: "Category Mega Menu", icon: FolderTree, href: "/admin/dashboard?tab=mega-menu" },
   { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
   { id: "today-deal", label: "Today's Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
