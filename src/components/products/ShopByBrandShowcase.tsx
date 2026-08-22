@@ -58,9 +58,7 @@ function BrandFilterCard({
             className={`max-h-full max-w-full w-auto h-auto object-contain transition-all duration-300 ease-out ${
               isSelected
                 ? "brightness-0 invert scale-105"
-                : brand.monochrome
-                ? "grayscale opacity-80 group-hover:opacity-100 group-hover:scale-105"
-                : "filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
+                : "opacity-90 group-hover:opacity-100 group-hover:scale-105"
             }`}
             onError={() => setImgError(true)}
           />

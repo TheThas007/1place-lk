@@ -25,39 +25,31 @@ function BrandCard({ brand, index }: { brand: Brand; index: number }) {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -8 }}
-      transition={{ duration: 0.25, delay: index * 0.02, ease: "easeOut" }}
+      exit={{ opacity: 0, y: -6 }}
+      transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.25), ease: "easeOut" }}
       className="h-full"
     >
       <Link
         href={targetLink}
-        className="group flex flex-col items-center justify-between p-4 sm:p-5 rounded-2xl border border-neutral-200/80 bg-white hover:border-black hover:shadow-lg transition-all duration-300 gap-3 text-center min-h-[150px] sm:min-h-[170px] w-full"
+        title={brand.name}
+        className="group relative flex items-center justify-center p-4 sm:p-5 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100 shadow-[0_2px_10px_rgba(0,0,0,0.03)] hover:shadow-[0_12px_28px_rgba(0,0,0,0.08)] hover:border-neutral-300/90 hover:-translate-y-1 transition-all duration-300 w-full aspect-[4/3] min-h-[90px] sm:min-h-[120px]"
       >
-        {/* Top Logo Container (Clean object-contain, no cropping for any aspect ratio) */}
-        <div className="h-16 sm:h-20 w-full flex items-center justify-center p-2 overflow-hidden">
+        {/* Centered Genuine Brand Logo */}
+        <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
             <img
               src={logoUrl}
               alt={brand.logo_alt_text || `${brand.name} logo`}
               loading="lazy"
-              className={`max-h-full max-w-full w-auto h-auto object-contain transition-all duration-300 ease-out ${
-                brand.monochrome
-                  ? "grayscale opacity-80 group-hover:opacity-100 group-hover:scale-105"
-                  : "filter grayscale opacity-75 group-hover:grayscale-0 group-hover:opacity-100 group-hover:scale-105"
-              }`}
+              className="max-h-10 sm:max-h-13 max-w-[80%] w-auto h-auto object-contain transition-transform duration-300 ease-out group-hover:scale-108"
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="text-xl sm:text-2xl font-black text-black font-mono tracking-tight select-none">
-              {brand.name.slice(0, 3).toUpperCase()}
+            <span className="text-base sm:text-xl font-black text-black font-mono tracking-tight select-none">
+              {brand.name}
             </span>
           )}
         </div>
-
-        {/* Bottom Brand Name */}
-        <span className="text-xs sm:text-sm font-bold text-neutral-800 group-hover:text-black transition-colors line-clamp-1">
-          {brand.name}
-        </span>
       </Link>
     </motion.div>
   );
@@ -115,7 +107,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
       id="categories-section"
       stagger={0.05}
       yOffset={20}
-      className="py-12 sm:py-16 bg-white border-b border-neutral-100 font-sans"
+      className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans"
     >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
 
@@ -131,7 +123,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
 
         {/* Tab Switcher */}
         <div data-reveal-item className="flex justify-center mb-10">
-          <div className="inline-flex items-center p-1.5 rounded-full bg-neutral-100/80 border border-neutral-200/80 relative">
+          <div className="inline-flex items-center p-1.5 rounded-full bg-white/90 border border-neutral-200/80 shadow-xs relative">
             {(["phones", "laptops", "accessories"] as Tab[]).map((t) => {
               const isActive = activeTab === t;
               const label = t === "phones" ? "📱 Smartphones" : t === "laptops" ? "💻 Laptops" : "🎧 Accessories";
@@ -161,7 +153,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
           </div>
         </div>
 
-        {/* Brand Grid */}
+        {/* Brand Grid - 6 columns matching Apple-style squircle badges */}
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -169,7 +161,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 sm:gap-5"
+            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3.5 sm:gap-4.5 lg:gap-5"
           >
             {visibleBrands.map((brand, i) => (
               <BrandCard key={brand.id || i} brand={brand} index={i} />
@@ -181,7 +173,7 @@ export default function CategoriesSection({ categories = [], brands = [] }: Cate
         <div data-reveal-item className="text-center mt-10">
           <Link
             href="/products"
-            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-neutral-200/80 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black hover:border-black transition-all duration-300 bg-white"
+            className="inline-flex items-center gap-2 px-6 py-2.5 rounded-full border border-neutral-200/90 text-xs sm:text-sm font-semibold text-neutral-700 hover:text-black hover:border-black transition-all duration-300 bg-white shadow-xs"
           >
             <span>View All Brands &amp; Products</span>
             <span>→</span>

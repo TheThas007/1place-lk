@@ -50,40 +50,48 @@ export const siteSettings: SiteSettings = {
 
 // ===== Brands / Manufacturers =====
 export const DEFAULT_BRANDS: Brand[] = [
-  // ── Smartphones ──
+  // ── Top Featured / Smartphones ──
   { id: "brand-apple", name: "Apple", slug: "apple", logo_url: "https://cdn.simpleicons.org/apple/000000", product_group: "smartphones", sort_order: 1, status: "active", show_on_homepage: true },
-  { id: "brand-samsung", name: "Samsung", slug: "samsung", logo_url: "https://cdn.simpleicons.org/samsung/000000", product_group: "smartphones", sort_order: 2, status: "active", show_on_homepage: true },
-  { id: "brand-redmi", name: "Redmi", slug: "redmi", logo_url: "https://cdn.simpleicons.org/xiaomi/000000", product_group: "smartphones", sort_order: 3, status: "active", show_on_homepage: true },
-  { id: "brand-xiaomi", name: "Xiaomi", slug: "xiaomi", logo_url: "https://cdn.simpleicons.org/xiaomi/000000", product_group: "smartphones", sort_order: 4, status: "active", show_on_homepage: true },
-  { id: "brand-honor", name: "Honor", slug: "honor", logo_url: "https://cdn.simpleicons.org/honor/000000", product_group: "smartphones", sort_order: 5, status: "active", show_on_homepage: true },
-  { id: "brand-oppo", name: "Oppo", slug: "oppo", logo_url: "https://cdn.simpleicons.org/oppo/000000", product_group: "smartphones", sort_order: 6, status: "active", show_on_homepage: true },
-  { id: "brand-vivo", name: "Vivo", slug: "vivo", logo_url: "https://cdn.simpleicons.org/vivo/000000", product_group: "smartphones", sort_order: 7, status: "active", show_on_homepage: true },
-  { id: "brand-realme", name: "Realme", slug: "realme", logo_url: "https://cdn.simpleicons.org/realme/000000", product_group: "smartphones", sort_order: 8, status: "active", show_on_homepage: true },
-  { id: "brand-google", name: "Google Pixel", slug: "google", logo_url: "https://cdn.simpleicons.org/google/000000", product_group: "smartphones", sort_order: 9, status: "active", show_on_homepage: true },
-  { id: "brand-oneplus", name: "OnePlus", slug: "oneplus", logo_url: "https://cdn.simpleicons.org/oneplus/000000", product_group: "smartphones", sort_order: 10, status: "active", show_on_homepage: true },
-  { id: "brand-nokia", name: "Nokia", slug: "nokia", logo_url: "https://cdn.simpleicons.org/nokia/000000", product_group: "smartphones", sort_order: 11, status: "active", show_on_homepage: true },
-  { id: "brand-hmd", name: "HMD", slug: "hmd", logo_url: "https://icon.horse/icon/hmd.com", product_group: "smartphones", sort_order: 12, status: "active", show_on_homepage: true },
-  { id: "brand-greentel", name: "Greentel", slug: "greentel", logo_url: "https://icon.horse/icon/greentel.lk", product_group: "smartphones", sort_order: 13, status: "active", show_on_homepage: true },
+  { id: "brand-jbl", name: "JBL", slug: "jbl", logo_url: "https://cdn.simpleicons.org/jbl/FF3300", product_group: "accessories", sort_order: 2, status: "active", show_on_homepage: true },
+  { id: "brand-sharge", name: "SHARGE", slug: "sharge", logo_url: "https://icon.horse/icon/sharge.com", product_group: "accessories", sort_order: 3, status: "active", show_on_homepage: true },
+  { id: "brand-xiaomi", name: "Xiaomi", slug: "xiaomi", logo_url: "https://cdn.simpleicons.org/xiaomi/FF6900", product_group: "smartphones", sort_order: 4, status: "active", show_on_homepage: true },
+  { id: "brand-marshall", name: "Marshall", slug: "marshall", logo_url: "https://cdn.simpleicons.org/marshall/000000", product_group: "accessories", sort_order: 5, status: "active", show_on_homepage: true },
+  { id: "brand-sony", name: "SONY", slug: "sony", logo_url: "https://cdn.simpleicons.org/sony/000000", product_group: "accessories", sort_order: 6, status: "active", show_on_homepage: true },
+  { id: "brand-samsung", name: "Samsung", slug: "samsung", logo_url: "https://cdn.simpleicons.org/samsung/000000", product_group: "smartphones", sort_order: 7, status: "active", show_on_homepage: true },
+  { id: "brand-fitbit", name: "Fitbit", slug: "fitbit", logo_url: "https://cdn.simpleicons.org/fitbit/00B0B9", product_group: "accessories", sort_order: 8, status: "active", show_on_homepage: true },
+  { id: "brand-anker", name: "Anker", slug: "anker", logo_url: "https://cdn.simpleicons.org/anker/000000", product_group: "accessories", sort_order: 9, status: "active", show_on_homepage: true },
+  { id: "brand-bose", name: "Bose", slug: "bose", logo_url: "https://cdn.simpleicons.org/bose/000000", product_group: "accessories", sort_order: 10, status: "active", show_on_homepage: true },
+  { id: "brand-google", name: "Google", slug: "google", logo_url: "https://cdn.simpleicons.org/google", product_group: "smartphones", sort_order: 11, status: "active", show_on_homepage: true },
+  { id: "brand-haylou", name: "Haylou", slug: "haylou", logo_url: "https://icon.horse/icon/haylou.com", product_group: "accessories", sort_order: 12, status: "active", show_on_homepage: true },
+  
+  // ── Additional Smartphones ──
+  { id: "brand-redmi", name: "Redmi", slug: "redmi", logo_url: "https://cdn.simpleicons.org/xiaomi/FF6900", product_group: "smartphones", sort_order: 13, status: "active", show_on_homepage: true },
+  { id: "brand-honor", name: "Honor", slug: "honor", logo_url: "https://cdn.simpleicons.org/honor/000000", product_group: "smartphones", sort_order: 14, status: "active", show_on_homepage: true },
+  { id: "brand-oppo", name: "Oppo", slug: "oppo", logo_url: "https://cdn.simpleicons.org/oppo/000000", product_group: "smartphones", sort_order: 15, status: "active", show_on_homepage: true },
+  { id: "brand-vivo", name: "Vivo", slug: "vivo", logo_url: "https://cdn.simpleicons.org/vivo/000000", product_group: "smartphones", sort_order: 16, status: "active", show_on_homepage: true },
+  { id: "brand-realme", name: "Realme", slug: "realme", logo_url: "https://cdn.simpleicons.org/realme/000000", product_group: "smartphones", sort_order: 17, status: "active", show_on_homepage: true },
+  { id: "brand-oneplus", name: "OnePlus", slug: "oneplus", logo_url: "https://cdn.simpleicons.org/oneplus/F5010C", product_group: "smartphones", sort_order: 18, status: "active", show_on_homepage: true },
+  { id: "brand-nokia", name: "Nokia", slug: "nokia", logo_url: "https://cdn.simpleicons.org/nokia/000000", product_group: "smartphones", sort_order: 19, status: "active", show_on_homepage: true },
+  { id: "brand-hmd", name: "HMD", slug: "hmd", logo_url: "https://icon.horse/icon/hmd.com", product_group: "smartphones", sort_order: 20, status: "active", show_on_homepage: true },
+  { id: "brand-greentel", name: "Greentel", slug: "greentel", logo_url: "https://icon.horse/icon/greentel.lk", product_group: "smartphones", sort_order: 21, status: "active", show_on_homepage: true },
 
   // ── Laptops ──
-  { id: "brand-macbook", name: "Apple MacBook", slug: "macbook", logo_url: "https://cdn.simpleicons.org/apple/000000", product_group: "laptops", sort_order: 14, status: "active", show_on_homepage: true },
-  { id: "brand-asus", name: "Asus ROG", slug: "asus", logo_url: "https://cdn.simpleicons.org/asus/000000", product_group: "laptops", sort_order: 15, status: "active", show_on_homepage: true },
-  { id: "brand-msi", name: "MSI Gaming", slug: "msi", logo_url: "https://cdn.simpleicons.org/msi/000000", product_group: "laptops", sort_order: 16, status: "active", show_on_homepage: true },
-  { id: "brand-dell", name: "Dell XPS", slug: "dell", logo_url: "https://cdn.simpleicons.org/dell/000000", product_group: "laptops", sort_order: 17, status: "active", show_on_homepage: true },
-  { id: "brand-lenovo", name: "Lenovo ThinkPad", slug: "lenovo", logo_url: "https://cdn.simpleicons.org/lenovo/000000", product_group: "laptops", sort_order: 18, status: "active", show_on_homepage: true },
+  { id: "brand-macbook", name: "Apple MacBook", slug: "macbook", logo_url: "https://cdn.simpleicons.org/apple/000000", product_group: "laptops", sort_order: 22, status: "active", show_on_homepage: true },
+  { id: "brand-asus", name: "Asus ROG", slug: "asus", logo_url: "https://cdn.simpleicons.org/asus/000000", product_group: "laptops", sort_order: 23, status: "active", show_on_homepage: true },
+  { id: "brand-msi", name: "MSI Gaming", slug: "msi", logo_url: "https://cdn.simpleicons.org/msi/000000", product_group: "laptops", sort_order: 24, status: "active", show_on_homepage: true },
+  { id: "brand-dell", name: "Dell XPS", slug: "dell", logo_url: "https://cdn.simpleicons.org/dell/000000", product_group: "laptops", sort_order: 25, status: "active", show_on_homepage: true },
+  { id: "brand-lenovo", name: "Lenovo ThinkPad", slug: "lenovo", logo_url: "https://cdn.simpleicons.org/lenovo/000000", product_group: "laptops", sort_order: 26, status: "active", show_on_homepage: true },
 
   // ── Accessories & Audio ──
-  { id: "brand-jbl", name: "JBL", slug: "jbl", logo_url: "https://cdn.simpleicons.org/jbl/000000", product_group: "accessories", sort_order: 19, status: "active", show_on_homepage: true },
-  { id: "brand-anker", name: "Anker", slug: "anker", logo_url: "https://cdn.simpleicons.org/anker/000000", product_group: "accessories", sort_order: 20, status: "active", show_on_homepage: true },
-  { id: "brand-soundcore", name: "Soundcore", slug: "soundcore", logo_url: "https://icon.horse/icon/soundcore.com", product_group: "accessories", sort_order: 21, status: "active", show_on_homepage: true },
-  { id: "brand-ugreen", name: "UGREEN", slug: "ugreen", logo_url: "https://icon.horse/icon/ugreen.com", product_group: "accessories", sort_order: 22, status: "active", show_on_homepage: true },
-  { id: "brand-baseus", name: "Baseus", slug: "baseus", logo_url: "https://icon.horse/icon/baseus.com", product_group: "accessories", sort_order: 23, status: "active", show_on_homepage: true },
-  { id: "brand-dji", name: "DJI", slug: "dji", logo_url: "https://cdn.simpleicons.org/dji/000000", product_group: "accessories", sort_order: 24, status: "active", show_on_homepage: true },
-  { id: "brand-wiwu", name: "Wiwu", slug: "wiwu", logo_url: "https://icon.horse/icon/wiwu.com", product_group: "accessories", sort_order: 25, status: "active", show_on_homepage: true },
-  { id: "brand-lenyes", name: "LENYES", slug: "lenyes", logo_url: "https://icon.horse/icon/lenyes.com", product_group: "accessories", sort_order: 26, status: "active", show_on_homepage: true },
-  { id: "brand-oraimo", name: "Oraimo", slug: "oraimo", logo_url: "https://icon.horse/icon/oraimo.com", product_group: "accessories", sort_order: 27, status: "active", show_on_homepage: true },
-  { id: "brand-hoco", name: "Hoco", slug: "hoco", logo_url: "https://icon.horse/icon/hocotech.com", product_group: "accessories", sort_order: 28, status: "active", show_on_homepage: true },
-  { id: "brand-joyroom", name: "Joyroom", slug: "joyroom", logo_url: "https://icon.horse/icon/joyroom.com", product_group: "accessories", sort_order: 29, status: "active", show_on_homepage: true },
+  { id: "brand-soundcore", name: "Soundcore", slug: "soundcore", logo_url: "https://icon.horse/icon/soundcore.com", product_group: "accessories", sort_order: 27, status: "active", show_on_homepage: true },
+  { id: "brand-ugreen", name: "UGREEN", slug: "ugreen", logo_url: "https://icon.horse/icon/ugreen.com", product_group: "accessories", sort_order: 28, status: "active", show_on_homepage: true },
+  { id: "brand-baseus", name: "Baseus", slug: "baseus", logo_url: "https://icon.horse/icon/baseus.com", product_group: "accessories", sort_order: 29, status: "active", show_on_homepage: true },
+  { id: "brand-dji", name: "DJI", slug: "dji", logo_url: "https://cdn.simpleicons.org/dji/000000", product_group: "accessories", sort_order: 30, status: "active", show_on_homepage: true },
+  { id: "brand-wiwu", name: "Wiwu", slug: "wiwu", logo_url: "https://icon.horse/icon/wiwu.com", product_group: "accessories", sort_order: 31, status: "active", show_on_homepage: true },
+  { id: "brand-lenyes", name: "LENYES", slug: "lenyes", logo_url: "https://icon.horse/icon/lenyes.com", product_group: "accessories", sort_order: 32, status: "active", show_on_homepage: true },
+  { id: "brand-oraimo", name: "Oraimo", slug: "oraimo", logo_url: "https://icon.horse/icon/oraimo.com", product_group: "accessories", sort_order: 33, status: "active", show_on_homepage: true },
+  { id: "brand-hoco", name: "Hoco", slug: "hoco", logo_url: "https://icon.horse/icon/hocotech.com", product_group: "accessories", sort_order: 34, status: "active", show_on_homepage: true },
+  { id: "brand-joyroom", name: "Joyroom", slug: "joyroom", logo_url: "https://icon.horse/icon/joyroom.com", product_group: "accessories", sort_order: 35, status: "active", show_on_homepage: true },
 ];
 
 // ===== Product Categories (Product Types Only) =====
