@@ -70,7 +70,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const lastOrderId = useRef<string | null>(null);
 
   useEffect(() => {
-    const auth = sessionStorage.getItem("admin_auth");
+    const auth =
+      typeof window !== "undefined" &&
+      (sessionStorage.getItem("admin_auth") === "true" ||
+        localStorage.getItem("admin_auth") === "true");
     if (!auth) {
       router.push("/admin/login");
     } else {
@@ -192,7 +195,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         </div>
 
         {/* Sidebar Nav Links */}
-        <nav className="flex-1 overflow-y-auto px-4 py-4 space-y-1 custom-scrollbar">
+        <nav className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-1.5 custom-scrollbar">
           {SIDEBAR_ITEMS.map((item) => {
             const isActive = activeTabParam === item.id;
 
@@ -201,13 +204,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${isActive
+                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                  isActive
                     ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30"
-                    : "text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                    : "text-slate-300 hover:text-white hover:bg-white/10"
+                }`}
               >
-                <item.icon className={`w-4 h-4 ${isActive ? "text-white" : "text-white/40"}`} />
-                {item.label}
+                <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
+                <span className="truncate">{item.label}</span>
               </Link>
             );
           })}
@@ -245,7 +249,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
 
         {/* Top Header Bar */}
-        <header className="h-16 bg-[#0F172A] border-b border-white/10 px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0">
+        <header
+          data-admin-header="true"
+          className="h-16 bg-[#0F172A] border-b border-white/10 px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0"
+        >
           <div className="flex items-center gap-3 flex-1 max-w-xl">
             <button
               onClick={() => setMobileSidebarOpen(true)}

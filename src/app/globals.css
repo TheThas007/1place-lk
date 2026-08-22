@@ -21,7 +21,7 @@
 }
 
 /* Hide public site layout elements when in admin panel */
-body:has([data-admin-root]) header,
+body:has([data-admin-root]) header:not([data-admin-header]),
 body:has([data-admin-root]) footer,
 body:has([data-admin-root]) nav.safe-bottom,
 body:has([data-admin-root]) .whatsapp-fab {
