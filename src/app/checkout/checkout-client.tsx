@@ -42,6 +42,7 @@ import {
   getDefaultPostalCodeForDistrict,
   isValidSriLankanPhone,
 } from "@/lib/sri-lanka-geo";
+import { launchPayHerePayment } from "@/lib/payhere";
 
 export default function CheckoutClient() {
   const router = useRouter();
@@ -489,74 +490,46 @@ export default function CheckoutClient() {
 
       // 3. Process payment flow
       if (paymentMethod === "card") {
-        // Trigger PayHere gateway with secure server hash
-        const hashRes = await fetch("/api/payhere/hash", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
+        try {
+          await launchPayHerePayment({
             orderId: generatedOrderId,
             amount: finalTotal,
             currency: "LKR",
-          }),
-        });
-        const hashData = await hashRes.json();
-
-        if (!hashData.hash) {
-          alert("PayHere error: " + (hashData.error || "Could not initialize payment."));
-          setSubmitting(false);
-          return;
-        }
-
-        if (typeof window !== "undefined" && (window as any).payhere) {
-          const payhere = (window as any).payhere;
-
-          const paymentObj = {
-            sandbox: hashData.mode !== "live",
-            merchant_id: hashData.merchantId,
-            return_url: `${window.location.origin}/checkout/success?id=${generatedOrderId}`,
-            cancel_url: `${window.location.origin}/checkout`,
-            notify_url: `${window.location.origin}/api/payhere/notify`,
-            order_id: generatedOrderId,
-            items:
-              itemsToUse.map((i) => i.name).join(", ") ||
-              `Street Mobile Order #${generatedOrderId.slice(0, 8)}`,
-            amount: hashData.amount,
-            currency: "LKR",
-            hash: hashData.hash,
-            first_name: firstName.trim(),
-            last_name: lastName.trim() || "",
+            customerFirstName: firstName.trim(),
+            customerLastName: lastName.trim() || firstName.trim(),
             email: email.trim(),
             phone: phone.trim(),
-            address: address.trim() || "Street Mobile Pickup",
-            city: city.trim() || district,
-            country: "Sri Lanka",
-          };
-
-          payhere.onCompleted = function onCompleted(completedOrderId: string) {
-            console.log("PayHere payment completed successfully:", completedOrderId);
-            clearCart();
-            router.push(`/checkout/success?id=${generatedOrderId}`);
-          };
-
-          payhere.onDismissed = function onDismissed() {
-            setSubmitting(false);
-          };
-
-          payhere.onError = function onError(error: any) {
-            console.error("PayHere Error:", error);
-            alert(
-              "Payment could not be processed. Please verify your card details or choose Cash on Delivery."
-            );
-            setSubmitting(false);
-          };
-
-          payhere.startPayment(paymentObj);
-          return;
-        } else {
-          // Fallback if PayHere script not loaded
-          clearCart();
-          router.push(`/checkout/success?id=${generatedOrderId}`);
+            address:
+              deliveryOption === "pickup"
+                ? "163, Kandaswamy Kovil Road, Vavuniya"
+                : address.trim(),
+            city: deliveryOption === "pickup" ? "Vavuniya" : city.trim() || district,
+            items:
+              itemsToUse.map((i) => `${i.name} (${i.quantity})`).join(", ") ||
+              `Street Mobile Order #${generatedOrderId.slice(0, 8)}`,
+            onCompleted: (completedOrderId) => {
+              console.log("[Checkout] PayHere payment completed successfully:", completedOrderId);
+              clearCart();
+              router.push(`/payment/success?order_id=${generatedOrderId}`);
+            },
+            onDismissed: () => {
+              console.log("[Checkout] PayHere payment dismissed by customer.");
+              setSubmitting(false);
+            },
+            onError: (error) => {
+              console.error("[Checkout] PayHere Error:", error);
+              alert(
+                "Payment could not be completed via PayHere. Please verify your card details or select Cash on Delivery (COD)."
+              );
+              setSubmitting(false);
+            },
+          });
+        } catch (gatewayErr: any) {
+          console.error("[Checkout] Gateway launch error:", gatewayErr);
+          alert(gatewayErr?.message || "Failed to initialize PayHere payment gateway. Please try again.");
+          setSubmitting(false);
         }
+        return;
       } else {
         // Cash on Delivery
         clearCart();

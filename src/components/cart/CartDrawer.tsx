@@ -7,6 +7,7 @@ import {
   ArrowLeft, CreditCard, CheckCircle2, Truck, Lock, Loader2 
 } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { siteSettings } from "@/lib/data";
@@ -31,6 +32,7 @@ const DISTRICTS = [
 ];
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
+  const router = useRouter();
   const { cart, removeFromCart, updateQuantity, total, itemCount, clearCart } = useCart();
   const { user } = useAuth();
   
@@ -503,19 +505,22 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       {/* Card Payment Option */}
                       {isCardAllowed && (
                         <button
-                          onClick={() => setStep("card-form")}
+                          onClick={() => {
+                            handleClose();
+                            router.push("/checkout");
+                          }}
                           className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-purple-950/20 border border-purple-500/30 hover:border-purple-400/80 hover:bg-purple-500/10 transition-all duration-300 group text-left shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20"
                         >
                           <div className="absolute top-0 right-0 px-3 py-1 bg-purple-500/20 border-b border-l border-purple-500/30 text-purple-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
-                            Instant & Secure
+                            Instant &amp; Secure
                           </div>
                           <div className="flex items-center gap-4">
                             <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300 shadow-md">
                               <CreditCard className="w-6 h-6" />
                             </div>
                             <div>
-                              <p className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">Credit / Debit Card</p>
-                              <p className="text-xs text-white/50 mt-0.5">Visa, MasterCard, Amex encrypted payment</p>
+                              <p className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">Credit / Debit Card (PayHere)</p>
+                              <p className="text-xs text-white/50 mt-0.5">Visa, MasterCard, Amex via PayHere Gateway</p>
                             </div>
                           </div>
                         </button>

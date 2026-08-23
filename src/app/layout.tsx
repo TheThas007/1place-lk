@@ -71,10 +71,8 @@ export default function RootLayout({
       lang="en"
       className={`h-full antialiased ${inter.variable} ${outfit.variable} ${manrope.variable}`}
     >
-      <head>
-        <Script src="https://www.payhere.lk/lib/payhere.js" strategy="lazyOnload" />
-      </head>
       <body className="min-h-full flex flex-col font-sans bg-black text-white">
+        <Script src="https://www.payhere.lk/lib/payhere.js" strategy="afterInteractive" />
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>

@@ -194,7 +194,7 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
     paymentMethod: data.paymentMethod ? (data.paymentMethod === "cod" ? "COD" : data.paymentMethod === "payhere" ? "PayHere" : data.paymentMethod) : "COD",
     paymentStatus,
     orderStatus,
-    transactionId: data.transactionId || data.paymentId || "",
+    transactionId: data.transactionId || data.paymentId || data.payherePaymentId || "",
     trackingNumber: data.trackingNumber || "",
     estimatedDelivery: data.estimatedDelivery || "",
     statusHistory: Array.isArray(data.statusHistory) ? data.statusHistory : [],
