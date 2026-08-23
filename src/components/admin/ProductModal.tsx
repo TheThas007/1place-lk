@@ -178,6 +178,7 @@ export default function ProductModal({
   const [basePrice, setBasePrice] = useState<number>(0);
   const [baseOldPrice, setBaseOldPrice] = useState<number | null>(null);
   const [discountPercent, setDiscountPercent] = useState<number>(0);
+  const [baseStock, setBaseStock] = useState<number>(10);
 
   // Payment Options
   const [allowCod, setAllowCod] = useState(true);
@@ -297,6 +298,7 @@ export default function ProductModal({
       setStatus("active");
       setBasePrice(initialData.price || 0);
       setBaseOldPrice(initialData.old_price || null);
+      setBaseStock(initialData.stock_count ?? ((initialData as any).stock_quantity ?? 10));
       if (initialData.old_price && initialData.price && initialData.old_price > initialData.price) {
         setDiscountPercent(Math.round(((initialData.old_price - initialData.price) / initialData.old_price) * 100));
       } else {
@@ -435,6 +437,7 @@ export default function ProductModal({
       setStatus("active");
       setBasePrice(0);
       setBaseOldPrice(null);
+      setBaseStock(10);
       setAllowCod(true);
       setAllowCard(true);
       setAllowWhatsapp(true);
