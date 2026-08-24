@@ -43,6 +43,15 @@ import {
   Award,
   Sliders,
   Smartphone,
+  LayoutGrid,
+  FolderOpen,
+  FolderTree,
+  Flame,
+  Wrench,
+  ImageIcon,
+  Images,
+  Bot,
+  Settings,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -233,7 +242,7 @@ function DashboardContent() {
         setGoogleReviewsSettings({ ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...googleSnap.data() });
       }
 
-      // Banners (Guaranteed 100% Unique Keys)
+      // Banners (Merge offer_banners and banners collections)
       const banSnap = await getDocs(collection(db, "offer_banners"));
       const banList = banSnap.docs.map((d) => {
         const data = d.data();
@@ -245,16 +254,37 @@ function DashboardContent() {
         } as OfferBanner;
       });
 
+      let legacyBanList: OfferBanner[] = [];
+      try {
+        const legacyBanSnap = await getDocs(collection(db, "banners"));
+        legacyBanList = legacyBanSnap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            internalName: data.title || "Banner",
+            headline: data.title || "",
+            subheadline: data.subtitle || "",
+            desktop_image_url: data.image_url || data.desktop_image_url || "",
+            mobile_image_url: data.mobile_image_url || data.image_url || "",
+            cta_url: data.link || data.cta_url || "/",
+            status: (data.is_active === false || data.status === "paused") ? "paused" : "active",
+            placement: data.placement || "homepage_after_categories",
+            ...data,
+          } as OfferBanner;
+        });
+      } catch (err) {
+        console.warn("Error fetching legacy banners collection:", err);
+      }
+
       const bannerMap = new Map<string, OfferBanner>();
+      legacyBanList.forEach((b) => {
+        if (b.id) bannerMap.set(b.id, b);
+      });
       banList.forEach((b) => {
         if (b.id) bannerMap.set(b.id, b);
       });
 
-      if (banSnap.docs.length === 0) {
-        fallbackOfferBanners.forEach((f) => {
-          if (!bannerMap.has(f.id)) bannerMap.set(f.id, f);
-        });
-      } else {
+      if (bannerMap.size === 0) {
         fallbackOfferBanners.forEach((f) => {
           if (!bannerMap.has(f.id)) bannerMap.set(f.id, f);
         });
@@ -273,10 +303,40 @@ function DashboardContent() {
       const galList = galSnap.docs.map((d) => ({ id: d.id, ...d.data() } as GalleryImage));
       setGalleryImages(galList);
 
-      // Users / Customers
+      // Users / Customers (Merge registered users and guest checkout profiles)
       const userSnap = await getDocs(collection(db, "users"));
-      const userList = userSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
-      setCustomers(userList);
+      const userList = userSnap.docs.map((d) => ({ id: d.id, isGuest: false, ...d.data() }));
+
+      let guestList: any[] = [];
+      try {
+        const guestSnap = await getDocs(collection(db, "guest_profiles"));
+        guestList = guestSnap.docs.map((d) => {
+          const data = d.data();
+          return {
+            id: d.id,
+            isGuest: true,
+            displayName: data.name || data.fullName || data.customerName || "Guest Customer",
+            email: data.email || "guest@streetmobile.lk",
+            phoneNumber: data.phone || data.phoneNumber || "",
+            createdAt: data.createdAt || data.updatedAt || "",
+            ...data,
+          };
+        });
+      } catch (err) {
+        console.warn("Error fetching guest profiles collection:", err);
+      }
+
+      const customerMap = new Map<string, any>();
+      guestList.forEach((g) => {
+        const key = g.email || g.id;
+        customerMap.set(key, g);
+      });
+      userList.forEach((u: any) => {
+        const key = u.email || u.id;
+        customerMap.set(key, u);
+      });
+
+      setCustomers(Array.from(customerMap.values()));
 
       // Visual Showcase Settings
       try {
@@ -490,9 +550,14 @@ function DashboardContent() {
 
   const handleDeleteCustomer = async (id: string) => {
     if (!confirm("Are you sure you want to delete this customer record?")) return;
+    const target = customers.find((c) => c.id === id);
     try {
       if (id) {
-        await deleteDoc(doc(db, "users", id));
+        if (target?.isGuest) {
+          await deleteDoc(doc(db, "guest_profiles", id));
+        } else {
+          await deleteDoc(doc(db, "users", id));
+        }
       }
       setCustomers(customers.filter((c) => c.id !== id));
     } catch (e) {
@@ -795,6 +860,7 @@ function DashboardContent() {
               </Link>
             </div>
           )}
+
 
           {/* 4 Top KPI Summary Cards */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
@@ -1362,34 +1428,55 @@ function DashboardContent() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {(customers.length > 0 ? customers : orders).map((c, i) => (
-                  <tr key={i} className="hover:bg-white/[0.02]">
-                    <td className="py-3.5 font-bold text-white flex items-center gap-2.5">
-                      <div className="w-7 h-7 rounded-full bg-blue-600/20 text-blue-400 flex items-center justify-center font-bold text-xs">
-                        {(c.displayName || c.customerName || "Customer").charAt(0)}
-                      </div>
-                      <span>{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
-                    </td>
-                    <td className="py-3.5 text-white/70">{c.email || "customer@streetmobile.lk"}</td>
-                    <td className="py-3.5 font-mono text-white/70">{c.phoneNumber || c.phone || "077 414 1118"}</td>
-                    <td className="py-3.5 font-bold text-white">3 Orders</td>
-                    <td className="py-3.5">
-                      <span className="bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-2.5 py-0.5 rounded-full font-bold text-[10px]">
-                        VIP Customer
-                      </span>
-                    </td>
-                    <td className="py-3.5 text-right flex items-center justify-end gap-3">
-                      <button className="text-blue-400 hover:underline font-bold text-xs">View History</button>
-                      <button
-                        onClick={() => handleDeleteCustomer(c.id)}
-                        className="text-red-400 hover:text-red-300 font-bold text-xs flex items-center gap-1 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition-colors"
-                        title="Delete Customer Record"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" /> Delete
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {customers.map((c, i) => {
+                  const customerOrdersCount = orders.filter(
+                    (o) => o.userId === c.id || (c.email && o.email && o.email.toLowerCase() === c.email.toLowerCase())
+                  ).length;
+
+                  return (
+                    <tr key={c.id || i} className="hover:bg-white/[0.02]">
+                      <td className="py-3.5 font-bold text-white flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
+                          c.isGuest ? "bg-purple-600/20 text-purple-400" : "bg-blue-600/20 text-blue-400"
+                        }`}>
+                          {(c.displayName || c.customerName || "C").charAt(0).toUpperCase()}
+                        </div>
+                        <span>{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
+                      </td>
+                      <td className="py-3.5 text-white/70">{c.email || "—"}</td>
+                      <td className="py-3.5 font-mono text-white/70">{c.phoneNumber || c.phone || "—"}</td>
+                      <td className="py-3.5 font-bold text-white font-mono">
+                        {customerOrdersCount} {customerOrdersCount === 1 ? "Order" : "Orders"}
+                      </td>
+                      <td className="py-3.5">
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
+                          c.isGuest
+                            ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
+                            : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
+                        }`}>
+                          {c.isGuest ? "Guest Customer" : "Registered User"}
+                        </span>
+                      </td>
+                      <td className="py-3.5 text-right flex items-center justify-end gap-3">
+                        <button
+                          onClick={() => {
+                            router.push("/admin/dashboard?tab=orders");
+                          }}
+                          className="text-blue-400 hover:underline font-bold text-xs"
+                        >
+                          View Orders
+                        </button>
+                        <button
+                          onClick={() => handleDeleteCustomer(c.id)}
+                          className="text-red-400 hover:text-red-300 font-bold text-xs flex items-center gap-1 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition-colors"
+                          title="Delete Customer Record"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

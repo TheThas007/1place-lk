@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, LayoutGrid, Search, ShoppingCart, User } from "lucide-react";
+import { Home, Store, Search, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 
@@ -20,7 +20,10 @@ export default function MobileNav() {
   }
 
   const isHome = pathname === "/";
-  const isCategories = pathname.startsWith("/categories") || pathname === "/categories";
+  const isShop =
+    pathname.startsWith("/categories") ||
+    pathname.startsWith("/category") ||
+    pathname.startsWith("/shop-by-brand");
   const isCart = pathname.startsWith("/cart");
   const isAccount = pathname.startsWith("/orders") || pathname.startsWith("/login");
 
@@ -44,21 +47,21 @@ export default function MobileNav() {
           <span>Home</span>
         </Link>
 
-        {/* 2. Categories */}
+        {/* 2. Shop */}
         <Link
           href="/categories"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isCategories ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
+            isShop ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
           )}
         >
-          <LayoutGrid
+          <Store
             className={cn(
               "w-5 h-5 transition-transform",
-              isCategories ? "text-[#ED0712]" : "text-white/60"
+              isShop ? "text-[#ED0712]" : "text-white/60"
             )}
           />
-          <span>Categories</span>
+          <span>Shop</span>
         </Link>
 
         {/* 3. Search */}

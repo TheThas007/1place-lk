@@ -72,7 +72,7 @@ export default function NewArrivalsGridBanner() {
   if (!loaded) {
     // Skeleton state to prevent cumulative layout shift (CLS)
     return (
-      <div className="col-span-1 md:col-span-2 rounded-2xl bg-neutral-200 animate-pulse aspect-[4/3] md:aspect-auto h-full min-h-[220px]" />
+      <div className="col-span-1 md:col-span-2 rounded-2xl bg-neutral-200 animate-pulse aspect-[16/9] md:aspect-auto h-full min-h-[190px] md:min-h-[220px]" />
     );
   }
 
@@ -103,7 +103,7 @@ export default function NewArrivalsGridBanner() {
   const validExternalUrl = isExternal ? validateUrl(rawDestUrl) : null;
 
   const BannerContent = () => (
-    <div className="relative w-full h-full min-h-[200px] sm:min-h-[240px] md:min-h-full rounded-2xl overflow-hidden bg-neutral-900 group shadow-sm hover:shadow-xl transition-all duration-500">
+    <div className="relative w-full aspect-[16/9] md:aspect-auto h-full min-h-[190px] md:min-h-full rounded-2xl overflow-hidden bg-neutral-900 group shadow-xs hover:shadow-xl transition-all duration-500">
       <picture className="w-full h-full block">
         {/* Mobile Banner Image for screens under md (768px) */}
         {mobileImage && (

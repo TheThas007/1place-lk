@@ -48,26 +48,26 @@ const SIDEBAR_ITEMS = [
   { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "mega-menu", label: "Category Mega Menu", icon: FolderTree, href: "/admin/dashboard?tab=mega-menu" },
   { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
-  { id: "today-deal", label: "Today's Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
+  { id: "collections", label: "Featured Collections", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
+  { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
+  { id: "today-deal", label: "Today’s Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "repairs", label: "Mobile Repairs", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
   { id: "suppliers", label: "Suppliers", icon: Building, href: "/admin/dashboard?tab=suppliers" },
   { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
   { id: "warranties", label: "Warranty Management", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
-  { id: "collections", label: "Featured Collections", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
-  { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
   { id: "gallery", label: "Store Gallery", icon: Images, href: "/admin/dashboard?tab=gallery" },
   { id: "hero", label: "Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
   { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
   { id: "footer", label: "Footer Settings", icon: Globe, href: "/admin/dashboard?tab=footer" },
   { id: "inventory", label: "Inventory", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
-  { id: "payments", label: "Payments", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
-  { id: "reviews", label: "Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
+  { id: "payments", label: "Payments & Gateways", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
+  { id: "reviews", label: "Google Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
-  { id: "assistant", label: "Streetla Assistant", icon: Bot, href: "/admin/dashboard?tab=assistant" },
+  { id: "assistant", label: "Streetla AI Assistant", icon: Bot, href: "/admin/dashboard?tab=assistant" },
   { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
-  { id: "settings", label: "Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
+  { id: "settings", label: "Store Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
 ];
 
 import { Suspense } from "react";
@@ -160,6 +160,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
+    localStorage.removeItem("admin_auth");
     router.push("/admin/login");
   };
 
@@ -186,13 +187,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* ── Left Navigation Sidebar (Dark Mode) ── */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[260px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-          }`}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[270px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 shrink-0 ${
+          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
       >
-        {/* Brand Logo Header */}
-        <div className="h-16 px-6 border-b border-white/10 flex items-center justify-between">
-          <Link href="/admin/dashboard" className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+        {/* 1. Brand Logo Header (Fixed at top) */}
+        <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between shrink-0">
+          <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+            <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-600/30 group-hover:scale-105 transition-transform">
               <Smartphone className="w-5 h-5" />
             </div>
             <div>
@@ -206,15 +208,41 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </Link>
 
           <button
+            type="button"
             onClick={() => setMobileSidebarOpen(false)}
-            className="p-1 rounded-lg text-white/40 hover:text-white lg:hidden"
+            className="p-1.5 rounded-lg text-white/40 hover:text-white hover:bg-white/5 lg:hidden transition-colors"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
-        {/* Sidebar Nav Links */}
-        <nav className="flex-1 min-h-0 overflow-y-auto px-4 py-4 space-y-1.5 custom-scrollbar">
+        {/* 2. Optional Compact Help / WhatsApp support card */}
+        <div className="p-3 border-b border-white/10 shrink-0 bg-[#0B1120]/40">
+          <div className="p-2.5 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2 min-w-0">
+              <div className="w-6 h-6 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
+                <HelpCircle className="w-3.5 h-3.5" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-[11px] font-bold text-white leading-tight">Need Help?</p>
+                <p className="text-[10px] text-white/40">WhatsApp Support</p>
+              </div>
+            </div>
+            <button
+              type="button"
+              onClick={() => window.open("https://wa.me/94774141118", "_blank")}
+              className="px-2.5 py-1 bg-white/10 hover:bg-blue-600 hover:text-white text-white text-[10px] font-bold rounded-lg transition-all shrink-0"
+            >
+              Contact
+            </button>
+          </div>
+        </div>
+
+        {/* 3. Scrollable Navigation Menu containing all 25 tabs */}
+        <nav
+          data-admin-nav="true"
+          className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-1 custom-scrollbar"
+        >
           {SIDEBAR_ITEMS.map((item) => {
             const isActive = activeTabParam === item.id;
 
@@ -223,50 +251,38 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs sm:text-sm font-semibold transition-all ${
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
                   isActive
-                    ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30"
+                    ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30 ring-1 ring-blue-400/30"
                     : "text-slate-300 hover:text-white hover:bg-white/10"
                 }`}
               >
-                <item.icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-slate-400"}`} />
-                <span className="truncate">{item.label}</span>
+                <item.icon
+                  className={`w-4 h-4 shrink-0 transition-colors ${
+                    isActive ? "text-white" : "text-slate-400"
+                  }`}
+                />
+                <span className="whitespace-nowrap">{item.label}</span>
               </Link>
             );
           })}
         </nav>
 
-        {/* Bottom Support Widget Card */}
-        <div className="p-4 border-t border-white/10">
-          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl text-center space-y-3">
-            <div className="w-8 h-8 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center mx-auto">
-              <HelpCircle className="w-4 h-4" />
-            </div>
-            <div>
-              <p className="text-xs font-bold text-white">Need Help?</p>
-              <p className="text-[11px] text-white/40">Contact support team</p>
-            </div>
-            <button
-              onClick={() => window.open("https://wa.me/94774141118", "_blank")}
-              className="w-full py-2 px-3 bg-white/10 border border-white/10 text-white text-xs font-bold rounded-xl hover:bg-white/20 transition-colors"
-            >
-              Contact Support
-            </button>
-          </div>
-
+        {/* 4. Sign Out button pinned at the bottom */}
+        <div className="p-3 border-t border-white/10 shrink-0 bg-[#0F172A]">
           <button
+            type="button"
             onClick={handleLogout}
-            className="w-full flex items-center justify-center gap-2 px-3 py-2 mt-2 text-xs font-bold text-red-400 hover:bg-red-500/10 rounded-xl transition-colors"
+            className="w-full flex items-center justify-center gap-2 px-3 py-2.5 text-xs font-bold text-red-400 hover:bg-red-500/10 hover:text-red-300 rounded-xl transition-all border border-red-500/20 active:scale-[0.98]"
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Sign Out
+            <LogOut className="w-4 h-4" />
+            <span>Sign Out</span>
           </button>
         </div>
       </aside>
 
       {/* ── Main Content Area (Dark Theme) ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-
         {/* Top Header Bar */}
         <header
           data-admin-header="true"
@@ -274,6 +290,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         >
           <div className="flex items-center gap-3 flex-1 max-w-xl">
             <button
+              type="button"
               onClick={() => setMobileSidebarOpen(true)}
               className="p-2 rounded-xl text-white/60 hover:text-white lg:hidden"
             >
@@ -339,7 +356,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
           </div>
         </header>
 
-        {/* Dynamic Content */}
+        {/* Dynamic Content (No extra horizontal tab row gap) */}
         <main className="flex-1 overflow-y-auto p-4 sm:p-8 bg-[#090D14] text-white">
           {children}
         </main>

@@ -37,7 +37,7 @@ export default function FeaturedProducts({
   initialVisible?: boolean;
 }) {
   const [isVisible, setIsVisible] = useState(initialVisible);
-  const [allProducts] = useState<Product[]>(initialProducts && initialProducts.length > 0 ? initialProducts : fallbackProducts);
+  const [allProducts] = useState<Product[]>(initialProducts || []);
 
   // Real-time Firestore sync on settings/ui
   useEffect(() => {
@@ -63,14 +63,18 @@ export default function FeaturedProducts({
     }
   }, []);
 
-  // When disabled, completely remove from the DOM with zero empty space or margin
-  if (!isVisible) {
+  // When disabled or empty, completely remove from the DOM with zero empty space or margin
+  if (!isVisible || !allProducts || allProducts.length === 0) {
     return null;
   }
 
   let featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
   if (featuredProducts.length === 0) {
     featuredProducts = allProducts.slice(0, 4);
+  }
+
+  if (featuredProducts.length === 0) {
+    return null;
   }
 
   return (

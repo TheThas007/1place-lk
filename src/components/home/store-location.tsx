@@ -29,54 +29,131 @@ export default function StoreLocation() {
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Store Card ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        <div className="bg-white border border-[#E8E8E8] rounded-2xl p-3 flex flex-col gap-3 shadow-2xs overflow-hidden">
-          {/* Top: Aerial / Storefront Visual */}
-          <div className="relative w-full h-[125px] rounded-xl overflow-hidden">
-            <img
-              src="https://images.unsplash.com/photo-1577495508048-b635879837f1?q=80&w=800"
-              alt="Vavuniya Store Location"
-              loading="lazy"
-              className="w-full h-full object-cover object-center"
-            />
+      {/* ── Mobile Layout (< 768px): Google Maps & Store Details Card ── */}
+      <section
+        className="md:hidden w-full bg-white px-3 sm:px-4 py-4 select-none"
+        aria-label="Store Location & Contact"
+      >
+        <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 flex flex-col gap-3.5 shadow-sm overflow-hidden">
+          {/* Header Badge & Title */}
+          <div className="flex items-center justify-between gap-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">
+              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Store Location</span>
+            </div>
+            <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
+              ★ 4.9 <span className="text-neutral-400 font-normal">(285+ Reviews)</span>
+            </span>
           </div>
 
-          {/* Bottom: Store Information */}
-          <div className="flex flex-col gap-2">
-            <h3 className="text-[16px] font-black text-neutral-900 tracking-tight">
+          <div>
+            <h3 className="text-lg font-black text-neutral-900 tracking-tight leading-tight">
               Visit Our Store in Vavuniya
             </h3>
+            <p className="text-xs text-neutral-500 mt-0.5">
+              Experience the latest smartphones and professional repair services.
+            </p>
+          </div>
 
-            <div className="flex items-start gap-2 text-neutral-600 text-[11px] font-medium">
-              <MapPin className="w-3.5 h-3.5 text-neutral-700 shrink-0 mt-0.5" />
-              <span>{siteSettings.address || "No. 125, Main Street, Vavuniya, Sri Lanka"}</span>
+          {/* Google Maps Live Frame */}
+          <div className="relative w-full h-[180px] rounded-xl overflow-hidden bg-neutral-950 border border-neutral-200/80 shadow-xs">
+            {loadMap ? (
+              <iframe
+                title="STREET MOBILE Google Maps Location Mobile"
+                src={siteSettings.google_maps_embed}
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="w-full h-full block"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-900 text-white p-4 text-center">
+                <MapPin className="w-6 h-6 text-emerald-400 mb-1.5 animate-bounce" />
+                <p className="text-xs text-neutral-300 font-medium mb-2">Street Mobile — Vavuniya</p>
+                <button
+                  type="button"
+                  onClick={() => setLoadMap(true)}
+                  className="px-3.5 py-1 rounded-full bg-white text-black text-[11px] font-bold shadow-xs active:scale-95 transition-transform"
+                >
+                  Load Google Map
+                </button>
+              </div>
+            )}
+          </div>
+
+          {/* Store Details List */}
+          <div className="space-y-2.5 pt-1">
+            {/* Address */}
+            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
+              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                <MapPin className="w-3.5 h-3.5 text-neutral-900" />
+              </div>
+              <div>
+                <span className="font-bold text-neutral-900 block text-xs">Address</span>
+                <span className="text-neutral-600 text-[11px] leading-relaxed">
+                  {siteSettings.address || "No. 125, 2nd Cross Street, Vavuniya, Sri Lanka"}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-start gap-2 text-neutral-600 text-[11px] font-medium">
-              <Clock className="w-3.5 h-3.5 text-neutral-700 shrink-0 mt-0.5" />
-              <span>Mon - Sat: 9:00 AM - 7:00 PM | Sun: 9:00 AM - 2:00 PM</span>
+            {/* Opening Hours */}
+            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
+              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Clock className="w-3.5 h-3.5 text-neutral-900" />
+              </div>
+              <div>
+                <span className="font-bold text-neutral-900 block text-xs">Business Hours</span>
+                <span className="text-neutral-600 text-[11px] leading-relaxed block">
+                  Mon - Sat: {siteSettings.business_hours?.weekdays || "9:00 AM - 8:30 PM"}
+                </span>
+                <span className="text-neutral-600 text-[11px] leading-relaxed block">
+                  Sun: {siteSettings.business_hours?.sunday || "9:00 AM - 3:00 PM"}
+                </span>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 text-neutral-600 text-[11px] font-medium">
-              <Phone className="w-3.5 h-3.5 text-neutral-700 shrink-0" />
-              <span>{siteSettings.phone || "+94 77 123 4567"}</span>
-            </div>
-
-            <div className="pt-1">
-              <a
-                href={siteSettings.google_maps_link || "https://maps.google.com"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="w-full py-2 bg-black text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm hover:bg-neutral-800 active:scale-98 transition-all cursor-pointer"
-              >
-                <span>Get Directions</span>
-                <span className="text-sm leading-none">→</span>
-              </a>
+            {/* Phone */}
+            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
+              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                <Phone className="w-3.5 h-3.5 text-neutral-900" />
+              </div>
+              <div>
+                <span className="font-bold text-neutral-900 block text-xs">Direct Call & WhatsApp</span>
+                <a
+                  href={`tel:${siteSettings.phone || "+94774141118"}`}
+                  className="text-neutral-900 font-bold text-xs hover:underline block"
+                >
+                  {siteSettings.phone || "+94 77 414 1118"}
+                </a>
+              </div>
             </div>
           </div>
+
+          {/* Action CTAs */}
+          <div className="grid grid-cols-2 gap-2 pt-1">
+            <a
+              href={siteSettings.google_maps_link || "https://maps.google.com"}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="py-2.5 px-3 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
+            >
+              <MapPin className="w-3.5 h-3.5 shrink-0" />
+              <span>Get Directions</span>
+            </a>
+
+            <a
+              href={`tel:${siteSettings.phone || "+94774141118"}`}
+              className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
+            >
+              <Phone className="w-3.5 h-3.5 shrink-0" />
+              <span>Call Store</span>
+            </a>
+          </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout ── */}
       <div className="hidden md:block">

@@ -212,46 +212,88 @@ export default function HeroSection() {
 
   return (
     <>
-      {/* ── Mobile Hero Banner Card (Exact Reference Matching) ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 pt-2.5 pb-2 select-none">
-        <div className="relative w-full rounded-2xl bg-[#090909] border border-neutral-800 p-4 sm:p-5 overflow-hidden shadow-xs min-h-[190px] sm:min-h-[210px] flex flex-col justify-between text-white">
-          {/* Floating Phone Image on Right */}
-          <div className="absolute right-0 top-0 bottom-0 w-[50%] pointer-events-none flex items-center justify-end overflow-hidden">
-            <img
-              src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
-              alt={currentSlide.alt || line1Text || "Latest Smartphones"}
-              className="w-full h-full object-cover object-center scale-105"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800";
-              }}
-            />
+      {/* ── Mobile Hero Banner (Fixed 16:9 Aspect Ratio, Full-Width Edge-to-Edge with Text Overlay) ── */}
+      <section
+        className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
+        aria-label="Mobile Featured Hero Showcase"
+      >
+        <div className="relative w-full aspect-[16/9] overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white">
+          {/* Full-Frame Edge-to-Edge Background Image */}
+          <div className="absolute inset-0 z-0 overflow-hidden">
+            <AnimatePresence mode="wait">
+              <motion.img
+                key={currentSlide.id || currentIndex}
+                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, scale: 1.03 }}
+                animate={{ opacity: 1, scale: 1.0 }}
+                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7 }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
+                alt={currentSlide.alt || line1Text || "Latest Smartphones"}
+                className="w-full h-full object-cover"
+                style={{
+                  objectPosition: currentSlide.mobile_image_position || currentSlide.desktop_image_position || "center",
+                }}
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800";
+                }}
+              />
+            </AnimatePresence>
+
+            {/* Subtle transparent dark gradient on left for text readability while keeping product image clearly visible on the right */}
+            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-60% to-transparent z-10 pointer-events-none" />
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
           </div>
 
-          {/* Left Text & CTA Content */}
-          <div className="relative z-10 max-w-[60%]">
-            <span className="inline-block bg-[#0284c7] text-white text-[9px] font-bold px-2 py-0.5 rounded-full mb-1.5 uppercase tracking-wide">
-              {currentSlide.campaign_label || "NEW ARRIVAL"}
-            </span>
-            <h1 className="text-[20px] sm:text-[22px] font-black text-white leading-tight tracking-tight mb-1.5">
+          {/* Left Text & CTA Content Overlay */}
+          <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto">
+            {currentSlide.show_badge !== false && (
+              <span
+                className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0"
+                style={{
+                  color: currentSlide.badge_text_color || "#FFFFFF",
+                  backgroundColor: currentSlide.badge_bg_color || "#0284c7",
+                }}
+              >
+                {currentSlide.campaign_label || "NEW ARRIVAL"}
+              </span>
+            )}
+
+            <h1
+              className="text-[20px] sm:text-[23px] font-black leading-[1.12] tracking-tight mb-1 drop-shadow-md"
+              style={{ color: line1Color }}
+            >
               {line1Text || "Latest Smartphones."}
               {line2Text ? <br /> : " "}
               {line2Text || "Ultimate Performance."}
             </h1>
-            <p className="text-neutral-400 text-[10px] sm:text-[11px] leading-snug line-clamp-2 mb-3">
-              {currentSlide.description || "Discover the latest devices with power that keeps up with you."}
-            </p>
-            <Link
-              href={currentSlide.primary_button_url || "/products"}
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-black font-bold text-xs rounded-full shadow-sm hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer"
-            >
-              <span>{currentSlide.primary_button_text || "Shop Now"}</span>
-              <ArrowRight className="w-3 h-3 text-black" />
-            </Link>
+
+            {currentSlide.show_description !== false && currentSlide.description && (
+              <p
+                className="text-neutral-200 text-[11px] sm:text-xs leading-snug line-clamp-2 mb-2.5 drop-shadow-xs font-medium"
+                style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
+              >
+                {currentSlide.description}
+              </p>
+            )}
+
+            {currentSlide.show_primary_button !== false && (
+              <Link
+                href={currentSlide.primary_button_url || "/products"}
+                className="inline-flex items-center justify-center gap-2 px-5 py-2 min-h-[44px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
+                style={{
+                  color: currentSlide.button_text_color || "#000000",
+                  backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
+                }}
+              >
+                <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
+            )}
           </div>
 
-          {/* Slider Indicator Dots at Bottom */}
+          {/* Slider Indicator Dots at Bottom Left */}
           {slides.length > 1 && (
-            <div className="relative z-10 flex items-center gap-1.5 pt-2">
+            <div className="relative z-20 flex items-center gap-1.5 pt-1">
               {slides.map((_, idx) => {
                 const isActive = idx === currentIndex;
                 return (
@@ -262,8 +304,8 @@ export default function HeroSection() {
                     aria-label={`Slide ${idx + 1}`}
                     className={`transition-all duration-300 rounded-full cursor-pointer ${
                       isActive
-                        ? "w-2 h-2 bg-[#ED0712]"
-                        : "w-1.5 h-1.5 bg-white/40 hover:bg-white/70"
+                        ? "w-2.5 h-2 bg-[#ED0712]"
+                        : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
                     }`}
                   />
                 );
@@ -271,7 +313,7 @@ export default function HeroSection() {
             </div>
           )}
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
       <section

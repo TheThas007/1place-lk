@@ -6,6 +6,7 @@ import { ArrowRight, Images } from "lucide-react";
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { motion } from "framer-motion";
 
 function InstagramIcon({ className = "w-3 h-3" }: { className?: string }) {
   return (
@@ -265,13 +266,13 @@ export default function GallerySection({
         isPausedRef.current;
 
       if (!shouldPause && seqWidth > 0 && dt > 0 && dt < 0.25) {
-        // Calculate responsive speed
-        let speed = settings.desktopSpeed;
+        // Calculate responsive slow speed
+        let speed = settings.desktopSpeed ? Math.min(settings.desktopSpeed, 24) : 22;
         if (typeof window !== "undefined") {
           if (window.innerWidth < 768) {
-            speed = settings.mobileSpeed;
+            speed = settings.mobileSpeed ? Math.min(settings.mobileSpeed, 18) : 16;
           } else if (window.innerWidth < 1024) {
-            speed = settings.tabletSpeed;
+            speed = settings.tabletSpeed ? Math.min(settings.tabletSpeed, 20) : 18;
           }
         }
 
@@ -300,9 +301,82 @@ export default function GallerySection({
     };
   }, [settings, isReducedMotion, baseItems]);
 
+  const mobileGalleryRef = useRef<HTMLDivElement>(null);
+  const isInteractingGalleryRef = useRef(false);
+  const resumeTimerGalleryRef = useRef<NodeJS.Timeout | null>(null);
+  const isGallerySectionVisibleRef = useRef(false);
+
+  // Step-based Horizontal Autoplay (Mobile: 5.5s per photo card, pause/resume on touch)
+  useEffect(() => {
+    if (isReducedMotion || visibleImages.length <= 1) return;
+
+    const el = mobileGalleryRef.current;
+    if (!el) return;
+
+    // Viewport visibility check
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isGallerySectionVisibleRef.current = entry.isIntersecting;
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+
+    // Tab visibility
+    const handleVisibility = () => {
+      if (document.hidden) {
+        isGallerySectionVisibleRef.current = false;
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const timer = setInterval(() => {
+      if (!isGallerySectionVisibleRef.current || isInteractingGalleryRef.current || document.hidden) {
+        return;
+      }
+
+      if (el) {
+        const children = el.children;
+        if (children.length <= 1) return;
+
+        const firstChild = children[0] as HTMLElement;
+        const secondChild = children[1] as HTMLElement;
+        const step = secondChild
+          ? secondChild.offsetLeft - firstChild.offsetLeft
+          : firstChild.offsetWidth + 14;
+
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (el.scrollLeft >= maxScroll - 20) {
+          el.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          el.scrollBy({ left: step, behavior: "smooth" });
+        }
+      }
+    }, 5500);
+
+    return () => {
+      clearInterval(timer);
+      if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isReducedMotion, visibleImages.length]);
+
+  const handleGalleryInteractionStart = () => {
+    isInteractingGalleryRef.current = true;
+    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
+  };
+
+  const handleGalleryInteractionEnd = () => {
+    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
+    resumeTimerGalleryRef.current = setTimeout(() => {
+      isInteractingGalleryRef.current = false;
+    }, 5000);
+  };
+
   // Pointer drag & touch swipe handlers
   const handlePointerDown = (e: React.PointerEvent) => {
-    if (!settings.dragEnabled || isReducedMotion || baseItems.length <= 1) return;
+    if (settings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
     isDraggingRef.current = true;
     dragStartXRef.current = e.clientX;
     dragStartOffsetRef.current = offsetRef.current;
@@ -337,7 +411,7 @@ export default function GallerySection({
       wasDraggingRef.current = true;
       setTimeout(() => {
         wasDraggingRef.current = false;
-      }, 250);
+      }, 100);
     }
 
     if (settings.pauseOnInteraction) {
@@ -357,63 +431,132 @@ export default function GallerySection({
     }
   };
 
-  if (visibleImages.length === 0) return null;
-
   const isContinuous =
     settings.endlessScrollEnabled &&
+    settings.autoplayEnabled &&
     !isReducedMotion &&
     baseItems.length > 1;
 
+  if (visibleImages.length === 0) {
+    return null;
+  }
+
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Horizontal Gallery Rail ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        {/* Mobile Header */}
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
-            Life at Street Mobile
-          </h2>
-          <Link
-            href="/gallery"
-            className="text-xs font-bold text-[#ED0712] hover:underline"
-          >
-            View all
-          </Link>
-        </div>
+      {/* ── Mobile Layout (< 768px): Apple-Inspired Horizontal Visual Gallery Rail ── */}
+      <section
+        className="md:hidden w-full bg-[#FAFAFA] py-6 select-none overflow-hidden border-y border-neutral-200/80"
+        aria-label="Life at Street Mobile Mobile Gallery"
+      >
+        {/* Mobile Header Row */}
+        <motion.div
+          initial={{ opacity: 0, y: isReducedMotion ? 0 : 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="px-4 mb-4 flex flex-col items-start"
+        >
+          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-1.5 shadow-2xs select-none">
+            <Images className="w-3 h-3 text-blue-600 shrink-0" />
+            <span>Store Highlights</span>
+          </div>
 
-        {/* Horizontal Photo Rail */}
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+          <div className="w-full flex items-baseline justify-between gap-2">
+            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight">
+              Life at Street Mobile
+            </h2>
+            <Link
+              href="/gallery"
+              className="inline-flex items-center gap-1 text-xs font-bold text-neutral-800 hover:text-black shrink-0 active:scale-95 transition-transform"
+            >
+              <span>View all</span>
+              <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+
+          <p className="text-xs text-neutral-500 font-normal mt-1 max-w-xs leading-relaxed">
+            Moments from our showroom, repair lab, and customer deliveries.
+          </p>
+        </motion.div>
+
+        {/* Horizontal Visual Photo Rail (Slow Auto-Glide, Snap Centered, Side Peeks) */}
+        <div
+          ref={mobileGalleryRef}
+          onTouchStart={handleGalleryInteractionStart}
+          onTouchEnd={handleGalleryInteractionEnd}
+          onPointerDown={handleGalleryInteractionStart}
+          onPointerUp={handleGalleryInteractionEnd}
+          onMouseEnter={handleGalleryInteractionStart}
+          onMouseLeave={handleGalleryInteractionEnd}
+          onFocus={handleGalleryInteractionStart}
+          onBlur={handleGalleryInteractionEnd}
+          className="w-full flex gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[10vw] sm:px-[9vw] py-2"
+        >
           {visibleImages.map((image, idx) => {
             const titleText = image.caption || image.title || "Life at Street Mobile";
             const validPostUrl = validateUrl(image.post_url) || "/gallery";
+            const isInstagram =
+              image.platform === "instagram" ||
+              (validPostUrl && validPostUrl.includes("instagram.com"));
 
             return (
-              <a
+              <motion.a
                 key={`mob-gal-${image.id || idx}`}
                 href={validPostUrl}
                 target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
                 rel="noopener noreferrer"
-                className="w-[110px] sm:w-[125px] shrink-0 aspect-[3/4] rounded-xl overflow-hidden relative shadow-2xs snap-start block group cursor-pointer"
+                aria-label={`Gallery photo: ${titleText}`}
+                initial={{
+                  opacity: 0,
+                  y: isReducedMotion ? 0 : 20,
+                  scale: isReducedMotion ? 1 : 0.96,
+                }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{
+                  duration: 0.55,
+                  delay: idx < 4 ? idx * 0.08 : 0,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 snap-center block group cursor-pointer bg-neutral-900"
               >
+                {/* 1. Full-Card Image */}
                 <img
                   src={image.image_url}
                   alt={titleText}
-                  loading="lazy"
-                  className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                  loading={idx < 3 ? "eager" : "lazy"}
+                  className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                   }}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-transparent flex items-end p-2">
-                  <p className="text-white text-[10px] font-bold leading-tight line-clamp-2 m-0">
+
+                {/* 2. Top-Left Category Badge */}
+                {image.category && (
+                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
+                    {image.category}
+                  </div>
+                )}
+
+                {/* 3. Top-Right Social Badge */}
+                {isInstagram && (
+                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
+                    <InstagramIcon className="w-2.5 h-2.5 text-pink-400" />
+                    <span>Instagram</span>
+                  </div>
+                )}
+
+                {/* 4. Bottom Transparent Gradient & Caption */}
+                <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 bg-gradient-to-t from-black/90 via-black/40 via-60% to-transparent flex items-end z-10">
+                  <p className="text-white text-xs sm:text-sm font-bold leading-snug line-clamp-2 drop-shadow-xs m-0">
                     {titleText}
                   </p>
                 </div>
-              </a>
+              </motion.a>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout ── */}
       <div className="hidden md:block">

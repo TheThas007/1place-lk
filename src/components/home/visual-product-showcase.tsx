@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ChevronLeft, ChevronRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
 import { VisualShowcaseSettings, VisualShowcaseSlide, ShowcasePlacement } from "@/lib/types";
 import { DEFAULT_SHOWCASE_SETTINGS } from "@/lib/data";
 
@@ -131,41 +131,83 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Editorial Banner ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2.5 select-none">
+      {/* ── Mobile Layout (< 768px): Apple-Style Full-Width Edge-to-Edge Product Showcase (520–620px) ── */}
+      <section
+        className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
+        style={backgroundStyle}
+        aria-label={showcase.section_title || "Featured Visual Showcase"}
+      >
         <div
-          style={backgroundStyle}
-          className="relative w-full rounded-2xl overflow-hidden border border-[#E8E8E8] shadow-xs min-h-[180px] sm:min-h-[200px] flex flex-col justify-between items-center text-center pt-4 px-3 pb-0"
+          className="relative w-full h-[clamp(400px,108vw,440px)] min-h-[400px] max-h-[440px] aspect-auto border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-7 sm:pt-8 px-4 pb-0"
         >
-          {/* Top Typography & Badges */}
-          <div className="relative z-10 flex flex-col items-center">
+          {/* Top Content Block: Badge -> Heading -> Subtitle -> Action CTAs */}
+          <div className="relative z-10 w-full flex flex-col items-center max-w-md mx-auto space-y-1.5">
+            {/* 1. Eyebrow / Campaign Badge */}
+            <div className="flex items-center gap-1.5 select-none">
+              <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-neutral-900 text-white shadow-2xs">
+                New
+              </span>
+            </div>
+
+            {/* 2. Main Heading (Centered, desktop heading color) */}
             {hasTitle && (
-              <h2 className="text-[19px] sm:text-xl font-black text-[#1D1D1F] tracking-tight leading-tight mb-1.5">
+              <h2
+                className="text-xl sm:text-2xl font-black tracking-tight leading-tight transition-colors"
+                style={{ color: currentSlide.heading_color || "#1D1D1F" }}
+              >
                 {currentSlide.title}
               </h2>
             )}
-            <div className="flex items-center gap-1.5 text-xs font-semibold text-neutral-700">
-              <span className="bg-black text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider">
-                New
-              </span>
-              <span className="text-[11px] font-medium text-neutral-700">
-                {currentSlide.subtitle || "Pre-order now"}
-              </span>
-            </div>
+
+            {/* 3. Subtitle (Centered, desktop subtitle color) */}
+            {hasSubtitle && (
+              <p
+                className="text-xs sm:text-sm font-normal max-w-xs leading-relaxed"
+                style={{ color: currentSlide.subtitle_color || "#6E6E73" }}
+              >
+                {currentSlide.subtitle}
+              </p>
+            )}
+
+            {/* 4. Action CTA Buttons (Centered Row, min 44px touch height, desktop colors) */}
+            {hasButtons && (
+              <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5 z-20">
+                {hasPrimaryCta && (
+                  <Link
+                    href={currentSlide.primary_cta_url || "/products"}
+                    className="inline-flex items-center justify-center min-h-[44px] px-5 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold bg-neutral-900 hover:bg-black text-white transition-all active:scale-95 shadow-sm"
+                  >
+                    {currentSlide.primary_cta_text}
+                  </Link>
+                )}
+
+                {hasSecondaryCta && (
+                  <Link
+                    href={currentSlide.secondary_cta_url || "/products"}
+                    className="inline-flex items-center justify-center min-h-[44px] px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium border border-neutral-900/30 hover:border-neutral-900 text-neutral-900 hover:bg-neutral-900/5 transition-all active:scale-95"
+                    style={{
+                      color: currentSlide.heading_color || "#1D1D1F",
+                    }}
+                  >
+                    {currentSlide.secondary_cta_text}
+                  </Link>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Bottom Floating Product Visual */}
-          <div className="relative w-full flex items-end justify-center mt-2 max-h-[125px] overflow-hidden">
+          {/* Lower 52-58%: Large Product Visual (object-contain, scaled large, non-overlapping) */}
+          <div className="relative w-full flex-1 flex items-end justify-center overflow-hidden max-h-[58%] mt-auto">
             <Link
               href={targetProductUrl}
               aria-label={`View ${currentSlide.title || "featured product"}`}
-              className="w-full flex items-end justify-center"
+              className="w-full h-full flex items-end justify-center"
             >
               <img
                 src={currentSlide.mobile_image || currentSlide.desktop_image || "/placeholder-phone.webp"}
                 alt={currentSlide.title || "Featured Visual"}
                 loading="lazy"
-                className="max-h-[120px] w-auto object-contain object-bottom scale-105"
+                className="max-h-[98%] w-auto max-w-[92%] object-contain object-bottom"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                 }}
@@ -173,7 +215,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
             </Link>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout ── */}
       <section

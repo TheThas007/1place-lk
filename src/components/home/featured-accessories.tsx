@@ -20,7 +20,7 @@ export default async function FeaturedAccessories() {
   }
 
   if (!allProducts || allProducts.length === 0) {
-    allProducts = fallbackProducts;
+    return null;
   }
 
   // Filter for accessories or non-phone products
@@ -33,7 +33,7 @@ export default async function FeaturedAccessories() {
   );
 
   if (accessoryProducts.length === 0) {
-    accessoryProducts = allProducts;
+    return null;
   }
 
   const featuredAccessories = accessoryProducts.slice(0, 8);

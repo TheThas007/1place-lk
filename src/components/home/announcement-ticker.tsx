@@ -94,7 +94,7 @@ export default function AnnouncementTicker() {
     <div
       ref={tickerRef}
       data-announcement-ticker
-      className="w-full overflow-hidden border-none m-0 p-0 select-none"
+      className="hidden md:block w-full overflow-hidden border-none m-0 p-0 select-none"
       style={{
         backgroundColor: settings.bg_color || "#000000",
         color: settings.text_color || "#FFFFFF",

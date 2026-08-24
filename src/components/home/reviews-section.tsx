@@ -6,6 +6,7 @@ import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { motion } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -390,13 +391,13 @@ export default function ReviewsSection({
         isPausedRef.current;
 
       if (!shouldPause && seqWidth > 0 && dt > 0 && dt < 0.25) {
-        // Responsive speed
-        let speed = currentSettings.desktopSpeed || 36;
+        // Responsive gentle slow speed
+        let speed = currentSettings.desktopSpeed ? Math.min(currentSettings.desktopSpeed, 24) : 22;
         if (typeof window !== "undefined") {
           if (window.innerWidth < 768) {
-            speed = currentSettings.mobileSpeed || 20;
+            speed = currentSettings.mobileSpeed ? Math.min(currentSettings.mobileSpeed, 18) : 16;
           } else if (window.innerWidth < 1024) {
-            speed = currentSettings.tabletSpeed || 28;
+            speed = currentSettings.tabletSpeed ? Math.min(currentSettings.tabletSpeed, 20) : 18;
           }
         }
 
@@ -425,6 +426,79 @@ export default function ReviewsSection({
       if (animFrameIdRef.current) cancelAnimationFrame(animFrameIdRef.current);
     };
   }, [currentSettings, effectiveDirection, isReducedMotion, baseItems]);
+
+  const mobileReviewsRef = useRef<HTMLDivElement>(null);
+  const isInteractingReviewsRef = useRef(false);
+  const resumeTimerReviewsRef = useRef<NodeJS.Timeout | null>(null);
+  const isReviewsSectionVisibleRef = useRef(false);
+
+  // Step-based Horizontal Autoplay (Mobile: 7.5s per review card, pause/resume on touch)
+  useEffect(() => {
+    if (isReducedMotion || displayReviews.length <= 1) return;
+
+    const el = mobileReviewsRef.current;
+    if (!el) return;
+
+    // Viewport visibility check
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isReviewsSectionVisibleRef.current = entry.isIntersecting;
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+
+    // Tab visibility
+    const handleVisibility = () => {
+      if (document.hidden) {
+        isReviewsSectionVisibleRef.current = false;
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const timer = setInterval(() => {
+      if (!isReviewsSectionVisibleRef.current || isInteractingReviewsRef.current || document.hidden) {
+        return;
+      }
+
+      if (el) {
+        const children = el.children;
+        if (children.length <= 1) return;
+
+        const firstChild = children[0] as HTMLElement;
+        const secondChild = children[1] as HTMLElement;
+        const step = secondChild
+          ? secondChild.offsetLeft - firstChild.offsetLeft
+          : firstChild.offsetWidth + 14;
+
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (el.scrollLeft >= maxScroll - 20) {
+          el.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          el.scrollBy({ left: step, behavior: "smooth" });
+        }
+      }
+    }, 7500);
+
+    return () => {
+      clearInterval(timer);
+      if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [isReducedMotion, displayReviews.length]);
+
+  const handleReviewsInteractionStart = () => {
+    isInteractingReviewsRef.current = true;
+    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
+  };
+
+  const handleReviewsInteractionEnd = () => {
+    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
+    resumeTimerReviewsRef.current = setTimeout(() => {
+      isInteractingReviewsRef.current = false;
+    }, 5000);
+  };
 
   // Pointer drag & touch swipe handlers
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -488,75 +562,173 @@ export default function ReviewsSection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Reviews Rail ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3.5 select-none">
-        {/* Header & Rating Summary */}
-        <div className="text-center mb-3">
-          <h2 className="text-[17px] sm:text-lg font-black text-neutral-900 tracking-tight mb-1">
+      {/* ── Mobile Layout (< 768px): Apple-Inspired Swipeable Reviews Rail ── */}
+      <section
+        className="md:hidden w-full bg-white py-6 select-none overflow-hidden"
+        aria-label="Customer Reviews"
+      >
+        {/* Section Header */}
+        <motion.div
+          initial={{ opacity: 0, y: isReducedMotion ? 0 : 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center px-4 mb-5 max-w-sm mx-auto flex flex-col items-center"
+        >
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-2 select-none">
+            <GoogleIcon className="w-3 h-3 shrink-0" />
+            <span>Google Reviews</span>
+          </div>
+
+          <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight mb-2">
             Loved by Customers Across Sri Lanka
           </h2>
-          <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold">
-            <span>{overallRating.toFixed(1)}</span>
-            <div className="flex items-center text-emerald-500">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} className="w-3 h-3 fill-emerald-500 text-emerald-500" />
-              ))}
+
+          <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold mb-3 flex-wrap">
+            <div className="flex items-center gap-1">
+              <span className="text-amber-500 font-black text-base leading-none">
+                {overallRating.toFixed(1)}
+              </span>
+              <div className="flex items-center">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
             </div>
-            <span className="text-neutral-400 font-normal">
-              ({totalReviewsCount.toLocaleString()}+ Reviews)
+            <span className="text-neutral-300">•</span>
+            <span className="font-medium text-neutral-500">
+              Based on {totalReviewsCount}+ Verified Reviews
             </span>
           </div>
-        </div>
 
-        {/* Horizontal Reviews Rail */}
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+          <div className="flex items-center justify-center gap-2.5">
+            <a
+              href={mainViewAllUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold bg-neutral-900 text-white active:scale-95 shadow-xs transition-transform"
+            >
+              <span>View All</span>
+              <ExternalLink className="w-3 h-3" />
+            </a>
+            <a
+              href={mainWriteReviewUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-medium border border-neutral-300 text-neutral-800 active:scale-95 transition-transform"
+            >
+              <Edit3 className="w-3 h-3" />
+              <span>Write Review</span>
+            </a>
+          </div>
+        </motion.div>
+
+        {/* Horizontal Swipeable Card Rail (Slow Auto-Glide, Snap Centered, 8-12% Peeks on Sides) */}
+        <div
+          ref={mobileReviewsRef}
+          onTouchStart={handleReviewsInteractionStart}
+          onTouchEnd={handleReviewsInteractionEnd}
+          onPointerDown={handleReviewsInteractionStart}
+          onPointerUp={handleReviewsInteractionEnd}
+          onMouseEnter={handleReviewsInteractionStart}
+          onMouseLeave={handleReviewsInteractionEnd}
+          onFocus={handleReviewsInteractionStart}
+          onBlur={handleReviewsInteractionEnd}
+          className="w-full flex gap-3.5 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[8vw] sm:px-[7vw] py-2"
+        >
           {displayReviews.map((rev, idx) => {
-            const authorInitial = (rev.author_name || "C").charAt(0).toUpperCase();
-            const avatarColorClass =
-              idx % 3 === 0
-                ? "bg-emerald-600"
-                : idx % 3 === 1
-                ? "bg-green-600"
-                : "bg-red-600";
+            const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
+            const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
+            const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
 
             return (
-              <div
+              <motion.a
                 key={`mob-rev-${rev.id || idx}`}
-                className="w-[235px] sm:w-[260px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl p-3 flex flex-col justify-between shadow-2xs snap-start"
+                href={cardTargetUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`Google review by ${rev.author_name}`}
+                initial={{
+                  opacity: 0,
+                  y: isReducedMotion ? 0 : 20,
+                  scale: isReducedMotion ? 1 : 0.97,
+                }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{
+                  duration: 0.55,
+                  delay: idx < 4 ? idx * 0.08 : 0,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0 bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs snap-center transition-all duration-200 cursor-pointer select-none"
               >
-                {/* Top: Stars & Time */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-emerald-500">
-                    {[...Array(rev.rating || 5)].map((_, i) => (
-                      <Star key={i} className="w-3 h-3 fill-emerald-500 text-emerald-500" />
-                    ))}
+                {/* 1. Top Badges & Stars */}
+                <div>
+                  <div className="flex items-center justify-between gap-2 mb-3">
+                    <div className="flex items-center gap-0.5">
+                      {[...Array(safeRating)].map((_, i) => (
+                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                      ))}
+                    </div>
+
+                    <div className="flex items-center gap-1">
+                      {rev.featured && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+                          <Sparkles className="w-2.5 h-2.5 text-amber-600" />
+                          <span>Featured</span>
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
+                        <span>Verified</span>
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-[10px] text-neutral-400 font-medium">
-                    {rev.review_date || "Recent"}
-                  </span>
+
+                  {/* 2. Review Text Body */}
+                  <div className="relative mb-2">
+                    <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
+                    <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
+                      {rev.text}
+                    </p>
+                  </div>
                 </div>
 
-                {/* Text */}
-                <p className="text-[11px] text-neutral-800 leading-relaxed font-normal my-2 line-clamp-3">
-                  {rev.text}
-                </p>
-
-                {/* Bottom Avatar & Name */}
-                <div className="flex items-center gap-2 pt-1 border-t border-neutral-100">
-                  <div
-                    className={`w-5 h-5 rounded-full ${avatarColorClass} text-white font-bold text-[10px] flex items-center justify-center shrink-0`}
-                  >
-                    {authorInitial}
+                {/* 3. Reviewer Profile (Bottom Aligned) */}
+                <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
+                      {rev.author_photo ? (
+                        <img
+                          src={rev.author_photo}
+                          alt={rev.author_name}
+                          className="w-full h-full object-cover"
+                          draggable={false}
+                        />
+                      ) : (
+                        <span>{authorInitial}</span>
+                      )}
+                    </div>
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-1">
+                        <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
+                          {rev.author_name}
+                        </h4>
+                        <GoogleIcon className="w-3 h-3 shrink-0" />
+                      </div>
+                      <p className="text-[10px] text-neutral-400 m-0">
+                        {rev.review_date || "Verified Google Review"}
+                      </p>
+                    </div>
                   </div>
-                  <span className="text-xs font-bold text-neutral-900 truncate">
-                    {rev.author_name}
-                  </span>
+
+                  <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                 </div>
-              </div>
+              </motion.a>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout ── */}
       <div className="hidden md:block">

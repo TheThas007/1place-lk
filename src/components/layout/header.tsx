@@ -541,25 +541,6 @@ export default function Header() {
           </div>
         </div>
 
-        {/* ── Mobile Full-Width Search Row (Row 2 on screens < 768px) ── */}
-        <div className="md:hidden px-4 pb-2.5 pt-0.5">
-          <button
-            type="button"
-            onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-            className="w-full h-[40px] px-3.5 rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 flex items-center justify-between text-left text-white/50 active:scale-[0.99] transition-all cursor-pointer shadow-xs"
-            aria-label="Search phones, brands and accessories"
-          >
-            <div className="flex items-center gap-2.5 min-w-0">
-              <Search className="w-4 h-4 text-white/50 shrink-0" />
-              <span className="text-xs font-medium text-white/50 truncate">
-                Search phones, brands & accessories...
-              </span>
-            </div>
-            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/10 text-white/70 shrink-0">
-              Search
-            </span>
-          </button>
-        </div>
 
         {/* Bottom glow line */}
         <div className="absolute bottom-0 left-0 right-0 h-[1px] overflow-hidden">

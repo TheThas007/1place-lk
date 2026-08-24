@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Category, Brand, Department } from "@/lib/types";
 import { DEFAULT_BRANDS } from "@/lib/data";
 import { DEFAULT_DEPARTMENTS, getDefaultBrandDepartments } from "@/lib/firestore-brands";
@@ -14,6 +15,42 @@ interface CategoriesSectionProps {
   categories?: Category[];
   brands?: Brand[];
   departments?: Department[];
+}
+
+function MobileBrandCard({
+  brand,
+  activeDepartmentSlug,
+}: {
+  brand: Brand;
+  activeDepartmentSlug: string;
+}) {
+  const [imgError, setImgError] = useState(false);
+  const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+  const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
+
+  return (
+    <Link
+      href={targetLink}
+      title={brand.name}
+      className="group relative flex items-center justify-center p-2 sm:p-2.5 rounded-xl bg-white border border-[#E8E8E8] shadow-2xs hover:border-neutral-400 active:scale-95 transition-all w-full aspect-square min-h-[44px]"
+    >
+      <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
+        {!imgError && logoUrl ? (
+          <img
+            src={logoUrl}
+            alt={brand.logo_alt_text || `${brand.name} logo`}
+            loading="lazy"
+            className="max-h-[60%] max-w-[78%] w-auto h-auto object-contain transition-transform duration-200 group-hover:scale-105"
+            onError={() => setImgError(true)}
+          />
+        ) : (
+          <span className="text-[11px] sm:text-xs font-black text-black tracking-tight text-center truncate px-1 select-none">
+            {brand.name}
+          </span>
+        )}
+      </div>
+    </Link>
+  );
 }
 
 function BrandCard({
@@ -71,6 +108,7 @@ export default function CategoriesSection({
   departments = DEFAULT_DEPARTMENTS,
 }: CategoriesSectionProps) {
   const [activeDeptSlug, setActiveDeptSlug] = useState<string>("phones");
+  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
   const [liveBrands, setLiveBrands] = useState<Brand[]>(() => {
     return (brands && brands.length > 0 ? brands : DEFAULT_BRANDS).map((b) => ({
       ...b,
@@ -155,57 +193,106 @@ export default function CategoriesSection({
       .sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0));
   }, [liveBrands, activeDeptSlug]);
 
+  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 6);
+
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact 2-Row 5-Column Brand Grid ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        {/* Mobile Header: Title & View All */}
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
+      {/* ── Mobile Layout (< 768px): Approved 3-Column Grid with Category Selector & Show More ── */}
+      <div id="mobile-shop-by-brand" className="md:hidden w-full bg-white px-4 py-4 select-none">
+        {/* 1. Mobile Header: Left-Aligned Title & Subtitle */}
+        <div className="mb-3">
+          <h2 className="text-[20px] font-black text-neutral-900 tracking-tight leading-tight">
             Shop by Brand
           </h2>
-          <Link
-            href="/products"
-            className="text-xs font-bold text-[#ED0712] hover:underline"
-          >
-            View all
-          </Link>
+          <p className="text-neutral-500 text-xs mt-0.5 font-medium leading-relaxed">
+            Browse our full lineup of genuine products from top global manufacturers.
+          </p>
         </div>
 
-        {/* 5-Column 2-Row Brand Grid */}
-        <div className="grid grid-cols-5 gap-1.5 sm:gap-2">
-          {liveBrands
-            .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
-            .slice(0, 10)
-            .map((brand) => {
-              const targetLink = `/shop-by-brand/${activeDeptSlug}/${brand.slug}`;
-              const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+        {/* 2. Category Selector: Horizontally Scrollable Pills */}
+        <div
+          role="tablist"
+          aria-label="Brand categories"
+          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 mb-3.5 -mx-4 px-4 whitespace-nowrap snap-x"
+        >
+          {liveDepts
+            .filter((d) => d.enabled !== false)
+            .map((dept) => {
+              const isActive = activeDeptSlug === dept.slug;
+              const icon =
+                dept.slug === "phones"
+                  ? "📱"
+                  : dept.slug === "laptops-tablets"
+                  ? "💻"
+                  : "🎧";
 
               return (
-                <Link
-                  key={`mob-brand-${brand.id || brand.slug}`}
-                  href={targetLink}
-                  className="bg-white border border-[#E8E8E8] rounded-[10px] h-[52px] sm:h-[60px] flex items-center justify-center p-1.5 shadow-2xs hover:border-black active:scale-95 transition-all"
+                <button
+                  key={`mob-tab-${dept.slug}`}
+                  role="tab"
+                  aria-selected={isActive}
+                  type="button"
+                  onClick={() => {
+                    setActiveDeptSlug(dept.slug);
+                    setIsMobileExpanded(false);
+                  }}
+                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer snap-start ${
+                    isActive
+                      ? "bg-black text-white shadow-xs"
+                      : "bg-[#F1F3F5] text-neutral-700 hover:text-black border border-neutral-200/60"
+                  }`}
                 >
-                  {logoUrl ? (
-                    <img
-                      src={logoUrl}
-                      alt={brand.name}
-                      loading="lazy"
-                      className="max-h-6 sm:max-h-7 max-w-[85%] object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <span className="text-[10px] sm:text-xs font-black text-black tracking-tight text-center truncate">
-                      {brand.name}
-                    </span>
-                  )}
-                </Link>
+                  <span className="text-xs">{icon}</span>
+                  <span>{dept.name}</span>
+                </button>
               );
             })}
         </div>
+
+        {/* 3. Mobile Brand Grid (3 Columns, Equal Squares) */}
+        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {visibleBrands.length > 0 ? (
+            mobileVisibleBrands.map((brand) => (
+              <MobileBrandCard
+                key={`mob-brand-${activeDeptSlug}-${brand.id || brand.slug}`}
+                brand={brand}
+                activeDepartmentSlug={activeDeptSlug}
+              />
+            ))
+          ) : (
+            <div className="col-span-3 py-6 text-center text-neutral-400 text-xs font-medium bg-[#FAFAFA] rounded-xl border border-neutral-100">
+              No brands available in this category.
+            </div>
+          )}
+        </div>
+
+        {/* 4. Show More / Show Less Button (If more than 6 active brands exist) */}
+        {visibleBrands.length > 6 && (
+          <div className="mt-3">
+            <button
+              type="button"
+              onClick={() => {
+                if (isMobileExpanded) {
+                  setIsMobileExpanded(false);
+                  const el = document.getElementById("mobile-shop-by-brand");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                } else {
+                  setIsMobileExpanded(true);
+                }
+              }}
+              className="w-full h-[40px] rounded-xl bg-[#F8F9FA] hover:bg-[#F1F3F5] border border-neutral-200/80 text-neutral-800 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all cursor-pointer shadow-2xs"
+            >
+              <span>{isMobileExpanded ? "Show Less" : "Show More Brands"}</span>
+              {isMobileExpanded ? (
+                <ChevronUp className="w-4 h-4 text-neutral-600" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-neutral-600" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ── Desktop Layout ── */}

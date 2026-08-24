@@ -306,58 +306,145 @@ export default function TodayDealSection({
 
   return (
     <>
-      {/* ── Mobile Today's Deal Section (Exact Reference Matching) ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2.5 select-none">
-        <div className="relative w-full rounded-2xl bg-black border border-neutral-800 p-4 overflow-hidden shadow-xs text-white min-h-[145px] sm:min-h-[155px] flex items-center justify-between">
-          {/* Right Floating Product Photos */}
-          <div className="absolute right-0 bottom-0 top-0 w-[48%] pointer-events-none flex items-center justify-end overflow-hidden">
-            <img
-              src={mobileImg || desktopImg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=600"}
-              alt={deal.imageAlt || "Today Only"}
-              className="w-full h-full object-contain object-right scale-110 translate-x-2"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=600";
-              }}
-            />
+      {/* ── Mobile Today's Deal Section: Apple-Style Full-Width Edge-to-Edge Product Showcase (520–620px) ── */}
+      <section
+        className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
+        style={
+          deal.bannerMode === "custom_bg_with_square_image"
+            ? customBgStyle
+            : {
+                backgroundColor: deal.bannerBgColor || deal.boxBackgroundColor || "#090909",
+                color: deal.headingColor || "#FFFFFF",
+              }
+        }
+        aria-label="Today's Deal Showcase"
+      >
+        <div
+          className="relative w-full h-[clamp(400px,108vw,440px)] min-h-[400px] max-h-[440px] aspect-auto border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-7 sm:pt-8 px-4 pb-0"
+        >
+          {/* Top Content Block: Live Eyebrow -> Main Heading -> Subtitle -> Countdown Timer -> CTA */}
+          <div className="relative z-10 w-full flex flex-col items-center max-w-md mx-auto space-y-1.5">
+            {/* 1. Live Eyebrow */}
+            <div className="flex items-center gap-2 select-none">
+              <span className="relative flex h-2.5 w-2.5">
+                <span
+                  style={{ backgroundColor: deal.eyebrowColor || "#ED0712" }}
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                />
+                <span
+                  style={{ backgroundColor: deal.eyebrowColor || "#ED0712" }}
+                  className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-xs"
+                />
+              </span>
+              <span
+                style={{ color: deal.eyebrowColor || "#ED0712" }}
+                className="text-[11px] sm:text-xs font-black tracking-widest uppercase font-mono"
+              >
+                {deal.eyebrow || "TODAY'S DEAL"}
+              </span>
+            </div>
+
+            {/* 2. Main Heading (Centered, desktop color) */}
+            <h2
+              style={{ color: deal.headingColor || "#FFFFFF" }}
+              className="text-xl sm:text-2xl font-black tracking-tight leading-tight"
+            >
+              {deal.heading || "Today Only. Better Prices."}
+            </h2>
+
+            {/* 3. Subtitle Description */}
+            {deal.description && (
+              <p
+                style={{ color: deal.descriptionColor || "#E5E5E5" }}
+                className="text-xs sm:text-sm font-medium leading-relaxed max-w-xs opacity-90"
+              >
+                {deal.description}
+              </p>
+            )}
+
+            {/* 4. Countdown Timer (Centered below subtitle, above CTA) */}
+            {deal.countdownEnabled !== false && (
+              <div className="pt-0.5 select-none" suppressHydrationWarning>
+                {isExpired && deal.expiryAction === "deal-ended" ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-bold uppercase">
+                    <Clock className="w-3.5 h-3.5" /> Deal Ended
+                  </span>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      style={{
+                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
+                        color: deal.countdownTextColor || "#FFFFFF",
+                      }}
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                    >
+                      {mounted ? padZero(hours) : "12"}
+                    </span>
+                    <span className="text-white/60 text-sm font-bold">:</span>
+                    <span
+                      style={{
+                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
+                        color: deal.countdownTextColor || "#FFFFFF",
+                      }}
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                    >
+                      {mounted ? padZero(minutes) : "45"}
+                    </span>
+                    <span className="text-white/60 text-sm font-bold">:</span>
+                    <span
+                      style={{
+                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
+                        color: deal.countdownTextColor || "#FFFFFF",
+                      }}
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                    >
+                      {mounted ? padZero(seconds) : "30"}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* 5. CTA Button (Min 44px touch height, exact desktop colors) */}
+            {deal.ctaEnabled !== false && activeCtaLabel && (
+              <div className="pt-0.5">
+                <Link
+                  href={activeCtaUrl}
+                  target={deal.openInNewTab ? "_blank" : undefined}
+                  style={{
+                    backgroundColor: deal.ctaBackgroundColor || "#ED0712",
+                    color: deal.ctaTextColor || "#FFFFFF",
+                    borderRadius: `${deal.borderRadius ?? 9999}px`,
+                  }}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-[44px] text-xs sm:text-sm font-extrabold tracking-wide transition-all duration-200 active:scale-95 shadow-md hover:brightness-110"
+                >
+                  <span>{activeCtaLabel}</span>
+                  <ArrowRight className="w-4 h-4" />
+                </Link>
+              </div>
+            )}
           </div>
 
-          {/* Left Text, Countdown & CTA */}
-          <div className="relative z-10 max-w-[58%] flex flex-col justify-center">
-            <h3 className="text-[17px] font-black text-white leading-tight tracking-tight mb-0.5">
-              {deal.heading || "Today Only. Better Prices."}
-            </h3>
-            <p className="text-white/60 text-[11px] leading-snug mb-2 font-medium">
-              {deal.description || "Special deals. Limited time."}
-            </p>
-
-            {/* Red Countdown Timer Boxes */}
-            <div className="flex items-center gap-1 mb-2.5 select-none" suppressHydrationWarning>
-              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
-                {mounted ? padZero(hours) : "12"}
-              </span>
-              <span className="text-white/40 text-xs font-bold">:</span>
-              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
-                {mounted ? padZero(minutes) : "45"}
-              </span>
-              <span className="text-white/40 text-xs font-bold">:</span>
-              <span className="bg-[#ED0712] text-white text-[11px] font-black px-1.5 py-0.5 rounded font-mono leading-none shadow-2xs">
-                {mounted ? padZero(seconds) : "30"}
-              </span>
-            </div>
-
-            {/* White Pill Button */}
-            <div>
-              <Link
-                href={activeCtaUrl || "/products?sale=true"}
-                className="inline-flex items-center gap-1.5 px-3.5 py-1 bg-white hover:bg-neutral-100 text-black font-bold text-xs rounded-full shadow-sm transition-transform active:scale-95 cursor-pointer"
-              >
-                <span>{activeCtaLabel || "Shop Now"}</span>
-                <ArrowRight className="w-3 h-3 text-black" />
-              </Link>
-            </div>
+          {/* Lower 52-58%: Large Product Visual (object-contain, scaled large, non-overlapping) */}
+          <div className="relative w-full flex-1 flex items-end justify-center overflow-hidden max-h-[58%] mt-auto">
+            <Link
+              href={activeCtaUrl}
+              aria-label={deal.heading || "Today's Deal Product"}
+              className="w-full h-full flex items-end justify-center"
+            >
+              <img
+                src={squareImgUrl || mobileImg || desktopImg || "/placeholder-phone.webp"}
+                alt={deal.imageAlt || deal.heading || "Today Only"}
+                loading="lazy"
+                className="max-h-[98%] w-auto max-w-[92%] object-contain object-bottom"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                }}
+              />
+            </Link>
           </div>
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Today's Deal Section ── */}
       <section

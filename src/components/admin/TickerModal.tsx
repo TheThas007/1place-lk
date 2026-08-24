@@ -230,9 +230,8 @@ export default function TickerModal({ isOpen, onClose }: TickerModalProps) {
               <label className="text-xs font-bold text-white/60 uppercase tracking-wider">Pause on Hover</label>
               <button
                 onClick={() => setSettings({ ...settings, pause_on_hover: !settings.pause_on_hover })}
-                className={`w-full px-3 py-2.5 rounded-xl text-sm font-bold border transition-colors ${
-                  settings.pause_on_hover ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-white/60"
-                }`}
+                className={`w-full px-3 py-2.5 rounded-xl text-sm font-bold border transition-colors ${settings.pause_on_hover ? "bg-emerald-500/20 border-emerald-500/30 text-emerald-400" : "bg-white/5 border-white/10 text-white/60"
+                  }`}
               >
                 {settings.pause_on_hover ? "Enabled" : "Disabled"}
               </button>

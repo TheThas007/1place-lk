@@ -3,6 +3,7 @@
 import React, { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { Category } from "@/lib/types";
 import { categories as fallbackCategories } from "@/lib/data";
 
@@ -129,6 +130,7 @@ function renderCategoryDefaultIcon(name: string, slug: string) {
 }
 
 export default function ShopByCategoryCarousel({ categories = [] }: ShopByCategoryCarouselProps) {
+  const shouldReduceMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
@@ -150,14 +152,19 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     return unique.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [categories]);
 
-  // Smooth Slow Auto-Scroll Loop
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const isInteractingMobileRef = useRef(false);
+  const resumeTimerMobileRef = useRef<NodeJS.Timeout | null>(null);
+  const isMobileSectionVisibleRef = useRef(false);
+
+  // Smooth Slow Auto-Scroll Loop (Desktop)
   useEffect(() => {
     let animationFrameId: number;
 
     const autoScroll = () => {
       if (scrollRef.current && !isHovered) {
         const container = scrollRef.current;
-        container.scrollLeft += 0.8;
+        container.scrollLeft += 0.6;
 
         if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 2) {
           container.scrollLeft = 0;
@@ -169,6 +176,74 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     animationFrameId = requestAnimationFrame(autoScroll);
     return () => cancelAnimationFrame(animationFrameId);
   }, [isHovered]);
+
+  // Step-based Horizontal Autoplay (Mobile: 4.8s per card, pause/resume on touch)
+  useEffect(() => {
+    if (shouldReduceMotion || activeCategories.length <= 1) return;
+
+    const el = mobileScrollRef.current;
+    if (!el) return;
+
+    // Viewport visibility check
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        isMobileSectionVisibleRef.current = entry.isIntersecting;
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(el);
+
+    // Tab visibility
+    const handleVisibility = () => {
+      if (document.hidden) {
+        isMobileSectionVisibleRef.current = false;
+      }
+    };
+    document.addEventListener("visibilitychange", handleVisibility);
+
+    const timer = setInterval(() => {
+      if (!isMobileSectionVisibleRef.current || isInteractingMobileRef.current || document.hidden) {
+        return;
+      }
+
+      if (el) {
+        const children = el.children;
+        if (children.length <= 1) return;
+
+        const firstChild = children[0] as HTMLElement;
+        const secondChild = children[1] as HTMLElement;
+        const step = secondChild
+          ? secondChild.offsetLeft - firstChild.offsetLeft
+          : firstChild.offsetWidth + 10;
+
+        const maxScroll = el.scrollWidth - el.clientWidth;
+        if (el.scrollLeft >= maxScroll - 15) {
+          el.scrollTo({ left: 0, behavior: "smooth" });
+        } else {
+          el.scrollBy({ left: step, behavior: "smooth" });
+        }
+      }
+    }, 4800);
+
+    return () => {
+      clearInterval(timer);
+      if (resumeTimerMobileRef.current) clearTimeout(resumeTimerMobileRef.current);
+      observer.disconnect();
+      document.removeEventListener("visibilitychange", handleVisibility);
+    };
+  }, [shouldReduceMotion, activeCategories.length]);
+
+  const handleMobileInteractionStart = () => {
+    isInteractingMobileRef.current = true;
+    if (resumeTimerMobileRef.current) clearTimeout(resumeTimerMobileRef.current);
+  };
+
+  const handleMobileInteractionEnd = () => {
+    if (resumeTimerMobileRef.current) clearTimeout(resumeTimerMobileRef.current);
+    resumeTimerMobileRef.current = setTimeout(() => {
+      isInteractingMobileRef.current = false;
+    }, 5000);
+  };
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -184,52 +259,94 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Category Icon Rail ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        {/* Header */}
-        <div className="mb-2.5">
+      {/* ── Mobile Layout (< 768px): Smooth Slow Auto-Scrolling Category Rail with Scroll Reveal ── */}
+      <section
+        className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none"
+        aria-label="Shop by Category"
+      >
+        {/* Header with upward reveal */}
+        <motion.div
+          initial={{ opacity: 0, y: shouldReduceMotion ? 0 : 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, amount: 0.15 }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="mb-2.5 flex items-center justify-between"
+        >
           <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
             Shop by Category
           </h2>
-        </div>
+          <Link
+            href="/categories"
+            className="text-xs font-bold text-neutral-600 hover:text-black"
+          >
+            All Categories →
+          </Link>
+        </motion.div>
 
-        {/* Horizontal Category Rail */}
-        <div className="flex gap-2 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
+        {/* Horizontal Category Rail (Slow Auto-Glide, Touch-Scrollable, Staggered Reveal) */}
+        <div
+          ref={mobileScrollRef}
+          onTouchStart={handleMobileInteractionStart}
+          onTouchEnd={handleMobileInteractionEnd}
+          onPointerDown={handleMobileInteractionStart}
+          onPointerUp={handleMobileInteractionEnd}
+          onMouseEnter={handleMobileInteractionStart}
+          onMouseLeave={handleMobileInteractionEnd}
+          onFocus={handleMobileInteractionStart}
+          onBlur={handleMobileInteractionEnd}
+          className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4"
+        >
           {activeCategories.map((item, i) => {
             const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
             const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
 
             return (
-              <Link
+              <motion.div
                 key={`mob-cat-${item.id || i}`}
-                href={targetUrl}
-                className="w-[84px] sm:w-[92px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl py-2.5 px-1.5 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all snap-start text-center"
+                initial={{
+                  opacity: 0,
+                  y: shouldReduceMotion ? 0 : 16,
+                  scale: shouldReduceMotion ? 1 : 0.97,
+                }}
+                whileInView={{ opacity: 1, y: 0, scale: 1 }}
+                viewport={{ once: true, amount: 0.15 }}
+                transition={{
+                  duration: 0.5,
+                  delay: i < 6 ? i * 0.06 : 0,
+                  ease: [0.16, 1, 0.3, 1],
+                }}
+                className="shrink-0 snap-start"
               >
-                <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                  {hasCustomImg ? (
-                    <img
-                      src={item.image_url}
-                      alt={item.name}
-                      loading="lazy"
-                      className="max-h-7 max-w-7 object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).style.display = "none";
-                      }}
-                    />
-                  ) : (
-                    <div className="scale-75">
-                      {renderCategoryDefaultIcon(item.name, item.slug)}
-                    </div>
-                  )}
-                </div>
-                <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full">
-                  {item.name}
-                </span>
-              </Link>
+                <Link
+                  href={targetUrl}
+                  className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all text-center block"
+                >
+                  <div className="w-8 h-8 flex items-center justify-center shrink-0">
+                    {hasCustomImg ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        loading="lazy"
+                        className="max-h-7 max-w-7 object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="scale-75">
+                        {renderCategoryDefaultIcon(item.name, item.slug)}
+                      </div>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full">
+                    {item.name}
+                  </span>
+                </Link>
+              </motion.div>
             );
           })}
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout ── */}
       <div className="hidden md:block">

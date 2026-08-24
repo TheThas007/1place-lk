@@ -99,12 +99,18 @@ export default function Footer() {
         <div className="flex flex-col gap-5 max-w-md mx-auto">
           {/* Logo & Description */}
           <div>
-            <div className="flex items-center gap-2 mb-1.5">
-              <span className="font-black text-sm tracking-wider uppercase text-white">
-                STREET MOBILE
-              </span>
-            </div>
-            <p className="text-white/60 text-[11px] leading-relaxed max-w-xs">
+            <Link href="/" className="inline-block mb-3">
+              <img
+                src={settings.logo_url || "/logo.png"}
+                alt="Street Mobile"
+                loading="lazy"
+                className="h-11 sm:h-12 w-auto max-w-[240px] object-contain object-left block brightness-0 invert opacity-100"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logo.png";
+                }}
+              />
+            </Link>
+            <p className="text-white/60 text-xs leading-relaxed max-w-xs">
               {settings.description || "Your trusted destination for the latest smartphones and accessories."}
             </p>
 

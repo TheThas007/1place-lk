@@ -138,91 +138,112 @@ export default function NewArrivalsSection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Exact Reference Matching ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        {/* Mobile Header: Title & View All */}
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
-            New Arrivals
+      {/* ── Mobile Layout (< 768px): Premium Product-Focused Horizontal Swipe Rail ── */}
+      <section
+        className="md:hidden w-full bg-white pt-5 sm:pt-6 pb-4 select-none overflow-hidden"
+        aria-label="New Arrivals"
+      >
+        {/* 1. Section Header: 16px horizontal padding, 22-24px heading, red View All */}
+        <div className="flex items-center justify-between px-4 mb-3.5 sm:mb-4">
+          <h2 className="text-[22px] sm:text-2xl font-black text-neutral-900 tracking-tight leading-none">
+            {settings.section_title || "New Arrivals"}
           </h2>
           <Link
             href="/products?new=true"
-            className="text-xs font-bold text-[#ED0712] hover:underline"
+            className="text-xs sm:text-sm font-bold text-[#ED0712] hover:underline shrink-0"
           >
             View all
           </Link>
         </div>
 
-        {/* Mobile Horizontal Snap Rail */}
-        <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
-          {newArrivalProducts.map((product) => {
-            const hasDiscount =
-              product.old_price &&
-              typeof product.old_price === "number" &&
-              product.old_price > product.price;
+        {/* 2. Mobile Product Rail: 2.15 cards peek (45vw, min 150px, max 190px), snap-x */}
+        <div className="flex gap-2.5 sm:gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory px-4 pb-1">
+          {newArrivalProducts.length > 0
+            ? newArrivalProducts.map((product) => {
+                const hasDiscount =
+                  product.old_price &&
+                  typeof product.old_price === "number" &&
+                  product.old_price > product.price;
 
-            const discountPercent = hasDiscount
-              ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
-              : 0;
+                const discountPercent = hasDiscount
+                  ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
+                  : 0;
 
-            const mainImage = product.images?.[0] || "/placeholder-phone.webp";
-            const brandName = product.brand_name || product.brand || "";
+                const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+                const brandName = product.brand_name || product.brand || "";
 
-            return (
-              <div
-                key={`mob-na-${product.id}`}
-                className="w-[142px] sm:w-[152px] shrink-0 bg-white border border-[#E8E8E8] rounded-xl overflow-hidden p-2 flex flex-col justify-between shadow-2xs snap-start hover:border-neutral-400 transition-colors"
-              >
-                <Link href={`/products/${product.slug}`} className="block flex-1">
-                  {/* Brand Label */}
-                  {brandName && (
-                    <span className="text-[9px] font-black tracking-wider uppercase text-blue-600 truncate block mb-1">
-                      {brandName}
-                    </span>
-                  )}
+                return (
+                  <Link
+                    key={`mob-na-${product.id}`}
+                    href={`/products/${product.slug}`}
+                    className="w-[45vw] min-w-[150px] max-w-[190px] shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xs snap-start hover:border-neutral-400 active:scale-[0.98] transition-all group"
+                  >
+                    {/* Top: Brand & Image Container */}
+                    <div>
+                      {/* Brand Label */}
+                      {brandName && (
+                        <span className="text-[10px] font-bold tracking-wider uppercase text-blue-600 truncate block mb-1">
+                          {brandName}
+                        </span>
+                      )}
 
-                  {/* 1:1 Image Container with Bottom-Left Offer Badge */}
-                  <div className="relative aspect-square bg-[#F7F7F7] rounded-lg flex items-center justify-center overflow-hidden mb-1.5 p-1">
-                    <img
-                      src={mainImage}
-                      alt={product.name}
-                      loading="lazy"
-                      className="w-full h-full object-contain"
-                      onError={(e) => {
-                        (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-                      }}
-                    />
+                      {/* 1:1 Square Image Container with Discount Badge in current image position */}
+                      <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-2 p-2">
+                        <img
+                          src={mainImage}
+                          alt={product.name}
+                          loading="lazy"
+                          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                          onError={(e) => {
+                            (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                          }}
+                        />
 
-                    {/* Offer Badge (Bottom-Left) */}
-                    {hasDiscount && (
-                      <span className="product-offer-badge absolute left-1 bottom-1 z-2 bg-[#ED0712] text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none">
-                        -{discountPercent}% OFF
-                      </span>
-                    )}
-                  </div>
+                        {/* Discount Badge in current image position (Bottom-Left) */}
+                        {hasDiscount && (
+                          <span className="product-offer-badge absolute left-1.5 bottom-1.5 z-10 bg-[#ED0712] text-white text-[9px] font-black px-1.5 py-0.5 rounded leading-none shadow-xs">
+                            -{discountPercent}% OFF
+                          </span>
+                        )}
+                      </div>
+                    </div>
 
-                  {/* Product Title (Max 2 lines) */}
-                  <h3 className="font-bold text-[11px] text-neutral-900 line-clamp-2 leading-tight mb-1 h-7">
-                    {product.name}
-                  </h3>
+                    {/* Bottom: Product Info Hierarchy */}
+                    <div className="flex flex-col justify-between flex-1">
+                      {/* Product Title (Max 2 lines, equal min-height) */}
+                      <h3 className="font-bold text-xs sm:text-[13px] text-neutral-900 line-clamp-2 leading-snug mb-1.5 min-h-[2.25rem]">
+                        {product.name}
+                      </h3>
 
-                  {/* Prices */}
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-black text-xs text-[#ED0712]">
-                      {formatPrice(product.price)}
-                    </span>
-                    {hasDiscount && (
-                      <span className="text-[10px] text-neutral-400 line-through">
-                        {formatPrice(product.old_price!)}
-                      </span>
-                    )}
-                  </div>
-                </Link>
-              </div>
-            );
-          })}
+                      {/* Price Section */}
+                      <div className="flex items-baseline gap-1.5 flex-wrap pt-0.5">
+                        <span className="font-black text-sm sm:text-[15px] text-[#ED0712]">
+                          {formatPrice(product.price)}
+                        </span>
+                        {hasDiscount && (
+                          <span className="text-[11px] text-neutral-400 line-through font-medium">
+                            {formatPrice(product.old_price!)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                );
+              })
+            : Array.from({ length: 4 }).map((_, idx) => (
+                <div
+                  key={`mob-na-skel-${idx}`}
+                  className="w-[45vw] min-w-[150px] max-w-[190px] shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-3 flex flex-col justify-between shadow-2xs snap-start animate-pulse"
+                >
+                  <div className="w-12 h-3 bg-neutral-200 rounded mb-1.5" />
+                  <div className="aspect-square bg-neutral-100 rounded-xl mb-2" />
+                  <div className="w-full h-4 bg-neutral-200 rounded mb-1" />
+                  <div className="w-2/3 h-4 bg-neutral-200 rounded mb-2" />
+                  <div className="w-16 h-4 bg-neutral-300 rounded" />
+                </div>
+              ))}
         </div>
-      </div>
+      </section>
 
       {/* ── Desktop Layout (Full 4-Column Grid) ── */}
       <div className="hidden md:block">

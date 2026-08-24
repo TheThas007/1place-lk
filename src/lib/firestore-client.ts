@@ -60,9 +60,9 @@ export const getProducts = cache(async (): Promise<Product[]> => {
     const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Product));
     if (docs.length > 0) return docs;
   } catch (e) {
-    console.warn("Offline/Error fetching products, returning fallbacks:", e);
+    console.warn("Offline/Error fetching products:", e);
   }
-  return fallbackProducts;
+  return [];
 });
 
 export const getCategories = cache(async (): Promise<Category[]> => {
