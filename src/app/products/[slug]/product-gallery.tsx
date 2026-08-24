@@ -79,8 +79,8 @@ export default function ProductGallery({
         )}
       </div>
 
-      {/* ── Thumbnail Row ── */}
-      <div className="flex items-center gap-3 overflow-x-auto pb-2 custom-scrollbar">
+      {/* ── Thumbnail Row (Contained Horizontal Rail) ── */}
+      <div className="flex items-center gap-2.5 sm:gap-3 w-full max-w-full overflow-x-auto pb-2 no-scrollbar scroll-smooth">
         {displayImages.map((img, i) => (
           <button
             key={i}

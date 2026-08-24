@@ -552,7 +552,7 @@ export default function ProductDetailClient({
   const selectedStorageVariant = availableVariantsForColor.find((v) => v.storage === selectedStorage) || availableVariantsForColor[0];
 
   return (
-    <div className="bg-white min-h-screen text-black pb-24">
+    <div className="bg-white min-h-screen text-black pb-32 sm:pb-36 w-full max-w-full overflow-x-hidden">
       {/* ── 1. Top Breadcrumbs ── */}
       <div className="border-b border-[#EAEAEA] bg-white">
         <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3.5">
@@ -1127,10 +1127,10 @@ export default function ProductDetailClient({
       </div>
 
       {/* ── 6. Mobile Sticky Bottom Purchase Bar (Screens < 1024px) ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-2.5 shadow-2xl flex items-center justify-between gap-3 safe-bottom">
-        <div className="flex flex-col min-w-0">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3 safe-bottom select-none">
+        <div className="flex flex-col min-w-0 pr-2">
           <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Price</span>
-          <span className="text-base font-black text-black leading-tight truncate">
+          <span className="text-sm sm:text-base font-black text-black leading-tight truncate">
             {formatPrice(currentVariantPrice)}
           </span>
         </div>
@@ -1140,7 +1140,7 @@ export default function ProductDetailClient({
             <button
               type="button"
               onClick={() => setIsPreOrderOpen(true)}
-              className="px-4 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all"
+              className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
             >
               <MessageCircle className="w-4 h-4" />
               <span>Pre-Order</span>
@@ -1151,12 +1151,12 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isVariantOutOfStock}
                 onClick={handleAddToCart}
-                className={`px-3.5 py-2.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 ${
+                className={`min-h-[44px] px-3.5 sm:px-4 py-2.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
                   isVariantOutOfStock
                     ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
                     : added
                     ? "bg-emerald-600 border-emerald-600 text-white"
-                    : "bg-white text-black border-black"
+                    : "bg-white text-black border-black hover:bg-neutral-50"
                 }`}
               >
                 {added ? <Check className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
@@ -1167,7 +1167,7 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isVariantOutOfStock || buyingNow}
                 onClick={handleBuyNow}
-                className="px-4 py-2.5 rounded-full bg-black text-white font-bold text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all"
+                className="min-h-[44px] px-4 sm:px-5 py-2.5 rounded-full bg-black text-white font-bold text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all cursor-pointer hover:bg-neutral-800"
               >
                 <span>{buyingNow ? "..." : "Buy Now"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

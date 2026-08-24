@@ -166,80 +166,86 @@ function BrandProductCard({ product }: { product: Product }) {
         </div>
 
         {/* ── Details Section ── */}
-        <div className="p-4 flex-1 flex flex-col justify-between">
+        <div className="p-3.5 sm:p-4 flex-1 flex flex-col justify-between">
           <div>
-            {/* Warranty Subtitle with Shield Icon */}
-            <div className="flex items-center gap-1 text-[11px] text-neutral-500 font-medium mb-1">
-              <ShieldCheck className="w-3.5 h-3.5 text-neutral-400" />
-              <span>{product.warranty || "1 Year Warranty"}</span>
-            </div>
+            {/* Warranty Subtitle (Only when genuinely available) */}
+            {product.warranty && product.warranty.trim() !== "" && (
+              <div className="flex items-center gap-1 text-[11px] text-neutral-500 font-medium mb-1 truncate">
+                <ShieldCheck className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                <span>{product.warranty}</span>
+              </div>
+            )}
 
             {/* Product Title */}
-            <h3 className="font-bold text-sm sm:text-[15px] text-neutral-900 line-clamp-1 group-hover:text-neutral-600 transition-colors mb-0.5">
+            <h3 className="font-bold text-xs sm:text-[15px] text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors mb-1">
               {product.name}
             </h3>
 
-            {/* Specs Line (Storage | Color) */}
-            <span className="text-xs text-neutral-500 font-normal block mb-2">
-              {defaultStorage} | {defaultColorName}
-            </span>
-
             {/* Price Row */}
-            <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
               <span className="font-extrabold text-sm sm:text-base text-neutral-900">
                 {formatPrice(product.price)}
               </span>
               {hasDiscount && (
-                <span className="text-xs text-neutral-400 line-through font-normal">
+                <span className="text-[11px] sm:text-xs text-neutral-400 line-through font-normal">
                   {formatPrice(product.old_price!)}
                 </span>
               )}
             </div>
 
-            {/* Color Swatch Dots */}
-            <div className="flex items-center gap-1.5 mb-3" aria-label="Available Colors">
-              {productSwatches.slice(0, 5).map((swatch, idx) => (
-                <span
-                  key={idx}
-                  title={swatch.name}
-                  aria-label={swatch.name}
-                  style={{ backgroundColor: swatch.hex }}
-                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
-                />
-              ))}
-              {productSwatches.length > 5 && (
-                <span className="text-[9px] font-bold text-neutral-400">
-                  +{productSwatches.length - 5}
-                </span>
-              )}
-            </div>
+            {/* Color Swatch Dots (Only if genuine swatches exist) */}
+            {productSwatches.length > 0 && (
+              <div className="flex items-center gap-1.5 mb-2.5" aria-label="Available Colors">
+                {productSwatches.slice(0, 5).map((swatch, idx) => (
+                  <span
+                    key={idx}
+                    title={swatch.name}
+                    aria-label={swatch.name}
+                    style={{ backgroundColor: swatch.hex }}
+                    className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
+                  />
+                ))}
+                {productSwatches.length > 5 && (
+                  <span className="text-[9px] font-bold text-neutral-400">
+                    +{productSwatches.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Rating & Live Stock Status (Review count hidden on mobile < 768px) */}
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
-            <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
-              <Star className="w-3 h-3 fill-red-500 text-red-500" />
-              <span>4.9</span>
-              <span className="text-neutral-400 font-normal hidden md:inline">(128)</span>
-            </div>
+          {/* Rating & Live Stock Status */}
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100 mt-auto gap-2">
+            {product.rating && product.rating > 0 ? (
+              <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
+                <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                <span>{product.rating.toFixed(1)}</span>
+              </div>
+            ) : <div />}
 
-            <div className="flex items-center gap-1">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-              <span className="text-[11px] font-semibold text-neutral-700">
-                {isOutOfStock ? "Sold Out" : "In Stock"}
+            <div className="flex items-center gap-1 shrink-0">
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  isOutOfStock
+                    ? "bg-neutral-400"
+                    : "bg-emerald-500"
+                }`}
+              />
+              <span className="text-[10px] sm:text-[11px] font-semibold text-neutral-700">
+                {isOutOfStock ? "Out of Stock" : "In Stock"}
               </span>
             </div>
           </div>
         </div>
       </Link>
 
-      {/* ── Solid Black Add to Bag Action ── */}
-      <div className="px-4 pb-4 bg-white">
+      {/* ── Solid Black Add to Bag Action (Minimum 44px Touch Height) ── */}
+      <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 bg-white">
         <button
           type="button"
           disabled={isOutOfStock}
           onClick={handleAddToCart}
-          className={`w-full py-2.5 rounded-lg font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
+          className={`w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
             isOutOfStock
               ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
               : added

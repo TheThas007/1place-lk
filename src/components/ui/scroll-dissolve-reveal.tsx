@@ -381,23 +381,25 @@ export interface ScrollDissolveRevealProps {
   children?: React.ReactNode;
 }
 
-export function ScrollDissolveReveal({
+function ScrollDissolveContent({
   images,
   className,
   containerClassName,
   scrollContainerRef,
   children,
-}: ScrollDissolveRevealProps) {
+}: {
+  images: string[];
+  className?: string;
+  containerClassName?: string;
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
+  children?: React.ReactNode;
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end end"],
     ...(scrollContainerRef && { container: scrollContainerRef })
   });
-
-  if (!images || images.length === 0) return null;
-  
-  const validImages = images.length === 1 ? [images[0], images[0]] : images;
 
   return (
     <div
@@ -428,7 +430,7 @@ export function ScrollDissolveReveal({
           />
           <React.Suspense fallback={null}>
             <Scene
-              images={validImages}
+              images={images}
               scrollYProgress={scrollYProgress}
             />
           </React.Suspense>
@@ -436,6 +438,29 @@ export function ScrollDissolveReveal({
         {children && <div className="absolute inset-0 z-10 pointer-events-none">{children}</div>}
       </div>
     </div>
+  );
+}
+
+export function ScrollDissolveReveal({
+  images,
+  className,
+  containerClassName,
+  scrollContainerRef,
+  children,
+}: ScrollDissolveRevealProps) {
+  if (!images || images.length === 0) return null;
+  
+  const validImages = images.length === 1 ? [images[0], images[0]] : images;
+
+  return (
+    <ScrollDissolveContent
+      images={validImages}
+      className={className}
+      containerClassName={containerClassName}
+      scrollContainerRef={scrollContainerRef}
+    >
+      {children}
+    </ScrollDissolveContent>
   );
 }
 

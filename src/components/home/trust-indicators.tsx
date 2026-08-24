@@ -152,32 +152,30 @@ function FeatureCard({
   );
 }
 
-/* ─── Main Section ─── */
-export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only" | "full_only" | "both" }) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [selectedFeature, setSelectedFeature] = useState<(typeof features)[0] | null>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
-  const prefersReducedMotion = useReducedMotion();
-
-  // Mobile scroll-driven horizontal tracking
-  const mobileContainerRef = useRef<HTMLDivElement>(null);
-  const mobileTrackRef = useRef<HTMLDivElement>(null);
+/* ─── Mobile Scroll-Driven Horizontal Track (Encapsulated to guarantee target hydration) ─── */
+function MobileScrollDrivenTrack({
+  onCardClick,
+}: {
+  onCardClick: (feature: (typeof features)[0]) => void;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const trackRef = useRef<HTMLDivElement>(null);
   const [maxTranslate, setMaxTranslate] = useState(0);
 
   const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDraggingRef = useRef(false);
 
   const { scrollYProgress } = useScroll({
-    target: mobileContainerRef,
+    target: containerRef,
     offset: ["start start", "end end"],
   });
 
   const x = useTransform(scrollYProgress, [0, 1], [0, -maxTranslate]);
 
   const updateTranslationDistance = useCallback(() => {
-    if (mobileTrackRef.current) {
-      const scrollW = mobileTrackRef.current.scrollWidth;
-      const clientW = mobileTrackRef.current.parentElement?.clientWidth || window.innerWidth;
+    if (trackRef.current) {
+      const scrollW = trackRef.current.scrollWidth;
+      const clientW = trackRef.current.parentElement?.clientWidth || window.innerWidth;
       const dist = Math.max(0, scrollW - clientW + 24);
       setMaxTranslate(dist);
     }
@@ -203,10 +201,107 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
     }
   };
 
-  const handleCardClick = (feature: (typeof features)[0]) => {
-    if (isDraggingRef.current) return;
-    setSelectedFeature(feature);
-  };
+  return (
+    <div
+      ref={containerRef}
+      className="md:hidden relative h-[200vh] w-full bg-white select-none"
+      aria-label="Why Choose Street Mobile"
+    >
+      <div className="sticky top-[var(--navbar-height,66px)] h-[calc(100dvh-var(--navbar-height,66px))] max-h-[780px] w-full flex flex-col justify-center overflow-hidden py-3">
+        {/* Section Header */}
+        <div className="text-center mb-5 px-4 shrink-0">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
+            <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
+            Why Choose Us
+          </div>
+          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1.5">
+            Why Choose Street Mobile
+          </h2>
+          <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
+            Premium quality, professional service, and total peace of mind — every time.
+          </p>
+        </div>
+
+        {/* Horizontal Scroll-driven Track */}
+        <div className="w-full overflow-hidden">
+          <motion.div
+            ref={trackRef}
+            style={{ x }}
+            className="flex items-stretch gap-3.5 sm:gap-4 px-4 py-2 will-change-transform touch-pan-y"
+          >
+            {features.map((feature) => (
+              <div
+                key={`mob-feat-${feature.number}`}
+                className="w-[80vw] sm:w-[82vw] max-w-[330px] shrink-0"
+                onPointerDown={handlePointerDown}
+                onPointerMove={handlePointerMove}
+              >
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => {
+                    if (!isDraggingRef.current) onCardClick(feature);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onCardClick(feature);
+                    }
+                  }}
+                  className="group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 sm:p-7 rounded-[22px] cursor-pointer overflow-hidden
+                    bg-white
+                    border border-black/[0.15]
+                    shadow-[0_2px_12px_rgba(0,0,0,0.03)]
+                    active:scale-[0.98]
+                    transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+                >
+                  {/* Number Indicator */}
+                  <span
+                    className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
+                    aria-hidden="true"
+                  >
+                    {feature.number}
+                  </span>
+
+                  {/* Icon Container */}
+                  <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                    <feature.icon className="w-5 h-5 text-gray-900" />
+                  </div>
+
+                  {/* Divider */}
+                  <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
+
+                  {/* Title */}
+                  <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
+                    {feature.title}
+                  </h3>
+
+                  {/* Description */}
+                  <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
+                    {feature.description}
+                  </p>
+
+                  {/* CTA Link */}
+                  <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
+                    <span>Learn more</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </div>
+                </div>
+              </div>
+            ))}
+          </motion.div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Main Section ─── */
+export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only" | "full_only" | "both" }) {
+  const sectionRef = useRef<HTMLElement>(null);
+  const [selectedFeature, setSelectedFeature] = useState<(typeof features)[0] | null>(null);
+  const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
+  const prefersReducedMotion = useReducedMotion();
 
   return (
     <>
@@ -234,7 +329,7 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
         </div>
       )}
 
-      {/* ── Mobile Why Choose Street Mobile Section (< 768px: Scroll-Driven Horizontal Track) ── */}
+      {/* ── Mobile Why Choose Street Mobile Section (< 768px) ── */}
       {mode !== "strip_only" && (
         <>
           {prefersReducedMotion ? (
@@ -302,96 +397,7 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
               </div>
             </section>
           ) : (
-            /* Scroll-Driven Horizontal Movement Section (200vh Scroll Height with Sticky Pin) */
-            <div
-              ref={mobileContainerRef}
-              className="md:hidden relative h-[200vh] w-full bg-white select-none"
-              aria-label="Why Choose Street Mobile"
-            >
-              <div className="sticky top-[var(--navbar-height,66px)] h-[calc(100dvh-var(--navbar-height,66px))] max-h-[780px] w-full flex flex-col justify-center overflow-hidden py-3">
-                {/* Section Header */}
-                <div className="text-center mb-5 px-4 shrink-0">
-                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
-                    <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
-                    Why Choose Us
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1.5">
-                    Why Choose Street Mobile
-                  </h2>
-                  <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
-                    Premium quality, professional service, and total peace of mind — every time.
-                  </p>
-                </div>
-
-                {/* Horizontal Scroll-driven Track */}
-                <div className="w-full overflow-hidden">
-                  <motion.div
-                    ref={mobileTrackRef}
-                    style={{ x }}
-                    className="flex items-stretch gap-3.5 sm:gap-4 px-4 py-2 will-change-transform touch-pan-y"
-                  >
-                    {features.map((feature) => (
-                      <div
-                        key={`mob-feat-${feature.number}`}
-                        className="w-[80vw] sm:w-[82vw] max-w-[330px] shrink-0"
-                        onPointerDown={handlePointerDown}
-                        onPointerMove={handlePointerMove}
-                      >
-                        <div
-                          role="button"
-                          tabIndex={0}
-                          onClick={() => handleCardClick(feature)}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter" || e.key === " ") {
-                              e.preventDefault();
-                              setSelectedFeature(feature);
-                            }
-                          }}
-                          className="group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 sm:p-7 rounded-[22px] cursor-pointer overflow-hidden
-                            bg-white
-                            border border-black/[0.15]
-                            shadow-[0_2px_12px_rgba(0,0,0,0.03)]
-                            active:scale-[0.98]
-                            transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
-                        >
-                          {/* Number Indicator */}
-                          <span
-                            className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
-                            aria-hidden="true"
-                          >
-                            {feature.number}
-                          </span>
-
-                          {/* Icon Container */}
-                          <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                            <feature.icon className="w-5 h-5 text-gray-900" />
-                          </div>
-
-                          {/* Divider */}
-                          <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
-
-                          {/* Title */}
-                          <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
-                            {feature.title}
-                          </h3>
-
-                          {/* Description */}
-                          <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
-                            {feature.description}
-                          </p>
-
-                          {/* CTA Link */}
-                          <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                            <span>Learn more</span>
-                            <ArrowRight className="w-3.5 h-3.5" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </motion.div>
-                </div>
-              </div>
-            </div>
+            <MobileScrollDrivenTrack onCardClick={setSelectedFeature} />
           )}
 
           {/* ── Desktop Why Choose Section (Unchanged) ── */}

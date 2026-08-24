@@ -68,6 +68,9 @@ export interface Product {
   tags?: string[];
   status?: "active" | "draft" | "inactive";
   show_on_homepage?: boolean;
+  rating?: number;
+  review_count?: number;
+  reviews_count?: number;
   meta_title?: string;
   metaTitle?: string;
   meta_description?: string;

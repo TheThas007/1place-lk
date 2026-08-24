@@ -100,9 +100,14 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   // Color Swatches (resolved dynamically from product colors / variants)
   const productSwatches = resolveProductSwatches(product);
 
+  const hasRealRating = typeof product.rating === "number" && product.rating > 0;
+  const hasReviewCount = typeof (product.review_count || product.reviews_count) === "number" && ((product.review_count || product.reviews_count) as number) > 0;
+  const showRating = hasRealRating || hasReviewCount;
+  const displayRating = hasRealRating ? product.rating!.toFixed(1) : "5.0";
+
   return (
     <div
-      className={`group relative bg-white border border-neutral-200/80 rounded-2xl overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-1 hover:border-neutral-400 hover:shadow-md ${className}`}
+      className={`group relative bg-white border border-neutral-200/80 rounded-2xl overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-1 hover:border-neutral-400 hover:shadow-md w-full min-w-0 max-w-full ${className}`}
     >
       {/* ── Clickable Link Body ── */}
       <Link
@@ -112,7 +117,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         {/* ── 1. Image Container (1:1 square, #F7F7F7 background, overflow hidden) ── */}
         <div className="product-image-container relative aspect-square bg-[#F7F7F7] flex items-center justify-center overflow-hidden rounded-t-2xl">
           
-          {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
+          {/* ── Approved Offer Badge Position: Bottom-Left Corner ── */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {hasDiscount ? (
               <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
@@ -147,7 +152,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             />
           </button>
 
-          {/* Product Image (Centered, Transform Origin Center, Precise Scale & Position) */}
+          {/* Product Image */}
           <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
             <img
               src={mainImage}
@@ -167,63 +172,70 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
 
         {/* ── 2. Details Section ── */}
-        <div className="p-4 sm:p-5 flex-1 flex flex-col justify-between bg-white">
+        <div className="p-3.5 sm:p-5 flex-1 flex flex-col justify-between bg-white">
           <div>
-            {/* Category Label */}
-            <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 block mb-1">
-              {product.category_name || "SMARTPHONES"}
-            </span>
+            {/* Category / Brand Label (Only if genuinely available) */}
+            {(product.category_name || product.brand_name) && (
+              <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 block mb-1 truncate">
+                {product.brand_name || product.category_name}
+              </span>
+            )}
 
             {/* Product Title */}
-            <h3 className="font-bold text-sm sm:text-[15px] text-neutral-900 line-clamp-1 group-hover:text-neutral-600 transition-colors mb-0.5">
+            <h3 className="font-bold text-xs sm:text-[15px] text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors mb-1">
               {product.name}
             </h3>
 
-            {/* Warranty Subtitle */}
-            <span className="text-xs text-neutral-400 font-medium block mb-2.5">
-              {product.warranty || "1 Year Official Warranty"}
-            </span>
+            {/* Warranty Subtitle (Only when genuinely available) */}
+            {product.warranty && product.warranty.trim() !== "" && (
+              <span className="text-[11px] sm:text-xs text-neutral-400 font-medium block mb-2 truncate">
+                {product.warranty}
+              </span>
+            )}
 
             {/* Price Row */}
-            <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
               <span className="font-extrabold text-sm sm:text-base text-neutral-900">
                 {formatPrice(product.price)}
               </span>
               {hasDiscount && (
-                <span className="text-xs text-neutral-400 line-through font-normal">
+                <span className="text-[11px] sm:text-xs text-neutral-400 line-through font-normal">
                   {formatPrice(product.old_price!)}
                 </span>
               )}
             </div>
 
-            {/* Color Swatch Dots with actual variant colors */}
-            <div className="flex items-center gap-1.5 mb-3" aria-label="Available Colors">
-              {productSwatches.slice(0, 5).map((swatch, idx) => (
-                <span
-                  key={idx}
-                  title={swatch.name}
-                  aria-label={swatch.name}
-                  style={{ backgroundColor: swatch.hex }}
-                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
-                />
-              ))}
-              {productSwatches.length > 5 && (
-                <span className="text-[9px] font-bold text-neutral-400">
-                  +{productSwatches.length - 5}
-                </span>
-              )}
-            </div>
+            {/* Color Swatch Dots (Only if product has genuine colors) */}
+            {productSwatches.length > 0 && (
+              <div className="flex items-center gap-1.5 mb-2.5" aria-label="Available Colors">
+                {productSwatches.slice(0, 5).map((swatch, idx) => (
+                  <span
+                    key={idx}
+                    title={swatch.name}
+                    aria-label={swatch.name}
+                    style={{ backgroundColor: swatch.hex }}
+                    className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
+                  />
+                ))}
+                {productSwatches.length > 5 && (
+                  <span className="text-[9px] font-bold text-neutral-400">
+                    +{productSwatches.length - 5}
+                  </span>
+                )}
+              </div>
+            )}
           </div>
 
-          {/* Rating & Stock Status Row (Review count hidden on mobile < 768px) */}
-          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
-            <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
-              <Star className="w-3 h-3 fill-neutral-800 text-neutral-800 md:fill-amber-400 md:text-amber-400" />
-              <span>4.8</span>
-              <span className="text-neutral-400 font-normal hidden md:inline">(125)</span>
-            </div>
+          {/* Rating & Stock Status Row */}
+          <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100 mt-auto gap-2">
+            {showRating ? (
+              <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
+                <Star className="w-3 h-3 fill-neutral-800 text-neutral-800 md:fill-amber-400 md:text-amber-400" />
+                <span>{displayRating}</span>
+              </div>
+            ) : <div />}
 
-            <div className="flex items-center gap-1">
+            <div className="flex items-center gap-1 shrink-0">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
                   isOutOfStock
@@ -233,7 +245,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                     : "bg-neutral-900 md:bg-emerald-500"
                 }`}
               />
-              <span className="text-[11px] font-semibold text-neutral-700">
+              <span className="text-[10px] sm:text-[11px] font-semibold text-neutral-700">
                 {isOutOfStock
                   ? "Out of Stock"
                   : isLowStock
@@ -245,20 +257,20 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
       </Link>
 
-      {/* ── 3. Bottom Full-Width Black Add to Bag Action ── */}
-      <div className="px-4 pb-4 bg-white">
+      {/* ── 3. Bottom Full-Width Action (Minimum 44px Touch Height) ── */}
+      <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 bg-white">
         {isOutOfStock && !isPreOrder ? (
           <button
             type="button"
             disabled
-            className="w-full py-2.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-400 cursor-not-allowed flex items-center justify-center gap-2"
+            className="w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs bg-neutral-100 text-neutral-400 cursor-not-allowed flex items-center justify-center gap-2"
           >
             <span>Sold Out</span>
           </button>
         ) : isPreOrder ? (
           <Link
             href={`/products/${product.slug}?book=true`}
-            className="w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-[#090909] hover:bg-neutral-800 text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
+            className="w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-[#090909] hover:bg-neutral-800 text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />
             <span>Pre-Order / Book</span>
@@ -267,7 +279,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           <button
             type="button"
             onClick={handleAddToCart}
-            className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
+            className={`w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
               added
                 ? "bg-neutral-900 md:bg-emerald-600 text-white"
                 : "bg-black text-white hover:bg-neutral-800"

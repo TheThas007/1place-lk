@@ -239,9 +239,11 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
           
           <div>
             {/* Category / Brand */}
-            <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">
-              {product.category_name || "STREET MOBILE"}
-            </span>
+            {(product.category_name || product.brand_name) && (
+              <span className="text-[11px] font-bold text-neutral-400 uppercase tracking-widest block mb-1">
+                {product.brand_name || product.category_name}
+              </span>
+            )}
 
             {/* Product Title */}
             <h2 id="quickview-title" className="text-xl sm:text-2xl font-black text-[#090909] tracking-tight leading-tight mb-3">

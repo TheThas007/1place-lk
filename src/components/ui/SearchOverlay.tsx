@@ -134,24 +134,25 @@ export default function SearchOverlay() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-2xl flex flex-col text-white select-none"
+        className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-2xl flex flex-col text-white select-none w-full h-full overflow-hidden"
       >
         {/* Top Search Input Bar */}
-        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 pt-6 pb-4 border-b border-white/10 flex items-center gap-3">
-          <div className="relative flex-1 flex items-center bg-white/10 border border-white/15 rounded-2xl px-4 py-3 focus-within:border-white/40 transition-colors">
-            <Search className="w-5 h-5 text-white/50 shrink-0 mr-3" />
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-3 border-b border-white/10 flex items-center gap-2.5 sm:gap-3">
+          <div className="relative flex-1 flex items-center bg-white/10 border border-white/15 rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 focus-within:border-white/40 transition-colors min-w-0">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-white/50 shrink-0 mr-2.5 sm:mr-3" />
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search by category, brand (Apple, Samsung), or product name..."
+              placeholder="Search smartphones, accessories, brands..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-white text-base sm:text-lg placeholder-white/40 focus:outline-none font-medium"
+              className="w-full bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none font-medium truncate"
             />
             {query && (
               <button
                 onClick={() => setQuery("")}
-                className="p-1 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-colors"
+                className="p-1 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0 ml-1"
+                aria-label="Clear search query"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -160,39 +161,39 @@ export default function SearchOverlay() {
 
           <button
             onClick={() => setIsOpen(false)}
-            className="px-4 py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-semibold transition-all shrink-0"
+            className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer"
           >
             Cancel
           </button>
         </div>
 
         {/* Content Area */}
-        <div className="max-w-4xl w-full mx-auto px-4 sm:px-6 py-6 flex-1 overflow-y-auto custom-scrollbar">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">
           {query.trim() === "" ? (
-            <div className="space-y-8 py-4">
+            <div className="space-y-6 py-2">
               {/* Quick Category Navigation */}
               <div>
-                <h3 className="text-xs font-bold uppercase tracking-wider text-white/50 mb-4 flex items-center gap-2">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3 flex items-center gap-2">
                   <Package className="w-3.5 h-3.5 text-blue-400" />
                   Browse Categories
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
                   {[
                     { label: "Smartphones", href: "/products?category=smartphones" },
                     { label: "Smart Watches", href: "/products?category=smart-watches" },
                     { label: "Laptops & MacBooks", href: "/products?category=laptops" },
-                    { label: "Earbuds & TWS", href: "/products?category=earbuds" },
-                    { label: "Chargers & Adapters", href: "/products?category=chargers-adapters" },
-                    { label: "All Catalog Products", href: "/products" },
+                    { label: "Earbuds & Audio", href: "/products?category=earbuds" },
+                    { label: "Fast Chargers", href: "/products?category=chargers-adapters" },
+                    { label: "All Products", href: "/products" },
                   ].map((cat) => (
                     <Link
                       key={cat.label}
                       href={cat.href}
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-between p-3.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs sm:text-sm font-medium transition-all group"
+                      className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs sm:text-sm font-medium transition-all group min-w-0"
                     >
-                      <span>{cat.label}</span>
-                      <ChevronRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 transition-transform" />
+                      <span className="truncate">{cat.label}</span>
+                      <ChevronRight className="w-3.5 h-3.5 text-white/40 group-hover:translate-x-1 transition-transform shrink-0" />
                     </Link>
                   ))}
                 </div>

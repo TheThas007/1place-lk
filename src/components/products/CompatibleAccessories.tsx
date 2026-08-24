@@ -142,9 +142,9 @@ export default function CompatibleAccessories({
 
       {/* Accessories Grid */}
       {itemsToDisplay.length > 0 ? (
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-6 w-full min-w-0">
           {itemsToDisplay.slice(0, 8).map((product) => (
-            <div key={product.id} className="h-full">
+            <div key={product.id} className="h-full w-full min-w-0">
               <ProductCard product={product} />
             </div>
           ))}
