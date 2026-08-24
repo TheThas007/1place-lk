@@ -18,11 +18,9 @@ import {
   BarChart3,
   Settings,
   LogOut,
-  Bell,
   Search,
   Plus,
   HelpCircle,
-  ChevronDown,
   Menu,
   X,
   Smartphone,
@@ -321,34 +319,11 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
           {/* Top Right Controls */}
           <div className="flex items-center gap-3 sm:gap-4 shrink-0">
-            {/* Notification Bell with unread badge */}
-            <button
-              type="button"
-              className="relative p-2.5 rounded-xl text-white/60 hover:text-white hover:bg-white/10 transition-colors"
-            >
-              <Bell className="w-5 h-5" />
-              <span className="absolute top-1.5 right-1.5 w-4 h-4 bg-red-600 text-white text-[10px] font-black rounded-full flex items-center justify-center border-2 border-[#0F172A]">
-                5
-              </span>
-            </button>
-
-            {/* Admin Profile Dropdown */}
-            <div className="flex items-center gap-2.5 pl-2 border-l border-white/10">
-              <div className="w-8 h-8 rounded-full bg-blue-600 text-white flex items-center justify-center font-bold text-xs shadow-md">
-                TA
-              </div>
-              <div className="hidden sm:block text-left">
-                <p className="text-xs font-extrabold text-white leading-none">Thas Admin</p>
-                <p className="text-[10px] text-white/40 font-medium">Admin</p>
-              </div>
-              <ChevronDown className="w-3.5 h-3.5 text-white/40 hidden sm:block" />
-            </div>
-
             {/* Primary Blue Action Button "+ Add Product" */}
             <button
               type="button"
               onClick={() => setIsAddProductOpen(true)}
-              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-md shadow-blue-600/30 active:scale-[0.98]"
+              className="px-4 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition-all flex items-center gap-1.5 shadow-md shadow-blue-600/30 active:scale-[0.98] cursor-pointer"
             >
               <Plus className="w-4 h-4" />
               <span>Add Product</span>
@@ -377,7 +352,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
       {liveAlert && (
         <div className="fixed bottom-6 right-6 z-50 bg-[#1E293B] border border-white/10 rounded-2xl p-5 shadow-2xl max-w-sm flex items-start gap-4 animate-in fade-in slide-in-from-bottom-5">
           <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0">
-            <Bell className="w-5 h-5 animate-bounce" />
+            <ShoppingBag className="w-5 h-5 animate-bounce" />
           </div>
           <div className="flex-1 min-w-0">
             <h4 className="text-white font-bold text-sm">New Order Received!</h4>
