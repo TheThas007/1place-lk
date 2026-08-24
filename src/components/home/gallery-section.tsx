@@ -306,7 +306,7 @@ export default function GallerySection({
   const resumeTimerGalleryRef = useRef<NodeJS.Timeout | null>(null);
   const isGallerySectionVisibleRef = useRef(false);
 
-  // Step-based Horizontal Autoplay (Mobile: 5.5s per photo card, pause/resume on touch)
+  // Step-based Horizontal Autoplay (Mobile: 4s per photo card, pause/resume on interaction)
   useEffect(() => {
     if (isReducedMotion || visibleImages.length <= 1) return;
 
@@ -346,13 +346,23 @@ export default function GallerySection({
           : firstChild.offsetWidth + 14;
 
         const maxScroll = el.scrollWidth - el.clientWidth;
-        if (el.scrollLeft >= maxScroll - 20) {
+        const currentScroll = el.scrollLeft;
+
+        if (currentScroll >= maxScroll - 16) {
           el.scrollTo({ left: 0, behavior: "smooth" });
         } else {
-          el.scrollBy({ left: step, behavior: "smooth" });
+          // Advance exactly one card step
+          const targetIndex = Math.floor((currentScroll + 10) / step) + 1;
+          if (targetIndex < children.length) {
+            const targetChild = children[targetIndex] as HTMLElement;
+            const targetLeft = targetChild.offsetLeft - firstChild.offsetLeft;
+            el.scrollTo({ left: Math.min(targetLeft, maxScroll), behavior: "smooth" });
+          } else {
+            el.scrollTo({ left: maxScroll, behavior: "smooth" });
+          }
         }
       }
-    }, 5500);
+    }, 4000);
 
     return () => {
       clearInterval(timer);
@@ -371,7 +381,15 @@ export default function GallerySection({
     if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
     resumeTimerGalleryRef.current = setTimeout(() => {
       isInteractingGalleryRef.current = false;
-    }, 5000);
+    }, 4000);
+  };
+
+  const handleGalleryScroll = () => {
+    isInteractingGalleryRef.current = true;
+    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
+    resumeTimerGalleryRef.current = setTimeout(() => {
+      isInteractingGalleryRef.current = false;
+    }, 4000);
   };
 
   // Pointer drag & touch swipe handlers
@@ -490,7 +508,8 @@ export default function GallerySection({
           onMouseLeave={handleGalleryInteractionEnd}
           onFocus={handleGalleryInteractionStart}
           onBlur={handleGalleryInteractionEnd}
-          className="w-full flex gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[10vw] sm:px-[9vw] py-2"
+          onScroll={handleGalleryScroll}
+          className="w-full flex gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[10vw] sm:px-[9vw] py-2 scroll-smooth"
         >
           {visibleImages.map((image, idx) => {
             const titleText = image.caption || image.title || "Life at Street Mobile";

@@ -432,7 +432,7 @@ export default function ReviewsSection({
   const resumeTimerReviewsRef = useRef<NodeJS.Timeout | null>(null);
   const isReviewsSectionVisibleRef = useRef(false);
 
-  // Step-based Horizontal Autoplay (Mobile: 7.5s per review card, pause/resume on touch)
+  // Step-based Horizontal Autoplay (Mobile: 5.5s per review card, pause/resume on interaction)
   useEffect(() => {
     if (isReducedMotion || displayReviews.length <= 1) return;
 
@@ -472,13 +472,23 @@ export default function ReviewsSection({
           : firstChild.offsetWidth + 14;
 
         const maxScroll = el.scrollWidth - el.clientWidth;
-        if (el.scrollLeft >= maxScroll - 20) {
+        const currentScroll = el.scrollLeft;
+
+        if (currentScroll >= maxScroll - 16) {
           el.scrollTo({ left: 0, behavior: "smooth" });
         } else {
-          el.scrollBy({ left: step, behavior: "smooth" });
+          // Advance exactly one card step
+          const targetIndex = Math.floor((currentScroll + 10) / step) + 1;
+          if (targetIndex < children.length) {
+            const targetChild = children[targetIndex] as HTMLElement;
+            const targetLeft = targetChild.offsetLeft - firstChild.offsetLeft;
+            el.scrollTo({ left: Math.min(targetLeft, maxScroll), behavior: "smooth" });
+          } else {
+            el.scrollTo({ left: maxScroll, behavior: "smooth" });
+          }
         }
       }
-    }, 7500);
+    }, 5500);
 
     return () => {
       clearInterval(timer);
@@ -497,7 +507,15 @@ export default function ReviewsSection({
     if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
     resumeTimerReviewsRef.current = setTimeout(() => {
       isInteractingReviewsRef.current = false;
-    }, 5000);
+    }, 4000);
+  };
+
+  const handleReviewsScroll = () => {
+    isInteractingReviewsRef.current = true;
+    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
+    resumeTimerReviewsRef.current = setTimeout(() => {
+      isInteractingReviewsRef.current = false;
+    }, 4000);
   };
 
   // Pointer drag & touch swipe handlers
@@ -634,7 +652,8 @@ export default function ReviewsSection({
           onMouseLeave={handleReviewsInteractionEnd}
           onFocus={handleReviewsInteractionStart}
           onBlur={handleReviewsInteractionEnd}
-          className="w-full flex gap-3.5 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[8vw] sm:px-[7vw] py-2"
+          onScroll={handleReviewsScroll}
+          className="w-full flex gap-3.5 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[8vw] sm:px-[7vw] py-2 scroll-smooth"
         >
           {displayReviews.map((rev, idx) => {
             const safeRating = Math.min(5, Math.max(1, rev.rating || 5));

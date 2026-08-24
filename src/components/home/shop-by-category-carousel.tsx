@@ -177,7 +177,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     return () => cancelAnimationFrame(animationFrameId);
   }, [isHovered]);
 
-  // Step-based Horizontal Autoplay (Mobile: 4.8s per card, pause/resume on touch)
+  // Step-based Horizontal Autoplay (Mobile: 3.5s per card, pause/resume on interaction)
   useEffect(() => {
     if (shouldReduceMotion || activeCategories.length <= 1) return;
 
@@ -217,13 +217,23 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
           : firstChild.offsetWidth + 10;
 
         const maxScroll = el.scrollWidth - el.clientWidth;
-        if (el.scrollLeft >= maxScroll - 15) {
+        const currentScroll = el.scrollLeft;
+
+        if (currentScroll >= maxScroll - 12) {
           el.scrollTo({ left: 0, behavior: "smooth" });
         } else {
-          el.scrollBy({ left: step, behavior: "smooth" });
+          // Advance exactly one card step
+          const targetIndex = Math.floor((currentScroll + 6) / step) + 1;
+          if (targetIndex < children.length) {
+            const targetChild = children[targetIndex] as HTMLElement;
+            const targetLeft = targetChild.offsetLeft - firstChild.offsetLeft;
+            el.scrollTo({ left: Math.min(targetLeft, maxScroll), behavior: "smooth" });
+          } else {
+            el.scrollTo({ left: maxScroll, behavior: "smooth" });
+          }
         }
       }
-    }, 4800);
+    }, 3500);
 
     return () => {
       clearInterval(timer);
@@ -242,7 +252,15 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     if (resumeTimerMobileRef.current) clearTimeout(resumeTimerMobileRef.current);
     resumeTimerMobileRef.current = setTimeout(() => {
       isInteractingMobileRef.current = false;
-    }, 5000);
+    }, 4000);
+  };
+
+  const handleMobileScroll = () => {
+    isInteractingMobileRef.current = true;
+    if (resumeTimerMobileRef.current) clearTimeout(resumeTimerMobileRef.current);
+    resumeTimerMobileRef.current = setTimeout(() => {
+      isInteractingMobileRef.current = false;
+    }, 4000);
   };
 
   const scrollLeft = () => {
@@ -294,7 +312,8 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
           onMouseLeave={handleMobileInteractionEnd}
           onFocus={handleMobileInteractionStart}
           onBlur={handleMobileInteractionEnd}
-          className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4"
+          onScroll={handleMobileScroll}
+          className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x snap-mandatory scroll-smooth pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4"
         >
           {activeCategories.map((item, i) => {
             const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
