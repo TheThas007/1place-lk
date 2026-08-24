@@ -16,11 +16,13 @@ import {
 } from "lucide-react";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { useAuth } from "@/lib/auth-context";
 import { formatPrice } from "@/lib/utils";
 import { setSelectedCheckoutItems } from "@/lib/checkout-store";
 
 export default function CartClient() {
   const router = useRouter();
+  const { user } = useAuth();
   const { cart, updateQuantity, removeFromCart } = useCart();
   const { wishlist, toggleWishlist } = useWishlist();
 
@@ -65,6 +67,10 @@ export default function CartClient() {
 
   const handleProceedToCheckout = () => {
     if (selectedItems.length === 0) return;
+    if (!user) {
+      router.push("/login?redirect=/checkout");
+      return;
+    }
     setSelectedCheckoutItems(selectedItems);
     router.push("/checkout");
   };

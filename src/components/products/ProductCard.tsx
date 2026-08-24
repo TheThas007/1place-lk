@@ -7,6 +7,8 @@ import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { resolveProductSwatches } from "@/lib/color-utils";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 
 interface ProductCardProps {
   product: Product;
@@ -14,7 +16,7 @@ interface ProductCardProps {
 }
 
 export default function ProductCard({ product, className = "" }: ProductCardProps) {
-  const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -57,28 +59,24 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
     if (isOutOfStock && !isPreOrder) return;
 
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product,
+      color: product.colors?.[0],
+      storage: product.storage_options?.[0],
+      quantity: 1,
       image:
         product.images && product.images.length > 0
           ? product.images[0]
           : "/placeholder-phone.webp",
-      quantity: 1,
-      color: product.colors?.[0],
-      storage: product.storage_options?.[0],
-      allow_cod: product.allow_cod !== false,
-      allow_card: product.allow_card !== false,
-      allow_whatsapp: product.allow_whatsapp !== false,
+      onSuccess: () => {
+        setAdded(true);
+        announceToScreenReader(`${product.name} added to bag.`);
+        setTimeout(() => {
+          setAdded(false);
+        }, 2000);
+      },
     });
-
-    setAdded(true);
-    announceToScreenReader(`${product.name} added to bag.`);
-
-    setTimeout(() => {
-      setAdded(false);
-    }, 2000);
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -99,11 +97,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
   const posX = typeof imgSettings?.positionX === "number" ? imgSettings.positionX : 0;
   const posY = typeof imgSettings?.positionY === "number" ? imgSettings.positionY : 0;
 
-  // Color Swatches
-  const colorDots =
-    product.colors && product.colors.length > 0
-      ? product.colors.slice(0, 4)
-      : ["#2C2C2E", "#E3E4E5", "#D4AF37", "#4A4946"];
+  // Color Swatches (resolved dynamically from product colors / variants)
+  const productSwatches = resolveProductSwatches(product);
 
   return (
     <div
@@ -201,24 +196,31 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               )}
             </div>
 
-            {/* Color Swatch Dots */}
-            <div className="flex items-center gap-1.5 mb-3">
-              {colorDots.map((hex, idx) => (
+            {/* Color Swatch Dots with actual variant colors */}
+            <div className="flex items-center gap-1.5 mb-3" aria-label="Available Colors">
+              {productSwatches.slice(0, 5).map((swatch, idx) => (
                 <span
                   key={idx}
-                  style={{ backgroundColor: hex.startsWith("#") ? hex : "#444" }}
-                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block"
+                  title={swatch.name}
+                  aria-label={swatch.name}
+                  style={{ backgroundColor: swatch.hex }}
+                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
                 />
               ))}
+              {productSwatches.length > 5 && (
+                <span className="text-[9px] font-bold text-neutral-400">
+                  +{productSwatches.length - 5}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Rating & Stock Status Row */}
+          {/* Rating & Stock Status Row (Review count hidden on mobile < 768px) */}
           <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
             <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
               <Star className="w-3 h-3 fill-neutral-800 text-neutral-800 md:fill-amber-400 md:text-amber-400" />
               <span>4.8</span>
-              <span className="text-neutral-400 font-normal">(125)</span>
+              <span className="text-neutral-400 font-normal hidden md:inline">(125)</span>
             </div>
 
             <div className="flex items-center gap-1">

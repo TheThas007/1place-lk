@@ -1,8 +1,11 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Loader2, X, Mail, Lock, User, CheckCircle2, AlertCircle } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
+import { getPendingPurchaseIntent, executePendingPurchaseIntent } from "@/lib/auth-intent";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface AuthModalProps {
@@ -11,6 +14,8 @@ interface AuthModalProps {
 }
 
 export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
+  const router = useRouter();
+  const { addToCart } = useCart();
   const { signIn, signUp, signInWithGoogle } = useAuth();
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
@@ -37,6 +42,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     resetForm();
   };
 
+  const handlePostAuth = async () => {
+    const pendingIntent = getPendingPurchaseIntent();
+    if (pendingIntent) {
+      await executePendingPurchaseIntent(pendingIntent, addToCart, router);
+    }
+    onClose();
+    resetForm();
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -51,17 +65,11 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
       if (tab === "signin") {
         await signIn(email, password);
         setSuccess("Signed in successfully. Welcome back!");
-        setTimeout(() => {
-          onClose();
-          resetForm();
-        }, 800);
+        setTimeout(() => handlePostAuth(), 600);
       } else {
         await signUp(name, email, password);
         setSuccess("Account created successfully!");
-        setTimeout(() => {
-          onClose();
-          resetForm();
-        }, 800);
+        setTimeout(() => handlePostAuth(), 600);
       }
     } catch (err: any) {
       const code = err?.code || "";
@@ -90,10 +98,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
     try {
       await signInWithGoogle();
       setSuccess("Signed in with Google!");
-      setTimeout(() => {
-        onClose();
-        resetForm();
-      }, 800);
+      setTimeout(() => handlePostAuth(), 600);
     } catch (err: any) {
       console.error(err);
       if (err?.code === "auth/unauthorized-domain") {

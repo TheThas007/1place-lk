@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useCart } from "@/lib/cart-context";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import { useToast } from "@/components/ui/ToastProvider";
 import { formatPrice } from "@/lib/utils";
 import {
@@ -40,6 +41,7 @@ const SESSION_TOOLTIP_KEY = "sm_streetla_tooltip_shown";
 export default function StreetAssistant() {
   const pathname = usePathname();
   const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { showToast } = useToast();
 
   // Hide on admin routes
@@ -321,17 +323,22 @@ export default function StreetAssistant() {
 
   // Add Product to Cart from Assistant Card
   const handleAddProductToCart = (p: AssistantProductSummary) => {
-    addToCart({
-      productId: p.id,
-      name: p.name,
-      price: p.price,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product: {
+        id: p.id,
+        name: p.name,
+        price: p.price,
+      },
       image: p.image,
       quantity: 1,
       color: p.color || "",
       storage: p.storage || "",
       warrantyTitle: p.warranty || "1 Year Genuine Warranty",
+      onSuccess: () => {
+        showToast(`Added ${p.name} to bag!`, "success");
+      },
     });
-    showToast(`Added ${p.name} to bag!`, "success");
   };
 
   const quickActions = ASSISTANT_QUICK_ACTIONS[language] || ASSISTANT_QUICK_ACTIONS.en;

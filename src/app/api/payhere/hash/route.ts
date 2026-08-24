@@ -21,6 +21,9 @@ export async function POST(req: Request) {
       const orderSnap = await getDoc(doc(db, "orders", cleanOrderId));
       if (orderSnap.exists()) {
         const orderData = orderSnap.data();
+        if (!orderData.userId || orderData.userId === "guest") {
+          return NextResponse.json({ error: "Authentication required for payment." }, { status: 401 });
+        }
         const storedTotal = orderData.finalTotal ?? orderData.totalPrice;
         const dbTotal = Number(storedTotal);
         if (!isNaN(dbTotal) && Number.isFinite(dbTotal) && dbTotal > 0) {

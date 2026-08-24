@@ -4,8 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Check } from "lucide-react";
 import { Product } from "@/lib/types";
-import { useCart } from "@/lib/cart-context";
-import { useAuth } from "@/lib/auth-context";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 
 interface AddToBagButtonProps {
   product: Product;
@@ -14,34 +13,25 @@ interface AddToBagButtonProps {
 }
 
 export default function AddToBagButton({ product, className = "", size = "md" }: AddToBagButtonProps) {
-  const { addToCart } = useCart();
-  const { user } = useAuth();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const [added, setAdded] = useState(false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
-    if (!user) {
-      // Trigger login modal opening globally
-      window.dispatchEvent(new Event("open-auth-modal"));
-      return;
-    }
-
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      image: product.images?.[0] ?? "",
-      quantity: 1,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product,
       storage: product.storage_options?.[0],
       color: product.colors?.[0],
-      allow_cod: product.allow_cod,
-      allow_card: product.allow_card,
-      allow_whatsapp: product.allow_whatsapp,
+      image: product.images?.[0] ?? "",
+      quantity: 1,
+      onSuccess: () => {
+        setAdded(true);
+        setTimeout(() => setAdded(false), 1800);
+      },
     });
-    setAdded(true);
-    setTimeout(() => setAdded(false), 1800);
   };
 
   const isSmall = size === "sm";

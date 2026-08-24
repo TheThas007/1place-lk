@@ -1,15 +1,28 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState, useEffect, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Eye, EyeOff, Loader2, ArrowLeft, Mail, Lock, User, CheckCircle2, AlertCircle } from "lucide-react";
+import { Eye, EyeOff, Loader2, ArrowLeft, Mail, Lock, User, CheckCircle2, AlertCircle, ShoppingBag } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
+import { useCart } from "@/lib/cart-context";
+import {
+  getPendingPurchaseIntent,
+  executePendingPurchaseIntent,
+  sanitizeReturnUrl,
+  clearPendingPurchaseIntent,
+} from "@/lib/auth-intent";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function LoginPage() {
+function LoginFormContent() {
   const router = useRouter();
-  const { signIn, signUp, signInWithGoogle } = useAuth();
+  const searchParams = useSearchParams();
+  const { signIn, signUp, signInWithGoogle, user } = useAuth();
+  const { addToCart } = useCart();
+
+  const redirectParam = searchParams.get("redirect");
+  const intentParam = searchParams.get("intent");
+
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -19,6 +32,29 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+
+  // Check if there is an active purchase/checkout intent
+  const [hasPurchaseIntent, setHasPurchaseIntent] = useState(false);
+
+  useEffect(() => {
+    const intent = getPendingPurchaseIntent();
+    if (intent || redirectParam?.includes("checkout") || intentParam) {
+      setHasPurchaseIntent(true);
+    }
+  }, [redirectParam, intentParam]);
+
+  // If already authenticated and opened login page, execute pending intent or redirect
+  useEffect(() => {
+    if (user) {
+      const intent = getPendingPurchaseIntent();
+      if (intent) {
+        executePendingPurchaseIntent(intent, addToCart, router);
+      } else if (redirectParam) {
+        const safeUrl = sanitizeReturnUrl(redirectParam, "/");
+        router.push(safeUrl);
+      }
+    }
+  }, [user, redirectParam, addToCart, router]);
 
   const resetForm = () => {
     setName("");
@@ -35,6 +71,23 @@ export default function LoginPage() {
     resetForm();
   };
 
+  const handlePostAuthRedirect = async () => {
+    const pendingIntent = getPendingPurchaseIntent();
+    if (pendingIntent) {
+      const res = await executePendingPurchaseIntent(pendingIntent, addToCart, router);
+      if (!res.success && res.message) {
+        setError(res.message);
+        const safeUrl = sanitizeReturnUrl(redirectParam, "/products");
+        setTimeout(() => router.push(safeUrl), 1500);
+      }
+    } else if (redirectParam) {
+      const safeUrl = sanitizeReturnUrl(redirectParam, "/");
+      router.push(safeUrl);
+    } else {
+      router.push("/");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -49,11 +102,11 @@ export default function LoginPage() {
       if (tab === "signin") {
         await signIn(email, password);
         setSuccess("Signed in successfully!");
-        setTimeout(() => router.push("/"), 700);
+        setTimeout(() => handlePostAuthRedirect(), 500);
       } else {
         await signUp(name, email, password);
         setSuccess("Account created successfully!");
-        setTimeout(() => router.push("/"), 700);
+        setTimeout(() => handlePostAuthRedirect(), 500);
       }
     } catch (err: any) {
       const code = err?.code || "";
@@ -82,7 +135,7 @@ export default function LoginPage() {
     try {
       await signInWithGoogle();
       setSuccess("Signed in with Google!");
-      setTimeout(() => router.push("/"), 700);
+      setTimeout(() => handlePostAuthRedirect(), 500);
     } catch (err: any) {
       console.error(err);
       if (err?.code === "auth/unauthorized-domain") {
@@ -150,13 +203,25 @@ export default function LoginPage() {
           </button>
         </div>
 
+        {/* Required Purchase Sign In Notice */}
+        {hasPurchaseIntent && (
+          <div className="mb-4 p-3.5 bg-neutral-900 text-white rounded-2xl flex items-center gap-3 text-xs shadow-md">
+            <ShoppingBag className="w-4 h-4 text-white shrink-0" />
+            <span className="font-semibold leading-snug">
+              Please sign in to add products to your cart or continue your purchase.
+            </span>
+          </div>
+        )}
+
         {/* Title */}
         <div className="text-center mb-6">
           <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-neutral-900">
             {tab === "signin" ? "Welcome back" : "Create an account"}
           </h1>
           <p className="text-xs sm:text-sm text-neutral-500 mt-1.5 font-normal">
-            {tab === "signin"
+            {hasPurchaseIntent
+              ? "Sign in to securely resume your order or cart item"
+              : tab === "signin"
               ? "Sign in to track orders, manage wishlist & profile"
               : "Join Street Mobile for exclusive offers and fast checkout"}
           </p>
@@ -378,5 +443,19 @@ export default function LoginPage() {
         &copy; {new Date().getFullYear()} Street Mobile. All rights reserved.
       </footer>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen w-full bg-white flex items-center justify-center">
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-900" />
+        </div>
+      }
+    >
+      <LoginFormContent />
+    </Suspense>
   );
 }

@@ -7,6 +7,8 @@ import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { getColorCSS } from "@/lib/color-utils";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 
 interface QuickViewModalProps {
   product: Product | null;
@@ -15,7 +17,7 @@ interface QuickViewModalProps {
 }
 
 export default function QuickViewModal({ product, isOpen, onClose }: QuickViewModalProps) {
-  const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   const [selectedColor, setSelectedColor] = useState<string>("");
@@ -146,24 +148,26 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
     }
     if (isOutOfStock) return;
 
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: currentPrice,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product: {
+        ...product,
+        price: currentPrice,
+      },
       image: mainDisplayImage,
       quantity: 1,
       color: selectedColor,
       storage: selectedStorage,
+      onSuccess: () => {
+        setAdded(true);
+        setErrorMsg("");
+        announceToScreenReader(`${product.name} added to bag.`);
+        setTimeout(() => {
+          setAdded(false);
+          onClose();
+        }, 1200);
+      },
     });
-
-    setAdded(true);
-    setErrorMsg("");
-    announceToScreenReader(`${product.name} added to bag.`);
-
-    setTimeout(() => {
-      setAdded(false);
-      onClose();
-    }, 1200);
   };
 
   return (
@@ -286,18 +290,23 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
                 <div className="flex flex-wrap items-center gap-2">
                   {product.colors.map((color) => {
                     const isSelected = selectedColor === color;
+                    const hexColor = getColorCSS(color);
                     return (
                       <button
                         key={color}
                         type="button"
                         onClick={() => handleColorChange(color)}
-                        className={`px-3.5 py-2 rounded-xl text-xs font-bold border transition-all ${
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold border transition-all flex items-center gap-2 cursor-pointer ${
                           isSelected
                             ? "border-black bg-black text-white shadow-xs"
                             : "border-neutral-200 bg-neutral-50 text-neutral-800 hover:border-neutral-400"
                         }`}
                       >
-                        {color}
+                        <span
+                          className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
+                          style={{ backgroundColor: hexColor }}
+                        />
+                        <span>{color}</span>
                       </button>
                     );
                   })}

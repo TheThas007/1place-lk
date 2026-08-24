@@ -9,6 +9,7 @@ import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import QuickViewModal from "@/components/ui/QuickViewModal";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewArrivalsGridBanner from "./NewArrivalsGridBanner";
@@ -29,7 +30,7 @@ export default function NewArrivalsSection({
   const [quickViewProduct, setQuickViewProduct] = useState<Product | null>(null);
   const [addedMap, setAddedMap] = useState<Record<string, boolean>>({});
 
-  const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { isInWishlist, toggleWishlist } = useWishlist();
 
   // Load products if initialProducts not supplied
@@ -116,20 +117,19 @@ export default function NewArrivalsSection({
       return;
     }
 
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product,
       image: product.images?.[0] || "/placeholder-phone.webp",
       quantity: 1,
+      onSuccess: () => {
+        setAddedMap((prev) => ({ ...prev, [product.id]: true }));
+        announceToScreenReader(`${product.name} added to bag.`);
+        setTimeout(() => {
+          setAddedMap((prev) => ({ ...prev, [product.id]: false }));
+        }, 1800);
+      },
     });
-
-    setAddedMap((prev) => ({ ...prev, [product.id]: true }));
-    announceToScreenReader(`${product.name} added to bag.`);
-
-    setTimeout(() => {
-      setAddedMap((prev) => ({ ...prev, [product.id]: false }));
-    }, 1800);
   };
 
   if (settings.enabled === false) {

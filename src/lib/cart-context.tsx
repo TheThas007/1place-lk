@@ -62,38 +62,26 @@ export function CartProvider({ children }: { children: ReactNode }) {
           if (snap.exists()) {
             setCart(snap.data().items || []);
           } else {
-            // Merge guest cart into user cart on first sign in
-            const guest = localStorage.getItem(CART_KEY);
-            const guestItems: CartItem[] = guest ? JSON.parse(guest) : [];
-            setCart(guestItems);
-            if (guestItems.length > 0) {
-              const cleanGuest = JSON.parse(JSON.stringify(guestItems));
-              await setDoc(ref, { items: cleanGuest }, { merge: true });
-              localStorage.removeItem(CART_KEY);
-            }
+            setCart([]);
           }
         } catch {
           setCart([]);
         }
       } else {
-        const guest = localStorage.getItem(CART_KEY);
-        setCart(guest ? JSON.parse(guest) : []);
+        setCart([]);
       }
       loaded.current = true;
     };
     load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.uid]);
 
-  // Persist cart whenever it changes — only after initial load
+  // Persist cart whenever it changes — only for authenticated user
   useEffect(() => {
     if (!loaded.current) return;
     if (user) {
       const ref = doc(db, "carts", user.uid);
       const cleanCart = JSON.parse(JSON.stringify(cart));
       setDoc(ref, { items: cleanCart }, { merge: true }).catch(() => {});
-    } else {
-      localStorage.setItem(CART_KEY, JSON.stringify(cart));
     }
   }, [cart, user]);
 

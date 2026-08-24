@@ -62,11 +62,18 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
 
+    if (!body.userId || body.userId === "guest") {
+      return NextResponse.json(
+        { success: false, error: "Authentication required to place an order. Please sign in." },
+        { status: 401 }
+      );
+    }
+
     const orderId = body.id || `SM-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const newOrder: OrderRecord = {
       id: orderId,
-      userId: body.userId || "guest",
+      userId: body.userId,
       customerName: body.customerName || body.codName || body.cardName || "Valued Customer",
       address: body.address || body.codAddress || "Local Store Pick-up / Delivery",
       district: body.district || body.codDistrict || "Vavuniya",

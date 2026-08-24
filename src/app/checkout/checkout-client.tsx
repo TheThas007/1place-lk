@@ -49,7 +49,14 @@ import { launchPayHerePayment } from "@/lib/payhere";
 export default function CheckoutClient() {
   const router = useRouter();
   const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
-  const { user } = useAuth();
+  const { user, loading } = useAuth();
+
+  // Redirect guest users to login immediately
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push("/login?redirect=/checkout");
+    }
+  }, [user, loading, router]);
 
   // Selected checkout items from store or fallback to cart
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
@@ -545,6 +552,18 @@ export default function CheckoutClient() {
       setSubmitting(false);
     }
   };
+
+  // Auth Protection Guard
+  if (loading || !user) {
+    return (
+      <div className="bg-white min-h-screen pt-[100px] pb-24 text-black flex items-center justify-center font-sans">
+        <div className="text-center space-y-3">
+          <Loader2 className="w-8 h-8 animate-spin text-neutral-900 mx-auto" />
+          <p className="text-xs font-semibold text-neutral-500">Checking authentication...</p>
+        </div>
+      </div>
+    );
+  }
 
   // Empty Cart Screen
   if (itemsToUse.length === 0) {

@@ -7,6 +7,7 @@ import { Product } from "@/lib/types";
 import { getFrequentlyBoughtTogetherBundle } from "@/lib/recommendation-engine";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 
 interface FrequentlyBoughtTogetherProps {
   currentProduct: Product;
@@ -18,6 +19,7 @@ export default function FrequentlyBoughtTogether({
   allProducts,
 }: FrequentlyBoughtTogetherProps) {
   const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase, user } = usePurchaseGuard();
   const [addedSuccess, setAddedSuccess] = useState(false);
 
   // Compute bundle from recommendation engine
@@ -59,6 +61,15 @@ export default function FrequentlyBoughtTogether({
 
   const handleAddBundleToCart = () => {
     if (currentSelectedProducts.length === 0) return;
+
+    if (!user) {
+      handleAuthenticatedPurchase({
+        action: "add-to-cart",
+        product: currentProduct,
+        quantity: 1,
+      });
+      return;
+    }
 
     currentSelectedProducts.forEach((prod) => {
       addToCart({

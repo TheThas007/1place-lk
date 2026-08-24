@@ -794,8 +794,15 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   Shipping and taxes calculated at checkout
                 </p>
                 <button
-                  onClick={() => setStep("checkout-options")}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden"
+                  onClick={() => {
+                    if (!user) {
+                      handleClose();
+                      router.push("/login?redirect=/checkout");
+                      return;
+                    }
+                    setStep("checkout-options");
+                  }}
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer"
                 >
                   Proceed to Checkout
                   <motion.span

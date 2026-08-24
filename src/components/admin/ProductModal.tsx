@@ -546,10 +546,12 @@ export default function ProductModal({
   // Add Custom Colour
   const handleAddColour = () => {
     if (!newColorName.trim()) return;
+    const name = newColorName.trim();
+    const resolvedHex = (newColorHex && newColorHex !== "#000000") ? newColorHex : getColorCSS(name);
     const newCol: ProductColor = {
       id: `col-${Date.now()}`,
-      name: newColorName.trim(),
-      hex: newColorHex,
+      name,
+      hex: resolvedHex.startsWith("#") ? resolvedHex : "#2C2C2E",
       images: [],
       active: true,
       is_default: colorVariants.length === 0,

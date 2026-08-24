@@ -31,6 +31,7 @@ import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { useAuth } from "@/lib/auth-context";
 import { getColorCSS, isLightColor } from "@/lib/color-utils";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import { Product, ProductColor, ProductVariantCombo, WarrantyOption } from "@/lib/types";
 
 interface NormalizedVariant {
@@ -61,6 +62,7 @@ export default function ProductDetailClient({
   const searchParams = useSearchParams();
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
 
   const { isInWishlist, toggleWishlist } = useWishlist();
   const isWishlisted = isInWishlist(product.id);
@@ -96,15 +98,29 @@ export default function ProductDetailClient({
   const colorVariants: ProductColor[] = useMemo(() => {
     if (product.hasColorVariants === false) return [];
     if (product.color_variants && product.color_variants.length > 0) {
-      return product.color_variants;
+      return product.color_variants.map((cv, i) => {
+        const name = cv.name || (cv as any).color || `Color ${i + 1}`;
+        const hex = cv.hex && cv.hex.startsWith("#") ? cv.hex : getColorCSS(name);
+        return {
+          ...cv,
+          id: cv.id || `c-${i}`,
+          name,
+          hex,
+          images: cv.images && cv.images.length > 0 ? cv.images : product.images || [],
+        };
+      });
     }
     if (product.colors && product.colors.length > 0) {
-      return product.colors.map((c, i) => ({
-        id: `c-${i}`,
-        name: c,
-        hex: getColorCSS(c),
-        images: product.images || [],
-      }));
+      return product.colors.map((c, i) => {
+        const name = typeof c === "string" ? c : (c as any)?.name || `Color ${i + 1}`;
+        const hex = typeof c === "string" ? getColorCSS(c) : ((c as any)?.hex || getColorCSS(name));
+        return {
+          id: `c-${i}`,
+          name,
+          hex,
+          images: product.images || [],
+        };
+      });
     }
     return [];
   }, [product]);
@@ -459,53 +475,47 @@ export default function ProductDetailClient({
 
     const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
 
-    addToCart({
-      productId: product.id,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product: {
+        ...product,
+        price: currentVariantPrice,
+      },
       variantId: selectedVariant.id,
-      name: product.name,
-      price: currentVariantPrice,
-      image: activeImages[0] || product.images?.[0] || "",
-      quantity: quantity,
       color: finalColor,
-      ram: selectedVariant.ram,
       storage: selectedVariant.storage,
-      sku: currentSku,
-      allow_cod: product.allow_cod !== false,
-      allow_card: product.allow_card !== false,
-      allow_whatsapp: product.allow_whatsapp !== false,
+      ram: selectedVariant.ram,
+      quantity,
+      image: activeImages[0] || product.images?.[0] || "",
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
+      onSuccess: () => {
+        setAdded(true);
+        setTimeout(() => setAdded(false), 2000);
+      },
     });
-
-    setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
   };
 
   const handleBuyNow = () => {
     if (isVariantOutOfStock || !selectedVariant) return;
-    setBuyingNow(true);
 
     const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
 
-    addToCart({
-      productId: product.id,
+    handleAuthenticatedPurchase({
+      action: "buy-now",
+      product: {
+        ...product,
+        price: currentVariantPrice,
+      },
       variantId: selectedVariant.id,
-      name: product.name,
-      price: currentVariantPrice,
-      image: activeImages[0] || product.images?.[0] || "",
-      quantity: quantity,
       color: finalColor,
-      ram: selectedVariant.ram,
       storage: selectedVariant.storage,
-      sku: currentSku,
-      allow_cod: product.allow_cod !== false,
-      allow_card: product.allow_card !== false,
-      allow_whatsapp: product.allow_whatsapp !== false,
+      ram: selectedVariant.ram,
+      quantity,
+      image: activeImages[0] || product.images?.[0] || "",
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
     });
-
-    router.push("/checkout");
   };
 
   // Keyboard navigation inside storage dropdown options
@@ -727,23 +737,24 @@ export default function ProductDetailClient({
                   <div className="flex flex-wrap gap-3">
                     {colorVariants.map((c) => {
                       const isSelected = hasUserChosenColor && selectedColor.toLowerCase() === c.name.toLowerCase();
-                      const hexColor = c.hex || getColorCSS(c.name);
+                      const hexColor = c.hex && c.hex.startsWith("#") ? c.hex : getColorCSS(c.name);
                       const light = isLightColor(hexColor);
                       return (
                         <button
                           key={c.id || c.name}
                           type="button"
                           onClick={() => handleSelectColor(c.name)}
+                          aria-label={c.name}
                           title={`${c.name}${isSelected ? " (Selected - click again to reset)" : ""}`}
                           className={`w-9 h-9 rounded-full relative flex items-center justify-center transition-all cursor-pointer ${
                             isSelected
                               ? "ring-2 ring-black ring-offset-2 scale-110 shadow-sm"
-                              : "border border-gray-300 hover:scale-105"
+                              : "border border-neutral-300 hover:scale-105 hover:border-neutral-400"
                           }`}
                           style={{ backgroundColor: hexColor }}
                         >
                           {isSelected && (
-                            <Check className={`w-3.5 h-3.5 ${light ? "text-black" : "text-white"}`} />
+                            <Check className={`w-3.5 h-3.5 ${light ? "text-black stroke-[3]" : "text-white stroke-[3]"}`} />
                           )}
                         </button>
                       );

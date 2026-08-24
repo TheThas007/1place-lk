@@ -20,6 +20,8 @@ import DepartmentBrandHero from "./DepartmentBrandHero";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
+import { resolveProductSwatches } from "@/lib/color-utils";
+import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 
 interface DepartmentBrandPageProps {
   config: DepartmentBrandPageConfig;
@@ -32,7 +34,7 @@ interface DepartmentBrandPageProps {
 
 // ── Reusable 4-Column Product Card Matching the Reference Image ──
 function BrandProductCard({ product }: { product: Product }) {
-  const { addToCart } = useCart();
+  const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
   const [imgError, setImgError] = useState(false);
@@ -73,10 +75,7 @@ function BrandProductCard({ product }: { product: Product }) {
       : "Standard";
 
   // Color Swatches
-  const colorDots =
-    product.colors && product.colors.length > 0
-      ? product.colors.slice(0, 4)
-      : ["#4A4946", "#8F8A81", "#E3E4E5", "#2C2C2E"];
+  const productSwatches = resolveProductSwatches(product);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -84,25 +83,21 @@ function BrandProductCard({ product }: { product: Product }) {
 
     if (isOutOfStock) return;
 
-    addToCart({
-      productId: product.id,
-      name: product.name,
-      price: product.price,
-      image: mainImage,
-      quantity: 1,
+    handleAuthenticatedPurchase({
+      action: "add-to-cart",
+      product,
       color: product.colors?.[0],
       storage: product.storage_options?.[0],
-      allow_cod: product.allow_cod !== false,
-      allow_card: product.allow_card !== false,
-      allow_whatsapp: product.allow_whatsapp !== false,
+      quantity: 1,
+      image: mainImage,
+      onSuccess: () => {
+        setAdded(true);
+        announceToScreenReader(`${product.name} added to bag.`);
+        setTimeout(() => {
+          setAdded(false);
+        }, 2000);
+      },
     });
-
-    setAdded(true);
-    announceToScreenReader(`${product.name} added to bag.`);
-
-    setTimeout(() => {
-      setAdded(false);
-    }, 2000);
   };
 
   const handleToggleWishlist = (e: React.MouseEvent) => {
@@ -202,23 +197,30 @@ function BrandProductCard({ product }: { product: Product }) {
             </div>
 
             {/* Color Swatch Dots */}
-            <div className="flex items-center gap-1.5 mb-3">
-              {colorDots.map((hex, idx) => (
+            <div className="flex items-center gap-1.5 mb-3" aria-label="Available Colors">
+              {productSwatches.slice(0, 5).map((swatch, idx) => (
                 <span
                   key={idx}
-                  style={{ backgroundColor: hex.startsWith("#") ? hex : "#333" }}
-                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block"
+                  title={swatch.name}
+                  aria-label={swatch.name}
+                  style={{ backgroundColor: swatch.hex }}
+                  className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
                 />
               ))}
+              {productSwatches.length > 5 && (
+                <span className="text-[9px] font-bold text-neutral-400">
+                  +{productSwatches.length - 5}
+                </span>
+              )}
             </div>
           </div>
 
-          {/* Rating & Live Stock Status */}
+          {/* Rating & Live Stock Status (Review count hidden on mobile < 768px) */}
           <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
             <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
               <Star className="w-3 h-3 fill-red-500 text-red-500" />
               <span>4.9</span>
-              <span className="text-neutral-400 font-normal">(128)</span>
+              <span className="text-neutral-400 font-normal hidden md:inline">(128)</span>
             </div>
 
             <div className="flex items-center gap-1">
