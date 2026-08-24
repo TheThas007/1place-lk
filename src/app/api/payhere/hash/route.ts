@@ -21,8 +21,9 @@ export async function POST(req: Request) {
       const orderSnap = await getDoc(doc(db, "orders", cleanOrderId));
       if (orderSnap.exists()) {
         const orderData = orderSnap.data();
-        const dbTotal = Number(orderData.finalTotal ?? orderData.totalPrice ?? 0);
-        if (dbTotal > 0) {
+        const storedTotal = orderData.finalTotal ?? orderData.totalPrice;
+        const dbTotal = Number(storedTotal);
+        if (!isNaN(dbTotal) && Number.isFinite(dbTotal) && dbTotal > 0) {
           verifiedAmount = dbTotal;
         }
       }
@@ -30,7 +31,7 @@ export async function POST(req: Request) {
       console.warn("[PayHere Hash] Order verification note:", dbErr);
     }
 
-    if (isNaN(verifiedAmount) || verifiedAmount <= 0) {
+    if (isNaN(verifiedAmount) || !Number.isFinite(verifiedAmount) || verifiedAmount <= 0) {
       return NextResponse.json({ error: "A valid positive amount is required." }, { status: 400 });
     }
 

@@ -64,28 +64,50 @@ export async function POST(req: Request) {
       return NextResponse.json({ status: "already_processed" }, { status: 200 });
     }
 
-    // Exact minor-unit (integer cents) amount verification against Firestore order
-    const rawExpectedAmount = Number(orderData.finalTotal ?? orderData.totalPrice ?? 0);
+    // ── Exact Minor-Unit (Integer Cents) Verification ──
+    const storedTotal = orderData.finalTotal ?? orderData.totalPrice;
+    if (storedTotal === undefined || storedTotal === null || storedTotal === "") {
+      console.error(`[PayHere Webhook] Security Alert: Missing order total in Firestore for Order ${order_id}!`);
+      return NextResponse.json({ error: "Order total missing in database records." }, { status: 400 });
+    }
+
+    const rawExpectedAmount = Number(storedTotal);
     const rawReceivedAmount = Number(payhere_amount);
 
     if (
       isNaN(rawExpectedAmount) ||
-      isNaN(rawReceivedAmount) ||
+      !Number.isFinite(rawExpectedAmount) ||
       rawExpectedAmount <= 0 ||
+      isNaN(rawReceivedAmount) ||
+      !Number.isFinite(rawReceivedAmount) ||
       rawReceivedAmount <= 0
     ) {
       console.error(
-        `[PayHere Webhook] Security Alert: Invalid amount value for Order ${order_id}! Expected: ${rawExpectedAmount}, Received: ${rawReceivedAmount}`
+        `[PayHere Webhook] Security Alert: Invalid or non-positive amount value for Order ${order_id}! Expected: ${rawExpectedAmount}, Received: ${payhere_amount}`
       );
       return NextResponse.json({ error: "Invalid payment amount." }, { status: 400 });
     }
 
+    // Convert both amounts to integer cents (minor units) to prevent floating-point precision errors
     const expectedCents = Math.round(rawExpectedAmount * 100);
     const receivedCents = Math.round(rawReceivedAmount * 100);
 
+    if (
+      !Number.isInteger(expectedCents) ||
+      !Number.isInteger(receivedCents) ||
+      expectedCents <= 0 ||
+      receivedCents <= 0
+    ) {
+      console.error(
+        `[PayHere Webhook] Security Alert: Minor-unit calculation failed for Order ${order_id}!`
+      );
+      return NextResponse.json({ error: "Invalid minor-unit calculation." }, { status: 400 });
+    }
+
+    // Require both integer cents amounts to match exactly
     if (expectedCents !== receivedCents) {
       console.error(
-        `[PayHere Webhook] Security Alert: Amount mismatch for Order ${order_id}! Expected cents: ${expectedCents}, Received cents: ${receivedCents}`
+        `[PayHere Webhook] Security Alert: Amount mismatch for Order ${order_id}! Expected cents: ${expectedCents} (LKR ${rawExpectedAmount.toFixed(2)}), Received cents: ${receivedCents} (LKR ${rawReceivedAmount.toFixed(2)})`
       );
       await updateDoc(orderRef, {
         paymentStatus: "amount_mismatch",
@@ -96,9 +118,10 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Amount mismatch detected." }, { status: 400 });
     }
 
+    // Require currency to be strictly LKR
     if (payhere_currency !== "LKR") {
       console.error(`[PayHere Webhook] Currency mismatch for Order ${order_id}: ${payhere_currency}`);
-      return NextResponse.json({ error: "Invalid currency detected." }, { status: 400 });
+      return NextResponse.json({ error: "Invalid currency detected. Only LKR is supported." }, { status: 400 });
     }
 
     // PayHere Status Codes:
