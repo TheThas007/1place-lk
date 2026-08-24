@@ -301,96 +301,74 @@ export default function GallerySection({
     };
   }, [settings, isReducedMotion, baseItems]);
 
-  const mobileGalleryRef = useRef<HTMLDivElement>(null);
-  const isInteractingGalleryRef = useRef(false);
-  const resumeTimerGalleryRef = useRef<NodeJS.Timeout | null>(null);
-  const isGallerySectionVisibleRef = useRef(false);
+  const [isMobileGalleryPaused, setIsMobileGalleryPaused] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(true);
+  const [durationSec, setDurationSec] = useState<number>(60);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const sequence1Ref = useRef<HTMLDivElement>(null);
 
-  // Step-based Horizontal Autoplay (Mobile: 4s per photo card, pause/resume on interaction)
+  // Dynamic duration calculation: 12 pixels per second (Right to Left)
+  const updateDuration = useCallback(() => {
+    if (sequence1Ref.current) {
+      const width = sequence1Ref.current.offsetWidth || sequence1Ref.current.scrollWidth;
+      if (width > 0) {
+        const calculated = width / 12;
+        setDurationSec(Math.round(calculated * 10) / 10);
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    if (isReducedMotion || visibleImages.length <= 1) return;
+    updateDuration();
+    const el = sequence1Ref.current;
+    let ro: ResizeObserver | null = null;
+    if (el && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => updateDuration());
+      ro.observe(el);
+    }
 
-    const el = mobileGalleryRef.current;
-    if (!el) return;
+    window.addEventListener("resize", updateDuration);
+    window.addEventListener("load", updateDuration);
 
-    // Viewport visibility check
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", updateDuration);
+      window.removeEventListener("load", updateDuration);
+    };
+  }, [updateDuration]);
+
+  useEffect(() => {
+    const el = mobileContainerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        isGallerySectionVisibleRef.current = entry.isIntersecting;
+        setIsInViewport(entry.isIntersecting);
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
     observer.observe(el);
 
-    // Tab visibility
     const handleVisibility = () => {
-      if (document.hidden) {
-        isGallerySectionVisibleRef.current = false;
-      }
+      setIsInViewport(!document.hidden);
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    const timer = setInterval(() => {
-      if (!isGallerySectionVisibleRef.current || isInteractingGalleryRef.current || document.hidden) {
-        return;
-      }
-
-      if (el) {
-        const children = el.children;
-        if (children.length <= 1) return;
-
-        const firstChild = children[0] as HTMLElement;
-        const secondChild = children[1] as HTMLElement;
-        const step = secondChild
-          ? secondChild.offsetLeft - firstChild.offsetLeft
-          : firstChild.offsetWidth + 14;
-
-        const maxScroll = el.scrollWidth - el.clientWidth;
-        const currentScroll = el.scrollLeft;
-
-        if (currentScroll >= maxScroll - 16) {
-          el.scrollTo({ left: 0, behavior: "smooth" });
-        } else {
-          // Advance exactly one card step
-          const targetIndex = Math.floor((currentScroll + 10) / step) + 1;
-          if (targetIndex < children.length) {
-            const targetChild = children[targetIndex] as HTMLElement;
-            const targetLeft = targetChild.offsetLeft - firstChild.offsetLeft;
-            el.scrollTo({ left: Math.min(targetLeft, maxScroll), behavior: "smooth" });
-          } else {
-            el.scrollTo({ left: maxScroll, behavior: "smooth" });
-          }
-        }
-      }
-    }, 4000);
-
     return () => {
-      clearInterval(timer);
-      if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [isReducedMotion, visibleImages.length]);
+  }, []);
 
-  const handleGalleryInteractionStart = () => {
-    isInteractingGalleryRef.current = true;
-    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
-  };
-
-  const handleGalleryInteractionEnd = () => {
-    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
-    resumeTimerGalleryRef.current = setTimeout(() => {
-      isInteractingGalleryRef.current = false;
-    }, 4000);
-  };
-
-  const handleGalleryScroll = () => {
-    isInteractingGalleryRef.current = true;
-    if (resumeTimerGalleryRef.current) clearTimeout(resumeTimerGalleryRef.current);
-    resumeTimerGalleryRef.current = setTimeout(() => {
-      isInteractingGalleryRef.current = false;
-    }, 4000);
-  };
+  const mobileGalleryItems = useMemo(() => {
+    if (visibleImages.length === 0) return [];
+    if (visibleImages.length >= 4) return visibleImages;
+    const rep: GalleryImage[] = [];
+    while (rep.length < 4) {
+      rep.push(...visibleImages);
+    }
+    return rep;
+  }, [visibleImages]);
 
   // Pointer drag & touch swipe handlers
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -461,8 +439,9 @@ export default function GallerySection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Apple-Inspired Horizontal Visual Gallery Rail ── */}
+      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Gallery Marquee (12 px/s, Moving Left) ── */}
       <section
+        ref={mobileContainerRef}
         className="md:hidden w-full bg-[#FAFAFA] py-6 select-none overflow-hidden border-y border-neutral-200/80"
         aria-label="Life at Street Mobile Mobile Gallery"
       >
@@ -475,7 +454,7 @@ export default function GallerySection({
           className="px-4 mb-4 flex flex-col items-start"
         >
           <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-1.5 shadow-2xs select-none">
-            <Images className="w-3 h-3 text-blue-600 shrink-0" />
+            <Images className="w-3 h-3 text-neutral-900 shrink-0" />
             <span>Store Highlights</span>
           </div>
 
@@ -497,83 +476,144 @@ export default function GallerySection({
           </p>
         </motion.div>
 
-        {/* Horizontal Visual Photo Rail (Slow Auto-Glide, Snap Centered, Side Peeks) */}
+        {/* Continuous Linear Marquee Track (12 px/s Right to Left) */}
         <div
-          ref={mobileGalleryRef}
-          onTouchStart={handleGalleryInteractionStart}
-          onTouchEnd={handleGalleryInteractionEnd}
-          onPointerDown={handleGalleryInteractionStart}
-          onPointerUp={handleGalleryInteractionEnd}
-          onMouseEnter={handleGalleryInteractionStart}
-          onMouseLeave={handleGalleryInteractionEnd}
-          onFocus={handleGalleryInteractionStart}
-          onBlur={handleGalleryInteractionEnd}
-          onScroll={handleGalleryScroll}
-          className="w-full flex gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[10vw] sm:px-[9vw] py-2 scroll-smooth"
+          className="relative w-full overflow-hidden select-none touch-pan-y"
+          onTouchStart={() => setIsMobileGalleryPaused(true)}
+          onTouchEnd={() => setIsMobileGalleryPaused(false)}
+          onPointerDown={() => setIsMobileGalleryPaused(true)}
+          onPointerUp={() => setIsMobileGalleryPaused(false)}
+          onPointerCancel={() => setIsMobileGalleryPaused(false)}
+          onMouseEnter={() => setIsMobileGalleryPaused(true)}
+          onMouseLeave={() => setIsMobileGalleryPaused(false)}
         >
-          {visibleImages.map((image, idx) => {
-            const titleText = image.caption || image.title || "Life at Street Mobile";
-            const validPostUrl = validateUrl(image.post_url) || "/gallery";
-            const isInstagram =
-              image.platform === "instagram" ||
-              (validPostUrl && validPostUrl.includes("instagram.com"));
+          <div
+            className="mobile-gallery-track flex w-max will-change-transform motion-reduce:animate-none"
+            style={{
+              ["--mobile-gallery-duration" as any]: `${durationSec}s`,
+              animationDuration: `${durationSec}s`,
+              animationPlayState: isMobileGalleryPaused || !isInViewport ? "paused" : "running",
+            }}
+          >
+            {/* Sequence 1 */}
+            <div ref={sequence1Ref} className="flex items-center gap-3.5 sm:gap-4 pr-3.5 sm:pr-4 shrink-0">
+              {mobileGalleryItems.map((image, idx) => {
+                const titleText = image.caption || image.title || "Life at Street Mobile";
+                const validPostUrl = validateUrl(image.post_url) || "/gallery";
+                const isInstagram =
+                  image.platform === "instagram" ||
+                  (validPostUrl && validPostUrl.includes("instagram.com"));
 
-            return (
-              <motion.a
-                key={`mob-gal-${image.id || idx}`}
-                href={validPostUrl}
-                target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
-                rel="noopener noreferrer"
-                aria-label={`Gallery photo: ${titleText}`}
-                initial={{
-                  opacity: 0,
-                  y: isReducedMotion ? 0 : 20,
-                  scale: isReducedMotion ? 1 : 0.96,
-                }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, amount: 0.15 }}
-                transition={{
-                  duration: 0.55,
-                  delay: idx < 4 ? idx * 0.08 : 0,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 snap-center block group cursor-pointer bg-neutral-900"
-              >
-                {/* 1. Full-Card Image */}
-                <img
-                  src={image.image_url}
-                  alt={titleText}
-                  loading={idx < 3 ? "eager" : "lazy"}
-                  className="w-full h-full object-cover object-center transition-transform duration-500 group-hover:scale-[1.03]"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-                  }}
-                />
+                return (
+                  <div
+                    key={`mob-gal-a-${image.id || idx}`}
+                    className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 bg-neutral-900"
+                  >
+                    <a
+                      href={validPostUrl}
+                      target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
+                      rel="noopener noreferrer"
+                      aria-label={`Gallery photo: ${titleText}`}
+                      className="block w-full h-full relative select-none"
+                    >
+                      {/* 1. Full-Card Image */}
+                      <img
+                        src={image.image_url}
+                        alt={titleText}
+                        loading={idx < 3 ? "eager" : "lazy"}
+                        className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-[1.03]"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                        }}
+                      />
 
-                {/* 2. Top-Left Category Badge */}
-                {image.category && (
-                  <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
-                    {image.category}
+                      {/* 2. Top-Left Category Badge */}
+                      {image.category && (
+                        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
+                          {image.category}
+                        </div>
+                      )}
+
+                      {/* 3. Top-Right Social Badge */}
+                      {isInstagram && (
+                        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
+                          <InstagramIcon className="w-2.5 h-2.5 text-white/90" />
+                          <span>Instagram</span>
+                        </div>
+                      )}
+
+                      {/* 4. Bottom Transparent Gradient & Caption */}
+                      <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 bg-gradient-to-t from-black/90 via-black/40 via-60% to-transparent flex items-end z-10">
+                        <p className="text-white text-xs sm:text-sm font-bold leading-snug line-clamp-2 drop-shadow-xs m-0">
+                          {titleText}
+                        </p>
+                      </div>
+                    </a>
                   </div>
-                )}
+                );
+              })}
+            </div>
 
-                {/* 3. Top-Right Social Badge */}
-                {isInstagram && (
-                  <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
-                    <InstagramIcon className="w-2.5 h-2.5 text-pink-400" />
-                    <span>Instagram</span>
+            {/* Sequence 2 (Identical Clone for seamless continuous 18s loop, hidden from screenreaders & keyboard tab) */}
+            <div className="flex items-center gap-3.5 sm:gap-4 pr-3.5 sm:pr-4 shrink-0" aria-hidden="true">
+              {mobileGalleryItems.map((image, idx) => {
+                const titleText = image.caption || image.title || "Life at Street Mobile";
+                const validPostUrl = validateUrl(image.post_url) || "/gallery";
+                const isInstagram =
+                  image.platform === "instagram" ||
+                  (validPostUrl && validPostUrl.includes("instagram.com"));
+
+                return (
+                  <div
+                    key={`mob-gal-b-${image.id || idx}`}
+                    className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 bg-neutral-900"
+                  >
+                    <a
+                      href={validPostUrl}
+                      target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
+                      tabIndex={-1}
+                      rel="noopener noreferrer"
+                      aria-label={`Gallery photo: ${titleText}`}
+                      className="block w-full h-full relative select-none"
+                    >
+                      {/* 1. Full-Card Image */}
+                      <img
+                        src={image.image_url}
+                        alt={titleText}
+                        loading={idx < 3 ? "eager" : "lazy"}
+                        className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-[1.03]"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                        }}
+                      />
+
+                      {/* 2. Top-Left Category Badge */}
+                      {image.category && (
+                        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
+                          {image.category}
+                        </div>
+                      )}
+
+                      {/* 3. Top-Right Social Badge */}
+                      {isInstagram && (
+                        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
+                          <InstagramIcon className="w-2.5 h-2.5 text-white/90" />
+                          <span>Instagram</span>
+                        </div>
+                      )}
+
+                      {/* 4. Bottom Transparent Gradient & Caption */}
+                      <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 bg-gradient-to-t from-black/90 via-black/40 via-60% to-transparent flex items-end z-10">
+                        <p className="text-white text-xs sm:text-sm font-bold leading-snug line-clamp-2 drop-shadow-xs m-0">
+                          {titleText}
+                        </p>
+                      </div>
+                    </a>
                   </div>
-                )}
-
-                {/* 4. Bottom Transparent Gradient & Caption */}
-                <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 bg-gradient-to-t from-black/90 via-black/40 via-60% to-transparent flex items-end z-10">
-                  <p className="text-white text-xs sm:text-sm font-bold leading-snug line-clamp-2 drop-shadow-xs m-0">
-                    {titleText}
-                  </p>
-                </div>
-              </motion.a>
-            );
-          })}
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 

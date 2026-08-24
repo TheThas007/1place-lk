@@ -37,11 +37,11 @@ export default function StoreLocation() {
         <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 flex flex-col gap-3.5 shadow-sm overflow-hidden">
           {/* Header Badge & Title */}
           <div className="flex items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200/60 text-emerald-800 text-[10px] font-bold uppercase tracking-wider">
-              <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider">
+              <span className="flex h-2 w-2 rounded-full bg-neutral-900 animate-pulse" />
               <span>Store Location</span>
             </div>
-            <span className="text-[11px] font-bold text-amber-600 flex items-center gap-1">
+            <span className="text-[11px] font-bold text-neutral-900 flex items-center gap-1">
               ★ 4.9 <span className="text-neutral-400 font-normal">(285+ Reviews)</span>
             </span>
           </div>
@@ -71,7 +71,7 @@ export default function StoreLocation() {
               />
             ) : (
               <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-900 text-white p-4 text-center">
-                <MapPin className="w-6 h-6 text-emerald-400 mb-1.5 animate-bounce" />
+                <MapPin className="w-6 h-6 text-white/80 mb-1.5 animate-bounce" />
                 <p className="text-xs text-neutral-300 font-medium mb-2">Street Mobile — Vavuniya</p>
                 <button
                   type="button"
@@ -146,7 +146,7 @@ export default function StoreLocation() {
 
             <a
               href={`tel:${siteSettings.phone || "+94774141118"}`}
-              className="py-2.5 px-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
+              className="py-2.5 px-3 bg-white hover:bg-neutral-100 text-black border border-neutral-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
             >
               <Phone className="w-3.5 h-3.5 shrink-0" />
               <span>Call Store</span>

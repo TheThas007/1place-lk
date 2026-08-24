@@ -131,14 +131,14 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Apple-Style Full-Width Edge-to-Edge Product Showcase (520–620px) ── */}
+      {/* ── Mobile Layout (< 768px): Full-Width Edge-to-Edge Product Showcase (clamp(440px, 118vw, 480px)) ── */}
       <section
         className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
         style={backgroundStyle}
         aria-label={showcase.section_title || "Featured Visual Showcase"}
       >
         <div
-          className="relative w-full h-[clamp(400px,108vw,440px)] min-h-[400px] max-h-[440px] aspect-auto border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-7 sm:pt-8 px-4 pb-0"
+          className="relative w-full h-[clamp(440px,118vw,480px)] min-h-[440px] max-h-[480px] aspect-auto border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-7 sm:pt-8 px-4 pb-6"
         >
           {/* Top Content Block: Badge -> Heading -> Subtitle -> Action CTAs */}
           <div className="relative z-10 w-full flex flex-col items-center max-w-md mx-auto space-y-1.5">
@@ -196,8 +196,8 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
             )}
           </div>
 
-          {/* Lower 52-58%: Large Product Visual (object-contain, scaled large, non-overlapping) */}
-          <div className="relative w-full flex-1 flex items-end justify-center overflow-hidden max-h-[58%] mt-auto">
+          {/* Lower Product Visual: Proportionally scaled with ~24px safe margin below */}
+          <div className="relative w-full flex-1 flex items-end justify-center overflow-hidden max-h-[62%] mt-auto">
             <Link
               href={targetProductUrl}
               aria-label={`View ${currentSlide.title || "featured product"}`}
@@ -207,7 +207,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
                 src={currentSlide.mobile_image || currentSlide.desktop_image || "/placeholder-phone.webp"}
                 alt={currentSlide.title || "Featured Visual"}
                 loading="lazy"
-                className="max-h-[98%] w-auto max-w-[92%] object-contain object-bottom"
+                className="max-h-full w-auto max-w-[94%] object-contain object-bottom"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                 }}

@@ -244,22 +244,19 @@ export default function HeroSection() {
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
           </div>
 
-          {/* Left Text & CTA Content Overlay */}
-          <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto">
+          {/* Left Text & CTA Content Overlay (Max 66% width to leave right product image clear) */}
+          <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4">
             {currentSlide.show_badge !== false && (
               <span
-                className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0"
-                style={{
-                  color: currentSlide.badge_text_color || "#FFFFFF",
-                  backgroundColor: currentSlide.badge_bg_color || "#0284c7",
-                }}
+                className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
               >
                 {currentSlide.campaign_label || "NEW ARRIVAL"}
               </span>
             )}
 
+            {/* Responsive Clamp Heading: Max 3 lines */}
             <h1
-              className="text-[20px] sm:text-[23px] font-black leading-[1.12] tracking-tight mb-1 drop-shadow-md"
+              className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
               style={{ color: line1Color }}
             >
               {line1Text || "Latest Smartphones."}
@@ -267,23 +264,21 @@ export default function HeroSection() {
               {line2Text || "Ultimate Performance."}
             </h1>
 
+            {/* Full Subtitle in max 2 lines */}
             {currentSlide.show_description !== false && currentSlide.description && (
               <p
-                className="text-neutral-200 text-[11px] sm:text-xs leading-snug line-clamp-2 mb-2.5 drop-shadow-xs font-medium"
+                className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
                 style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
               >
                 {currentSlide.description}
               </p>
             )}
 
+            {/* Compact 44–48px CTA Button */}
             {currentSlide.show_primary_button !== false && (
               <Link
                 href={currentSlide.primary_button_url || "/products"}
-                className="inline-flex items-center justify-center gap-2 px-5 py-2 min-h-[44px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
-                style={{
-                  color: currentSlide.button_text_color || "#000000",
-                  backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
-                }}
+                className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
               >
                 <span>{currentSlide.primary_button_text || "Shop Now"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />
@@ -291,9 +286,9 @@ export default function HeroSection() {
             )}
           </div>
 
-          {/* Slider Indicator Dots at Bottom Left */}
+          {/* Fixed Bottom-Left Slider Indicator Dots (No overlap with content) */}
           {slides.length > 1 && (
-            <div className="relative z-20 flex items-center gap-1.5 pt-1">
+            <div className="absolute bottom-2.5 left-4 sm:left-5 z-20 flex items-center gap-1.5 pointer-events-auto">
               {slides.map((_, idx) => {
                 const isActive = idx === currentIndex;
                 return (
@@ -304,8 +299,8 @@ export default function HeroSection() {
                     aria-label={`Slide ${idx + 1}`}
                     className={`transition-all duration-300 rounded-full cursor-pointer ${
                       isActive
-                        ? "w-2.5 h-2 bg-[#ED0712]"
-                        : "w-1.5 h-1.5 bg-white/50 hover:bg-white/80"
+                        ? "w-3 h-1.5 bg-white shadow-xs"
+                        : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
                     }`}
                   />
                 );

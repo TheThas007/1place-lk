@@ -328,17 +328,14 @@ export default function TodayDealSection({
             <div className="flex items-center gap-2 select-none">
               <span className="relative flex h-2.5 w-2.5">
                 <span
-                  style={{ backgroundColor: deal.eyebrowColor || "#ED0712" }}
-                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"
+                  className="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 bg-white"
                 />
                 <span
-                  style={{ backgroundColor: deal.eyebrowColor || "#ED0712" }}
-                  className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-xs"
+                  className="relative inline-flex rounded-full h-2.5 w-2.5 shadow-xs bg-white"
                 />
               </span>
               <span
-                style={{ color: deal.eyebrowColor || "#ED0712" }}
-                className="text-[11px] sm:text-xs font-black tracking-widest uppercase font-mono"
+                className="text-[11px] sm:text-xs font-black tracking-widest uppercase font-mono text-white/90"
               >
                 {deal.eyebrow || "TODAY'S DEAL"}
               </span>
@@ -366,37 +363,25 @@ export default function TodayDealSection({
             {deal.countdownEnabled !== false && (
               <div className="pt-0.5 select-none" suppressHydrationWarning>
                 {isExpired && deal.expiryAction === "deal-ended" ? (
-                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-500/20 text-red-400 border border-red-500/30 rounded-full text-xs font-bold uppercase">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-white/10 text-white border border-white/20 rounded-full text-xs font-bold uppercase">
                     <Clock className="w-3.5 h-3.5" /> Deal Ended
                   </span>
                 ) : (
                   <div className="flex items-center gap-1.5">
                     <span
-                      style={{
-                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
-                        color: deal.countdownTextColor || "#FFFFFF",
-                      }}
-                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs bg-white text-black"
                     >
                       {mounted ? padZero(hours) : "12"}
                     </span>
                     <span className="text-white/60 text-sm font-bold">:</span>
                     <span
-                      style={{
-                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
-                        color: deal.countdownTextColor || "#FFFFFF",
-                      }}
-                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs bg-white text-black"
                     >
                       {mounted ? padZero(minutes) : "45"}
                     </span>
                     <span className="text-white/60 text-sm font-bold">:</span>
                     <span
-                      style={{
-                        backgroundColor: deal.countdownBackgroundColor || "#ED0712",
-                        color: deal.countdownTextColor || "#FFFFFF",
-                      }}
-                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs"
+                      className="text-xs sm:text-sm font-black px-2.5 py-1 rounded-md font-mono leading-none shadow-xs bg-white text-black"
                     >
                       {mounted ? padZero(seconds) : "30"}
                     </span>
@@ -405,18 +390,13 @@ export default function TodayDealSection({
               </div>
             )}
 
-            {/* 5. CTA Button (Min 44px touch height, exact desktop colors) */}
+            {/* 5. CTA Button (Min 44px touch height, strict monochrome) */}
             {deal.ctaEnabled !== false && activeCtaLabel && (
               <div className="pt-0.5">
                 <Link
                   href={activeCtaUrl}
                   target={deal.openInNewTab ? "_blank" : undefined}
-                  style={{
-                    backgroundColor: deal.ctaBackgroundColor || "#ED0712",
-                    color: deal.ctaTextColor || "#FFFFFF",
-                    borderRadius: `${deal.borderRadius ?? 9999}px`,
-                  }}
-                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-[44px] text-xs sm:text-sm font-extrabold tracking-wide transition-all duration-200 active:scale-95 shadow-md hover:brightness-110"
+                  className="inline-flex items-center justify-center gap-2 px-6 py-2.5 min-h-[44px] text-xs sm:text-sm font-extrabold tracking-wide rounded-full bg-white text-black transition-all duration-200 active:scale-95 shadow-md hover:bg-neutral-100"
                 >
                   <span>{activeCtaLabel}</span>
                   <ArrowRight className="w-4 h-4" />

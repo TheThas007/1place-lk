@@ -17,6 +17,8 @@ import {
   Plus,
   Minus,
   HelpCircle,
+  ChevronDown,
+  ChevronUp,
 } from "lucide-react";
 import { useCart, CartItem } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
@@ -103,6 +105,7 @@ export default function CheckoutClient() {
   const [submitting, setSubmitting] = useState(false);
   const [touchedFields, setTouchedFields] = useState<Record<string, boolean>>({});
   const [formSubmittedAttempt, setFormSubmittedAttempt] = useState(false);
+  const [mobileSummaryOpen, setMobileSummaryOpen] = useState(false);
 
   // Dynamic COD & Delivery fee
   const [codFeeAmount, setCodFeeAmount] = useState<number>(250);
@@ -576,7 +579,95 @@ export default function CheckoutClient() {
       {/* ── 1. Compact Responsive Progress Indicator ── */}
       <CheckoutProgress currentStep={currentProgressStep} />
 
-      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-8 sm:pt-10">
+      {/* ── Mobile Collapsible Order Summary Accordion (< 1024px) ── */}
+      <div className="lg:hidden bg-white border-b border-neutral-200/90 shadow-2xs">
+        <button
+          type="button"
+          onClick={() => setMobileSummaryOpen(!mobileSummaryOpen)}
+          className="w-full px-4 py-3.5 flex items-center justify-between text-xs font-bold text-neutral-900 cursor-pointer"
+        >
+          <div className="flex items-center gap-2">
+            <ShoppingBag className="w-4 h-4 text-neutral-800" />
+            <span>
+              {mobileSummaryOpen ? "Hide order summary" : "Show order summary"} ({itemsToUse.reduce((s, i) => s + i.quantity, 0)} items)
+            </span>
+            {mobileSummaryOpen ? (
+              <ChevronUp className="w-3.5 h-3.5 text-neutral-500" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5 text-neutral-500" />
+            )}
+          </div>
+          <span className="font-black text-sm text-neutral-950">
+            {formatPrice(finalTotal)}
+          </span>
+        </button>
+
+        {mobileSummaryOpen && (
+          <div className="px-4 pb-5 pt-1 border-t border-neutral-100 space-y-4 bg-neutral-50/50">
+            {/* Products List */}
+            <div className="space-y-3 pt-2 max-h-60 overflow-y-auto">
+              {itemsToUse.map((item) => (
+                <div
+                  key={item.productId + (item.variantId || "")}
+                  className="flex items-center justify-between gap-3 text-xs"
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-12 h-12 rounded-lg bg-white border border-neutral-200/80 p-1 flex items-center justify-center shrink-0">
+                      <img
+                        src={item.image || "/placeholder-phone.webp"}
+                        alt={item.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                        }}
+                      />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-bold text-neutral-900 truncate">{item.name}</p>
+                      <p className="text-[11px] text-neutral-500">Qty: {item.quantity}</p>
+                    </div>
+                  </div>
+                  <span className="font-black text-neutral-900 shrink-0">
+                    {formatPrice(item.price * item.quantity)}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            {/* Price breakdown */}
+            <div className="pt-3 border-t border-neutral-200/80 space-y-1.5 text-xs text-neutral-600">
+              <div className="flex justify-between">
+                <span>Subtotal</span>
+                <span className="font-semibold text-neutral-900">{formatPrice(subtotal)}</span>
+              </div>
+              <div className="flex justify-between">
+                <span>Delivery</span>
+                <span className="font-semibold text-neutral-900">
+                  {deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee)}
+                </span>
+              </div>
+              {paymentMethod === "cod" && (
+                <div className="flex justify-between">
+                  <span>COD Fee</span>
+                  <span className="font-semibold text-neutral-900">+{formatPrice(codFeeAmount)}</span>
+                </div>
+              )}
+              {couponDiscount > 0 && (
+                <div className="flex justify-between text-emerald-700 font-semibold">
+                  <span>Coupon ({appliedCoupon})</span>
+                  <span>-{formatPrice(couponDiscount)}</span>
+                </div>
+              )}
+              <div className="pt-2 border-t border-neutral-200 flex justify-between font-black text-sm text-neutral-950">
+                <span>Total</span>
+                <span>{formatPrice(finalTotal)}</span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="max-w-[1320px] mx-auto px-4 sm:px-6 lg:px-8 pt-4 sm:pt-10">
         <form onSubmit={handlePlaceOrder} noValidate>
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
             
@@ -1270,13 +1361,13 @@ export default function CheckoutClient() {
           {/* ════════════════════════════════════════════════════════════════
               MOBILE & TABLET STICKY BOTTOM BAR
           ════════════════════════════════════════════════════════════════ */}
-          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white border-t border-neutral-200/90 p-4 shadow-xl backdrop-blur-md">
+          <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200/90 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] shadow-[0_-4px_20px_rgba(0,0,0,0.08)]">
             <div className="max-w-md mx-auto flex items-center justify-between gap-4">
-              <div>
-                <span className="text-[11px] font-bold text-neutral-500 block uppercase tracking-wider">
+              <div className="min-w-0">
+                <span className="text-[10px] font-bold text-neutral-500 block uppercase tracking-wider">
                   Total Amount
                 </span>
-                <span className="text-xl font-black text-neutral-950">
+                <span className="text-lg sm:text-xl font-black text-neutral-950 truncate block">
                   {formatPrice(finalTotal)}
                 </span>
               </div>
@@ -1284,7 +1375,7 @@ export default function CheckoutClient() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="flex-1 min-h-[48px] px-6 rounded-full bg-black text-white font-bold text-sm hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-50 active:scale-95"
+                className="flex-1 min-h-[48px] px-6 rounded-full bg-black text-white font-bold text-xs sm:text-sm hover:bg-neutral-800 transition-all flex items-center justify-center gap-2 shadow-md disabled:opacity-40 active:scale-95 cursor-pointer shrink-0"
               >
                 {submitting ? (
                   <>

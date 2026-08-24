@@ -84,58 +84,81 @@ export default function CartClient() {
         </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-8">
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-8">
-          Shopping Bag ({cart.length})
-        </h1>
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-4 sm:pt-8">
+        <div className="flex items-center justify-between gap-4 mb-4 sm:mb-8">
+          <div>
+            <h1 className="text-xl sm:text-3xl font-black tracking-tight text-neutral-950">
+              Shopping Bag ({cart.length})
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-500 font-medium">
+              Review your selected tech and proceed to checkout.
+            </p>
+          </div>
+          {cart.length > 0 && (
+            <span className="text-xs font-bold text-neutral-600 bg-neutral-100 px-3 py-1 rounded-full shrink-0">
+              {selectedItems.length} of {cart.length} Selected
+            </span>
+          )}
+        </div>
+
+        {/* ── Trust Banner: Genuine Guarantee & Fast Delivery ── */}
+        {cart.length > 0 && (
+          <div className="mb-5 p-3 sm:p-3.5 bg-neutral-50 border border-neutral-200/90 rounded-2xl flex items-center justify-between gap-3 text-xs text-neutral-700">
+            <div className="flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 text-neutral-900 shrink-0" />
+              <span className="font-semibold">100% Genuine Sri Lankan Warranty Included</span>
+            </div>
+            <span className="text-[11px] text-neutral-500 hidden sm:inline">Islandwide Safe Delivery</span>
+          </div>
+        )}
 
         {cart.length === 0 ? (
-          <div className="text-center py-20 bg-[#FAFAFA] border border-[#EAEAEA] rounded-3xl max-w-xl mx-auto p-8">
+          <div className="text-center py-16 sm:py-20 bg-[#FAFAFA] border border-[#EAEAEA] rounded-3xl max-w-xl mx-auto p-6 sm:p-8">
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
               <ShoppingBag className="w-8 h-8 text-gray-400" />
             </div>
             <h2 className="text-xl font-bold mb-2">Your Shopping Bag is Empty</h2>
-            <p className="text-sm text-gray-500 mb-6 max-w-md mx-auto">
+            <p className="text-xs sm:text-sm text-gray-500 mb-6 max-w-md mx-auto">
               Explore our latest lineup of smartphones, laptops and genuine tech accessories.
             </p>
             <Link
               href="/products"
-              className="inline-flex items-center gap-2 px-8 py-3.5 bg-black text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-md text-sm"
+              className="inline-flex items-center gap-2 px-8 py-3.5 bg-black text-white font-bold rounded-full hover:bg-gray-800 transition-all shadow-md text-xs sm:text-sm active:scale-95"
             >
-              Continue Shopping
+              <span>Explore Products</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         ) : (
-          <div className="grid lg:grid-cols-12 gap-10 items-start">
+          <div className="grid lg:grid-cols-12 gap-6 lg:gap-10 items-start">
             
             {/* ── Left Column: Items List ── */}
-            <div className="lg:col-span-8 space-y-4">
+            <div className="lg:col-span-8 space-y-3.5 sm:space-y-4">
               
               {/* Select All Row */}
-              <div className="flex items-center justify-between p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl">
+              <div className="flex items-center justify-between p-3.5 sm:p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl">
                 <button
                   type="button"
                   onClick={toggleSelectAll}
-                  className="flex items-center gap-3 text-xs sm:text-sm font-bold text-black"
+                  className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-black cursor-pointer"
                 >
                   <div
                     className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
                       isAllSelected ? "bg-black border-black text-white" : "border-gray-300 bg-white"
                     }`}
                   >
-                    {isAllSelected && <Check className="w-3.5 h-3.5" />}
+                    {isAllSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                   </div>
                   <span>Select All ({cart.length} Items)</span>
                 </button>
 
-                <span className="text-xs text-gray-500 font-medium">
+                <span className="text-xs text-gray-500 font-semibold">
                   {selectedItems.length} selected
                 </span>
               </div>
 
               {/* Product Cards */}
-              <div className="space-y-4">
+              <div className="space-y-3 sm:space-y-4">
                 {cart.map((item) => {
                   const key = getItemKey(item);
                   const isSelected = selectedKeys.includes(key);
@@ -144,110 +167,116 @@ export default function CartClient() {
                   return (
                     <div
                       key={key}
-                      className={`p-4 sm:p-5 rounded-2xl border transition-all ${
+                      className={`p-3.5 sm:p-5 rounded-2xl border transition-all ${
                         isSelected
-                          ? "border-black bg-white shadow-xs"
-                          : "border-[#EAEAEA] bg-white opacity-80"
+                          ? "border-neutral-900 bg-white shadow-xs"
+                          : "border-neutral-200/80 bg-white/70 opacity-75"
                       }`}
                     >
-                      <div className="flex items-start gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4">
                         {/* Checkbox */}
                         <button
                           type="button"
                           onClick={() => toggleSelectItem(key)}
-                          className="mt-2 shrink-0"
+                          className="mt-1 sm:mt-2 shrink-0 cursor-pointer"
+                          aria-label="Select item"
                         >
                           <div
                             className={`w-5 h-5 rounded-md border flex items-center justify-center transition-all ${
                               isSelected ? "bg-black border-black text-white" : "border-gray-300 bg-white"
                             }`}
                           >
-                            {isSelected && <Check className="w-3.5 h-3.5" />}
+                            {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                           </div>
                         </button>
 
                         {/* Product Image */}
-                        <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-xl bg-white border border-[#EAEAEA] p-2 shrink-0 flex items-center justify-center">
+                        <div className="w-18 h-18 sm:w-24 sm:h-24 rounded-xl bg-[#F7F7F7] border border-neutral-200/80 p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
                           <img
                             src={item.image}
                             alt={item.name}
-                            className="w-full h-full object-contain mix-blend-multiply"
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                              (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                            }}
                           />
                         </div>
 
                         {/* Details */}
                         <div className="flex-1 min-w-0">
                           <div className="flex items-start justify-between gap-2 mb-1">
-                            <h3 className="font-bold text-sm sm:text-base text-black truncate">
+                            <h3 className="font-bold text-xs sm:text-base text-neutral-950 truncate leading-snug">
                               {item.name}
                             </h3>
-                            <span className="font-black text-sm sm:text-base text-black shrink-0">
+                            <span className="font-black text-xs sm:text-base text-neutral-950 shrink-0">
                               {formatPrice(item.price * item.quantity)}
                             </span>
                           </div>
 
                           {/* Variants & Warranty tags */}
-                          <div className="flex flex-wrap gap-2 text-[11px] text-gray-500 mb-3 font-medium">
+                          <div className="flex flex-wrap gap-1.5 text-[10px] sm:text-[11px] text-neutral-600 mb-2.5 font-medium">
                             {item.color && (
-                              <span className="bg-gray-100 px-2 py-0.5 rounded-md text-gray-700">
-                                Colour: {item.color}
+                              <span className="bg-neutral-100 px-2 py-0.5 rounded-md text-neutral-800">
+                                {item.color}
                               </span>
                             )}
                             {(item.ram || item.storage) && (
-                              <span className="bg-gray-100 px-2 py-0.5 rounded-md text-gray-700">
-                                Specs: {[item.ram, item.storage].filter(Boolean).join(" + ")}
+                              <span className="bg-neutral-100 px-2 py-0.5 rounded-md text-neutral-800">
+                                {[item.ram, item.storage].filter(Boolean).join(" + ")}
                               </span>
                             )}
                             {item.warrantyTitle && (
-                              <span className="bg-emerald-50 text-emerald-800 border border-emerald-100 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                <ShieldCheck className="w-3 h-3" />
+                              <span className="bg-neutral-100 text-neutral-900 border border-neutral-200/80 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                <ShieldCheck className="w-3 h-3 text-neutral-900" />
                                 {item.warrantyTitle}
                               </span>
                             )}
                           </div>
 
-                          {/* Action Buttons & Quantity */}
-                          <div className="flex items-center justify-between pt-2 border-t border-[#EAEAEA]">
+                          {/* Action Buttons & Quantity Controls */}
+                          <div className="flex items-center justify-between pt-2 border-t border-neutral-100">
                             <div className="flex items-center gap-3">
                               {/* Remove */}
                               <button
                                 type="button"
                                 onClick={() => removeFromCart(item.productId)}
-                                className="text-xs text-gray-400 hover:text-red-600 transition-colors flex items-center gap-1"
+                                className="text-[11px] sm:text-xs text-neutral-400 hover:text-neutral-900 transition-colors flex items-center gap-1 cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
-                                Remove
+                                <span>Remove</span>
                               </button>
 
                               {/* Wishlist */}
                               <button
                                 type="button"
                                 onClick={() => toggleWishlist(item.productId)}
-                                className={`text-xs flex items-center gap-1 transition-colors ${
-                                  isWishlisted ? "text-red-500 font-semibold" : "text-gray-400 hover:text-black"
+                                className={`text-[11px] sm:text-xs flex items-center gap-1 transition-colors cursor-pointer ${
+                                  isWishlisted ? "text-neutral-950 font-bold" : "text-neutral-400 hover:text-neutral-900"
                                 }`}
                               >
-                                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-red-500" : ""}`} />
-                                {isWishlisted ? "Saved" : "Save for Later"}
+                                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-neutral-950 text-neutral-950" : ""}`} />
+                                <span>{isWishlisted ? "Saved" : "Save for later"}</span>
                               </button>
                             </div>
 
                             {/* Quantity Controls */}
-                            <div className="inline-flex items-center border border-[#EAEAEA] rounded-full p-0.5 bg-white">
+                            <div className="inline-flex items-center border border-neutral-200 rounded-full p-0.5 bg-neutral-50 shadow-2xs">
                               <button
                                 type="button"
                                 onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
+                                aria-label="Decrease quantity"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
-                              <span className="w-8 text-center text-xs font-bold text-black">
+                              <span className="w-7 text-center text-xs font-bold text-black">
                                 {item.quantity}
                               </span>
                               <button
                                 type="button"
                                 onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors"
+                                className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
+                                aria-label="Increase quantity"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
@@ -261,7 +290,7 @@ export default function CartClient() {
               </div>
             </div>
 
-            {/* ── Right Column: Order Summary ── */}
+            {/* ── Right Column: Order Summary (Desktop Sticky) ── */}
             <div className="lg:col-span-4 sticky top-28">
               <div className="p-6 bg-[#FAFAFA] border border-[#EAEAEA] rounded-3xl space-y-5">
                 <h2 className="text-lg font-bold text-black pb-3 border-b border-[#EAEAEA]">
@@ -275,7 +304,7 @@ export default function CartClient() {
                   </div>
                   <div className="flex justify-between">
                     <span>Delivery Charges</span>
-                    <span className="text-emerald-600 font-semibold">Calculated at Checkout</span>
+                    <span className="text-neutral-900 font-semibold">Calculated at Checkout</span>
                   </div>
                 </div>
 
@@ -291,7 +320,7 @@ export default function CartClient() {
                   type="button"
                   disabled={selectedItems.length === 0}
                   onClick={handleProceedToCheckout}
-                  className={`w-full py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] ${
+                  className={`w-full py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer ${
                     selectedItems.length === 0
                       ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                       : "bg-black text-white hover:bg-gray-800"
@@ -313,12 +342,12 @@ export default function CartClient() {
 
       {/* ── Mobile Sticky Bottom Checkout Bar (Screens < 1024px) ── */}
       {cart.length > 0 && (
-        <div className="lg:hidden fixed bottom-14 sm:bottom-16 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-3 shadow-lg flex items-center justify-between gap-3 safe-bottom">
+        <div className="lg:hidden fixed bottom-14 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3 safe-bottom">
           <div className="flex flex-col min-w-0">
-            <span className="text-[10px] text-neutral-500 font-semibold uppercase">
-              Total ({selectedItems.length} items)
+            <span className="text-[10px] text-neutral-500 font-bold uppercase tracking-wider">
+              Subtotal ({selectedItems.length} items)
             </span>
-            <span className="text-base font-black text-black leading-tight truncate">
+            <span className="text-base font-black text-neutral-950 leading-tight truncate">
               {formatPrice(selectedSubtotal)}
             </span>
           </div>
@@ -327,10 +356,10 @@ export default function CartClient() {
             type="button"
             disabled={selectedItems.length === 0}
             onClick={handleProceedToCheckout}
-            className="px-6 py-3 rounded-full bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-1.5 shadow-md disabled:opacity-50 active:scale-95 transition-all shrink-0 cursor-pointer"
+            className="px-6 py-3 rounded-full bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-40 active:scale-95 transition-all shrink-0 cursor-pointer"
           >
             <span>Proceed to Buy</span>
-            <ArrowRight className="w-3.5 h-3.5" />
+            <ArrowRight className="w-4 h-4" />
           </button>
         </div>
       )}

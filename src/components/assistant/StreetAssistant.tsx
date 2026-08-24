@@ -341,13 +341,9 @@ export default function StreetAssistant() {
       {/* ════════════════════════════════════════════════════════════════
           1. FLOATING ASSISTANT LAUNCHER (Streetla Official Avatar)
       ════════════════════════════════════════════════════════════════ */}
-      <div className={`fixed z-50 flex items-center select-none transition-all duration-300 ${
+      <div className={`fixed z-40 flex items-center select-none transition-all duration-300 ${
         isKeyboardOpen && !isOpen ? "opacity-0 translate-y-10 pointer-events-none" : "opacity-100 translate-y-0"
-      } ${
-        pathname?.startsWith("/products/") && pathname !== "/products"
-          ? "bottom-16 lg:bottom-6 right-3 sm:right-6"
-          : "bottom-20 lg:bottom-6 right-3 sm:right-6"
-      }`}>
+      } bottom-[calc(80px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6`}>
         
         {/* Welcome Tooltip */}
         <AnimatePresence>
@@ -366,7 +362,7 @@ export default function StreetAssistant() {
                   e.stopPropagation();
                   setShowTooltip(false);
                 }}
-                className="text-white/60 hover:text-white p-0.5"
+                className="text-white/60 hover:text-white p-0.5 cursor-pointer"
                 title="Dismiss"
               >
                 <X className="w-3.5 h-3.5" />
@@ -394,12 +390,12 @@ export default function StreetAssistant() {
               setShowTooltip(false);
             }
           }}
-          className="relative w-[56px] h-[56px] sm:w-[64px] sm:h-[64px] rounded-full overflow-hidden bg-black p-0 border-2 border-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 cursor-pointer shrink-0"
+          className="relative w-[50px] h-[50px] sm:w-[58px] sm:h-[58px] rounded-full overflow-hidden bg-black p-0 border-2 border-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 cursor-pointer shrink-0"
           aria-label="Open Streetla"
         >
           {isOpen ? (
             <div className="w-full h-full bg-black text-white flex items-center justify-center">
-              <X className="w-6 h-6 text-white stroke-[2.5]" />
+              <X className="w-5 h-5 text-white stroke-[2.5]" />
             </div>
           ) : (
             <div className="relative w-full h-full">
@@ -409,7 +405,7 @@ export default function StreetAssistant() {
                 className="w-full h-full object-cover object-center"
               />
               {/* Small Green Online Status Indicator */}
-              <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#00E676] border-2 border-black" />
+              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-[#00E676] border-2 border-black" />
             </div>
           )}
         </motion.button>

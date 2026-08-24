@@ -407,7 +407,7 @@ export default function Header() {
                       initial={{ scale: 0.6 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
+                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-white text-black text-[10px] font-black rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
                     >
                       {wishlist.length}
                     </motion.span>
@@ -433,7 +433,7 @@ export default function Header() {
                       initial={{ scale: 0.6 }}
                       animate={{ scale: 1 }}
                       transition={{ duration: 0.15 }}
-                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
+                      className="absolute top-1.5 right-1.5 min-w-[17px] h-[17px] px-1 flex items-center justify-center bg-white text-black text-[10px] font-black rounded-full leading-none border-[1.5px] border-[#0A0A0A] shadow-xs"
                     >
                       {itemCount > 99 ? "99+" : itemCount}
                     </motion.span>
@@ -488,7 +488,7 @@ export default function Header() {
                           onClick={() => setUserMenuOpen(false)}
                           className="flex items-center gap-3 w-full px-4 py-3 text-sm text-white/80 hover:text-white hover:bg-white/[0.04] border-b border-white/10 transition-all"
                         >
-                          <Package className="w-4 h-4 text-emerald-400" />
+                          <Package className="w-4 h-4 text-white/80" />
                           My Orders
                         </Link>
                         <button
@@ -612,7 +612,7 @@ export default function Header() {
                     }}
                     className="w-full flex items-center gap-3 px-4 py-3 bg-white/[0.07] hover:bg-white/[0.12] border border-white/[0.15] rounded-2xl text-left text-xs font-semibold text-white/70 hover:text-white transition-all shadow-sm"
                   >
-                    <Search className="w-4 h-4 text-emerald-400" />
+                    <Search className="w-4 h-4 text-white/70" />
                     <span>Search phones, accessories, brands...</span>
                   </button>
                 </div>
@@ -708,8 +708,7 @@ export default function Header() {
                                     </span>
                                     {item.badgeEnabled && item.badgeLabel ? (
                                       <span
-                                        style={{ backgroundColor: item.badgeBackgroundColor || "#ED0712" }}
-                                        className="px-2 py-0.5 text-[9px] font-black text-white rounded-full uppercase tracking-wider shrink-0"
+                                        className="px-2 py-0.5 text-[9px] font-black text-black bg-white rounded-full uppercase tracking-wider shrink-0"
                                       >
                                         {item.badgeLabel}
                                       </span>
@@ -753,11 +752,11 @@ export default function Header() {
                       My Bag
                     </span>
                     {itemCount === 0 ? (
-                      <span className="px-2 py-0.5 bg-gray-700/90 text-white text-xs font-black rounded-full animate-pulse border border-white/30">
+                      <span className="px-2 py-0.5 bg-neutral-800 text-white text-xs font-black rounded-full border border-white/20">
                         0
                       </span>
                     ) : (
-                      <span className="px-2 py-0.5 bg-red-600 text-white text-xs font-black rounded-full">
+                      <span className="px-2 py-0.5 bg-white text-black text-xs font-black rounded-full">
                         {itemCount}
                       </span>
                     )}

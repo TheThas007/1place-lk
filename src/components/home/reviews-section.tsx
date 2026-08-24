@@ -427,96 +427,74 @@ export default function ReviewsSection({
     };
   }, [currentSettings, effectiveDirection, isReducedMotion, baseItems]);
 
-  const mobileReviewsRef = useRef<HTMLDivElement>(null);
-  const isInteractingReviewsRef = useRef(false);
-  const resumeTimerReviewsRef = useRef<NodeJS.Timeout | null>(null);
-  const isReviewsSectionVisibleRef = useRef(false);
+  const [isMobileReviewsPaused, setIsMobileReviewsPaused] = useState(false);
+  const [isInViewport, setIsInViewport] = useState(true);
+  const [durationSec, setDurationSec] = useState<number>(75);
+  const mobileContainerRef = useRef<HTMLDivElement>(null);
+  const sequence1Ref = useRef<HTMLDivElement>(null);
 
-  // Step-based Horizontal Autoplay (Mobile: 5.5s per review card, pause/resume on interaction)
+  // Dynamic duration calculation: 10 pixels per second (Left to Right)
+  const updateDuration = useCallback(() => {
+    if (sequence1Ref.current) {
+      const width = sequence1Ref.current.offsetWidth || sequence1Ref.current.scrollWidth;
+      if (width > 0) {
+        const calculated = width / 10;
+        setDurationSec(Math.round(calculated * 10) / 10);
+      }
+    }
+  }, []);
+
   useEffect(() => {
-    if (isReducedMotion || displayReviews.length <= 1) return;
+    updateDuration();
+    const el = sequence1Ref.current;
+    let ro: ResizeObserver | null = null;
+    if (el && typeof ResizeObserver !== "undefined") {
+      ro = new ResizeObserver(() => updateDuration());
+      ro.observe(el);
+    }
 
-    const el = mobileReviewsRef.current;
-    if (!el) return;
+    window.addEventListener("resize", updateDuration);
+    window.addEventListener("load", updateDuration);
 
-    // Viewport visibility check
+    return () => {
+      if (ro) ro.disconnect();
+      window.removeEventListener("resize", updateDuration);
+      window.removeEventListener("load", updateDuration);
+    };
+  }, [updateDuration]);
+
+  useEffect(() => {
+    const el = mobileContainerRef.current;
+    if (!el || typeof IntersectionObserver === "undefined") return;
+
     const observer = new IntersectionObserver(
       ([entry]) => {
-        isReviewsSectionVisibleRef.current = entry.isIntersecting;
+        setIsInViewport(entry.isIntersecting);
       },
-      { threshold: 0.15 }
+      { threshold: 0.05 }
     );
     observer.observe(el);
 
-    // Tab visibility
     const handleVisibility = () => {
-      if (document.hidden) {
-        isReviewsSectionVisibleRef.current = false;
-      }
+      setIsInViewport(!document.hidden);
     };
     document.addEventListener("visibilitychange", handleVisibility);
 
-    const timer = setInterval(() => {
-      if (!isReviewsSectionVisibleRef.current || isInteractingReviewsRef.current || document.hidden) {
-        return;
-      }
-
-      if (el) {
-        const children = el.children;
-        if (children.length <= 1) return;
-
-        const firstChild = children[0] as HTMLElement;
-        const secondChild = children[1] as HTMLElement;
-        const step = secondChild
-          ? secondChild.offsetLeft - firstChild.offsetLeft
-          : firstChild.offsetWidth + 14;
-
-        const maxScroll = el.scrollWidth - el.clientWidth;
-        const currentScroll = el.scrollLeft;
-
-        if (currentScroll >= maxScroll - 16) {
-          el.scrollTo({ left: 0, behavior: "smooth" });
-        } else {
-          // Advance exactly one card step
-          const targetIndex = Math.floor((currentScroll + 10) / step) + 1;
-          if (targetIndex < children.length) {
-            const targetChild = children[targetIndex] as HTMLElement;
-            const targetLeft = targetChild.offsetLeft - firstChild.offsetLeft;
-            el.scrollTo({ left: Math.min(targetLeft, maxScroll), behavior: "smooth" });
-          } else {
-            el.scrollTo({ left: maxScroll, behavior: "smooth" });
-          }
-        }
-      }
-    }, 5500);
-
     return () => {
-      clearInterval(timer);
-      if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
       observer.disconnect();
       document.removeEventListener("visibilitychange", handleVisibility);
     };
-  }, [isReducedMotion, displayReviews.length]);
+  }, []);
 
-  const handleReviewsInteractionStart = () => {
-    isInteractingReviewsRef.current = true;
-    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
-  };
-
-  const handleReviewsInteractionEnd = () => {
-    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
-    resumeTimerReviewsRef.current = setTimeout(() => {
-      isInteractingReviewsRef.current = false;
-    }, 4000);
-  };
-
-  const handleReviewsScroll = () => {
-    isInteractingReviewsRef.current = true;
-    if (resumeTimerReviewsRef.current) clearTimeout(resumeTimerReviewsRef.current);
-    resumeTimerReviewsRef.current = setTimeout(() => {
-      isInteractingReviewsRef.current = false;
-    }, 4000);
-  };
+  const mobileReviews = useMemo(() => {
+    if (displayReviews.length === 0) return [];
+    if (displayReviews.length >= 4) return displayReviews;
+    const repeated: Review[] = [];
+    while (repeated.length < 4) {
+      repeated.push(...displayReviews);
+    }
+    return repeated;
+  }, [displayReviews]);
 
   // Pointer drag & touch swipe handlers
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -580,8 +558,9 @@ export default function ReviewsSection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Apple-Inspired Swipeable Reviews Rail ── */}
+      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Reviews Marquee (10 px/s, Moving Right) ── */}
       <section
+        ref={mobileContainerRef}
         className="md:hidden w-full bg-white py-6 select-none overflow-hidden"
         aria-label="Customer Reviews"
       >
@@ -604,12 +583,12 @@ export default function ReviewsSection({
 
           <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold mb-3 flex-wrap">
             <div className="flex items-center gap-1">
-              <span className="text-amber-500 font-black text-base leading-none">
+              <span className="text-neutral-900 font-black text-base leading-none">
                 {overallRating.toFixed(1)}
               </span>
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
+                  <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
                 ))}
               </div>
             </div>
@@ -641,111 +620,200 @@ export default function ReviewsSection({
           </div>
         </motion.div>
 
-        {/* Horizontal Swipeable Card Rail (Slow Auto-Glide, Snap Centered, 8-12% Peeks on Sides) */}
+        {/* Continuous Linear Marquee Track (10 px/s Left to Right) */}
         <div
-          ref={mobileReviewsRef}
-          onTouchStart={handleReviewsInteractionStart}
-          onTouchEnd={handleReviewsInteractionEnd}
-          onPointerDown={handleReviewsInteractionStart}
-          onPointerUp={handleReviewsInteractionEnd}
-          onMouseEnter={handleReviewsInteractionStart}
-          onMouseLeave={handleReviewsInteractionEnd}
-          onFocus={handleReviewsInteractionStart}
-          onBlur={handleReviewsInteractionEnd}
-          onScroll={handleReviewsScroll}
-          className="w-full flex gap-3.5 overflow-x-auto scrollbar-none snap-x snap-mandatory px-[8vw] sm:px-[7vw] py-2 scroll-smooth"
+          className="relative w-full overflow-hidden select-none touch-pan-y"
+          onTouchStart={() => setIsMobileReviewsPaused(true)}
+          onTouchEnd={() => setIsMobileReviewsPaused(false)}
+          onPointerDown={() => setIsMobileReviewsPaused(true)}
+          onPointerUp={() => setIsMobileReviewsPaused(false)}
+          onPointerCancel={() => setIsMobileReviewsPaused(false)}
+          onMouseEnter={() => setIsMobileReviewsPaused(true)}
+          onMouseLeave={() => setIsMobileReviewsPaused(false)}
         >
-          {displayReviews.map((rev, idx) => {
-            const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
-            const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
-            const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
+          <div
+            className="mobile-reviews-track flex w-max will-change-transform motion-reduce:animate-none"
+            style={{
+              ["--mobile-reviews-duration" as any]: `${durationSec}s`,
+              animationDuration: `${durationSec}s`,
+              animationPlayState: isMobileReviewsPaused || !isInViewport ? "paused" : "running",
+            }}
+          >
+            {/* Sequence 1 */}
+            <div ref={sequence1Ref} className="flex items-stretch gap-3.5 pr-3.5 shrink-0">
+              {mobileReviews.map((rev, idx) => {
+                const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
+                const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
+                const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
 
-            return (
-              <motion.a
-                key={`mob-rev-${rev.id || idx}`}
-                href={cardTargetUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                aria-label={`Google review by ${rev.author_name}`}
-                initial={{
-                  opacity: 0,
-                  y: isReducedMotion ? 0 : 20,
-                  scale: isReducedMotion ? 1 : 0.97,
-                }}
-                whileInView={{ opacity: 1, y: 0, scale: 1 }}
-                viewport={{ once: true, amount: 0.15 }}
-                transition={{
-                  duration: 0.55,
-                  delay: idx < 4 ? idx * 0.08 : 0,
-                  ease: [0.16, 1, 0.3, 1],
-                }}
-                className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0 bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs snap-center transition-all duration-200 cursor-pointer select-none"
-              >
-                {/* 1. Top Badges & Stars */}
-                <div>
-                  <div className="flex items-center justify-between gap-2 mb-3">
-                    <div className="flex items-center gap-0.5">
-                      {[...Array(safeRating)].map((_, i) => (
-                        <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                      ))}
-                    </div>
+                return (
+                  <div
+                    key={`mob-rev-a-${rev.id || idx}`}
+                    className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0"
+                  >
+                    <a
+                      href={cardTargetUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Google review by ${rev.author_name}`}
+                      className="w-full h-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 cursor-pointer select-none block"
+                    >
+                      {/* Top Badges & Stars */}
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(safeRating)].map((_, i) => (
+                              <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
+                            ))}
+                          </div>
 
-                    <div className="flex items-center gap-1">
-                      {rev.featured && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
-                          <Sparkles className="w-2.5 h-2.5 text-amber-600" />
-                          <span>Featured</span>
-                        </span>
-                      )}
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
-                        <CheckCircle2 className="w-2.5 h-2.5 text-emerald-600" />
-                        <span>Verified</span>
-                      </span>
-                    </div>
-                  </div>
+                          <div className="flex items-center gap-1">
+                            {rev.featured && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
+                                <Sparkles className="w-2.5 h-2.5 text-white" />
+                                <span>Featured</span>
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
+                              <span>Verified</span>
+                            </span>
+                          </div>
+                        </div>
 
-                  {/* 2. Review Text Body */}
-                  <div className="relative mb-2">
-                    <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
-                    <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
-                      {rev.text}
-                    </p>
-                  </div>
-                </div>
-
-                {/* 3. Reviewer Profile (Bottom Aligned) */}
-                <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
-                      {rev.author_photo ? (
-                        <img
-                          src={rev.author_photo}
-                          alt={rev.author_name}
-                          className="w-full h-full object-cover"
-                          draggable={false}
-                        />
-                      ) : (
-                        <span>{authorInitial}</span>
-                      )}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1">
-                        <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
-                          {rev.author_name}
-                        </h4>
-                        <GoogleIcon className="w-3 h-3 shrink-0" />
+                        {/* Review Text */}
+                        <div className="relative mb-2">
+                          <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
+                          <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
+                            {rev.text}
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[10px] text-neutral-400 m-0">
-                        {rev.review_date || "Verified Google Review"}
-                      </p>
-                    </div>
-                  </div>
 
-                  <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
-                </div>
-              </motion.a>
-            );
-          })}
+                      {/* Reviewer Profile */}
+                      <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
+                            {rev.author_photo ? (
+                              <img
+                                src={rev.author_photo}
+                                alt={rev.author_name}
+                                className="w-full h-full object-cover"
+                                draggable={false}
+                              />
+                            ) : (
+                              <span>{authorInitial}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                              <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
+                                {rev.author_name}
+                              </h4>
+                              <GoogleIcon className="w-3 h-3 shrink-0" />
+                            </div>
+                            <p className="text-[10px] text-neutral-400 m-0">
+                              {rev.review_date || "Verified Google Review"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                      </div>
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Sequence 2 (Identical Clone for seamless continuous loop, hidden from screenreaders & keyboard tab) */}
+            <div className="flex items-stretch gap-3.5 pr-3.5 shrink-0" aria-hidden="true">
+              {mobileReviews.map((rev, idx) => {
+                const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
+                const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
+                const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
+
+                return (
+                  <div
+                    key={`mob-rev-b-${rev.id || idx}`}
+                    className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0"
+                  >
+                    <a
+                      href={cardTargetUrl}
+                      target="_blank"
+                      tabIndex={-1}
+                      rel="noopener noreferrer"
+                      aria-label={`Google review by ${rev.author_name}`}
+                      className="w-full h-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 cursor-pointer select-none block"
+                    >
+                      {/* Top Badges & Stars */}
+                      <div>
+                        <div className="flex items-center justify-between gap-2 mb-3">
+                          <div className="flex items-center gap-0.5">
+                            {[...Array(safeRating)].map((_, i) => (
+                              <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
+                            ))}
+                          </div>
+
+                          <div className="flex items-center gap-1">
+                            {rev.featured && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
+                                <Sparkles className="w-2.5 h-2.5 text-white" />
+                                <span>Featured</span>
+                              </span>
+                            )}
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
+                              <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
+                              <span>Verified</span>
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Review Text */}
+                        <div className="relative mb-2">
+                          <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
+                          <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
+                            {rev.text}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Reviewer Profile */}
+                      <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
+                            {rev.author_photo ? (
+                              <img
+                                src={rev.author_photo}
+                                alt={rev.author_name}
+                                className="w-full h-full object-cover"
+                                draggable={false}
+                              />
+                            ) : (
+                              <span>{authorInitial}</span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-1">
+                              <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
+                                {rev.author_name}
+                              </h4>
+                              <GoogleIcon className="w-3 h-3 shrink-0" />
+                            </div>
+                            <p className="text-[10px] text-neutral-400 m-0">
+                              {rev.review_date || "Verified Google Review"}
+                            </p>
+                          </div>
+                        </div>
+
+                        <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                      </div>
+                    </a>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 

@@ -49,7 +49,7 @@ export default async function FeaturedAccessories() {
           </h2>
           <Link
             href="/products?category=accessories"
-            className="text-xs font-bold text-[#ED0712] hover:underline"
+            className="text-xs font-bold text-neutral-900 hover:underline"
           >
             View all
           </Link>
@@ -78,7 +78,7 @@ export default async function FeaturedAccessories() {
                 <Link href={`/products/${product.slug}`} className="block flex-1">
                   {/* Brand Label */}
                   {brandName && (
-                    <span className="text-[9px] font-black tracking-wider uppercase text-blue-600 truncate block mb-1">
+                    <span className="text-[9px] font-black tracking-wider uppercase text-neutral-500 truncate block mb-1">
                       {brandName}
                     </span>
                   )}
@@ -94,7 +94,7 @@ export default async function FeaturedAccessories() {
 
                     {/* Offer Badge (Bottom-Left) */}
                     {hasDiscount && (
-                      <span className="product-offer-badge absolute left-1 bottom-1 z-2 bg-[#ED0712] text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none">
+                      <span className="product-offer-badge absolute left-1 bottom-1 z-2 bg-neutral-900 text-white text-[8px] font-black px-1.5 py-0.5 rounded leading-none">
                         -{discountPercent}% OFF
                       </span>
                     )}
@@ -107,7 +107,7 @@ export default async function FeaturedAccessories() {
 
                   {/* Prices */}
                   <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className="font-black text-xs text-[#ED0712]">
+                    <span className="font-black text-xs text-neutral-900">
                       {formatPrice(product.price)}
                     </span>
                     {hasDiscount && (

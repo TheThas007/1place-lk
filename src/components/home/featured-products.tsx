@@ -88,7 +88,7 @@ export default function FeaturedProducts({
           </h2>
           <Link
             href="/products?featured=true"
-            className="text-xs font-bold text-[#ED0712] hover:underline"
+            className="text-xs font-bold text-neutral-900 hover:underline"
           >
             View all
           </Link>

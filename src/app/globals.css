@@ -412,6 +412,63 @@ body {
   will-change: transform;
 }
 
+/* ── Mobile Continuous Linear Horizontal Carousels (< 768px) ── */
+@keyframes mobile-marquee-left {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+@keyframes mobile-marquee-right {
+  0% {
+    transform: translate3d(-50%, 0, 0);
+  }
+  100% {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+.mobile-categories-track {
+  animation: mobile-marquee-left var(--mobile-categories-duration, 50s) linear infinite;
+  will-change: transform;
+}
+
+.mobile-reviews-track {
+  animation: mobile-marquee-right var(--mobile-reviews-duration, 80s) linear infinite;
+  will-change: transform;
+}
+
+.mobile-gallery-track {
+  animation: mobile-marquee-left var(--mobile-gallery-duration, 60s) linear infinite;
+  will-change: transform;
+}
+
+@media (hover: hover) {
+  .mobile-categories-track:hover,
+  .mobile-reviews-track:hover,
+  .mobile-gallery-track:hover {
+    animation-play-state: paused;
+  }
+}
+
+.mobile-categories-track:active,
+.mobile-reviews-track:active,
+.mobile-gallery-track:active {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobile-categories-track,
+  .mobile-reviews-track,
+  .mobile-gallery-track {
+    animation: none !important;
+    transform: none !important;
+  }
+}
+
 .scrollbar-none {
   -ms-overflow-style: none;
   scrollbar-width: none;

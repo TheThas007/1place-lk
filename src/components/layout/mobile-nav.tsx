@@ -35,13 +35,13 @@ export default function MobileNav() {
           href="/"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isHome ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
+            isHome ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
           )}
         >
           <Home
             className={cn(
               "w-5 h-5 transition-transform",
-              isHome ? "text-[#ED0712] fill-[#ED0712]" : "text-white/60"
+              isHome ? "text-white fill-white" : "text-neutral-400"
             )}
           />
           <span>Home</span>
@@ -52,13 +52,13 @@ export default function MobileNav() {
           href="/categories"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isShop ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
+            isShop ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
           )}
         >
           <Store
             className={cn(
               "w-5 h-5 transition-transform",
-              isShop ? "text-[#ED0712]" : "text-white/60"
+              isShop ? "text-white stroke-[2.5]" : "text-neutral-400"
             )}
           />
           <span>Shop</span>
@@ -68,9 +68,9 @@ export default function MobileNav() {
         <button
           type="button"
           onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-          className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-white/60 hover:text-white transition-all py-1 min-h-[44px] cursor-pointer"
+          className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-neutral-400 hover:text-white transition-all py-1 min-h-[44px] cursor-pointer"
         >
-          <Search className="w-5 h-5 text-white/60" />
+          <Search className="w-5 h-5 text-neutral-400" />
           <span>Search</span>
         </button>
 
@@ -80,18 +80,18 @@ export default function MobileNav() {
           onClick={() => window.dispatchEvent(new CustomEvent("open-cart-drawer"))}
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all py-1 min-h-[44px] relative cursor-pointer",
-            isCart ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
+            isCart ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
           )}
         >
           <div className="relative">
             <ShoppingCart
               className={cn(
                 "w-5 h-5 transition-transform",
-                isCart ? "text-[#ED0712]" : "text-white/60"
+                isCart ? "text-white stroke-[2.5]" : "text-neutral-400"
               )}
             />
             {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-[#ED0712] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-sm">
+              <span className="absolute -top-1.5 -right-2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-sm border border-black/10">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
             )}
@@ -104,13 +104,13 @@ export default function MobileNav() {
           href="/orders"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isAccount ? "text-[#ED0712] font-bold" : "text-white/60 hover:text-white font-medium"
+            isAccount ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
           )}
         >
           <User
             className={cn(
               "w-5 h-5 transition-transform",
-              isAccount ? "text-[#ED0712]" : "text-white/60"
+              isAccount ? "text-white stroke-[2.5]" : "text-neutral-400"
             )}
           />
           <span>Account</span>

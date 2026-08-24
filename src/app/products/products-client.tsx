@@ -14,6 +14,9 @@ import {
   ChevronRight,
   Filter,
   Check,
+  Search,
+  ArrowUpDown,
+  Sparkles,
 } from "lucide-react";
 import { Product, Category, Brand } from "@/lib/types";
 import ProductCard from "@/components/products/ProductCard";
@@ -428,19 +431,63 @@ export default function ProductsClient({
           <span className="text-black font-bold">Shop All</span>
         </nav>
 
-        {/* ── 2. Compact Page Heading ── */}
-        <div className="mb-6">
-          <h1 className="text-3xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-            Shop All Products
-          </h1>
-          <p className="text-sm sm:text-base text-neutral-500 font-medium mt-1">
-            Discover genuine phones, laptops and accessories.
-          </p>
+        {/* ── 2. Page Header & Mobile Search Bar (Top Search on Mobile) ── */}
+        <div className="mb-4 sm:mb-6">
+          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-3 sm:mb-2">
+            <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
+              Shop All Products
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-500 font-medium">
+              Discover genuine smartphones, laptops and official accessories.
+            </p>
+          </div>
+
+          {/* ── Mobile Top Search Bar (Dedicated Mobile Search UI) ── */}
+          <div className="mt-2 mb-3.5 block">
+            <div className="relative flex items-center w-full">
+              <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center">
+                <Search className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => {
+                  setSearchQuery(e.target.value);
+                  setCurrentPage(1);
+                  updateUrlParams({ search: e.target.value.trim() || null, page: null });
+                }}
+                placeholder="Search phones, laptops, audio, accessories..."
+                className="w-full h-11 sm:h-12 pl-10 pr-10 text-xs sm:text-sm font-medium bg-[#F5F5F7] hover:bg-[#EFEFF2] focus:bg-white text-neutral-900 placeholder:text-neutral-400 border border-neutral-200/80 focus:border-black rounded-2xl outline-none transition-all shadow-2xs focus:ring-2 focus:ring-black/10"
+              />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setCurrentPage(1);
+                    updateUrlParams({ search: null, page: null });
+                  }}
+                  className="absolute right-3 p-1 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 transition-colors cursor-pointer"
+                  title="Clear Search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
+            </div>
+            {searchQuery.trim() && (
+              <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1.5 px-1 font-medium">
+                <span>
+                  Showing results for <strong className="text-neutral-900">"{searchQuery.trim()}"</strong>
+                </span>
+                <span>{filteredProducts.length} items found</span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* ── 3. Primary Category Underline Navigation Tabs ── */}
-        <div className="flex items-center justify-start border-b border-neutral-200 mb-6 overflow-x-auto whitespace-nowrap custom-scrollbar">
-          <div className="flex items-center gap-2 sm:gap-6 px-1">
+        {/* ── 3. Primary Category Tabs (Sleek Horizontal Scroll on Mobile & Desktop) ── */}
+        <div className="flex items-center justify-start border-b border-neutral-200 mb-4 sm:mb-6 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+          <div className="flex items-center gap-1.5 sm:gap-4 pb-2 sm:pb-0">
             {PRIMARY_CATEGORY_TABS.map((tab) => {
               const isActive = activePrimaryTab === tab.id;
               return (
@@ -448,10 +495,10 @@ export default function ProductsClient({
                   key={tab.id}
                   type="button"
                   onClick={() => handlePrimaryTabChange(tab.id)}
-                  className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
+                  className={`relative py-2 sm:py-3.5 px-3.5 sm:px-4 rounded-full sm:rounded-none text-xs sm:text-sm font-bold transition-all cursor-pointer select-none shrink-0 ${
                     isActive
-                      ? "text-black font-extrabold border-b-2 border-[#ED0712] -mb-[1px]"
-                      : "text-neutral-600 hover:text-black border-b-2 border-transparent"
+                      ? "bg-black text-white sm:bg-transparent sm:text-black sm:font-extrabold sm:border-b-2 sm:border-black sm:-mb-[1px] shadow-xs sm:shadow-none"
+                      : "bg-[#F5F5F7] text-neutral-600 hover:text-black hover:bg-neutral-200/80 sm:bg-transparent sm:border-b-2 sm:border-transparent"
                   }`}
                 >
                   <span>{tab.label}</span>
@@ -462,24 +509,31 @@ export default function ProductsClient({
         </div>
 
         {/* ── 4. Compact Toolbar Row ── */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
+        <div className="flex items-center justify-between gap-2.5 mb-4 sm:mb-6 flex-wrap">
           {/* Left: Filtered Count */}
-          <div className="text-sm font-bold text-neutral-900">
-            {filteredProducts.length} {filteredProducts.length === 1 ? "product" : "products"}
+          <div className="text-xs sm:text-sm font-bold text-neutral-800 flex items-center gap-1.5">
+            <span>{filteredProducts.length}</span>
+            <span className="text-neutral-500 font-normal">
+              {filteredProducts.length === 1 ? "Product" : "Products"}
+            </span>
           </div>
 
           {/* Right: Filters Button, In Stock, Sort, View Toggle */}
-          <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+          <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Filters Button (Mobile & Desktop Toggle) */}
             <button
               type="button"
               onClick={() => setShowMobileFilters(true)}
-              className="px-3.5 py-1.5 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-800 rounded-lg text-xs font-semibold flex items-center gap-1.5 shadow-2xs transition-colors cursor-pointer"
+              className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs ${
+                activeChips.length > 0
+                  ? "bg-black text-white border border-black"
+                  : "bg-white border border-neutral-200/90 hover:bg-neutral-50 text-neutral-800"
+              }`}
             >
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-500" />
+              <SlidersHorizontal className="w-3.5 h-3.5" />
               <span>Filters</span>
               {activeChips.length > 0 && (
-                <span className="w-4 h-4 rounded-full bg-black text-white text-[9px] font-black flex items-center justify-center">
+                <span className="w-4 h-4 rounded-full bg-white text-black text-[9px] font-black flex items-center justify-center">
                   {activeChips.length}
                 </span>
               )}
@@ -489,24 +543,25 @@ export default function ProductsClient({
             <button
               type="button"
               onClick={handleToggleInStock}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
+              className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
                 inStockOnly
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
+                  ? "bg-neutral-900 text-white border-neutral-900"
+                  : "bg-white text-neutral-700 border-neutral-200/90 hover:bg-neutral-50"
               }`}
             >
               <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
                 {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
               </span>
-              <span>In Stock</span>
+              <span className="hidden sm:inline">In Stock</span>
+              <span className="sm:hidden">Stock</span>
             </button>
 
             {/* Sort Dropdown */}
-            <div className="relative">
+            <div className="relative flex items-center">
               <select
                 value={sortKey}
                 onChange={(e) => handleSortChange(e.target.value)}
-                className="bg-white border border-neutral-200 px-3.5 py-1.5 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+                className="bg-white border border-neutral-200/90 px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
               >
                 <option value="featured">Featured</option>
                 <option value="newest">Newest</option>
@@ -608,8 +663,8 @@ export default function ProductsClient({
                 <div
                   className={
                     viewMode === "grid"
-                      ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6"
-                      : "grid grid-cols-1 gap-4"
+                      ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-6"
+                      : "grid grid-cols-1 gap-3 sm:gap-4"
                   }
                 >
                   {paginatedProducts.map((product) => (

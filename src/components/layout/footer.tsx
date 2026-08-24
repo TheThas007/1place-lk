@@ -99,12 +99,12 @@ export default function Footer() {
         <div className="flex flex-col gap-5 max-w-md mx-auto">
           {/* Logo & Description */}
           <div>
-            <Link href="/" className="inline-block mb-3">
+            <Link href="/" className="inline-block mb-3.5">
               <img
                 src={settings.logo_url || "/logo.png"}
                 alt="Street Mobile"
                 loading="lazy"
-                className="h-11 sm:h-12 w-auto max-w-[240px] object-contain object-left block brightness-0 invert opacity-100"
+                className="w-[140px] max-w-[150px] h-auto object-contain object-left block brightness-0 invert opacity-100"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/logo.png";
                 }}

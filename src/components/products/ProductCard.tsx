@@ -124,7 +124,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                 -{discountPercent}% OFF
               </span>
             ) : isPreOrder ? (
-              <span className="bg-amber-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
+              <span className="bg-neutral-800 md:bg-amber-600 text-white text-[10px] font-bold px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
                 Pre-Order Available
               </span>
             ) : isNew ? (
@@ -216,7 +216,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           {/* Rating & Stock Status Row */}
           <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100">
             <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
-              <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+              <Star className="w-3 h-3 fill-neutral-800 text-neutral-800 md:fill-amber-400 md:text-amber-400" />
               <span>4.8</span>
               <span className="text-neutral-400 font-normal">(125)</span>
             </div>
@@ -227,8 +227,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
                   isOutOfStock
                     ? "bg-neutral-400"
                     : isLowStock
-                    ? "bg-amber-500"
-                    : "bg-emerald-500"
+                    ? "bg-neutral-600 md:bg-amber-500"
+                    : "bg-neutral-900 md:bg-emerald-500"
                 }`}
               />
               <span className="text-[11px] font-semibold text-neutral-700">
@@ -267,7 +267,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
             onClick={handleAddToCart}
             className={`w-full py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
               added
-                ? "bg-emerald-600 text-white"
+                ? "bg-neutral-900 md:bg-emerald-600 text-white"
                 : "bg-black text-white hover:bg-neutral-800"
             }`}
             aria-label={`Add ${product.name} to shopping bag`}

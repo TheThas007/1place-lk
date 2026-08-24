@@ -176,7 +176,7 @@ export default function NewArrivalsSection({
                   <Link
                     key={`mob-na-${product.id}`}
                     href={`/products/${product.slug}`}
-                    className="w-[45vw] min-w-[150px] max-w-[190px] shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xs snap-start hover:border-neutral-400 active:scale-[0.98] transition-all group"
+                    className="w-[45vw] min-w-[150px] max-w-[190px] shrink-0 bg-white border border-neutral-200/80 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between shadow-2xs snap-start hover:border-neutral-400 active:scale-[0.98] transition-all group"
                   >
                     {/* Top: Brand & Image Container */}
                     <div>
@@ -188,7 +188,7 @@ export default function NewArrivalsSection({
                       )}
 
                       {/* 1:1 Square Image Container with Discount Badge in current image position */}
-                      <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-2 p-2">
+                      <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1.5 sm:p-2">
                         <img
                           src={mainImage}
                           alt={product.name}
@@ -210,13 +210,13 @@ export default function NewArrivalsSection({
 
                     {/* Bottom: Product Info Hierarchy */}
                     <div className="flex flex-col justify-between flex-1">
-                      {/* Product Title (Max 2 lines, equal min-height) */}
-                      <h3 className="font-bold text-xs sm:text-[13px] text-neutral-900 line-clamp-2 leading-snug mb-1.5 min-h-[2.25rem]">
+                      {/* Product Title (Max 2 lines, clean compact height) */}
+                      <h3 className="font-bold text-xs sm:text-[13px] text-neutral-900 line-clamp-2 leading-snug mb-1 min-h-[2rem]">
                         {product.name}
                       </h3>
 
                       {/* Price Section */}
-                      <div className="flex items-baseline gap-1.5 flex-wrap pt-0.5">
+                      <div className="flex items-baseline gap-1.5 flex-wrap pt-0">
                         <span className="font-black text-sm sm:text-[15px] text-[#ED0712]">
                           {formatPrice(product.price)}
                         </span>
