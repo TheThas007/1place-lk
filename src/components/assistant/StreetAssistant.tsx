@@ -350,7 +350,11 @@ export default function StreetAssistant() {
       ════════════════════════════════════════════════════════════════ */}
       <div className={`fixed z-40 flex items-center select-none transition-all duration-300 ${
         isKeyboardOpen && !isOpen ? "opacity-0 translate-y-10 pointer-events-none" : "opacity-100 translate-y-0"
-      } bottom-[calc(80px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6`}>
+      } ${
+        pathname?.startsWith("/products/") && pathname !== "/products"
+          ? "bottom-[calc(92px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
+          : "bottom-[calc(76px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
+      }`}>
         
         {/* Welcome Tooltip */}
         <AnimatePresence>

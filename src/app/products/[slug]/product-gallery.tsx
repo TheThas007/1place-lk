@@ -36,11 +36,11 @@ export default function ProductGallery({
   return (
     <div className="space-y-4">
       {/* ── Main Media Display Container ── */}
-      <div className="relative aspect-square rounded-[24px] overflow-hidden bg-white p-6 border border-[#EAEAEA] flex items-center justify-center group shadow-xs">
+      <div className="relative w-full aspect-square max-h-[360px] sm:max-h-[520px] rounded-[22px] sm:rounded-[28px] overflow-hidden bg-white p-3 sm:p-6 border border-[#EAEAEA] flex items-center justify-center group shadow-xs">
         {/* Bottom-Left Discount Badge (Anchored on Image Bottom Edge) */}
         {discount > 0 && (
           <div className="absolute bottom-0 left-0 z-10">
-            <span className="bg-red-600 text-white text-[11px] font-black px-3.5 py-1.5 rounded-tr-2xl uppercase tracking-wider shadow-sm inline-block">
+            <span className="bg-red-600 text-white text-[11px] font-black px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-tr-2xl uppercase tracking-wider shadow-sm inline-block">
               -{discount}% OFF
             </span>
           </div>
@@ -50,10 +50,10 @@ export default function ProductGallery({
         <button
           type="button"
           onClick={() => setIsFullscreen(true)}
-          className="absolute top-4 right-4 z-10 w-9 h-9 rounded-full bg-white/90 backdrop-blur-sm border border-[#EAEAEA] flex items-center justify-center text-black opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm hover:scale-105"
+          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 backdrop-blur-sm border border-[#EAEAEA] flex items-center justify-center text-black opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm hover:scale-105 cursor-pointer"
           aria-label="Enlarge image"
         >
-          <Maximize2 className="w-4 h-4 text-black" />
+          <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-black" />
         </button>
 
         {/* Video Mode or Image Mode */}
@@ -73,14 +73,14 @@ export default function ProductGallery({
           <img
             src={displayImages[activeIdx]}
             alt={`${name} - Image ${activeIdx + 1}`}
-            className="w-full h-full object-contain mix-blend-multiply transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer"
+            className="w-full h-full max-h-[330px] sm:max-h-[480px] object-contain mix-blend-multiply transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer"
             onClick={() => setIsFullscreen(true)}
           />
         )}
       </div>
 
       {/* ── Thumbnail Row (Contained Horizontal Rail) ── */}
-      <div className="flex items-center gap-2.5 sm:gap-3 w-full max-w-full overflow-x-auto pb-2 no-scrollbar scroll-smooth">
+      <div className="flex items-center gap-2 sm:gap-3 w-full max-w-full overflow-x-auto py-1 no-scrollbar scroll-smooth">
         {displayImages.map((img, i) => (
           <button
             key={i}
@@ -89,10 +89,11 @@ export default function ProductGallery({
               setActiveIdx(i);
               setShowVideo(false);
             }}
-            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl p-2 overflow-hidden border-2 cursor-pointer transition-all ${i === activeIdx && !showVideo
-                ? "border-black ring-1 ring-black"
-                : "border-[#EAEAEA] hover:border-black/50"
-              } bg-white`}
+            className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 overflow-hidden border-2 cursor-pointer transition-all ${
+              i === activeIdx && !showVideo
+                ? "border-black ring-1 ring-black shadow-xs"
+                : "border-neutral-200 hover:border-neutral-400"
+            } bg-[#F8F9FA]`}
             aria-label={`View ${name} image ${i + 1}`}
           >
             <img
@@ -108,11 +109,12 @@ export default function ProductGallery({
           <button
             type="button"
             onClick={() => setShowVideo(true)}
-            className={`relative shrink-0 w-20 h-20 sm:w-24 sm:h-24 rounded-2xl overflow-hidden border-2 cursor-pointer transition-all bg-black flex flex-col items-center justify-center text-white ${showVideo ? "border-black ring-1 ring-black" : "border-[#EAEAEA] hover:border-black"
-              }`}
+            className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden border-2 cursor-pointer transition-all bg-black flex flex-col items-center justify-center text-white ${
+              showVideo ? "border-black ring-1 ring-black" : "border-neutral-200 hover:border-black"
+            }`}
           >
-            <Play className="w-6 h-6 text-white mb-1 fill-white" />
-            <span className="text-[10px] font-bold uppercase tracking-wider">Video</span>
+            <Play className="w-5 h-5 text-white mb-0.5 fill-white" />
+            <span className="text-[9px] font-bold uppercase tracking-wider">Video</span>
           </button>
         )}
       </div>

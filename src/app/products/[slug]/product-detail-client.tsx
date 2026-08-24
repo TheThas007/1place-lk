@@ -585,8 +585,66 @@ export default function ProductDetailClient({
       </div>
 
       {/* ── 2. Main Product Section ── */}
-      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-8 sm:pt-12">
-        <div className="grid lg:grid-cols-12 gap-10 lg:gap-14 items-start">
+      <div className="max-w-7xl mx-auto px-4 lg:px-6 pt-3 sm:pt-10">
+        
+        {/* ── Mobile Product Title Header (Shown only on screens < 1024px above Gallery) ── */}
+        <div className="lg:hidden mb-4">
+          <div className="flex items-center justify-between gap-3 mb-1.5">
+            <span className="inline-block px-2.5 py-0.5 rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-700 uppercase tracking-widest">
+              {product.category_name || "Smartphones"}
+            </span>
+            <span className="text-[11px] font-mono text-neutral-400">
+              SKU: {currentSku}
+            </span>
+          </div>
+
+          <h1 className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mb-2 leading-tight">
+            {product.name}
+          </h1>
+
+          <div className="flex items-center flex-wrap gap-3 text-xs">
+            {product.rating ? (
+              <div className="flex items-center gap-1 text-black font-bold">
+                <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
+                <span>{product.rating}</span>
+                {Boolean(product.review_count || product.reviews_count) && (
+                  <span className="text-neutral-400 font-normal">
+                    ({product.review_count || product.reviews_count} reviews)
+                  </span>
+                )}
+              </div>
+            ) : null}
+
+            <div className="flex items-center gap-1.5 font-semibold">
+              <span
+                className={`w-2 h-2 rounded-full ${
+                  isVariantOutOfStock
+                    ? isMobileOrLaptop
+                      ? "bg-amber-500 animate-pulse"
+                      : "bg-red-500"
+                    : "bg-emerald-500"
+                }`}
+              />
+              <span
+                className={`text-[11px] ${
+                  isVariantOutOfStock
+                    ? isMobileOrLaptop
+                      ? "text-amber-700 font-bold"
+                      : "text-red-600 font-bold"
+                    : "text-emerald-700 font-bold"
+                }`}
+              >
+                {isVariantOutOfStock
+                  ? isMobileOrLaptop
+                    ? "Out of Stock — Pre-Booking Available"
+                    : "Out of Stock"
+                  : "In Stock & Ready to Ship"}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
           
           {/* Left Column: Image Gallery (Updates dynamically per color & variant) */}
           <div className="lg:col-span-6">
@@ -602,8 +660,8 @@ export default function ProductDetailClient({
           {/* Right Column: Information & Linked Variant Controls */}
           <div className="lg:col-span-6 flex flex-col justify-between">
             <div>
-              {/* Category & SKU */}
-              <div className="flex items-center justify-between gap-4 mb-3">
+              {/* Desktop Category & SKU (Hidden on mobile as it's shown above gallery) */}
+              <div className="hidden lg:flex items-center justify-between gap-4 mb-3">
                 <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-[11px] font-bold text-gray-700 uppercase tracking-widest">
                   {product.category_name || "Smartphones"}
                 </span>
@@ -612,24 +670,26 @@ export default function ProductDetailClient({
                 </span>
               </div>
 
-              {/* Title */}
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-black tracking-tight mb-3 leading-snug">
+              {/* Desktop Title */}
+              <h1 className="hidden lg:block text-3xl lg:text-4xl font-extrabold text-black tracking-tight mb-3 leading-snug">
                 {product.name}
               </h1>
 
-              {/* Rating & Stock Status */}
-              <div className="flex items-center flex-wrap gap-4 mb-5 pb-5 border-b border-[#EAEAEA]">
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-black">
-                  <div className="flex items-center gap-0.5 text-amber-500">
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <Star className="w-4 h-4 fill-amber-400" />
-                    <Star className="w-4 h-4 fill-amber-400" />
+              {/* Desktop Rating & Stock Status */}
+              <div className="hidden lg:flex items-center flex-wrap gap-4 mb-5 pb-5 border-b border-[#EAEAEA]">
+                {product.rating ? (
+                  <div className="flex items-center gap-1.5 text-xs font-semibold text-black">
+                    <div className="flex items-center gap-0.5 text-amber-500">
+                      <Star className="w-4 h-4 fill-amber-400" />
+                    </div>
+                    <span className="font-bold">{product.rating}</span>
+                    {Boolean(product.review_count || product.reviews_count) && (
+                      <span className="text-gray-400 font-normal">
+                        ({product.review_count || product.reviews_count} verified reviews)
+                      </span>
+                    )}
                   </div>
-                  <span className="font-bold">4.9</span>
-                  <span className="text-gray-400 font-normal">(24 verified reviews)</span>
-                </div>
+                ) : null}
 
                 <div className="flex items-center gap-2 text-xs font-semibold">
                   <span
