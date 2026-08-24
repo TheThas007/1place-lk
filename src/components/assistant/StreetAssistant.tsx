@@ -341,21 +341,50 @@ export default function StreetAssistant() {
     });
   };
 
+  const isDraggingRef = useRef(false);
+  const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+
+  const handlePointerDown = (e: React.PointerEvent) => {
+    dragStartPos.current = { x: e.clientX, y: e.clientY };
+    isDraggingRef.current = false;
+  };
+
+  const handlePointerMove = (e: React.PointerEvent) => {
+    const dx = Math.abs(e.clientX - dragStartPos.current.x);
+    const dy = Math.abs(e.clientY - dragStartPos.current.y);
+    if (dx > 6 || dy > 6) {
+      isDraggingRef.current = true;
+    }
+  };
+
+  const handleLauncherClick = () => {
+    if (isDraggingRef.current) return;
+    setIsOpen((prev) => !prev);
+    setIsMinimized(false);
+    setShowTooltip(false);
+  };
+
   const quickActions = ASSISTANT_QUICK_ACTIONS[language] || ASSISTANT_QUICK_ACTIONS.en;
 
   return (
     <>
       {/* ════════════════════════════════════════════════════════════════
-          1. FLOATING ASSISTANT LAUNCHER (Streetla Official Avatar)
+          1. DRAGGABLE FLOATING ASSISTANT LAUNCHER WITH GLOW EFFECT
       ════════════════════════════════════════════════════════════════ */}
-      <div className={`fixed z-40 flex items-center select-none transition-all duration-300 ${
-        isKeyboardOpen && !isOpen ? "opacity-0 translate-y-10 pointer-events-none" : "opacity-100 translate-y-0"
-      } ${
-        pathname?.startsWith("/products/") && pathname !== "/products"
-          ? "bottom-[calc(92px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
-          : "bottom-[calc(76px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
-      }`}>
-        
+      <motion.div
+        drag
+        dragMomentum={false}
+        dragElastic={0.12}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        className={`fixed z-40 flex items-center select-none cursor-grab active:cursor-grabbing touch-none ${
+          isKeyboardOpen && !isOpen ? "opacity-0 translate-y-10 pointer-events-none" : "opacity-100 translate-y-0"
+        } ${
+          pathname?.startsWith("/products/") && pathname !== "/products"
+            ? "bottom-[calc(92px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
+            : "bottom-[calc(76px+env(safe-area-inset-bottom,0px))] md:bottom-6 right-3.5 sm:right-4 md:right-6"
+        }`}
+      >
         {/* Welcome Tooltip */}
         <AnimatePresence>
           {showTooltip && !isOpen && (
@@ -364,9 +393,9 @@ export default function StreetAssistant() {
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: 8, scale: 0.95 }}
               transition={{ duration: 0.25 }}
-              className="mr-3 bg-[#090909] text-white text-sm font-bold px-4 py-2.5 rounded-2xl shadow-2xl border border-white/15 hidden sm:flex items-center gap-2.5"
+              className="mr-3 bg-[#090909] text-white text-xs sm:text-sm font-bold px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl shadow-2xl border border-white/15 hidden sm:flex items-center gap-2.5 pointer-events-auto"
             >
-              <span>Hi, I’m Streetla 👋 Need help?</span>
+              <span>Hi, I’m Streetla 👋 Drag or click to chat!</span>
               <button
                 type="button"
                 onClick={(e) => {
@@ -382,45 +411,46 @@ export default function StreetAssistant() {
           )}
         </AnimatePresence>
 
-        {/* Circular Floating Streetla Launcher Button */}
-        <motion.button
-          type="button"
-          whileHover={{ scale: 1.04 }}
-          whileTap={{ scale: 0.96 }}
-          transition={{ duration: 0.25 }}
-          onClick={() => {
-            setIsOpen((prev) => !prev);
-            setIsMinimized(false);
-            setShowTooltip(false);
-          }}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" || e.key === " ") {
-              e.preventDefault();
-              setIsOpen((prev) => !prev);
-              setIsMinimized(false);
-              setShowTooltip(false);
-            }
-          }}
-          className="relative w-[50px] h-[50px] sm:w-[58px] sm:h-[58px] rounded-full overflow-hidden bg-black p-0 border-2 border-white shadow-2xl transition-all duration-300 hover:shadow-emerald-500/20 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 cursor-pointer shrink-0"
-          aria-label="Open Streetla"
-        >
-          {isOpen ? (
-            <div className="w-full h-full bg-black text-white flex items-center justify-center">
-              <X className="w-5 h-5 text-white stroke-[2.5]" />
-            </div>
-          ) : (
-            <div className="relative w-full h-full">
-              <img
-                src={avatarUrl || "/streetla.png"}
-                alt="Streetla — StreetMobile Shopping Assistant"
-                className="w-full h-full object-cover object-center"
-              />
-              {/* Small Green Online Status Indicator */}
-              <span className="absolute bottom-0.5 right-0.5 w-3 h-3 rounded-full bg-[#00E676] border-2 border-black" />
-            </div>
+        {/* Circular Floating Streetla Launcher Button with Glow Effect */}
+        <div className="relative group">
+          {/* Animated Ambient Multi-Color AI Glow Aura */}
+          {!isOpen && (
+            <>
+              <span className="absolute -inset-2 rounded-full bg-gradient-to-tr from-emerald-400/40 via-cyan-400/30 to-violet-500/40 blur-md opacity-80 group-hover:opacity-100 transition-opacity animate-pulse pointer-events-none" />
+              <span className="absolute -inset-1 rounded-full bg-gradient-to-tr from-emerald-400 via-teal-300 to-cyan-400 opacity-70 group-hover:opacity-90 blur-xs transition-opacity animate-spin duration-7000 pointer-events-none" />
+            </>
           )}
-        </motion.button>
-      </div>
+
+          <motion.button
+            type="button"
+            whileHover={{ scale: 1.06 }}
+            whileTap={{ scale: 0.94 }}
+            transition={{ duration: 0.2 }}
+            onClick={handleLauncherClick}
+            className="relative w-[50px] h-[50px] sm:w-[58px] sm:h-[58px] rounded-full overflow-hidden bg-black p-0 border-2 border-white shadow-[0_0_24px_rgba(0,230,118,0.5)] transition-all duration-300 focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-500/40 cursor-grab active:cursor-grabbing shrink-0"
+            aria-label="Open Streetla"
+          >
+            {isOpen ? (
+              <div className="w-full h-full bg-black text-white flex items-center justify-center">
+                <X className="w-5 h-5 text-white stroke-[2.5]" />
+              </div>
+            ) : (
+              <div className="relative w-full h-full">
+                <img
+                  src={avatarUrl || "/streetla.png"}
+                  alt="Streetla — StreetMobile Shopping Assistant"
+                  className="w-full h-full object-cover object-center pointer-events-none"
+                  draggable={false}
+                />
+                {/* Small Green Online Status Indicator with Radar Pulse */}
+                <span className="absolute bottom-0.5 right-0.5 w-3.5 h-3.5 rounded-full bg-[#00E676] border-2 border-black flex items-center justify-center">
+                  <span className="w-full h-full rounded-full bg-[#00E676] animate-ping opacity-75" />
+                </span>
+              </div>
+            )}
+          </motion.button>
+        </div>
+      </motion.div>
 
       {/* ════════════════════════════════════════════════════════════════
           2. CHAT WINDOW (Desktop Box & Mobile Bottom Sheet)
