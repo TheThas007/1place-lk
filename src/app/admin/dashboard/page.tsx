@@ -70,6 +70,14 @@ import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
 import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 import TodayDealTab from "@/components/admin/tabs/TodayDealTab";
 import MegaMenuTab from "@/components/admin/tabs/MegaMenuTab";
+import WarrantiesTab from "@/components/admin/tabs/WarrantiesTab";
+import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsTab";
+import FooterTab from "@/components/admin/tabs/FooterTab";
+import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
+import RepairsTab from "@/components/admin/tabs/RepairsTab";
+import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
+import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
+import AssistantTab from "@/components/admin/tabs/AssistantTab";
 
 type Tab =
   | "overview"
@@ -78,17 +86,25 @@ type Tab =
   | "mega-menu"
   | "brands"
   | "today-deal"
-  | "reviews"
+  | "repairs"
+  | "suppliers"
+  | "cashflow"
+  | "warranties"
+  | "collections"
+  | "showcase"
+  | "users"
   | "gallery"
   | "hero"
-  | "users"
-  | "orders"
-  | "settings"
   | "banners"
-  | "showcase"
+  | "footer"
   | "inventory"
   | "payments"
-  | "analytics";
+  | "reviews"
+  | "analytics"
+  | "assistant"
+  | "mobile"
+  | "orders"
+  | "settings";
 
 function DashboardContent() {
   const router = useRouter();
@@ -1703,6 +1719,67 @@ function DashboardContent() {
             </div>
           </div>
         </div>
+      )}
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: WARRANTY MANAGEMENT
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "warranties" && (
+        <WarrantiesTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: FEATURED COLLECTIONS
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "collections" && (
+        <FeaturedCollectionsTab
+          products={products}
+          categories={categories}
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: FOOTER SETTINGS
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "footer" && (
+        <FooterTab
+          onRefresh={refreshData}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: MOBILE EXPERIENCE
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "mobile" && (
+        <MobileExperienceTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: MOBILE REPAIRS
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "repairs" && (
+        <RepairsTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: SUPPLIERS
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "suppliers" && (
+        <SuppliersTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: CASH FLOW
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "cashflow" && (
+        <CashFlowTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: STREETLA AI ASSISTANT
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "assistant" && (
+        <AssistantTab />
       )}
 
       {/* Global Product Modal */}
