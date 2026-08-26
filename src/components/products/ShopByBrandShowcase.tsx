@@ -169,10 +169,10 @@ export default function ShopByBrandShowcase({
                     const isActive = activeTab === t;
                     const label =
                       t === "phones"
-                        ? "📱 Smartphones"
+                        ? "Phones"
                         : t === "laptops"
-                        ? "💻 Laptops"
-                        : "🎧 Accessories";
+                        ? "Laptop & Tab"
+                        : "Accessories";
 
                     return (
                       <button

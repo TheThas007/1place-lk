@@ -221,17 +221,27 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     return rep;
   }, [activeCategories]);
 
-  // Smooth Slow Auto-Scroll Loop (Desktop)
+  const desktopDisplayList = useMemo(() => {
+    if (activeCategories.length === 0) return [];
+    if (activeCategories.length < 4) {
+      return [...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories];
+    }
+    return [...activeCategories, ...activeCategories, ...activeCategories];
+  }, [activeCategories]);
+
+  // Smooth Infinite Continuous Auto-Scroll Loop (Desktop - Continues playing on hover)
   useEffect(() => {
     let animationFrameId: number;
 
     const autoScroll = () => {
-      if (scrollRef.current && !isHovered) {
+      if (scrollRef.current) {
         const container = scrollRef.current;
-        container.scrollLeft += 0.6;
+        container.scrollLeft += 0.75;
 
-        if (container.scrollLeft >= container.scrollWidth - container.clientWidth - 2) {
-          container.scrollLeft = 0;
+        const totalCopies = desktopDisplayList.length / (activeCategories.length || 1);
+        const singleSetWidth = container.scrollWidth / (totalCopies || 3);
+        if (singleSetWidth > 0 && container.scrollLeft >= singleSetWidth) {
+          container.scrollLeft -= singleSetWidth;
         }
       }
       animationFrameId = requestAnimationFrame(autoScroll);
@@ -239,7 +249,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
     animationFrameId = requestAnimationFrame(autoScroll);
     return () => cancelAnimationFrame(animationFrameId);
-  }, [isHovered]);
+  }, [activeCategories.length, desktopDisplayList.length]);
 
   const scrollLeft = () => {
     if (scrollRef.current) {
@@ -255,7 +265,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Category Marquee (14 px/s, Moving Left) ── */}
+      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Category Marquee ── */}
       <section
         ref={mobileContainerRef}
         className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none overflow-hidden"
@@ -280,27 +290,18 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
           </Link>
         </motion.div>
 
-        {/* Continuous Linear Marquee Track (14 px/s Right to Left) */}
-        <div
-          className="relative w-full overflow-hidden select-none -mx-3 px-3 sm:-mx-4 sm:px-4 touch-pan-y"
-          onTouchStart={() => setIsMobilePaused(true)}
-          onTouchEnd={() => setIsMobilePaused(false)}
-          onPointerDown={() => setIsMobilePaused(true)}
-          onPointerUp={() => setIsMobilePaused(false)}
-          onPointerCancel={() => setIsMobilePaused(false)}
-          onMouseEnter={() => setIsMobilePaused(true)}
-          onMouseLeave={() => setIsMobilePaused(false)}
-        >
+        {/* Continuous Linear Marquee Track (Autoplay never stops on hover) */}
+        <div className="relative w-full overflow-hidden select-none -mx-3 px-3 sm:-mx-4 sm:px-4 touch-pan-y">
           <div
             className="mobile-categories-track flex w-max will-change-transform motion-reduce:animate-none"
             style={{
               ["--mobile-categories-duration" as any]: `${durationSec}s`,
               animationDuration: `${durationSec}s`,
-              animationPlayState: isMobilePaused || !isInViewport ? "paused" : "running",
+              animationPlayState: !isInViewport ? "paused" : "running",
             }}
           >
             {/* Sequence 1 */}
-            <div ref={sequence1Ref} className="flex items-center gap-2.5 pr-2.5 shrink-0">
+            <div ref={sequence1Ref} className="flex items-center gap-2.5 pr-2.5 shrink-0 py-2">
               {mobileCategories.map((item, i) => {
                 const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
                 const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
@@ -309,7 +310,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
                   <div key={`mob-cat-a-${item.id || i}`} className="shrink-0">
                     <Link
                       href={targetUrl}
-                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all text-center block"
+                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black hover:scale-115 hover:shadow-lg active:scale-95 transition-all duration-300 text-center block relative z-10"
                     >
                       <div className="w-8 h-8 flex items-center justify-center shrink-0">
                         {hasCustomImg ? (
@@ -317,13 +318,13 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
                             src={item.image_url}
                             alt={item.name}
                             loading="lazy"
-                            className="max-h-7 max-w-7 object-contain"
+                            className="max-h-7 max-w-7 object-contain transition-transform duration-300 group-hover:scale-115"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = "none";
                             }}
                           />
                         ) : (
-                          <div className="scale-75">
+                          <div className="scale-75 transition-transform duration-300">
                             {renderCategoryDefaultIcon(item.name, item.slug)}
                           </div>
                         )}
@@ -337,8 +338,8 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
               })}
             </div>
 
-            {/* Sequence 2 (Identical Clone for seamless continuous 16s loop, hidden from screenreaders & keyboard tab) */}
-            <div className="flex items-center gap-2.5 pr-2.5 shrink-0" aria-hidden="true">
+            {/* Sequence 2 (Identical Clone for continuous loop) */}
+            <div className="flex items-center gap-2.5 pr-2.5 shrink-0 py-2" aria-hidden="true">
               {mobileCategories.map((item, i) => {
                 const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
                 const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
@@ -348,7 +349,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
                     <Link
                       href={targetUrl}
                       tabIndex={-1}
-                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all text-center block"
+                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black hover:scale-115 hover:shadow-lg active:scale-95 transition-all duration-300 text-center block relative z-10"
                     >
                       <div className="w-8 h-8 flex items-center justify-center shrink-0">
                         {hasCustomImg ? (
@@ -356,13 +357,13 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
                             src={item.image_url}
                             alt={item.name}
                             loading="lazy"
-                            className="max-h-7 max-w-7 object-contain"
+                            className="max-h-7 max-w-7 object-contain transition-transform duration-300 group-hover:scale-115"
                             onError={(e) => {
                               (e.target as HTMLImageElement).style.display = "none";
                             }}
                           />
                         ) : (
-                          <div className="scale-75">
+                          <div className="scale-75 transition-transform duration-300">
                             {renderCategoryDefaultIcon(item.name, item.slug)}
                           </div>
                         )}
@@ -381,7 +382,7 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
       {/* ── Desktop Layout ── */}
       <div className="hidden md:block">
-        <section className="py-16 bg-white border-b border-neutral-100 relative overflow-hidden">
+        <section className="py-16 bg-white border-b border-neutral-100 relative overflow-hidden font-outfit">
           <div className="max-w-7xl mx-auto px-4 lg:px-6">
             {/* Title Header */}
             <div className="text-center mb-10">
@@ -393,82 +394,76 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
               </p>
             </div>
 
-        {/* Carousel Container with Left/Right Chevrons */}
-        <div
-          className="relative group"
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
-          onTouchStart={() => setIsHovered(true)}
-          onTouchEnd={() => setIsHovered(false)}
-        >
-          {/* Left Arrow Button */}
-          <button
-            type="button"
-            onClick={scrollLeft}
-            aria-label="Scroll left categories"
-            className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-md flex items-center justify-center text-neutral-800 hover:text-black hover:border-black hover:scale-110 transition-all duration-200 cursor-pointer"
-          >
-            <ChevronLeft className="w-6 h-6 stroke-[2]" />
-          </button>
+            {/* Carousel Container with Left/Right Chevrons */}
+            <div className="relative group">
+              {/* Left Arrow Button */}
+              <button
+                type="button"
+                onClick={scrollLeft}
+                aria-label="Scroll left categories"
+                className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-3 sm:-translate-x-5 z-40 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-md flex items-center justify-center text-neutral-800 hover:text-black hover:border-black hover:scale-110 transition-all duration-200 cursor-pointer"
+              >
+                <ChevronLeft className="w-6 h-6 stroke-[2]" />
+              </button>
 
-          {/* Right Arrow Button */}
-          <button
-            type="button"
-            onClick={scrollRight}
-            aria-label="Scroll right categories"
-            className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-5 z-20 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-md flex items-center justify-center text-neutral-800 hover:text-black hover:border-black hover:scale-110 transition-all duration-200 cursor-pointer"
-          >
-            <ChevronRight className="w-6 h-6 stroke-[2]" />
-          </button>
+              {/* Right Arrow Button */}
+              <button
+                type="button"
+                onClick={scrollRight}
+                aria-label="Scroll right categories"
+                className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-3 sm:translate-x-5 z-40 w-10 h-10 rounded-full bg-white border border-neutral-200 shadow-md flex items-center justify-center text-neutral-800 hover:text-black hover:border-black hover:scale-110 transition-all duration-200 cursor-pointer"
+              >
+                <ChevronRight className="w-6 h-6 stroke-[2]" />
+              </button>
 
-          {/* Scrollable Track */}
-          <div
-            ref={scrollRef}
-            className="flex items-center gap-6 sm:gap-10 overflow-x-auto scrollbar-none py-4 px-2 scroll-smooth"
-            style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          >
-            {activeCategories.map((item, i) => {
-              const hasHoverIcon = Boolean(item.hover_icon_url && item.hover_icon_url.trim());
-              const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
-              const currentImg = hoveredId === item.id && hasHoverIcon ? item.hover_icon_url : item.image_url;
+              {/* Seamless Infinite Auto-Scrolling Track */}
+              <div
+                ref={scrollRef}
+                className="flex items-center gap-6 sm:gap-10 overflow-x-auto scrollbar-none py-8 px-4 scroll-smooth"
+                style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+              >
+                {desktopDisplayList.map((item, i) => {
+                  const hasHoverIcon = Boolean(item.hover_icon_url && item.hover_icon_url.trim());
+                  const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
+                  const currentImg = hoveredId === item.id && hasHoverIcon ? item.hover_icon_url : item.image_url;
 
-              return (
-                <Link
-                  key={item.id || i}
-                  href={item.link_destination || `/categories/${item.slug}`}
-                  onMouseEnter={() => setHoveredId(item.id)}
-                  onMouseLeave={() => setHoveredId(null)}
-                  className="group shrink-0 flex flex-col items-center justify-center text-center gap-3 w-32 sm:w-40 cursor-pointer transition-transform hover:-translate-y-1 duration-300"
-                >
-                  {/* Icon Container with SVG & Image Support */}
-                  <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-2xl bg-neutral-50 border border-neutral-100 group-hover:border-black group-hover:bg-white group-hover:shadow-md transition-all duration-300 p-2 overflow-hidden">
-                    {hasCustomImg && currentImg ? (
-                      <img
-                        src={currentImg}
-                        alt={item.icon_alt_text || item.name}
-                        className="w-11 h-11 sm:w-14 sm:h-14 object-contain mix-blend-multiply transition-all duration-300 group-hover:scale-110"
-                        loading="lazy"
-                      />
-                    ) : (
-                      <div className="group-hover:scale-110 transition-transform duration-300">
-                        {renderCategoryDefaultIcon(item.name, item.slug)}
+                  return (
+                    <Link
+                      key={`${item.id || item.slug || i}-${i}`}
+                      href={item.link_destination || `/categories/${item.slug}`}
+                      onMouseEnter={() => setHoveredId(item.id)}
+                      onMouseLeave={() => setHoveredId(null)}
+                      className="group shrink-0 flex flex-col items-center justify-center text-center gap-3 w-32 sm:w-36 cursor-pointer transition-all duration-300 hover:scale-120 hover:z-30 relative py-2 select-none"
+                    >
+                      {/* Icon Container with Smooth Zoom & Elevation on Cursor Hover */}
+                      <div className="w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center rounded-2xl bg-neutral-50 border border-neutral-200/80 group-hover:border-black group-hover:bg-white group-hover:shadow-2xl group-hover:scale-115 group-hover:ring-4 group-hover:ring-black/5 transition-all duration-300 p-2 overflow-visible">
+                        {hasCustomImg && currentImg ? (
+                          <img
+                            src={currentImg}
+                            alt={item.icon_alt_text || item.name}
+                            className="w-11 h-11 sm:w-14 sm:h-14 object-contain mix-blend-multiply transition-transform duration-300 group-hover:scale-115"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <div className="group-hover:scale-115 transition-transform duration-300">
+                            {renderCategoryDefaultIcon(item.name, item.slug)}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
 
-                  {/* Category Name Label */}
-                  <span className="text-xs sm:text-sm font-bold text-neutral-800 group-hover:text-black transition-colors leading-tight max-w-[130px] truncate">
-                    {item.name}
-                  </span>
-                </Link>
-              );
-            })}
+                      {/* Category Name Label */}
+                      <span className="text-xs sm:text-sm font-bold text-neutral-800 group-hover:text-black group-hover:scale-105 transition-all duration-300 leading-tight max-w-[130px] truncate">
+                        {item.name}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
           </div>
-        </div>
-
-        </div>
-      </section>
-    </div>
-  </>
+        </section>
+      </div>
+    </>
   );
 }

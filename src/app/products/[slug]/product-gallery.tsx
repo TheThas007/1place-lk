@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X, ChevronLeft, ChevronRight, Play } from "lucide-react";
 
@@ -9,6 +9,8 @@ interface ProductGalleryProps {
   name: string;
   discount?: number;
   video_url?: string;
+  selectedIndex?: number;
+  onSelectIndex?: (idx: number) => void;
 }
 
 export default function ProductGallery({
@@ -16,22 +18,44 @@ export default function ProductGallery({
   name,
   discount = 0,
   video_url,
+  selectedIndex = 0,
+  onSelectIndex,
 }: ProductGalleryProps) {
-  const [activeIdx, setActiveIdx] = useState(0);
+  const [activeIdx, setActiveIdx] = useState(selectedIndex);
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [showVideo, setShowVideo] = useState(false);
+
+  // Sync activeIdx when selectedIndex changes from color swatch selection
+  useEffect(() => {
+    if (typeof selectedIndex === "number" && selectedIndex >= 0) {
+      setActiveIdx(selectedIndex);
+      setShowVideo(false);
+    }
+  }, [selectedIndex]);
 
   const displayImages = images && images.length > 0
     ? images
     : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
 
   const handleNext = () => {
-    setActiveIdx((prev) => (prev + 1) % displayImages.length);
+    const nextIdx = (activeIdx + 1) % displayImages.length;
+    setActiveIdx(nextIdx);
+    onSelectIndex?.(nextIdx);
   };
 
   const handlePrev = () => {
-    setActiveIdx((prev) => (prev - 1 + displayImages.length) % displayImages.length);
+    const prevIdx = (activeIdx - 1 + displayImages.length) % displayImages.length;
+    setActiveIdx(prevIdx);
+    onSelectIndex?.(prevIdx);
   };
+
+  const handleThumbnailClick = (i: number) => {
+    setActiveIdx(i);
+    setShowVideo(false);
+    onSelectIndex?.(i);
+  };
+
+  const safeActiveIdx = activeIdx < displayImages.length ? activeIdx : 0;
 
   return (
     <div className="space-y-4">
@@ -71,27 +95,24 @@ export default function ProductGallery({
           </div>
         ) : (
           <img
-            src={displayImages[activeIdx]}
-            alt={`${name} - Image ${activeIdx + 1}`}
+            src={displayImages[safeActiveIdx]}
+            alt={`${name} - Image ${safeActiveIdx + 1}`}
             className="w-full h-full max-h-[330px] sm:max-h-[480px] object-contain mix-blend-multiply transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer"
             onClick={() => setIsFullscreen(true)}
           />
         )}
       </div>
 
-      {/* ── Thumbnail Row (Contained Horizontal Rail) ── */}
+      {/* ── Thumbnail Row (Contained Horizontal Rail showing ALL uploaded photos) ── */}
       <div className="flex items-center gap-2 sm:gap-3 w-full max-w-full overflow-x-auto py-1 no-scrollbar scroll-smooth">
         {displayImages.map((img, i) => (
           <button
             key={i}
             type="button"
-            onClick={() => {
-              setActiveIdx(i);
-              setShowVideo(false);
-            }}
+            onClick={() => handleThumbnailClick(i)}
             className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 overflow-hidden border-2 cursor-pointer transition-all ${
-              i === activeIdx && !showVideo
-                ? "border-black ring-1 ring-black shadow-xs"
+              i === safeActiveIdx && !showVideo
+                ? "border-black ring-2 ring-black shadow-xs scale-102"
                 : "border-neutral-200 hover:border-neutral-400"
             } bg-[#F8F9FA]`}
             aria-label={`View ${name} image ${i + 1}`}
@@ -110,7 +131,7 @@ export default function ProductGallery({
             type="button"
             onClick={() => setShowVideo(true)}
             className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl overflow-hidden border-2 cursor-pointer transition-all bg-black flex flex-col items-center justify-center text-white ${
-              showVideo ? "border-black ring-1 ring-black" : "border-neutral-200 hover:border-black"
+              showVideo ? "border-black ring-2 ring-black" : "border-neutral-200 hover:border-black"
             }`}
           >
             <Play className="w-5 h-5 text-white mb-0.5 fill-white" />
@@ -141,7 +162,7 @@ export default function ProductGallery({
               {/* Main Fullscreen Image */}
               <div className="w-full h-full flex items-center justify-center p-4">
                 <img
-                  src={displayImages[activeIdx]}
+                  src={displayImages[safeActiveIdx]}
                   alt={`${name} Fullscreen`}
                   className="max-w-full max-h-full object-contain"
                 />
@@ -169,7 +190,7 @@ export default function ProductGallery({
 
               {/* Counter */}
               <div className="absolute bottom-4 text-xs font-semibold text-white/70 bg-black/50 px-3 py-1 rounded-full">
-                {activeIdx + 1} / {displayImages.length}
+                {safeActiveIdx + 1} / {displayImages.length}
               </div>
             </motion.div>
           </div>

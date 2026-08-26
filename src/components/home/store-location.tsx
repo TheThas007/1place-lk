@@ -3,11 +3,32 @@
 import { useState, useRef, useEffect } from "react";
 import { MapPin, Phone, Clock } from "lucide-react";
 import { siteSettings } from "@/lib/data";
+import { SiteSettings } from "@/lib/types";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
 import { motion } from "framer-motion";
 
 export default function StoreLocation() {
+  const [settings, setSettings] = useState<SiteSettings>(siteSettings);
   const [loadMap, setLoadMap] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = onSnapshot(doc(db, "settings", "site"), (snap) => {
+      if (snap.exists()) {
+        const data = snap.data() as Partial<SiteSettings>;
+        setSettings((prev) => ({
+          ...prev,
+          ...data,
+          business_hours: {
+            ...prev.business_hours,
+            ...(data.business_hours || {}),
+          },
+        }));
+      }
+    });
+    return () => unsub();
+  }, []);
 
   useEffect(() => {
     const el = containerRef.current;
@@ -60,7 +81,7 @@ export default function StoreLocation() {
             {loadMap ? (
               <iframe
                 title="STREET MOBILE Google Maps Location Mobile"
-                src={siteSettings.google_maps_embed}
+                src={settings.google_maps_embed}
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -94,7 +115,7 @@ export default function StoreLocation() {
               <div>
                 <span className="font-bold text-neutral-900 block text-xs">Address</span>
                 <span className="text-neutral-600 text-[11px] leading-relaxed">
-                  {siteSettings.address || "No. 125, 2nd Cross Street, Vavuniya, Sri Lanka"}
+                  {settings.address || "No. 125, 2nd Cross Street, Vavuniya, Sri Lanka"}
                 </span>
               </div>
             </div>
@@ -107,10 +128,10 @@ export default function StoreLocation() {
               <div>
                 <span className="font-bold text-neutral-900 block text-xs">Business Hours</span>
                 <span className="text-neutral-600 text-[11px] leading-relaxed block">
-                  Mon - Sat: {siteSettings.business_hours?.weekdays || "9:00 AM - 8:30 PM"}
+                  Mon - Sat: {settings.business_hours?.weekdays || "9:00 AM - 8:30 PM"}
                 </span>
                 <span className="text-neutral-600 text-[11px] leading-relaxed block">
-                  Sun: {siteSettings.business_hours?.sunday || "9:00 AM - 3:00 PM"}
+                  Sun: {settings.business_hours?.sunday || "9:00 AM - 3:00 PM"}
                 </span>
               </div>
             </div>
@@ -123,10 +144,10 @@ export default function StoreLocation() {
               <div>
                 <span className="font-bold text-neutral-900 block text-xs">Direct Call & WhatsApp</span>
                 <a
-                  href={`tel:${siteSettings.phone || "+94774141118"}`}
+                  href={`tel:${settings.phone || "+94774141118"}`}
                   className="text-neutral-900 font-bold text-xs hover:underline block"
                 >
-                  {siteSettings.phone || "+94 77 414 1118"}
+                  {settings.phone || "+94 77 414 1118"}
                 </a>
               </div>
             </div>
@@ -135,7 +156,7 @@ export default function StoreLocation() {
           {/* Action CTAs */}
           <div className="grid grid-cols-2 gap-2 pt-1">
             <a
-              href={siteSettings.google_maps_link || "https://maps.google.com"}
+              href={settings.google_maps_link || "https://maps.google.com"}
               target="_blank"
               rel="noopener noreferrer"
               className="py-2.5 px-3 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
@@ -145,7 +166,7 @@ export default function StoreLocation() {
             </a>
 
             <a
-              href={`tel:${siteSettings.phone || "+94774141118"}`}
+              href={`tel:${settings.phone || "+94774141118"}`}
               className="py-2.5 px-3 bg-white hover:bg-neutral-100 text-black border border-neutral-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
             >
               <Phone className="w-3.5 h-3.5 shrink-0" />
@@ -177,7 +198,7 @@ export default function StoreLocation() {
               {loadMap ? (
                 <iframe
                   title="STREET MOBILE Google Maps Location"
-                  src={siteSettings.google_maps_embed}
+                  src={settings.google_maps_embed}
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}
@@ -228,7 +249,7 @@ export default function StoreLocation() {
                   <div>
                     <h3 className="font-semibold mb-1 text-foreground">Address</h3>
                     <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                      {siteSettings.address}
+                      {settings.address}
                     </p>
                   </div>
                 </div>
@@ -239,8 +260,8 @@ export default function StoreLocation() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1 text-foreground">Business Hours</h3>
-                    <p className="text-muted-foreground text-sm">Mon-Sat: {siteSettings.business_hours.weekdays}</p>
-                    <p className="text-muted-foreground text-sm">Sun: {siteSettings.business_hours.sunday}</p>
+                    <p className="text-muted-foreground text-sm">Mon-Sat: {settings.business_hours.weekdays}</p>
+                    <p className="text-muted-foreground text-sm">Sun: {settings.business_hours.sunday}</p>
                   </div>
                 </div>
 
@@ -250,14 +271,14 @@ export default function StoreLocation() {
                   </div>
                   <div>
                     <h3 className="font-semibold mb-1 text-foreground">Contact</h3>
-                    <p className="text-muted-foreground text-sm">{siteSettings.phone}</p>
+                    <p className="text-muted-foreground text-sm">{settings.phone}</p>
                   </div>
                 </div>
               </div>
 
               <div className="mt-10 pt-10 border-t border-gray-100/80">
                 <a
-                  href={siteSettings.google_maps_link}
+                  href={settings.google_maps_link}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="group inline-flex items-center justify-center w-full sm:w-auto bg-black text-white px-8 py-4 rounded-2xl font-bold shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.23)] hover:bg-black/90 transition-all duration-300 active:scale-[0.98]"

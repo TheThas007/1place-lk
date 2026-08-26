@@ -226,7 +226,7 @@ export default function Header() {
         animate={{ y: 0, opacity: 1 }}
         transition={{ type: "spring", damping: 25, stiffness: 120, delay: 0.1 }}
         className={cn(
-          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-all duration-500 mb-0",
+          "fixed top-0 left-0 right-0 z-50 bg-black border-b transition-all duration-500 mb-0 font-outfit",
           isScrolled ? "border-white/30 shadow-[0_4px_40px_rgba(0,0,0,0.8)]" : "border-white/20"
         )}
       >
@@ -355,42 +355,32 @@ export default function Header() {
                   <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-full transition-all duration-300 group-hover:w-3/4" />
                 </button>
               </div>
-
-              {/* 4. Contact Link */}
-              <Link
-                href="/contact"
-                className={cn(
-                  "relative px-4 py-2 rounded-lg text-[13px] font-medium transition-all duration-300 group",
-                  pathname === "/contact" ? "text-white" : "text-white/50 hover:text-white"
-                )}
-              >
-                <span className="relative z-10">Contact</span>
-                {pathname === "/contact" && (
-                  <motion.div
-                    layoutId="navActivePill"
-                    className="absolute inset-0 rounded-lg bg-white/[0.08] border border-white/[0.08]"
-                    transition={{ type: "spring", bounce: 0.2, duration: 0.5 }}
-                  />
-                )}
-                <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-0 h-[2px] bg-gradient-to-r from-transparent via-white/60 to-transparent rounded-full transition-all duration-300 group-hover:w-3/4" />
-              </Link>
             </nav>
 
             {/* Right Icons / Actions */}
             <div className="flex items-center gap-2 lg:gap-2.5">
-              {/* Highlighted Desktop Search Bar Control */}
+              {/* Ultra-Premium Highlighted Desktop Search Bar Control */}
               <button
                 onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-                className="hidden md:flex items-center gap-2.5 px-3.5 h-[42px] w-[280px] lg:w-[300px] xl:w-[320px] rounded-full bg-white/[0.08] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40 focus-visible:border-white/30 transition-all duration-200 ease-out text-left group cursor-pointer"
+                className="hidden md:flex items-center gap-2.5 px-3.5 h-[42px] w-[280px] lg:w-[320px] xl:w-[350px] rounded-full bg-white/[0.07] hover:bg-white/[0.12] active:bg-white/[0.15] border border-white/15 hover:border-white/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 transition-all duration-300 ease-out text-left group cursor-pointer shadow-[inset_0_1px_1.5px_rgba(255,255,255,0.18),0_2px_12px_rgba(0,0,0,0.35)] hover:shadow-[0_0_24px_-2px_rgba(255,255,255,0.16)] relative overflow-hidden"
                 aria-label="Search devices, accessories and brands"
               >
-                <Search className="w-[18px] h-[18px] text-white/50 group-hover:text-white/80 transition-colors shrink-0" strokeWidth={1.75} />
-                <span className="text-[13px] text-white/50 group-hover:text-white/70 font-normal truncate select-none">
-                  Search products...
+                {/* Specular Ambient Glow Sweep Beam on Hover */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/[0.1] to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 pointer-events-none" />
+
+                <div className="w-6 h-6 rounded-full bg-white/[0.08] group-hover:bg-white/[0.16] flex items-center justify-center transition-colors shrink-0 border border-white/10 shadow-2xs">
+                  <Search className="w-3.5 h-3.5 text-white/70 group-hover:text-white transition-colors" strokeWidth={2} />
+                </div>
+                
+                <span className="text-[13px] text-white/55 group-hover:text-white/85 font-medium truncate select-none tracking-tight transition-colors">
+                  Search products, brands...
                 </span>
-                <kbd className="hidden xl:inline-flex items-center justify-center px-1.5 min-w-[24px] h-[20px] text-[10px] font-medium font-mono text-white/40 bg-white/[0.06] border border-white/[0.1] rounded-[4px] leading-none ml-auto select-none">
-                  ⌘K
-                </kbd>
+
+                <div className="ml-auto flex items-center gap-1 shrink-0 select-none">
+                  <kbd className="hidden xl:inline-flex items-center justify-center px-1.5 min-w-[26px] h-[20px] text-[10px] font-bold font-mono text-white/50 bg-white/[0.08] border border-white/15 rounded-md leading-none shadow-xs group-hover:border-white/30 group-hover:text-white transition-colors">
+                    ⌘K
+                  </kbd>
+                </div>
               </button>
 
               {/* Wishlist button (Hidden on mobile < 768px - accessible in bottom nav) */}

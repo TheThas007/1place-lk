@@ -148,58 +148,19 @@ export default function MegaMenu({
           }
 
           resolvedItems = dynamicList;
-        } else if (col.dynamicSource === "subcategories") {
-          // Extract subcategories
-          const subList: MegaMenuItem[] = [];
-          const seenSubs = new Set<string>();
-
-          categories.forEach((cat) => {
-            if (cat.subcategories && cat.subcategories.length > 0) {
-              cat.subcategories.forEach((sub, sIdx) => {
-                if (sub.status === "inactive") return;
-                const norm = sub.name.trim().toLowerCase();
-                if (seenSubs.has(norm)) return;
-                seenSubs.add(norm);
-
-                subList.push({
-                  id: sub.id || `sub-${sIdx}`,
-                  enabled: true,
-                  label: sub.name,
-                  destinationType: "subcategory",
-                  destinationId: sub.id,
-                  href: sub.destination_url || `/products?category=${cat.slug}&subcategory=${sub.slug}`,
-                  bold: false,
-                  order: sIdx,
-                });
-              });
-            }
-          });
-
-          resolvedItems = subList;
         }
       }
 
-      // 2. Manual items or Mixed mode combination
-      if (col.sourceMode === "manual" || col.sourceMode === "mixed") {
-        const manualItems = (col.items || [])
-          .filter((item) => item.enabled !== false)
-          .sort((a, b) => (a.order || 0) - (b.order || 0));
-
-        if (col.sourceMode === "manual" || resolvedItems.length === 0) {
-          resolvedItems = manualItems;
-        } else {
-          // In mixed mode, combine manual items without duplicating hrefs
-          const existingHrefs = new Set(resolvedItems.map((i) => i.href.toLowerCase()));
-          manualItems.forEach((m) => {
-            if (!existingHrefs.has(m.href.toLowerCase())) {
-              resolvedItems.push(m);
-            }
-          });
-        }
+      // 2. Custom Manual Items
+      if (col.sourceMode === "manual") {
+        resolvedItems = (col.items || []).filter((i) => i.enabled !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
+      } else if (col.sourceMode === "mixed") {
+        const manualItems = (col.items || []).filter((i) => i.enabled !== false).sort((a, b) => (a.order || 0) - (b.order || 0));
+        resolvedItems = [...resolvedItems, ...manualItems];
       }
 
       // Apply maximumItems limit
-      const maxLimit = col.maximumItems && col.maximumItems > 0 ? col.maximumItems : 15;
+      const maxLimit = col.maximumItems && col.maximumItems > 0 ? col.maximumItems : 24;
       const slicedItems = resolvedItems.slice(0, maxLimit);
 
       return {
@@ -218,10 +179,9 @@ export default function MegaMenu({
   const secondaryTextColor = settings.secondaryTextColor || "#27272A";
   const hoverTextColor = settings.hoverTextColor || "#ED0712";
   const borderColor = settings.borderColor || "#E5E5E7";
-  const maxHeightPx = settings.maxHeight || 600;
   const colCount = Math.max(1, Math.min(4, resolvedColumns.length));
 
-  // Determine grid column distribution
+  // Determine grid column distribution (12-column golden proportion)
   const getGridColsClass = () => {
     if (colCount === 2) return "md:grid-cols-2";
     if (colCount === 3) return "md:grid-cols-12";
@@ -231,8 +191,8 @@ export default function MegaMenu({
 
   const getColSpanClass = (col: MegaMenuColumn, index: number) => {
     if (colCount === 3) {
-      if (index === 0) return "md:col-span-5 lg:col-span-5";
-      if (index === 1) return "md:col-span-4 lg:col-span-4";
+      if (index === 0) return "md:col-span-6 lg:col-span-6";
+      if (index === 1) return "md:col-span-3 lg:col-span-3";
       return "md:col-span-3 lg:col-span-3";
     }
     return "w-full";
@@ -243,52 +203,59 @@ export default function MegaMenu({
       style={{
         backgroundColor: bgColor,
         borderColor: borderColor,
-        maxHeight: isPreview ? "auto" : `${maxHeightPx}px`,
+        maxHeight: isPreview ? "auto" : "calc(88vh - var(--navbar-height, 72px))",
       }}
-      className={`w-full border-b shadow-[0_24px_60px_rgba(0,0,0,0.12)] overflow-y-auto custom-scrollbar select-none`}
+      className="w-full border-b shadow-[0_24px_60px_rgba(0,0,0,0.12)] overflow-y-auto custom-scrollbar select-none"
     >
       {/* Centered Content Container */}
       <div
-        className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-8 lg:py-10"
+        className="max-w-7xl mx-auto px-6 sm:px-8 lg:px-12 py-6 sm:py-8 lg:py-9"
         style={{
           paddingLeft: `${settings.horizontalPadding ?? 48}px`,
           paddingRight: `${settings.horizontalPadding ?? 48}px`,
-          paddingTop: `${settings.verticalPadding ?? 40}px`,
-          paddingBottom: `${settings.verticalPadding ?? 40}px`,
+          paddingTop: `${Math.min(32, settings.verticalPadding ?? 32)}px`,
+          paddingBottom: `${Math.max(36, settings.verticalPadding ?? 36)}px`,
         }}
       >
         <div
-          className={`grid grid-cols-1 ${getGridColsClass()} gap-8 lg:gap-12 items-start`}
-          style={{ gap: `${settings.columnGap ?? 48}px` }}
+          className={`grid grid-cols-1 ${getGridColsClass()} gap-8 lg:gap-10 items-start`}
+          style={{ gap: `${settings.columnGap ?? 40}px` }}
         >
           {resolvedColumns.map((col, colIdx) => {
             const isFirstCol = colIdx === 0;
+            const useTwoSubCols = isFirstCol && col.resolvedItems.length > 6;
 
             return (
               <div
                 key={col.id || `col-${colIdx}`}
-                className={`${getColSpanClass(col, colIdx)} flex flex-col space-y-1.5`}
+                className={`${getColSpanClass(col, colIdx)} flex flex-col space-y-1`}
               >
                 {/* Column Section Heading */}
                 {col.heading && (
                   <span
                     style={{ color: col.headingColor || headingColor }}
-                    className="text-[11px] font-bold uppercase tracking-wider mb-3.5 block select-none"
+                    className="text-[11px] font-bold uppercase tracking-wider mb-2.5 block select-none"
                   >
                     {col.heading}
                   </span>
                 )}
 
-                {/* Column Items */}
-                <div className="flex flex-col space-y-1">
+                {/* Column Items: Auto multi-column grid when many categories exist */}
+                <div
+                  className={
+                    useTwoSubCols
+                      ? "grid grid-cols-1 sm:grid-cols-2 gap-x-6 lg:gap-x-8 gap-y-1 items-start"
+                      : "flex flex-col space-y-1"
+                  }
+                >
                   {col.resolvedItems.map((item, itemIdx) => {
                     const isBold = item.bold ?? isFirstCol;
                     const isExternal = item.href.startsWith("http");
 
-                    const itemClass = `group relative inline-flex items-center justify-between gap-3 py-1 transition-all duration-150 rounded-lg outline-none ${
+                    const itemClass = `group relative inline-flex items-center justify-between gap-2.5 py-0.5 transition-all duration-150 rounded-lg outline-none ${
                       isBold
-                        ? "text-[20px] sm:text-[22px] lg:text-[25px] font-extrabold tracking-tight leading-snug"
-                        : "text-sm font-semibold leading-normal"
+                        ? "text-[16px] sm:text-[18px] lg:text-[19px] font-extrabold tracking-tight leading-snug"
+                        : "text-xs sm:text-[13px] font-semibold leading-normal py-0.5"
                     }`;
 
                     const itemStyle: React.CSSProperties = {
@@ -306,7 +273,7 @@ export default function MegaMenu({
                     const badgeJSX = item.badgeEnabled && item.badgeLabel && (
                       <span
                         style={{ backgroundColor: item.badgeBackgroundColor || "#ED0712" }}
-                        className="px-2 py-0.5 text-[9px] font-black text-white rounded-full uppercase tracking-wider shrink-0 shadow-xs"
+                        className="px-1.5 py-0.2 text-[8.5px] font-black text-white rounded-full uppercase tracking-wider shrink-0 shadow-xs"
                       >
                         {item.badgeLabel}
                       </span>
@@ -316,7 +283,7 @@ export default function MegaMenu({
                       <img
                         src={item.iconUrl}
                         alt=""
-                        className="w-4 h-4 object-contain shrink-0"
+                        className="w-3.5 h-3.5 object-contain shrink-0"
                         onError={(e) => {
                           (e.target as HTMLElement).style.display = "none";
                         }}
@@ -397,7 +364,7 @@ export default function MegaMenu({
             transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
             onMouseEnter={onMouseEnter}
             onMouseLeave={onMouseLeave}
-            className="fixed left-0 right-0 top-[var(--navbar-height,72px)] w-full z-50 overflow-hidden"
+            className="fixed left-0 right-0 top-[var(--navbar-height,72px)] w-full z-50 overflow-hidden font-outfit"
           >
             {contentJSX}
           </motion.div>

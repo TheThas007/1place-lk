@@ -866,7 +866,7 @@ export const DEFAULT_MOTION_SETTINGS: MotionSettings = {
 // DEFAULT TODAY'S DEAL PROMOTIONAL BANNER SETTINGS
 // ══════════════════════════════════════════════════════════════════════════
 export const DEFAULT_TODAY_DEAL_SETTINGS: TodayDealSettings = {
-  enabled: false,
+  enabled: true,
   status: "live",
   eyebrow: "TODAY'S DEAL",
   heading: "Today Only. Better Prices.",
@@ -918,6 +918,15 @@ export const DEFAULT_TODAY_DEAL_SETTINGS: TodayDealSettings = {
   expiryAction: "deal-ended",
   replacementCtaLabel: "Browse All Deals",
   replacementCtaUrl: "/products",
+  imageFit: "cover",
+  cardPadding: "none",
+  frameHeight: 480,
+  frameBorderRadius: 0,
+  imageScale: 100,
+  backgroundBannerEnabled: false,
+  backgroundBannerUrl: "",
+  backgroundBannerOverlayOpacity: 30,
+  backgroundBannerBorderRadius: 0,
 };
 
 // ══════════════════════════════════════════════════════════════════════════

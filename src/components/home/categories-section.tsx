@@ -25,7 +25,20 @@ function MobileBrandCard({
   activeDepartmentSlug: string;
 }) {
   const [imgError, setImgError] = useState(false);
-  const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+  const logoUrl =
+    brand.logo_url ||
+    (brand as any).logo ||
+    (brand as any).image_url ||
+    (brand as any).imageUrl ||
+    (brand as any).icon_url ||
+    (brand as any).iconUrl ||
+    (brand as any).image ||
+    "";
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl, brand.id, brand.slug]);
+
   const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
 
   return (
@@ -63,7 +76,19 @@ function BrandCard({
   activeDepartmentSlug: string;
 }) {
   const [imgError, setImgError] = useState(false);
-  const logoUrl = brand.logo_url || (brand as any).logo || (brand as any).image_url;
+  const logoUrl =
+    brand.logo_url ||
+    (brand as any).logo ||
+    (brand as any).image_url ||
+    (brand as any).imageUrl ||
+    (brand as any).icon_url ||
+    (brand as any).iconUrl ||
+    (brand as any).image ||
+    "";
+
+  useEffect(() => {
+    setImgError(false);
+  }, [logoUrl, brand.id, brand.slug]);
 
   // Department-specific SEO-friendly brand route
   const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
@@ -109,6 +134,7 @@ export default function CategoriesSection({
 }: CategoriesSectionProps) {
   const [activeDeptSlug, setActiveDeptSlug] = useState<string>("phones");
   const [isMobileExpanded, setIsMobileExpanded] = useState(false);
+  const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
   const [liveBrands, setLiveBrands] = useState<Brand[]>(() => {
     return (brands && brands.length > 0 ? brands : DEFAULT_BRANDS).map((b) => ({
       ...b,
@@ -137,15 +163,56 @@ export default function CategoriesSection({
             });
             snapshot.docs.forEach((d) => {
               const data = d.data() as Brand;
-              const id = d.id || data.id;
+              const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
               const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+              const nameLower = (data.name || "").toLowerCase().trim();
+
+              // Match by id, data.id, slug, or matching name
+              let existingKey = id;
+              for (const [k, b] of brandMap.entries()) {
+                if (
+                  k === id ||
+                  b.id === id ||
+                  b.id === data.id ||
+                  (b.slug && b.slug.toLowerCase() === slug.toLowerCase()) ||
+                  (b.name && b.name.toLowerCase().trim() === nameLower)
+                ) {
+                  existingKey = k;
+                  break;
+                }
+              }
+
+              const existing = brandMap.get(existingKey);
+              if (existingKey !== id) {
+                brandMap.delete(existingKey);
+              }
+
               const assigned_departments =
                 data.assigned_departments && data.assigned_departments.length > 0
                   ? data.assigned_departments
-                  : getDefaultBrandDepartments(slug, data.product_group);
+                  : existing?.assigned_departments || getDefaultBrandDepartments(slug, data.product_group);
 
-              const existing = brandMap.get(id) || brandMap.get(data.id);
-              brandMap.set(id, { ...existing, ...data, id, slug, assigned_departments });
+              const logo_url =
+                data.logo_url ||
+                (data as any).logo ||
+                (data as any).image_url ||
+                (data as any).imageUrl ||
+                (data as any).icon_url ||
+                (data as any).iconUrl ||
+                (data as any).image ||
+                existing?.logo_url ||
+                "";
+
+              brandMap.set(id, {
+                ...existing,
+                ...data,
+                id,
+                slug,
+                logo_url,
+                assigned_departments,
+                enabled: data.enabled !== false && data.status !== "inactive",
+                show_on_homepage: data.show_on_homepage !== false,
+              });
             });
             setLiveBrands(Array.from(brandMap.values()));
           }
@@ -193,7 +260,8 @@ export default function CategoriesSection({
       .sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0));
   }, [liveBrands, activeDeptSlug]);
 
-  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 6);
+  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 12);
+  const desktopVisibleBrands = isDesktopExpanded ? visibleBrands : visibleBrands.slice(0, 12);
 
   return (
     <>
@@ -219,12 +287,6 @@ export default function CategoriesSection({
             .filter((d) => d.enabled !== false)
             .map((dept) => {
               const isActive = activeDeptSlug === dept.slug;
-              const icon =
-                dept.slug === "phones"
-                  ? "📱"
-                  : dept.slug === "laptops-tablets"
-                  ? "💻"
-                  : "🎧";
 
               return (
                 <button
@@ -235,14 +297,14 @@ export default function CategoriesSection({
                   onClick={() => {
                     setActiveDeptSlug(dept.slug);
                     setIsMobileExpanded(false);
+                    setIsDesktopExpanded(false);
                   }}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer snap-start ${
+                  className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer snap-start ${
                     isActive
                       ? "bg-black text-white shadow-xs"
                       : "bg-[#F1F3F5] text-neutral-700 hover:text-black border border-neutral-200/60"
                   }`}
                 >
-                  <span className="text-xs">{icon}</span>
                   <span>{dept.name}</span>
                 </button>
               );
@@ -266,8 +328,8 @@ export default function CategoriesSection({
           )}
         </div>
 
-        {/* 4. Show More / Show Less Button (If more than 6 active brands exist) */}
-        {visibleBrands.length > 6 && (
+        {/* 4. Show More / Show Less Button (If more than 12 active brands exist) */}
+        {visibleBrands.length > 12 && (
           <div className="mt-3">
             <button
               type="button"
@@ -284,7 +346,11 @@ export default function CategoriesSection({
               }}
               className="w-full h-[40px] rounded-xl bg-[#F8F9FA] hover:bg-[#F1F3F5] border border-neutral-200/80 text-neutral-800 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all cursor-pointer shadow-2xs"
             >
-              <span>{isMobileExpanded ? "Show Less" : "Show More Brands"}</span>
+              <span>
+                {isMobileExpanded
+                  ? "Show Less"
+                  : `Show More Brands (+${visibleBrands.length - 12})`}
+              </span>
               {isMobileExpanded ? (
                 <ChevronUp className="w-4 h-4 text-neutral-600" />
               ) : (
@@ -322,19 +388,17 @@ export default function CategoriesSection({
               .filter((d) => d.enabled !== false)
               .map((dept) => {
                 const isActive = activeDeptSlug === dept.slug;
-                const icon =
-                  dept.slug === "phones"
-                    ? "📱"
-                    : dept.slug === "laptops-tablets"
-                    ? "💻"
-                    : "🎧";
 
                 return (
                   <button
                     key={dept.slug}
                     type="button"
-                    onClick={() => setActiveDeptSlug(dept.slug)}
-                    className={`relative px-5 sm:px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 z-10 cursor-pointer ${
+                    onClick={() => {
+                      setActiveDeptSlug(dept.slug);
+                      setIsDesktopExpanded(false);
+                      setIsMobileExpanded(false);
+                    }}
+                    className={`relative px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 z-10 cursor-pointer ${
                       isActive ? "text-white" : "text-neutral-600 hover:text-black"
                     }`}
                   >
@@ -345,9 +409,8 @@ export default function CategoriesSection({
                         transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                       />
                     )}
-                    <span className="relative z-10 flex items-center gap-2">
-                      <span>{icon}</span>
-                      <span>{dept.name}</span>
+                    <span className="relative z-10">
+                      {dept.name}
                     </span>
                   </button>
                 );
@@ -355,18 +418,18 @@ export default function CategoriesSection({
           </div>
         </div>
 
-        {/* Brand Grid - 6 columns matching Apple-style badges */}
+        {/* Brand Grid - 6 columns matching Apple-style badges (Shows 12 brands initially) */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={activeDeptSlug}
+            key={`${activeDeptSlug}-${isDesktopExpanded ? "expanded" : "collapsed"}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.25 }}
             className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 lg:gap-6"
           >
-            {visibleBrands.length > 0 ? (
-              visibleBrands.map((brand, idx) => (
+            {desktopVisibleBrands.length > 0 ? (
+              desktopVisibleBrands.map((brand, idx) => (
                 <BrandCard
                   key={`${activeDeptSlug}-${brand.id || brand.slug}`}
                   brand={brand}
@@ -381,6 +444,38 @@ export default function CategoriesSection({
             )}
           </motion.div>
         </AnimatePresence>
+
+        {/* Desktop Show More / Show Less Button (If more than 12 active brands exist) */}
+        {visibleBrands.length > 12 && (
+          <div className="mt-10 flex justify-center">
+            <button
+              type="button"
+              onClick={() => {
+                if (isDesktopExpanded) {
+                  setIsDesktopExpanded(false);
+                  const el = document.getElementById("categories-section");
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }
+                } else {
+                  setIsDesktopExpanded(true);
+                }
+              }}
+              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white hover:bg-black text-neutral-900 hover:text-white border border-neutral-300 hover:border-black font-bold text-xs sm:text-sm shadow-xs hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-95"
+            >
+              <span>
+                {isDesktopExpanded
+                  ? "Show Less Brands"
+                  : `Show More Brands (+${visibleBrands.length - 12})`}
+              </span>
+              {isDesktopExpanded ? (
+                <ChevronUp className="w-4 h-4" />
+              ) : (
+                <ChevronDown className="w-4 h-4" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
     </ScrollReveal>
     </div>

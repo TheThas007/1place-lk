@@ -465,47 +465,50 @@ export default function StreetAssistant() {
             className="fixed bottom-0 right-0 sm:bottom-24 sm:right-6 z-[70] w-full sm:w-[410px] h-[92vh] sm:h-[640px] max-h-[680px] bg-white rounded-t-[24px] sm:rounded-[24px] shadow-2xl border border-neutral-200/90 flex flex-col overflow-hidden font-sans text-neutral-900"
           >
             {/* ── Chat Header ── */}
-            <div className="bg-[#090909] px-4 sm:px-5 py-3 text-white flex items-center justify-between border-b border-white/10 shrink-0">
+            <div className="bg-[#090909] px-4 sm:px-5 py-3.5 text-white flex items-center justify-between border-b border-white/10 shrink-0">
               
               {/* Left: Streetla Avatar & Titles */}
               <div className="flex items-center gap-3">
-                <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-white/20 shrink-0 bg-neutral-900">
+                <div className="relative w-10 h-10 sm:w-11 sm:h-11 rounded-full overflow-hidden border-2 border-white/20 shrink-0 bg-neutral-900 shadow-md">
                   <img
                     src={avatarUrl || "/streetla.png"}
                     alt="Streetla"
                     className="w-full h-full object-cover object-center"
                   />
-                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-[#00E676] border border-black" />
+                  <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-emerald-400 border-2 border-black" />
                 </div>
                 <div>
-                  <div className="flex items-center gap-1.5">
-                    <h3 className="font-black text-sm sm:text-base tracking-tight text-white leading-none">
-                      Streetla
+                  <div className="flex items-center gap-2">
+                    <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-none">
+                      {assistantName || "Streetla"}
                     </h3>
+                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase">
+                      AI Online
+                    </span>
                   </div>
                   <span className="text-[11px] text-neutral-400 font-medium leading-none block mt-1">
-                    Your StreetMobile Shopping Assistant
+                    StreetMobile Smart Shopping Assistant
                   </span>
                 </div>
               </div>
 
               {/* Right: Controls (Language, Options, Close) */}
-              <div className="flex items-center gap-1 relative">
+              <div className="flex items-center gap-1.5 relative">
                 
                 {/* Language Switcher Button */}
                 <button
                   type="button"
                   onClick={() => setShowLangMenu((prev) => !prev)}
-                  className="px-2 py-1 rounded-lg text-xs font-bold bg-white/10 hover:bg-white/20 text-white/90 transition-colors flex items-center gap-1"
+                  className="px-2.5 py-1.5 rounded-xl text-xs font-bold bg-white/10 hover:bg-white/20 text-white transition-colors flex items-center gap-1.5 border border-white/10"
                   title="Switch Language"
                 >
-                  <Globe className="w-3 h-3" />
-                  <span className="uppercase">{language}</span>
+                  <Globe className="w-3.5 h-3.5 text-neutral-300" />
+                  <span className="uppercase text-[11px]">{language}</span>
                 </button>
 
                 {/* Language Dropdown */}
                 {showLangMenu && (
-                  <div className="absolute top-10 right-14 w-32 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-1.5 z-30 space-y-1 text-xs">
+                  <div className="absolute top-11 right-14 w-32 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-1.5 z-30 space-y-1 text-xs">
                     <button
                       onClick={() => handleSelectLanguage("en")}
                       className={`w-full text-left px-2.5 py-1.5 rounded-lg font-bold flex items-center justify-between ${
@@ -540,7 +543,7 @@ export default function StreetAssistant() {
                 <button
                   type="button"
                   onClick={() => setShowMenu((prev) => !prev)}
-                  className="p-1.5 text-white/60 hover:text-white transition-colors rounded-lg"
+                  className="p-2 text-white/70 hover:text-white transition-colors rounded-xl hover:bg-white/10"
                   title="Options"
                 >
                   <MoreVertical className="w-4 h-4" />
@@ -548,20 +551,20 @@ export default function StreetAssistant() {
 
                 {/* Options Dropdown */}
                 {showMenu && (
-                  <div className="absolute top-10 right-6 w-44 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-1.5 z-30 space-y-1 text-xs">
+                  <div className="absolute top-11 right-8 w-48 bg-[#121212] border border-white/15 rounded-xl shadow-2xl p-1.5 z-30 space-y-1 text-xs">
                     <button
                       onClick={handleClearConversation}
-                      className="w-full text-left px-2.5 py-2 rounded-lg text-white/80 hover:bg-white/10 flex items-center gap-2 font-medium"
+                      className="w-full text-left px-3 py-2 rounded-lg text-white/80 hover:bg-white/10 flex items-center gap-2 font-medium"
                     >
                       <RotateCcw className="w-3.5 h-3.5" />
-                      <span>Clear Chat</span>
+                      <span>Clear Conversation</span>
                     </button>
                     <button
                       onClick={() => {
                         handleActionClick("open_whatsapp");
                         setShowMenu(false);
                       }}
-                      className="w-full text-left px-2.5 py-2 rounded-lg text-emerald-400 hover:bg-white/10 flex items-center gap-2 font-bold"
+                      className="w-full text-left px-3 py-2 rounded-lg text-emerald-400 hover:bg-white/10 flex items-center gap-2 font-bold"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                       <span>WhatsApp Support</span>
@@ -569,7 +572,7 @@ export default function StreetAssistant() {
                     <Link
                       href="/privacy-policy"
                       onClick={() => setShowMenu(false)}
-                      className="w-full text-left px-2.5 py-2 rounded-lg text-white/60 hover:bg-white/10 flex items-center gap-2 block font-medium"
+                      className="w-full text-left px-3 py-2 rounded-lg text-white/60 hover:bg-white/10 flex items-center gap-2 block font-medium"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
                       <span>Privacy Info</span>
@@ -581,7 +584,7 @@ export default function StreetAssistant() {
                 <button
                   type="button"
                   onClick={() => setIsOpen(false)}
-                  className="p-1.5 text-white/70 hover:text-white transition-colors rounded-lg hover:bg-white/10"
+                  className="p-2 text-white/70 hover:text-white transition-colors rounded-xl hover:bg-white/10"
                   title="Close Streetla"
                 >
                   <X className="w-4 h-4" />
@@ -591,11 +594,10 @@ export default function StreetAssistant() {
             </div>
 
             {/* ── Chat Messages Body ── */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#FBFBFC]">
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-[#F8F9FA]">
               
               {messages.map((msg, idx) => {
                 const isAssistant = msg.sender === "assistant";
-                // Show avatar only beside the first assistant message in a sequence
                 const isFirstInSequence =
                   isAssistant && (idx === 0 || messages[idx - 1]?.sender !== "assistant");
 
@@ -606,7 +608,7 @@ export default function StreetAssistant() {
                   >
                     {/* Small Streetla Avatar beside Assistant Messages */}
                     {isAssistant && (
-                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-neutral-200 shrink-0 bg-black mt-0.5">
+                      <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-neutral-300/80 shrink-0 bg-neutral-900 mt-0.5 shadow-xs">
                         {isFirstInSequence ? (
                           <img
                             src={avatarUrl || "/streetla.png"}
@@ -621,26 +623,26 @@ export default function StreetAssistant() {
 
                     {/* Message Bubble */}
                     <div
-                      className={`max-w-[82%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-2xs ${
+                      className={`max-w-[85%] rounded-2xl px-4 py-3.5 text-sm leading-relaxed ${
                         isAssistant
-                          ? "bg-white border border-neutral-200/80 text-neutral-900 rounded-tl-xs"
-                          : "bg-black text-white rounded-tr-xs font-medium"
+                          ? "bg-white border border-neutral-200/90 text-neutral-900 rounded-tl-xs shadow-[0_4px_16px_-4px_rgba(0,0,0,0.06)]"
+                          : "bg-[#090909] text-white rounded-tr-xs font-medium border border-neutral-800 shadow-sm"
                       }`}
                     >
                       {/* Text content formatted with line breaks */}
-                      <div className="whitespace-pre-line text-sm sm:text-[15px] leading-relaxed">
+                      <div className="whitespace-pre-line text-xs sm:text-[13.5px] leading-relaxed text-neutral-800 dark:text-neutral-200">
                         {msg.text}
                       </div>
 
                       {/* ── Rich UI: Product Cards ── */}
                       {msg.products && msg.products.length > 0 && (
-                        <div className="mt-3 space-y-2.5">
+                        <div className="mt-3.5 space-y-2.5">
                           {msg.products.map((p) => (
                             <div
                               key={p.id}
-                              className="p-3 bg-neutral-50 rounded-xl border border-neutral-200 flex items-center gap-3"
+                              className="p-3 bg-neutral-50/80 hover:bg-neutral-50 rounded-2xl border border-neutral-200/80 flex items-center gap-3 transition-colors shadow-2xs"
                             >
-                              <div className="w-14 h-14 bg-white rounded-lg p-1 border border-neutral-200 flex items-center justify-center shrink-0">
+                              <div className="w-14 h-14 bg-white rounded-xl p-1.5 border border-neutral-200/90 flex items-center justify-center shrink-0 shadow-xs">
                                 <img
                                   src={p.image}
                                   alt={p.name}
@@ -652,26 +654,33 @@ export default function StreetAssistant() {
                                 <h5 className="font-bold text-xs text-neutral-950 truncate leading-tight">
                                   {p.name}
                                 </h5>
-                                <div className="text-xs font-black text-neutral-900 mt-0.5">
-                                  {formatPrice(p.price)}
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <span className="text-xs font-black text-neutral-900">
+                                    {formatPrice(p.price)}
+                                  </span>
+                                  {p.old_price && p.old_price > p.price && (
+                                    <span className="text-[10px] text-neutral-400 line-through">
+                                      {formatPrice(p.old_price)}
+                                    </span>
+                                  )}
                                 </div>
-                                <span className="text-[10px] text-emerald-700 font-semibold block truncate">
-                                  {p.warranty || "Genuine Warranty"}
+                                <span className="text-[10px] text-emerald-700 font-semibold block truncate mt-0.5">
+                                  {p.warranty || "1 Year Genuine Warranty"}
                                 </span>
                               </div>
 
-                              <div className="flex flex-col gap-1 shrink-0">
+                              <div className="flex flex-col gap-1.5 shrink-0">
                                 <Link
                                   href={`/products/${p.slug}`}
                                   onClick={() => setIsOpen(false)}
-                                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg border border-neutral-300 text-neutral-800 hover:bg-neutral-200 transition-colors text-center"
+                                  className="px-2.5 py-1 text-[10.5px] font-bold rounded-lg border border-neutral-300 text-neutral-800 hover:bg-neutral-200 transition-colors text-center"
                                 >
-                                  View
+                                  Specs
                                 </Link>
                                 <button
                                   type="button"
                                   onClick={() => handleAddProductToCart(p)}
-                                  className="px-2.5 py-1 text-[11px] font-bold rounded-lg bg-black text-white hover:bg-neutral-800 transition-colors text-center flex items-center gap-1"
+                                  className="px-2.5 py-1 text-[10.5px] font-bold rounded-lg bg-[#090909] hover:bg-[#ED0712] text-white transition-colors text-center flex items-center gap-1 shadow-xs"
                                 >
                                   <ShoppingBag className="w-3 h-3" />
                                   <span>Bag</span>
@@ -684,27 +693,29 @@ export default function StreetAssistant() {
 
                       {/* ── Rich UI: Comparison Cards ── */}
                       {msg.comparisonProducts && msg.comparisonProducts.length > 0 && (
-                        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="mt-3.5 grid grid-cols-2 gap-2 text-xs">
                           {msg.comparisonProducts.map((cp) => (
                             <div
                               key={cp.id}
-                              className="p-2.5 bg-neutral-50 rounded-xl border border-neutral-200 text-center space-y-1.5"
+                              className="p-3 bg-neutral-50/80 rounded-2xl border border-neutral-200 text-center space-y-1.5 shadow-2xs"
                             >
-                              <img
-                                src={cp.image}
-                                alt={cp.name}
-                                className="w-12 h-12 object-contain mx-auto"
-                              />
+                              <div className="w-14 h-14 bg-white rounded-xl p-1.5 border border-neutral-200/90 mx-auto flex items-center justify-center">
+                                <img
+                                  src={cp.image}
+                                  alt={cp.name}
+                                  className="w-full h-full object-contain"
+                                />
+                              </div>
                               <h6 className="font-bold text-[11px] text-neutral-900 leading-tight truncate">
                                 {cp.name}
                               </h6>
-                              <div className="font-black text-xs text-black">
+                              <div className="font-black text-xs text-neutral-950">
                                 {formatPrice(cp.price)}
                               </div>
                               <Link
                                 href={`/products/${cp.slug}`}
                                 onClick={() => setIsOpen(false)}
-                                className="block w-full py-1 text-[10px] font-bold rounded bg-black text-white"
+                                className="block w-full py-1.5 text-[10.5px] font-bold rounded-xl bg-[#090909] hover:bg-[#ED0712] text-white transition-colors"
                               >
                                 View Specs
                               </Link>
@@ -715,12 +726,12 @@ export default function StreetAssistant() {
 
                       {/* ── Rich UI: Order Status Card ── */}
                       {msg.orderData && (
-                        <div className="mt-3 p-3 bg-neutral-50 rounded-xl border border-neutral-200 space-y-2 text-xs">
+                        <div className="mt-3.5 p-3.5 bg-neutral-50 rounded-2xl border border-neutral-200 space-y-2 text-xs">
                           <div className="flex justify-between items-center pb-2 border-b border-neutral-200">
                             <span className="font-bold text-neutral-900">
                               Order #{msg.orderData.id.slice(0, 8).toUpperCase()}
                             </span>
-                            <span className="font-extrabold px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px]">
+                            <span className="font-extrabold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px]">
                               {msg.orderData.orderStatus}
                             </span>
                           </div>
@@ -732,7 +743,7 @@ export default function StreetAssistant() {
                           <Link
                             href="/orders"
                             onClick={() => setIsOpen(false)}
-                            className="block text-center w-full py-1.5 mt-1 text-xs font-bold rounded-lg bg-black text-white"
+                            className="block text-center w-full py-2 mt-1 text-xs font-bold rounded-xl bg-[#090909] hover:bg-neutral-800 text-white transition-colors"
                           >
                             Track on Full Page
                           </Link>
@@ -741,13 +752,13 @@ export default function StreetAssistant() {
 
                       {/* Action buttons inside message */}
                       {msg.actions && msg.actions.length > 0 && (
-                        <div className="mt-3 pt-2 border-t border-neutral-100 flex flex-wrap gap-1.5">
+                        <div className="mt-3.5 pt-2.5 border-t border-neutral-100 flex flex-wrap gap-1.5">
                           {msg.actions.map((act) => (
                             <button
                               key={act.label}
                               type="button"
                               onClick={() => handleActionClick(act.action, act.payload, act.label)}
-                              className="px-3 py-1.5 rounded-full text-xs font-bold bg-neutral-100 hover:bg-black hover:text-white text-neutral-800 border border-neutral-200 transition-all active:scale-95 cursor-pointer"
+                              className="px-3 py-1.5 rounded-full text-xs font-bold bg-neutral-100 hover:bg-[#090909] hover:text-white text-neutral-800 border border-neutral-200/90 transition-all active:scale-95 cursor-pointer shadow-2xs"
                             >
                               {act.label}
                             </button>
@@ -762,7 +773,7 @@ export default function StreetAssistant() {
               {/* Typing Indicator with Streetla Avatar */}
               {isLoading && (
                 <div className="flex items-center gap-2.5">
-                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-neutral-200 shrink-0 bg-black">
+                  <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border border-neutral-300 shrink-0 bg-neutral-900">
                     <img
                       src={avatarUrl || "/streetla.png"}
                       alt="Streetla"
@@ -787,13 +798,13 @@ export default function StreetAssistant() {
             </div>
 
             {/* ── Quick Action Chips ── */}
-            <div className="px-3 py-2 bg-white border-t border-neutral-100 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
+            <div className="px-3 py-2.5 bg-white border-t border-neutral-100 overflow-x-auto scrollbar-none flex items-center gap-1.5 shrink-0">
               {quickActions.map((qa) => (
                 <button
                   key={qa.id}
                   type="button"
                   onClick={() => handleActionClick(qa.action, null, qa.label)}
-                  className="px-3 py-1.5 rounded-full text-xs font-bold bg-neutral-50 hover:bg-black hover:text-white text-neutral-800 border border-neutral-200/90 whitespace-nowrap transition-all shrink-0 active:scale-95 cursor-pointer shadow-2xs"
+                  className="px-3 py-1.5 rounded-full text-xs font-bold bg-neutral-50 hover:bg-[#090909] hover:text-white text-neutral-800 border border-neutral-200 whitespace-nowrap transition-all shrink-0 active:scale-95 cursor-pointer shadow-2xs"
                 >
                   {qa.label}
                 </button>
@@ -812,7 +823,7 @@ export default function StreetAssistant() {
                 <input
                   ref={inputRef}
                   type="text"
-                  placeholder="Ask about phones, prices, orders..."
+                  placeholder="Ask about budget, comparisons, colors, stock..."
                   value={inputVal}
                   onChange={(e) => setInputVal(e.target.value)}
                   onKeyDown={(e) => {
@@ -821,13 +832,13 @@ export default function StreetAssistant() {
                       handleSendMessage();
                     }
                   }}
-                  className="flex-1 min-h-[46px] px-4 rounded-xl text-sm font-medium border border-neutral-200 bg-neutral-50/50 hover:border-neutral-400 focus:border-black focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all"
+                  className="flex-1 min-h-[46px] px-4 rounded-xl text-sm font-medium border border-neutral-200 bg-neutral-50 hover:border-neutral-400 focus:border-black focus:bg-white focus:ring-2 focus:ring-black/10 outline-none transition-all"
                 />
 
                 <button
                   type="submit"
                   disabled={!inputVal.trim() || isLoading}
-                  className="w-[46px] h-[46px] rounded-xl bg-black text-white flex items-center justify-center hover:bg-neutral-800 transition-all disabled:opacity-40 disabled:hover:bg-black active:scale-95 shrink-0 cursor-pointer shadow-xs"
+                  className="w-[46px] h-[46px] rounded-xl bg-[#090909] hover:bg-[#ED0712] text-white flex items-center justify-center transition-all disabled:opacity-40 disabled:hover:bg-[#090909] active:scale-95 shrink-0 cursor-pointer shadow-sm"
                   aria-label="Send message"
                 >
                   {isLoading ? (

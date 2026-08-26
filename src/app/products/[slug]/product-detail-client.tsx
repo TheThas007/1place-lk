@@ -33,6 +33,7 @@ import { useAuth } from "@/lib/auth-context";
 import { getColorCSS, isLightColor } from "@/lib/color-utils";
 import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import { Product, ProductColor, ProductVariantCombo, WarrantyOption } from "@/lib/types";
+import { detectProductBrand } from "@/components/products/ShopFilterSidebar";
 
 interface NormalizedVariant {
   id: string;
@@ -273,24 +274,91 @@ export default function ProductDetailClient({
     return list;
   }, [product, colorVariants]);
 
-  // User Chosen Color State (false on load to display default overview images)
+  // ── Master Image Aggregator: collects base product images + ALL color variant images + ALL combo images ──
+  const allMasterImages = useMemo(() => {
+    const list: string[] = [];
+
+    // 1. Base product images
+    if (product.images && Array.isArray(product.images)) {
+      product.images.forEach((img) => {
+        if (img && typeof img === "string" && !list.includes(img)) list.push(img);
+      });
+    }
+
+    // 2. Color variants images & cover_image
+    if (product.color_variants && Array.isArray(product.color_variants)) {
+      product.color_variants.forEach((cv) => {
+        if (cv.cover_image && !list.includes(cv.cover_image)) list.push(cv.cover_image);
+        if (cv.images && Array.isArray(cv.images)) {
+          cv.images.forEach((img) => {
+            if (img && !list.includes(img)) list.push(img);
+          });
+        }
+      });
+    }
+
+    // 3. Variant combos images
+    if (product.variant_combos && Array.isArray(product.variant_combos)) {
+      product.variant_combos.forEach((cb) => {
+        if (cb.image_ref && !list.includes(cb.image_ref)) list.push(cb.image_ref);
+      });
+    }
+
+    return list.length > 0
+      ? list
+      : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
+  }, [product]);
+
+  // Detected Brand Name (e.g. "Apple", "Samsung", "Xiaomi", "Google", etc.)
+  const detectedBrand = useMemo(() => {
+    const b = detectProductBrand(product);
+    return b && b !== "Other" ? b : (product.brand_name || product.brand || "");
+  }, [product]);
+
+  // User Chosen Color State & Gallery Selected Index
   const [hasUserChosenColor, setHasUserChosenColor] = useState<boolean>(false);
   const [selectedColor, setSelectedColor] = useState<string>("");
+  const [selectedGalleryIndex, setSelectedGalleryIndex] = useState<number>(0);
 
   const handleSelectColor = (colorName: string) => {
     if (hasUserChosenColor && selectedColor.toLowerCase() === colorName.toLowerCase()) {
-      // Toggle back to default all-photos view
+      // Toggle back to default view
       setHasUserChosenColor(false);
       setSelectedColor("");
     } else {
       setSelectedColor(colorName);
       setHasUserChosenColor(true);
+
+      // Find the corresponding image for this color and jump to it in the gallery!
+      const targetColor = colorVariants.find((c) => c.name.toLowerCase() === colorName.toLowerCase());
+      const targetImg = targetColor?.cover_image || targetColor?.images?.[0];
+      if (targetImg) {
+        const foundIdx = allMasterImages.indexOf(targetImg);
+        if (foundIdx >= 0) {
+          setSelectedGalleryIndex(foundIdx);
+        }
+      }
     }
   };
 
   const handleResetToAllPhotos = () => {
     setHasUserChosenColor(false);
     setSelectedColor("");
+    setSelectedGalleryIndex(0);
+  };
+
+  const handleGalleryThumbnailSelect = (index: number) => {
+    setSelectedGalleryIndex(index);
+    const selectedImg = allMasterImages[index];
+    if (selectedImg && colorVariants.length > 0) {
+      const matchedColor = colorVariants.find((cv) =>
+        cv.cover_image === selectedImg || (cv.images && cv.images.includes(selectedImg))
+      );
+      if (matchedColor) {
+        setSelectedColor(matchedColor.name);
+        setHasUserChosenColor(true);
+      }
+    }
   };
 
   // Active Color Object (only active if user chose a color)
@@ -313,10 +381,10 @@ export default function ProductDetailClient({
     return filtered.length > 0 ? filtered : normalizedVariants.filter((v) => v.status !== "inactive");
   }, [normalizedVariants, selectedColor, colorVariants, hasUserChosenColor]);
 
-  // Selected Storage Option
-  const [selectedStorage, setSelectedStorage] = useState<string | null>(() => {
+  // Selected Variant Option (Tracked by unique Variant ID)
+  const [selectedVariantId, setSelectedVariantId] = useState<string>(() => {
     const firstInStock = availableVariantsForColor.find((v) => v.stock > 0);
-    return firstInStock?.storage || availableVariantsForColor[0]?.storage || null;
+    return firstInStock?.id || availableVariantsForColor[0]?.id || "";
   });
 
   // Dropdown Open State & Focus Management
@@ -326,18 +394,18 @@ export default function ProductDetailClient({
   const triggerRef = useRef<HTMLButtonElement>(null);
   const optionsRef = useRef<(HTMLButtonElement | null)[]>([]);
 
-  // 3. RESET INVALID STORAGE WHEN COLOR CHANGES
+  // 3. RESET INVALID VARIANT WHEN COLOR CHANGES
   useEffect(() => {
     if (!selectedColor || availableVariantsForColor.length === 0) return;
 
-    const storageStillValid = availableVariantsForColor.some(
-      (v) => v.storage === selectedStorage
+    const variantStillValid = availableVariantsForColor.some(
+      (v) => v.id === selectedVariantId
     );
 
-    if (!storageStillValid) {
+    if (!variantStillValid) {
       const firstInStock = availableVariantsForColor.find((v) => v.stock > 0);
-      const targetStorage = firstInStock?.storage || availableVariantsForColor[0]?.storage || null;
-      setSelectedStorage(targetStorage);
+      const targetId = firstInStock?.id || availableVariantsForColor[0]?.id || "";
+      setSelectedVariantId(targetId);
     }
 
     // Always close storage dropdown when changing color
@@ -388,45 +456,11 @@ export default function ProductDetailClient({
   const selectedVariant = useMemo(() => {
     if (availableVariantsForColor.length === 0) return null;
     const exactMatch = availableVariantsForColor.find(
-      (v) => v.storage === selectedStorage
+      (v) => v.id === selectedVariantId
     );
     if (exactMatch) return exactMatch;
     return availableVariantsForColor.find((v) => v.stock > 0) || availableVariantsForColor[0] || null;
-  }, [availableVariantsForColor, selectedStorage]);
-
-  // Dynamic Image Gallery per selectedVariant & color
-  const activeImages = useMemo(() => {
-    // If user has not picked a specific color, show default product images (starting with 1st overview image)
-    if (!hasUserChosenColor || !selectedColor) {
-      return product.images && product.images.length > 0
-        ? product.images
-        : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
-    }
-
-    // User picked a specific color -> show that color's specific images
-    const list: string[] = [];
-    if (selectedColorObj?.cover_image) {
-      list.push(selectedColorObj.cover_image);
-    }
-    if (selectedColorObj?.images && selectedColorObj.images.length > 0) {
-      selectedColorObj.images.forEach((img) => {
-        if (!list.includes(img)) list.push(img);
-      });
-    }
-    if (selectedVariant?.image && !list.includes(selectedVariant.image)) {
-      list.push(selectedVariant.image);
-    }
-    if (selectedVariant?.gallery && selectedVariant.gallery.length > 0) {
-      selectedVariant.gallery.forEach((img) => {
-        if (!list.includes(img)) list.push(img);
-      });
-    }
-    return list.length > 0
-      ? list
-      : product.images && product.images.length > 0
-      ? product.images
-      : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
-  }, [hasUserChosenColor, selectedColor, selectedColorObj, selectedVariant, product.images]);
+  }, [availableVariantsForColor, selectedVariantId]);
 
   // Quantity & Tab States
   const [quantity, setQuantity] = useState<number>(1);
@@ -470,6 +504,8 @@ export default function ProductDetailClient({
     setQuantity((prev) => Math.max(1, prev + delta));
   };
 
+  const currentActiveImage = allMasterImages[selectedGalleryIndex] || product.images?.[0] || "";
+
   const handleAddToCart = () => {
     if (isVariantOutOfStock || !selectedVariant) return;
 
@@ -486,7 +522,7 @@ export default function ProductDetailClient({
       storage: selectedVariant.storage,
       ram: selectedVariant.ram,
       quantity,
-      image: activeImages[0] || product.images?.[0] || "",
+      image: currentActiveImage,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
       onSuccess: () => {
@@ -512,7 +548,7 @@ export default function ProductDetailClient({
       storage: selectedVariant.storage,
       ram: selectedVariant.ram,
       quantity,
-      image: activeImages[0] || product.images?.[0] || "",
+      image: currentActiveImage,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
     });
@@ -522,7 +558,7 @@ export default function ProductDetailClient({
   const handleOptionKeyDown = (
     e: React.KeyboardEvent,
     index: number,
-    storage: string,
+    variantId: string,
     isDisabled: boolean
   ) => {
     if (e.key === "ArrowDown") {
@@ -538,7 +574,7 @@ export default function ProductDetailClient({
     } else if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
       if (!isDisabled) {
-        setSelectedStorage(storage);
+        setSelectedVariantId(variantId);
         setIsStorageOpen(false);
         setFocusedIndex(-1);
         triggerRef.current?.focus();
@@ -549,7 +585,7 @@ export default function ProductDetailClient({
     }
   };
 
-  const selectedStorageVariant = availableVariantsForColor.find((v) => v.storage === selectedStorage) || availableVariantsForColor[0];
+  const selectedStorageVariant = selectedVariant || availableVariantsForColor[0];
 
   return (
     <div className="bg-white min-h-screen text-black pb-32 sm:pb-36 w-full max-w-full overflow-x-hidden">
@@ -589,10 +625,21 @@ export default function ProductDetailClient({
         
         {/* ── Mobile Product Title Header (Shown only on screens < 1024px above Gallery) ── */}
         <div className="lg:hidden mb-4">
-          <div className="flex items-center justify-between gap-3 mb-1.5">
-            <span className="inline-block px-2.5 py-0.5 rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-700 uppercase tracking-widest">
-              {product.category_name || "Smartphones"}
-            </span>
+          <div className="flex items-center justify-between gap-2 mb-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-700 uppercase tracking-widest">
+                {product.category_name || "Smartphones"}
+              </span>
+              {detectedBrand && detectedBrand !== "Other" && (
+                <Link
+                  href={`/products?brand=${encodeURIComponent(detectedBrand)}`}
+                  className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-black text-white text-[10px] font-bold transition-all shadow-xs shrink-0 active:scale-95"
+                >
+                  <span>See all {detectedBrand} products</span>
+                  <ArrowRight className="w-2.5 h-2.5" />
+                </Link>
+              )}
+            </div>
             <span className="text-[11px] font-mono text-neutral-400">
               SKU: {currentSku}
             </span>
@@ -646,25 +693,38 @@ export default function ProductDetailClient({
 
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
           
-          {/* Left Column: Image Gallery (Updates dynamically per color & variant) */}
+          {/* Left Column: Image Gallery (Shows ALL uploaded photos & syncs with color selection) */}
           <div className="lg:col-span-6">
             <ProductGallery
-              key={selectedVariant?.id || selectedColorObj?.id || product.id}
-              images={activeImages}
+              images={allMasterImages}
               name={product.name}
               discount={discountPercent}
               video_url={product.video_url}
+              selectedIndex={selectedGalleryIndex}
+              onSelectIndex={handleGalleryThumbnailSelect}
             />
           </div>
 
           {/* Right Column: Information & Linked Variant Controls */}
           <div className="lg:col-span-6 flex flex-col justify-between">
             <div>
-              {/* Desktop Category & SKU (Hidden on mobile as it's shown above gallery) */}
+              {/* Desktop Category, Brand Link & SKU */}
               <div className="hidden lg:flex items-center justify-between gap-4 mb-3">
-                <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-[11px] font-bold text-gray-700 uppercase tracking-widest">
-                  {product.category_name || "Smartphones"}
-                </span>
+                <div className="flex items-center gap-2">
+                  <span className="inline-block px-3 py-1 rounded-full bg-gray-100 text-[11px] font-bold text-gray-700 uppercase tracking-widest">
+                    {product.category_name || "Smartphones"}
+                  </span>
+                  {detectedBrand && detectedBrand !== "Other" && (
+                    <Link
+                      href={`/products?brand=${encodeURIComponent(detectedBrand)}`}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black hover:bg-neutral-800 text-white text-[11px] font-bold transition-all shadow-xs shrink-0 group cursor-pointer"
+                      title={`See all ${detectedBrand} products`}
+                    >
+                      <span>See all {detectedBrand} products</span>
+                      <ArrowRight className="w-3 h-3 transition-transform group-hover:translate-x-1" />
+                    </Link>
+                  )}
+                </div>
                 <span className="text-xs font-mono text-gray-400">
                   SKU: {currentSku}
                 </span>
@@ -850,7 +910,7 @@ export default function ProductDetailClient({
                           if (e.key === "ArrowDown" || e.key === "ArrowUp" || e.key === "Enter" || e.key === " ") {
                             e.preventDefault();
                             setIsStorageOpen(true);
-                            const idx = availableVariantsForColor.findIndex((v) => v.storage === selectedStorage);
+                            const idx = availableVariantsForColor.findIndex((v) => v.id === selectedVariant?.id);
                             const initialIdx = idx >= 0 ? idx : 0;
                             setFocusedIndex(initialIdx);
                             setTimeout(() => optionsRef.current[initialIdx]?.focus(), 50);
@@ -861,7 +921,7 @@ export default function ProductDetailClient({
                         <span className="truncate">
                           {selectedStorageVariant
                             ? `${selectedStorageVariant.ram ? `${selectedStorageVariant.ram} + ` : ""}${selectedStorageVariant.storage}${selectedStorageVariant.sim_type ? ` • ${selectedStorageVariant.sim_type}` : ""} — ${formatPrice(selectedStorageVariant.price + warrantyPrice)}`
-                            : selectedStorage || "Select Option"}
+                            : "Select Option"}
                         </span>
                         <ChevronDown
                           className={`w-5 h-5 text-black shrink-0 transition-transform duration-200 ${
@@ -880,7 +940,7 @@ export default function ProductDetailClient({
                           className="absolute z-30 left-0 right-0 mt-2 bg-white border border-[#EAEAEA] rounded-2xl shadow-xl max-h-60 overflow-y-auto py-1 animate-in fade-in zoom-in-95 duration-150"
                         >
                           {availableVariantsForColor.map((variant, index) => {
-                            const isSelected = variant.storage === selectedStorage;
+                            const isSelected = variant.id === selectedVariant?.id;
                             const isComboOutOfStock = variant.stock <= 0 || variant.status === "inactive";
                             const simLabel = variant.sim_type ? ` • ${variant.sim_type}` : "";
                             const label = variant.ram
@@ -901,13 +961,13 @@ export default function ProductDetailClient({
                                   disabled={isComboOutOfStock}
                                   onClick={() => {
                                     if (isComboOutOfStock) return;
-                                    setSelectedStorage(variant.storage);
+                                    setSelectedVariantId(variant.id);
                                     setIsStorageOpen(false);
                                     setFocusedIndex(-1);
                                     triggerRef.current?.focus();
                                   }}
                                   onKeyDown={(e) =>
-                                    handleOptionKeyDown(e, index, variant.storage, isComboOutOfStock)
+                                    handleOptionKeyDown(e, index, variant.id, isComboOutOfStock)
                                   }
                                   className={`w-full px-4 py-3 text-left text-xs sm:text-sm font-bold flex items-center justify-between transition-colors ${
                                     isSelected
@@ -1243,11 +1303,11 @@ export default function ProductDetailClient({
         onClose={() => setIsPreOrderOpen(false)}
         product={product}
         selectedColor={hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || "")}
-        selectedStorage={selectedStorage || undefined}
+        selectedStorage={selectedVariant?.storage || undefined}
         selectedRam={selectedVariant?.ram}
         currentPrice={currentVariantPrice}
         currentSku={currentSku}
-        productImage={activeImages[0] || product.images?.[0]}
+        productImage={currentActiveImage}
       />
     </div>
   );

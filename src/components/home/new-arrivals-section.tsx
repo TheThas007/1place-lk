@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, ShoppingBag, Eye, Heart, Check, Sparkles, Star } from "lucide-react";
+import { ArrowRight, ShoppingBag, Eye, Heart, Check, Star } from "lucide-react";
 import { Product, NewArrivalsSettings } from "@/lib/types";
 import { getProducts } from "@/lib/firestore-client";
 import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
@@ -259,10 +259,6 @@ export default function NewArrivalsSection({
         {/* Section Header */}
         <div data-reveal-item className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
           <div>
-            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-black text-white text-[10px] font-black uppercase tracking-wider mb-2">
-              <Sparkles className="w-3 h-3 text-amber-300 animate-pulse" />
-              <span>JUST LANDED</span>
-            </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#090909] tracking-tight">
               {settings.section_title || "New Arrivals"}
             </h2>

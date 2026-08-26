@@ -34,6 +34,8 @@ import {
   Bot,
   Flame,
   FolderTree,
+  Clock,
+  Phone,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -51,7 +53,6 @@ const SIDEBAR_ITEMS = [
   { id: "today-deal", label: "Today’s Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
   { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
   { id: "repairs", label: "Mobile Repairs", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
-  { id: "suppliers", label: "Suppliers", icon: Building, href: "/admin/dashboard?tab=suppliers" },
   { id: "cashflow", label: "Cash Flow", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
   { id: "warranties", label: "Warranty Management", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
   { id: "users", label: "Customers", icon: Users, href: "/admin/dashboard?tab=users" },
@@ -65,7 +66,7 @@ const SIDEBAR_ITEMS = [
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
   { id: "assistant", label: "Streetla AI Assistant", icon: Bot, href: "/admin/dashboard?tab=assistant" },
   { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
-  { id: "settings", label: "Store Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
+  { id: "settings", label: "Contact & Store Times", icon: Clock, href: "/admin/dashboard?tab=settings" },
 ];
 
 import { Suspense } from "react";

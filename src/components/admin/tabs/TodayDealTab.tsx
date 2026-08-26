@@ -20,6 +20,7 @@ import {
   RotateCcw,
   AlertTriangle,
   Sparkles,
+  Sliders,
 } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -68,6 +69,7 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
   const [uploadingDesktop, setUploadingDesktop] = useState(false);
   const [uploadingMobile, setUploadingMobile] = useState(false);
   const [uploadingSquare, setUploadingSquare] = useState(false);
+  const [uploadingBgBanner, setUploadingBgBanner] = useState(false);
   const [activeTabGroup, setActiveTabGroup] = useState<"content" | "media" | "appearance" | "countdown">("content");
 
   // Sync initial settings if updated from parent
@@ -83,7 +85,14 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
       try {
         const snap = await getDoc(doc(db, "settings", "today_deal"));
         if (snap.exists()) {
-          setSettings((prev) => ({ ...prev, ...snap.data() }));
+          const data = snap.data();
+          setSettings((prev) => ({
+            ...prev,
+            ...data,
+            frameBorderRadius: data.frameBorderRadius ?? 0,
+            backgroundBannerBorderRadius: data.backgroundBannerBorderRadius ?? 0,
+            borderRadius: data.borderRadius ?? 0,
+          }));
         }
       } catch (err) {
         console.warn("Could not fetch today's deal settings:", err);
@@ -107,10 +116,11 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
   }, [settings.enabled, settings.startsAt, settings.endsAt]);
 
   // Handle image upload
-  const handleFileUpload = async (file: File, type: "desktop" | "mobile" | "square") => {
+  const handleFileUpload = async (file: File, type: "desktop" | "mobile" | "square" | "bgBanner") => {
     if (type === "desktop") setUploadingDesktop(true);
     else if (type === "mobile") setUploadingMobile(true);
-    else setUploadingSquare(true);
+    else if (type === "square") setUploadingSquare(true);
+    else setUploadingBgBanner(true);
 
     try {
       const downloadUrl = await uploadImageWithFallback(file, "today_deal");
@@ -118,8 +128,10 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
         setSettings((prev) => ({ ...prev, desktopImageUrl: downloadUrl }));
       } else if (type === "mobile") {
         setSettings((prev) => ({ ...prev, mobileImageUrl: downloadUrl }));
-      } else {
+      } else if (type === "square") {
         setSettings((prev) => ({ ...prev, squareImageUrl: downloadUrl }));
+      } else {
+        setSettings((prev) => ({ ...prev, backgroundBannerUrl: downloadUrl, backgroundBannerEnabled: true }));
       }
     } catch (err) {
       console.error("Image upload failed:", err);
@@ -127,7 +139,8 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
     } finally {
       if (type === "desktop") setUploadingDesktop(false);
       else if (type === "mobile") setUploadingMobile(false);
-      else setUploadingSquare(false);
+      else if (type === "square") setUploadingSquare(false);
+      else setUploadingBgBanner(false);
     }
   };
 
@@ -534,6 +547,143 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
               </div>
             </div>
 
+            {/* ── FULL BACKGROUND BANNER BEHIND BOTH CARDS ── */}
+            <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4 text-xs">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                    <ImageIcon className="w-4 h-4 text-indigo-400" /> Full Background Banner (Behind Both Cards)
+                  </h4>
+                  <p className="text-[11px] text-white/50 mt-0.5">
+                    Add a wide background banner behind both floating cards with customizable opacity overlay.
+                  </p>
+                </div>
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.backgroundBannerEnabled || false}
+                    onChange={(e) => setSettings({ ...settings, backgroundBannerEnabled: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600" />
+                </label>
+              </div>
+
+              {settings.backgroundBannerEnabled && (
+                <div className="space-y-4 pt-2 border-t border-white/10 animate-in fade-in duration-200">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">
+                        Background Banner URL
+                      </label>
+                      <input
+                        type="text"
+                        value={settings.backgroundBannerUrl || ""}
+                        onChange={(e) => setSettings({ ...settings, backgroundBannerUrl: e.target.value })}
+                        placeholder="https://images.unsplash.com/... or uploaded URL"
+                        className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-indigo-500 font-mono text-[11px]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1">
+                        Upload Background Banner Image
+                      </label>
+                      <input
+                        type="file"
+                        id="bgBannerDealImageUpload"
+                        accept="image/*"
+                        onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0], "bgBanner")}
+                        className="hidden"
+                      />
+                      <label
+                        htmlFor="bgBannerDealImageUpload"
+                        className="w-full py-2.5 bg-white/10 hover:bg-white/15 text-white font-bold text-xs rounded-xl cursor-pointer transition-colors flex items-center justify-center gap-2 border border-white/10"
+                      >
+                        <Upload className="w-3.5 h-3.5 text-indigo-400" />
+                        {uploadingBgBanner ? "Uploading Background..." : "Upload Background Banner"}
+                      </label>
+                    </div>
+                  </div>
+
+                  {/* Darkness Overlay & Border Radius Sliders */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-white/60 font-bold uppercase tracking-wider">
+                          Background Dark Overlay Tint
+                        </label>
+                        <span className="font-mono text-indigo-400 font-bold">
+                          {settings.backgroundBannerOverlayOpacity ?? 30}%
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="90"
+                        step="5"
+                        value={settings.backgroundBannerOverlayOpacity ?? 30}
+                        onChange={(e) => setSettings({ ...settings, backgroundBannerOverlayOpacity: Number(e.target.value) })}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex items-center justify-between text-[10px] text-white/40 mt-1">
+                        <span>0% (Bright Original)</span>
+                        <span>30% (Recommended)</span>
+                        <span>90% (Very Dark)</span>
+                      </div>
+                    </div>
+
+                    <div>
+                      <div className="flex items-center justify-between mb-1.5">
+                        <label className="text-white/60 font-bold uppercase tracking-wider">
+                          Background Container Border Radius
+                        </label>
+                        <span className="font-mono text-indigo-400 font-bold">
+                          {settings.backgroundBannerBorderRadius ?? 0}px
+                        </span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0"
+                        max="48"
+                        step="4"
+                        value={settings.backgroundBannerBorderRadius ?? 0}
+                        onChange={(e) => setSettings({ ...settings, backgroundBannerBorderRadius: Number(e.target.value) })}
+                        className="w-full accent-indigo-500 cursor-pointer"
+                      />
+                      <div className="flex items-center justify-between text-[10px] text-white/40 mt-1">
+                        <span>0px (Sharp Full Bleed)</span>
+                        <span>24px (Rounded)</span>
+                        <span>48px (Pill)</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {settings.backgroundBannerUrl && (
+                    <div className="relative rounded-xl overflow-hidden h-24 border border-white/10">
+                      <img
+                        src={settings.backgroundBannerUrl}
+                        alt="Background Banner Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div
+                        className="absolute inset-0"
+                        style={{ backgroundColor: `rgba(0, 0, 0, ${(settings.backgroundBannerOverlayOpacity ?? 30) / 100})` }}
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setSettings({ ...settings, backgroundBannerUrl: "", backgroundBannerEnabled: false })}
+                        className="absolute top-2 right-2 p-1.5 bg-black/70 hover:bg-red-600 text-white rounded-lg transition-colors cursor-pointer"
+                        title="Remove Background Banner"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
             {/* ── MODE 1: FULL-WIDTH BACKGROUND PHOTO ── */}
             {(settings.bannerMode || "full_image") === "full_image" && (
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs animate-in fade-in-50 duration-200">
@@ -903,6 +1053,147 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                 </div>
               </div>
             )}
+
+            {/* ── CARD & FRAME SIZING / FULL FIT CONTROLS ── */}
+            <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-5 text-xs">
+              <div className="flex items-center justify-between">
+                <h4 className="font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                  <Sliders className="w-4 h-4 text-purple-400" /> Frame Size &amp; Image Fit Controls
+                </h4>
+                <span className="text-[10px] font-bold text-white/50">Customizable Frame &amp; Poster Fit</span>
+              </div>
+
+              {/* 1. Image Fit Mode */}
+              <div>
+                <label className="block text-white/60 font-bold uppercase tracking-wider mb-2">
+                  Image Fit Mode in Frame
+                </label>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+                  {[
+                    { id: "cover", label: "🖼️ Cover (Full Edge-to-Edge)", desc: "Fills card with zero white borders" },
+                    { id: "contain", label: "🔍 Contain (Fit Entire Image)", desc: "Keeps full aspect ratio visible" },
+                    { id: "fill", label: "↔️ Stretch Fill", desc: "Stretches to frame dimensions" },
+                  ].map((mode) => (
+                    <button
+                      key={mode.id}
+                      type="button"
+                      onClick={() => setSettings({ ...settings, imageFit: mode.id as any })}
+                      className={`p-3 rounded-xl text-left font-bold transition-all cursor-pointer border ${
+                        (settings.imageFit || "cover") === mode.id
+                          ? "bg-purple-600 text-white border-purple-400 shadow-md"
+                          : "bg-white/5 text-white/60 hover:text-white border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div className="text-xs">{mode.label}</div>
+                      <div className="text-[10px] font-normal opacity-70 mt-0.5">{mode.desc}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 2. Card Padding */}
+              <div>
+                <label className="block text-white/60 font-bold uppercase tracking-wider mb-2">
+                  Frame Inner Padding
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: "none", label: "No Padding (0px)", sub: "Full Bleed" },
+                    { id: "compact", label: "Compact (16px)", sub: "Tight" },
+                    { id: "normal", label: "Normal (24px)", sub: "Standard" },
+                    { id: "spacious", label: "Spacious (40px)", sub: "Wide" },
+                  ].map((pad) => (
+                    <button
+                      key={pad.id}
+                      type="button"
+                      onClick={() => setSettings({ ...settings, cardPadding: pad.id as any })}
+                      className={`py-2.5 px-3 rounded-xl font-bold text-center text-xs transition-all cursor-pointer border ${
+                        (settings.cardPadding || "none") === pad.id
+                          ? "bg-purple-600 text-white border-purple-400 shadow-md"
+                          : "bg-white/5 text-white/60 hover:text-white border-white/10 hover:border-white/20"
+                      }`}
+                    >
+                      <div>{pad.label}</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* 3. Frame Height Slider + Corner Radius */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-white/60 font-bold uppercase tracking-wider">
+                      Frame Height
+                    </label>
+                    <span className="font-mono text-purple-400 font-bold">
+                      {settings.frameHeight || 480}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="320"
+                    max="650"
+                    step="10"
+                    value={settings.frameHeight || 480}
+                    onChange={(e) => setSettings({ ...settings, frameHeight: Number(e.target.value) })}
+                    className="w-full accent-purple-500 cursor-pointer"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-white/40 mt-1">
+                    <span>320px (Compact)</span>
+                    <span>480px (Default)</span>
+                    <span>650px (Tall)</span>
+                  </div>
+                </div>
+
+                {/* 4. Frame Corner Radius */}
+                <div>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <label className="text-white/60 font-bold uppercase tracking-wider">
+                      Frame Corner Radius
+                    </label>
+                    <span className="font-mono text-purple-400 font-bold">
+                      {settings.frameBorderRadius ?? 36}px
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min="12"
+                    max="48"
+                    step="2"
+                    value={settings.frameBorderRadius ?? 36}
+                    onChange={(e) => setSettings({ ...settings, frameBorderRadius: Number(e.target.value) })}
+                    className="w-full accent-purple-500 cursor-pointer"
+                  />
+                  <div className="flex items-center justify-between text-[10px] text-white/40 mt-1">
+                    <span>12px (Subtle)</span>
+                    <span>36px (Default)</span>
+                    <span>48px (Ultra Smooth)</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* 5. Image Zoom / Scale */}
+              <div className="pt-1">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-white/60 font-bold uppercase tracking-wider">
+                    Image Scale / Zoom
+                  </label>
+                  <span className="font-mono text-purple-400 font-bold">
+                    {settings.imageScale ?? 100}%
+                  </span>
+                </div>
+                <input
+                  type="range"
+                  min="60"
+                  max="130"
+                  step="5"
+                  value={settings.imageScale ?? 100}
+                  onChange={(e) => setSettings({ ...settings, imageScale: Number(e.target.value) })}
+                  className="w-full accent-purple-500 cursor-pointer"
+                />
+              </div>
+            </div>
 
             <div>
               <label className="block text-white/60 font-bold uppercase tracking-wider text-xs mb-1.5">
@@ -1307,6 +1598,58 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                   <option value="UTC" className="bg-[#0F172A]">UTC / GMT Standard</option>
                 </select>
               </div>
+            </div>
+
+            {/* Quick Timer Presets */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-[11px] font-bold text-white/50">⚡ Quick Timer Presets:</span>
+              {[
+                {
+                  label: "🌙 Midnight Tonight (11:59 PM)",
+                  getDates: () => {
+                    const now = new Date();
+                    const end = new Date();
+                    end.setHours(23, 59, 59, 999);
+                    return { startsAt: now.toISOString(), endsAt: end.toISOString() };
+                  },
+                },
+                {
+                  label: "🚀 +24 Hours",
+                  getDates: () => {
+                    const now = new Date();
+                    const end = new Date(Date.now() + 24 * 60 * 60 * 1000);
+                    return { startsAt: now.toISOString(), endsAt: end.toISOString() };
+                  },
+                },
+                {
+                  label: "⚡ +12 Hours",
+                  getDates: () => {
+                    const now = new Date();
+                    const end = new Date(Date.now() + 12 * 60 * 60 * 1000);
+                    return { startsAt: now.toISOString(), endsAt: end.toISOString() };
+                  },
+                },
+                {
+                  label: "📅 +7 Days",
+                  getDates: () => {
+                    const now = new Date();
+                    const end = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                    return { startsAt: now.toISOString(), endsAt: end.toISOString() };
+                  },
+                },
+              ].map((preset) => (
+                <button
+                  key={preset.label}
+                  type="button"
+                  onClick={() => {
+                    const { startsAt, endsAt } = preset.getDates();
+                    setSettings((prev) => ({ ...prev, startsAt, endsAt, countdownEnabled: true }));
+                  }}
+                  className="px-3 py-1.5 bg-white/5 hover:bg-white/15 text-white/80 hover:text-white border border-white/10 rounded-lg text-[11px] font-bold transition-all cursor-pointer active:scale-95"
+                >
+                  {preset.label}
+                </button>
+              ))}
             </div>
 
             {/* Expiry Behavior Selector */}

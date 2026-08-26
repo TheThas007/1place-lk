@@ -161,6 +161,7 @@ export default function ProductModal({
   const [shortDesc, setShortDesc] = useState("");
   const [description, setDescription] = useState("");
   const [featured, setFeatured] = useState(false);
+  const [isNewArrival, setIsNewArrival] = useState(false);
   const [status, setStatus] = useState<"active" | "draft">("active");
 
   // Feature Flags
@@ -295,6 +296,7 @@ export default function ProductModal({
       setDescription(initialData.description || "");
       setShortDesc(initialData.delivery_info || "");
       setFeatured(!!initialData.featured);
+      setIsNewArrival(Boolean(initialData.is_new_arrival));
       setStatus("active");
       setBasePrice(initialData.price || 0);
       setBaseOldPrice(initialData.old_price || null);
@@ -563,7 +565,7 @@ export default function ProductModal({
 
   // Add Single Manual Variant Row
   const handleAddManualVariant = () => {
-    const defaultCol = colorVariants[0]?.name || "Standard";
+    const defaultCol = colorVariants[0]?.name || (hasColorVariants ? "Standard Black" : "Option 1");
     const defaultHex = colorVariants[0]?.hex || "#000000";
     const defaultColId = colorVariants[0]?.id || "col-1";
     const newVariant: ProductVariantCombo = {
@@ -571,10 +573,10 @@ export default function ProductModal({
       color_id: defaultColId,
       color_name: defaultCol,
       color_hex: defaultHex,
-      ram: "8GB",
-      storage: "128GB",
-      sim_type: "Physical SIM + eSIM",
-      sku: code ? `${code}-${defaultCol.slice(0, 3).toUpperCase()}-128` : `SM-${Date.now()}`,
+      ram: hasStorageVariants ? "8GB" : "",
+      storage: hasStorageVariants ? "128GB" : "",
+      sim_type: hasStorageVariants ? "Physical SIM + eSIM" : "Standard",
+      sku: code ? `${code}-${defaultCol.slice(0, 3).toUpperCase()}${hasStorageVariants ? "-128" : ""}` : `SM-${Date.now()}`,
       price: basePrice || 0,
       old_price: baseOldPrice || null,
       stock_quantity: 10,
@@ -790,6 +792,7 @@ export default function ProductModal({
         stock_status: isOutOfStock ? "out_of_stock" : totalVariantStock <= 5 ? "low_stock" : "in_stock",
         stock_count: totalVariantStock,
         featured,
+        is_new_arrival: isNewArrival,
         images: finalImages,
         imageSettings: imageSettings,
         productImageSettings: imageSettings,
@@ -1274,6 +1277,38 @@ export default function ProductModal({
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 font-black text-xs text-red-600">% OFF</span>
                   </div>
                 </div>
+
+                {/* Stock Quantity (Primary for accessories / fallback) */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block font-bold text-gray-700">Stock Quantity (Units) *</label>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        baseStock === 0
+                          ? "bg-red-100 text-red-700 border border-red-200"
+                          : baseStock <= 5
+                          ? "bg-amber-100 text-amber-700 border border-amber-200"
+                          : "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                      }`}
+                    >
+                      {baseStock === 0 ? "Out of Stock" : baseStock <= 5 ? "Low Stock" : "In Stock"}
+                    </span>
+                  </div>
+                  <div className="relative">
+                    <input
+                      type="number"
+                      min={0}
+                      value={baseStock}
+                      onChange={(e) => {
+                        setBaseStock(Math.max(0, parseInt(e.target.value) || 0));
+                        setHasUnsavedChanges(true);
+                      }}
+                      placeholder="e.g. 15"
+                      className="w-full px-3.5 py-2.5 pr-16 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-bold text-gray-900 outline-none focus:border-blue-500"
+                    />
+                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-bold text-gray-400">units</span>
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -1287,15 +1322,55 @@ export default function ProductModal({
                 />
               </div>
 
-              <div className="flex items-center gap-6 pt-2">
-                <label className="flex items-center gap-2.5 cursor-pointer text-xs font-bold text-gray-800 select-none">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                {/* Featured Product Toggle */}
+                <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all select-none ${
+                  featured
+                    ? "bg-amber-500/10 border-amber-500/40 text-amber-900"
+                    : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100/70"
+                }`}>
                   <input
                     type="checkbox"
                     checked={featured}
-                    onChange={(e) => setFeatured(e.target.checked)}
-                    className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                    onChange={(e) => {
+                      setFeatured(e.target.checked);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 cursor-pointer"
                   />
-                  Featured Product (Show on Homepage Grid)
+                  <div>
+                    <span className="text-xs font-black flex items-center gap-1.5 text-gray-900">
+                      ⭐ Featured Product
+                    </span>
+                    <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      Display on Homepage Featured Flagships, Best Sellers &amp; quick filters.
+                    </p>
+                  </div>
+                </label>
+
+                {/* New Arrival Toggle */}
+                <label className={`flex items-start gap-3 p-3.5 rounded-2xl border cursor-pointer transition-all select-none ${
+                  isNewArrival
+                    ? "bg-blue-500/10 border-blue-500/40 text-blue-900"
+                    : "bg-gray-50 border-gray-200 text-gray-700 hover:bg-gray-100/70"
+                }`}>
+                  <input
+                    type="checkbox"
+                    checked={isNewArrival}
+                    onChange={(e) => {
+                      setIsNewArrival(e.target.checked);
+                      setHasUnsavedChanges(true);
+                    }}
+                    className="w-4 h-4 mt-0.5 rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                  />
+                  <div>
+                    <span className="text-xs font-black flex items-center gap-1.5 text-gray-900">
+                      🚀 New Arrival Product
+                    </span>
+                    <p className="text-[11px] text-gray-500 mt-0.5 leading-snug">
+                      Display in Homepage &ldquo;New Arrivals&rdquo; section and show &ldquo;NEW&rdquo; badge.
+                    </p>
+                  </div>
                 </label>
               </div>
             </div>
@@ -1793,12 +1868,142 @@ export default function ProductModal({
               </div>
 
               {!hasColorVariants && !hasStorageVariants ? (
-                <div className="bg-slate-50 border border-dashed border-slate-300 rounded-2xl p-6 text-center text-xs space-y-2">
-                  <Sliders className="w-8 h-8 text-slate-400 mx-auto" />
-                  <p className="font-extrabold text-slate-900 text-sm">No Variant Matrix Required</p>
-                  <p className="text-slate-600 text-xs max-w-md mx-auto">
-                    This product has no color or storage options enabled. Standard product-level Offer Price (LKR {basePrice.toLocaleString()}) and stock count will be used on the storefront.
-                  </p>
+                /* ── Dedicated Accessory / Single-Product Stock Manager ── */
+                <div className="bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl border border-slate-700">
+                  <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-700/80 pb-5">
+                    <div className="flex items-center gap-3">
+                      <div className="w-12 h-12 rounded-2xl bg-blue-500/20 border border-blue-500/30 flex items-center justify-center text-blue-400">
+                        <Sliders className="w-6 h-6" />
+                      </div>
+                      <div>
+                        <h4 className="text-lg font-black text-white tracking-tight flex items-center gap-2">
+                          Accessory / Single-Product Stock Manager
+                          <span
+                            className={`text-[10px] font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider ${
+                              baseStock === 0
+                                ? "bg-red-500/20 text-red-300 border border-red-500/30"
+                                : baseStock <= 5
+                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                                : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            }`}
+                          >
+                            {baseStock === 0 ? "Out of Stock" : baseStock <= 5 ? "Low Stock Alert" : "In Stock"}
+                          </span>
+                        </h4>
+                        <p className="text-xs text-slate-300 mt-0.5">
+                          Since this accessory does not have storage variants, manage its inventory units directly here.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                    {/* Stock Counter & Step Buttons */}
+                    <div className="md:col-span-7 bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-4">
+                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                        Current Available Units in Stock *
+                      </label>
+                      <div className="flex items-center gap-3">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBaseStock(Math.max(0, baseStock - 1));
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="w-11 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-black text-lg flex items-center justify-center transition-all border border-slate-600 cursor-pointer"
+                        >
+                          -
+                        </button>
+                        <div className="flex-1 relative">
+                          <input
+                            type="number"
+                            min={0}
+                            value={baseStock}
+                            onChange={(e) => {
+                              setBaseStock(Math.max(0, parseInt(e.target.value) || 0));
+                              setHasUnsavedChanges(true);
+                            }}
+                            className="w-full text-center py-3 bg-slate-900 border border-slate-600 rounded-xl font-mono text-2xl font-black text-emerald-400 outline-none focus:border-blue-500"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBaseStock(baseStock + 1);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="w-11 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-black text-lg flex items-center justify-center transition-all border border-slate-600 cursor-pointer"
+                        >
+                          +
+                        </button>
+                      </div>
+
+                      {/* Quick Adjust Buttons */}
+                      <div className="flex items-center gap-2 pt-1 flex-wrap">
+                        <span className="text-[11px] font-bold text-slate-400">Quick adjust:</span>
+                        {[5, 10, 25, 50, 100].map((qty) => (
+                          <button
+                            key={qty}
+                            type="button"
+                            onClick={() => {
+                              setBaseStock((prev) => prev + qty);
+                              setHasUnsavedChanges(true);
+                            }}
+                            className="px-2.5 py-1 bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-xs font-mono font-bold rounded-lg border border-slate-600/60 transition-colors cursor-pointer"
+                          >
+                            +{qty}
+                          </button>
+                        ))}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setBaseStock(0);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="px-2.5 py-1 bg-red-900/40 hover:bg-red-800/60 text-red-300 text-xs font-bold rounded-lg border border-red-700/50 transition-colors ml-auto cursor-pointer"
+                        >
+                          Set 0 (Out of Stock)
+                        </button>
+                      </div>
+                    </div>
+
+                    {/* Summary Info */}
+                    <div className="md:col-span-5 bg-slate-800/50 border border-slate-700/60 rounded-2xl p-5 space-y-3">
+                      <h5 className="text-xs font-bold text-slate-300 uppercase tracking-wider">
+                        Storefront Inventory Status
+                      </h5>
+                      <div className="space-y-2 text-xs">
+                        <div className="flex justify-between text-slate-400">
+                          <span>Offer Selling Price:</span>
+                          <span className="font-mono font-bold text-white">LKR {basePrice.toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between text-slate-400">
+                          <span>Stock Level:</span>
+                          <span
+                            className={`font-bold ${
+                              baseStock === 0
+                                ? "text-red-400"
+                                : baseStock <= 5
+                                ? "text-amber-400"
+                                : "text-emerald-400"
+                            }`}
+                          >
+                            {baseStock === 0
+                              ? "Out of Stock (Pre-order / Call to Order)"
+                              : baseStock <= 5
+                              ? `Low Stock (${baseStock} remaining)`
+                              : `In Stock (${baseStock} units)`}
+                          </span>
+                        </div>
+                        <div className="flex justify-between text-slate-400">
+                          <span>Storefront Add to Cart:</span>
+                          <span className="font-bold text-white">
+                            {baseStock > 0 ? "Enabled" : "Disabled (Out of Stock)"}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               ) : variantCombos.length === 0 ? (
                 <div className="bg-gray-50 border border-dashed border-gray-200 rounded-2xl p-8 text-center text-xs space-y-3">
@@ -1806,7 +2011,7 @@ export default function ProductModal({
                   <div>
                     <p className="font-extrabold text-gray-800 text-sm">No Variants Added Yet</p>
                     <p className="text-gray-500 text-xs mt-1">
-                      You can add manual variant rows or automatically generate combinations from your active colors.
+                      You can add manual variant rows (e.g. Colour, Size/Length) or automatically generate combinations from your active colors.
                     </p>
                   </div>
                   <div className="flex items-center justify-center gap-3 pt-1">
@@ -1832,15 +2037,16 @@ export default function ProductModal({
                   <table className="w-full text-left border-collapse min-w-[750px] text-xs">
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
-                        {hasColorVariants && <th className="px-3 py-3">Colour</th>}
-                        <th className="px-3 py-3">RAM</th>
+                        {hasColorVariants && <th className="px-3 py-3">Colour / Option</th>}
+                        {!hasColorVariants && !hasStorageVariants && <th className="px-3 py-3">Variant Option</th>}
+                        {hasStorageVariants && <th className="px-3 py-3">RAM</th>}
                         {hasStorageVariants && <th className="px-3 py-3">Storage</th>}
-                        <th className="px-3 py-3">SIM / Variant</th>
+                        {hasStorageVariants && <th className="px-3 py-3">SIM / Variant</th>}
                         <th className="px-3 py-3">SKU</th>
                         <th className="px-3 py-3">Offer Price (LKR)</th>
                         <th className="px-3 py-3">Old Price (LKR)</th>
                         <th className="px-3 py-3">Discount</th>
-                        <th className="px-3 py-3">Stock</th>
+                        <th className="px-3 py-3 font-bold text-emerald-600">Stock Quantity</th>
                         <th className="px-3 py-3 text-right">Actions</th>
                       </tr>
                     </thead>
@@ -1851,7 +2057,7 @@ export default function ProductModal({
 
                         return (
                           <tr key={v.id} className="hover:bg-gray-50/80 font-medium">
-                            {hasColorVariants && (
+                            {hasColorVariants ? (
                               <td className="px-3 py-3 font-bold text-gray-900">
                                 {colorVariants.length > 0 ? (
                                   <select
@@ -1886,23 +2092,43 @@ export default function ProductModal({
                                       setVariantCombos(updated);
                                       setHasUnsavedChanges(true);
                                     }}
-                                    className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                    placeholder="Option name"
+                                    className="w-28 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                   />
                                 )}
                               </td>
+                            ) : !hasStorageVariants ? (
+                              <td className="px-3 py-3 font-bold text-gray-900">
+                                <input
+                                  type="text"
+                                  value={v.color_name || ""}
+                                  onChange={(e) => {
+                                    const updated = [...variantCombos];
+                                    updated[vIdx].color_name = e.target.value;
+                                    setVariantCombos(updated);
+                                    setHasUnsavedChanges(true);
+                                  }}
+                                  placeholder="e.g. 1 Meter / 20W"
+                                  className="w-28 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                />
+                              </td>
+                            ) : null}
+
+                            {hasStorageVariants && (
+                              <td className="px-3 py-3">
+                                <input
+                                  type="text"
+                                  value={v.ram || ""}
+                                  onChange={(e) => {
+                                    const updated = [...variantCombos];
+                                    updated[vIdx].ram = e.target.value;
+                                    setVariantCombos(updated);
+                                  }}
+                                  className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                />
+                              </td>
                             )}
-                            <td className="px-3 py-3">
-                              <input
-                                type="text"
-                                value={v.ram || ""}
-                                onChange={(e) => {
-                                  const updated = [...variantCombos];
-                                  updated[vIdx].ram = e.target.value;
-                                  setVariantCombos(updated);
-                                }}
-                                className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
-                              />
-                            </td>
+
                             {hasStorageVariants && (
                               <td className="px-3 py-3">
                                 <input
@@ -1917,19 +2143,23 @@ export default function ProductModal({
                                 />
                               </td>
                             )}
-                            <td className="px-3 py-3">
-                              <input
-                                type="text"
-                                placeholder="Physical + eSIM"
-                                value={v.sim_type || ""}
-                                onChange={(e) => {
-                                  const updated = [...variantCombos];
-                                  updated[vIdx].sim_type = e.target.value;
-                                  setVariantCombos(updated);
-                                }}
-                                className="w-32 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800"
-                              />
-                            </td>
+
+                            {hasStorageVariants && (
+                              <td className="px-3 py-3">
+                                <input
+                                  type="text"
+                                  placeholder="Physical + eSIM"
+                                  value={v.sim_type || ""}
+                                  onChange={(e) => {
+                                    const updated = [...variantCombos];
+                                    updated[vIdx].sim_type = e.target.value;
+                                    setVariantCombos(updated);
+                                  }}
+                                  className="w-32 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold text-gray-800"
+                                />
+                              </td>
+                            )}
+
                             <td className="px-3 py-3 font-mono">
                               <input
                                 type="text"
@@ -2002,7 +2232,7 @@ export default function ProductModal({
                                   setVariantCombos(variantCombos.filter((item) => item.id !== v.id));
                                   setHasUnsavedChanges(true);
                                 }}
-                                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto transition-colors"
+                                className="p-1.5 bg-red-50 text-red-600 hover:bg-red-100 rounded-lg text-xs font-bold flex items-center gap-1 ml-auto transition-colors cursor-pointer"
                                 title="Delete variant row"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />

@@ -26,8 +26,18 @@ export default function SearchOverlay() {
 
   useEffect(() => {
     const handleOpenSearch = () => setIsOpen(true);
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        setIsOpen((prev) => !prev);
+      }
+    };
     window.addEventListener("open-search-overlay", handleOpenSearch);
-    return () => window.removeEventListener("open-search-overlay", handleOpenSearch);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => {
+      window.removeEventListener("open-search-overlay", handleOpenSearch);
+      window.removeEventListener("keydown", handleKeyDown);
+    };
   }, []);
 
   useEffect(() => {

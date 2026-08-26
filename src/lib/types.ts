@@ -65,6 +65,9 @@ export interface Product {
   subcategorySlug?: string;
   installment_price?: string;
   brand?: string;
+  sku?: string;
+  stock_quantity?: number;
+  has_variants?: boolean;
   tags?: string[];
   status?: "active" | "draft" | "inactive";
   show_on_homepage?: boolean;
@@ -698,9 +701,12 @@ export interface Order {
 
 export interface SiteSettings {
   store_name: string;
+  tagline?: string;
   phone: string;
+  secondary_phone?: string;
   whatsapp: string;
   address: string;
+  city?: string;
   email: string;
   google_maps_link: string;
   google_maps_embed: string;
@@ -708,10 +714,13 @@ export interface SiteSettings {
   facebook: string;
   instagram: string;
   tiktok: string;
+  youtube?: string;
   business_hours: {
     weekdays: string;
     saturday: string;
     sunday: string;
+    online_support?: string;
+    holiday_note?: string;
   };
 }
 
@@ -960,9 +969,14 @@ export interface AssistantProductSummary {
   image: string;
   storage?: string;
   color?: string;
+  colors?: string[];
+  storage_options?: string[];
+  specifications?: Record<string, string>;
+  brand_name?: string;
   warranty?: string;
   stock_status?: string;
   category_name?: string;
+  installment_price?: string;
 }
 
 export interface AssistantMessage {
@@ -1154,6 +1168,15 @@ export interface TodayDealSettings {
   expiryAction: TodayDealExpiryAction;
   replacementCtaLabel?: string;
   replacementCtaUrl?: string;
+  imageFit?: "cover" | "contain" | "fill";
+  cardPadding?: "none" | "compact" | "normal" | "spacious";
+  frameHeight?: number;
+  frameBorderRadius?: number;
+  imageScale?: number;
+  backgroundBannerEnabled?: boolean;
+  backgroundBannerUrl?: string;
+  backgroundBannerOverlayOpacity?: number;
+  backgroundBannerBorderRadius?: number;
 
   updatedAt?: string;
   updatedBy?: string;

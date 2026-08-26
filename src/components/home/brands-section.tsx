@@ -150,7 +150,7 @@ export default function BrandsSection() {
           <div className="flex items-center gap-4 mb-10">
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
             <span className="text-[11px] font-black tracking-widest uppercase text-black/40 px-3 flex items-center gap-2">
-              <span className="text-base">📱</span> Smartphones
+              Smartphones
             </span>
             <div className="flex-1 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
           </div>
@@ -166,7 +166,7 @@ export default function BrandsSection() {
         <div className="my-16 flex items-center gap-4">
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
           <span className="text-[11px] font-black tracking-widest uppercase text-black/40 px-3 flex items-center gap-2">
-            <span className="text-base">🎧</span> Accessories
+            Accessories
           </span>
           <div className="flex-1 h-px bg-gradient-to-r from-transparent via-black/10 to-transparent" />
         </div>

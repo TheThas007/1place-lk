@@ -81,19 +81,52 @@ export async function getBrandsFromDb(): Promise<Brand[]> {
     const snapshot = await getDocs(collection(db, "brands"));
     snapshot.docs.forEach((d) => {
       const data = d.data() as Brand;
-      const id = d.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-      const existing = brandMap.get(id) || brandMap.get(data.id);
+      const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
       const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const nameLower = (data.name || "").toLowerCase().trim();
+
+      // Find matching default brand by id, data.id, slug, or name
+      let existingKey = id;
+      for (const [k, b] of brandMap.entries()) {
+        if (
+          k === id ||
+          b.id === id ||
+          b.id === data.id ||
+          (b.slug && b.slug.toLowerCase() === slug.toLowerCase()) ||
+          (b.name && b.name.toLowerCase().trim() === nameLower)
+        ) {
+          existingKey = k;
+          break;
+        }
+      }
+
+      const existing = brandMap.get(existingKey);
+      if (existingKey !== id) {
+        brandMap.delete(existingKey);
+      }
+
       const assigned_departments =
         data.assigned_departments && data.assigned_departments.length > 0
           ? data.assigned_departments
           : existing?.assigned_departments || getDefaultBrandDepartments(slug, data.product_group);
+
+      const logo_url =
+        data.logo_url ||
+        (data as any).logo ||
+        (data as any).image_url ||
+        (data as any).imageUrl ||
+        (data as any).icon_url ||
+        (data as any).iconUrl ||
+        (data as any).image ||
+        existing?.logo_url ||
+        "";
 
       brandMap.set(id, {
         ...existing,
         ...data,
         id,
         slug,
+        logo_url,
         assigned_departments,
         enabled: data.enabled !== false && data.status !== "inactive",
       });

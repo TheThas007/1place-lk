@@ -19,6 +19,7 @@ interface ScrollRevealProps {
   duration?: number;
   staggerSelector?: string;
   id?: string;
+  enable3d?: boolean;
 }
 
 export default function ScrollReveal({
@@ -26,11 +27,12 @@ export default function ScrollReveal({
   className = "",
   as: Component = "div",
   yOffset = 24,
-  stagger = 0.07,
+  stagger = 0.06,
   delay = 0,
-  duration = 0.75,
+  duration = 0.85,
   staggerSelector,
   id,
+  enable3d = true,
 }: ScrollRevealProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const { motionSettings, isReducedMotion } = useSmoothScroll();
@@ -41,70 +43,90 @@ export default function ScrollReveal({
 
     // If reduced motion is active or section reveals are disabled
     if (isReducedMotion || motionSettings.enableSectionReveals === false) {
-      gsap.set(el, { opacity: 1, y: 0, clearProps: "all" });
+      gsap.set(el, { opacity: 1, y: 0, scale: 1, rotateX: 0, clearProps: "all" });
       const items = el.querySelectorAll("[data-reveal-item], [data-stagger-item]");
       if (items.length > 0) {
-        gsap.set(items, { opacity: 1, y: 0, clearProps: "all" });
+        gsap.set(items, { opacity: 1, y: 0, scale: 1, clearProps: "all" });
       }
       return;
     }
 
     const isMobile = window.innerWidth < 768;
-    const finalDuration = isMobile ? Math.max(0.55, duration * 0.8) : duration;
-    const finalY = motionSettings.motionIntensity === "minimal" ? Math.min(16, yOffset) : yOffset;
+    const finalDuration = isMobile ? Math.max(0.65, duration * 0.85) : duration;
+    const finalY = motionSettings.motionIntensity === "minimal" ? 14 : yOffset;
+    const initialScale = enable3d ? (isMobile ? 0.95 : 0.92) : 1;
+    const initialRotateX = enable3d ? (isMobile ? 2.5 : 4) : 0;
 
     const ctx = gsap.context(() => {
-      // Find staggered child elements if specified or if data attributes are present
+      // 3D perspective setup on the section container
+      gsap.set(el, {
+        transformPerspective: 1200,
+        transformOrigin: "center top",
+        opacity: 0.85,
+        scale: initialScale,
+        rotateX: initialRotateX,
+        y: finalY,
+      });
+
       const selector = staggerSelector || "[data-reveal-item], [data-stagger-item]";
       const items = el.querySelectorAll(selector);
 
       if (items.length > 0) {
-        // Hide container slightly or keep it transparent until trigger
-        gsap.set(el, { opacity: 1, y: 0 });
-        gsap.set(items, { opacity: 0, y: Math.min(20, finalY) });
-
-        ScrollTrigger.create({
-          trigger: el,
-          start: "top 88%",
-          once: true,
-          onEnter: () => {
-            gsap.to(Array.from(items).slice(0, 8), {
-              opacity: 1,
-              y: 0,
-              duration: finalDuration,
-              ease: "power3.out",
-              stagger: isMobile ? Math.min(0.05, stagger) : stagger,
-              delay: delay,
-              clearProps: "willChange",
-            });
-          },
-        });
-      } else {
-        // Single element reveal
-        gsap.set(el, { opacity: 0, y: finalY });
-
-        ScrollTrigger.create({
-          trigger: el,
-          start: "top 88%",
-          once: true,
-          onEnter: () => {
-            gsap.to(el, {
-              opacity: 1,
-              y: 0,
-              duration: finalDuration,
-              ease: "power3.out",
-              delay: delay,
-              clearProps: "willChange",
-            });
-          },
+        gsap.set(items, {
+          opacity: 0,
+          y: Math.min(20, finalY),
+          scale: enable3d ? 0.96 : 1,
         });
       }
+
+      ScrollTrigger.create({
+        trigger: el,
+        start: "top 90%",
+        once: true,
+        onEnter: () => {
+          // Animate section into 3D space with cinematic zoom
+          gsap.to(el, {
+            opacity: 1,
+            scale: 1,
+            rotateX: 0,
+            y: 0,
+            duration: finalDuration,
+            ease: "power2.out",
+            delay: delay,
+            clearProps: "transformPerspective,rotateX",
+          });
+
+          // Animate staggered child elements popping into 3D view
+          if (items.length > 0) {
+            gsap.to(Array.from(items).slice(0, 16), {
+              opacity: 1,
+              y: 0,
+              scale: 1,
+              duration: finalDuration,
+              ease: "power2.out",
+              stagger: isMobile ? Math.min(0.04, stagger) : stagger,
+              delay: delay + 0.06,
+              clearProps: "willChange",
+            });
+          }
+        },
+      });
     }, containerRef);
 
     return () => {
       ctx.revert();
     };
-  }, [yOffset, stagger, delay, duration, staggerSelector, isReducedMotion, motionSettings.enableSectionReveals, motionSettings.motionIntensity]);
+  }, [
+    yOffset,
+    stagger,
+    delay,
+    duration,
+    staggerSelector,
+    isReducedMotion,
+    motionSettings.enableSectionReveals,
+    motionSettings.motionIntensity,
+    enable3d,
+  ]);
 
   const Comp = Component as any;
 
@@ -113,7 +135,10 @@ export default function ScrollReveal({
       ref={containerRef}
       id={id}
       className={className}
-      style={{ willChange: isReducedMotion ? "auto" : "opacity, transform" }}
+      style={{
+        willChange: isReducedMotion ? "auto" : "opacity, transform",
+        transformStyle: enable3d && !isReducedMotion ? "preserve-3d" : "flat",
+      }}
     >
       {children}
     </Comp>

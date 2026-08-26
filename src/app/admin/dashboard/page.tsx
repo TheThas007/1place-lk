@@ -87,6 +87,7 @@ import RepairsTab from "@/components/admin/tabs/RepairsTab";
 import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
 import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
+import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
 
 type Tab =
   | "overview"
@@ -113,7 +114,8 @@ type Tab =
   | "assistant"
   | "mobile"
   | "orders"
-  | "settings";
+  | "settings"
+  | "contact-settings";
 
 function DashboardContent() {
   const router = useRouter();
@@ -1223,6 +1225,8 @@ function DashboardContent() {
       {activeTab === "products" && (
         <ProductsTab
           products={products}
+          categories={categories}
+          brands={brands}
           onDelete={handleDeleteProduct}
           onEdit={(p: Product) => {
             setEditingProduct(p);
@@ -1668,144 +1672,10 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 12: SETTINGS TAB (Full Dark Theme)
+          TAB 12: STORE CONTACT DETAILS & WORKING HOURS SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "settings" && (
-        <div className="space-y-8">
-          <div>
-            <h1 className="text-2xl font-extrabold text-white">Store Settings & Configuration</h1>
-            <p className="text-xs text-white/50">Manage homepage hero wallpapers, store information, COD charges and payment gateways</p>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Left Column: Store Details & COD */}
-            <div className="lg:col-span-2 space-y-6">
-              {/* Store Details Card */}
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-5">
-                <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <Smartphone className="w-5 h-5 text-blue-400" /> General Store Information
-                </h3>
-
-                <div className="space-y-4 text-xs">
-                  <div>
-                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">Store Name</label>
-                    <input type="text" defaultValue="STREET MOBILE VAVUNIYA" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none focus:border-blue-500 font-semibold text-sm" />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">WhatsApp Hotline</label>
-                      <input type="text" defaultValue="+94 77 414 1118" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none focus:border-blue-500 font-semibold" />
-                    </div>
-                    <div>
-                      <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">Support Email</label>
-                      <input type="email" defaultValue="streetmobilevavuniya@gmail.com" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none focus:border-blue-500 font-semibold" />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">Store Address</label>
-                    <textarea rows={3} defaultValue="163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka" className="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-xl text-white outline-none focus:border-blue-500 resize-none font-semibold" />
-                  </div>
-                </div>
-
-                <button className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-extrabold rounded-xl transition-all shadow-md shadow-blue-600/30 active:scale-95">
-                  Save Store Details
-                </button>
-              </div>
-
-              {/* Cash On Delivery (COD) Settings */}
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-                <h3 className="font-bold text-base text-white flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-emerald-400" /> Cash On Delivery (COD) Fee
-                </h3>
-                <p className="text-xs text-white/50">Configure standard shipping and handling fee for COD orders islandwide</p>
-
-                <div className="flex items-center gap-3 pt-2">
-                  <div className="relative flex-1 max-w-xs">
-                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-white/40 font-bold text-xs">LKR</span>
-                    <input
-                      type="number"
-                      value={codFee}
-                      onChange={(e) => setCodFee(Number(e.target.value))}
-                      className="w-full pl-14 pr-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-mono font-bold text-sm outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                  <button
-                    onClick={handleSaveCodFee}
-                    disabled={savingCod}
-                    className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50"
-                  >
-                    {savingCod ? "Saving..." : "Update COD Fee"}
-                  </button>
-                </div>
-                {codSavedMsg && <p className="text-xs text-emerald-400 font-bold">✓ COD fee updated to LKR {codFee}</p>}
-              </div>
-            </div>
-
-            {/* Right Column: Home Hero Slide Manager Card */}
-            <div className="space-y-6">
-              {/* Homepage Hero Slide Image Change Option Card */}
-              <div className="bg-gradient-to-br from-[#0F172A] via-[#1E293B] to-[#0F172A] border-2 border-emerald-500/30 rounded-3xl p-6 shadow-2xl space-y-4 relative overflow-hidden">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-emerald-400 animate-pulse" /> Home Hero Slider Images
-                  </h3>
-                  <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 text-[10px] font-extrabold border border-emerald-500/30">
-                    {heroSlides.length} Active Slides
-                  </span>
-                </div>
-                <p className="text-xs text-white/70 leading-relaxed">
-                  Directly upload and change the full-screen sliding hero wallpapers displayed on the homepage.
-                </p>
-
-                {/* Hero Slides Mini Thumbnail Strip */}
-                <div className="grid grid-cols-2 gap-2 pt-2">
-                  {heroSlides.slice(0, 4).map((slide, idx) => (
-                    <div key={slide.id || idx} className="relative aspect-[16/9] rounded-xl overflow-hidden bg-black border border-white/15 group">
-                      <img src={slide.image_url} alt={slide.alt || "Hero slide"} className="w-full h-full object-cover group-hover:scale-105 transition-transform" />
-                      <div className="absolute inset-0 bg-black/40 flex items-end p-1.5">
-                        <span className="text-[9px] font-bold text-white truncate">{slide.alt || `Slide #${idx + 1}`}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-
-                {/* Action Buttons for Hero Slide Image Change */}
-                <div className="space-y-2 pt-3 border-t border-white/10">
-                  <button
-                    onClick={() => {
-                      setEditingHeroSlide(null);
-                      setIsHeroModalOpen(true);
-                    }}
-                    className="w-full py-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 active:scale-95"
-                  >
-                    <Plus className="w-4 h-4" /> Add / Upload New Hero Image
-                  </button>
-
-                  <button
-                    onClick={() => router.push("/admin/dashboard?tab=hero")}
-                    className="w-full py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl transition-colors flex items-center justify-center gap-2"
-                  >
-                    <Sliders className="w-4 h-4 text-emerald-400" /> Open Full Hero Manager
-                  </button>
-                </div>
-              </div>
-
-              {/* PayHere Gateway Status Card */}
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-3">
-                <h3 className="font-bold text-sm text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-blue-400" /> PayHere.lk Gateway Status
-                </h3>
-                <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl flex items-center justify-between text-xs">
-                  <span className="text-emerald-300 font-bold">PayHere MD5 Webhook</span>
-                  <span className="px-2 py-0.5 rounded bg-emerald-500 text-slate-950 font-black text-[10px]">ACTIVE</span>
-                </div>
-                <p className="text-[11px] text-white/40">
-                  Merchant Credentials configured in .env.local (`1233979`).
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
+      {(activeTab === "settings" || activeTab === "contact-settings") && (
+        <ContactSettingsTab onRefresh={refreshData} />
       )}
       {/* ════════════════════════════════════════════════════════════════════
           TAB: WARRANTY MANAGEMENT

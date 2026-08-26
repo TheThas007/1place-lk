@@ -96,6 +96,10 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     lenisRef.current = instance;
     setLenis(instance);
 
+    if (pathname === "/") {
+      instance.scrollTo(0, { immediate: true });
+    }
+
     // Synchronize Lenis with GSAP ScrollTrigger
     instance.on("scroll", () => {
       ScrollTrigger.update();

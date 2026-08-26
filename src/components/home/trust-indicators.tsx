@@ -7,6 +7,8 @@ import {
   useReducedMotion,
   useScroll,
   useTransform,
+  useMotionValue,
+  useSpring,
   Variants,
   AnimatePresence,
 } from "framer-motion";
@@ -75,7 +77,7 @@ const cardVar: Variants = {
   },
 };
 
-/* ─── Premium Minimal Card Component (Desktop) ─── */
+/* ─── Premium 3D Interactive Card Component (Desktop) ─── */
 function FeatureCard({
   feature,
   onClick,
@@ -87,66 +89,125 @@ function FeatureCard({
 }) {
   const Icon = feature.icon;
 
+  // 3D Interactive Mouse Tilt
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+
+  const mouseXSpring = useSpring(x, { stiffness: 220, damping: 22 });
+  const mouseYSpring = useSpring(y, { stiffness: 220, damping: 22 });
+
+  const rotateX = useTransform(mouseYSpring, [-0.5, 0.5], ["9deg", "-9deg"]);
+  const rotateY = useTransform(mouseXSpring, [-0.5, 0.5], ["-9deg", "9deg"]);
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (prefersReducedMotion) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const width = rect.width;
+    const height = rect.height;
+    const mouseX = e.clientX - rect.left;
+    const mouseY = e.clientY - rect.top;
+    const xPct = mouseX / width - 0.5;
+    const yPct = mouseY / height - 0.5;
+    x.set(xPct);
+    y.set(yPct);
+  };
+
+  const handleMouseLeave = () => {
+    x.set(0);
+    y.set(0);
+  };
+
   return (
-    <motion.div variants={cardVar} className="h-full">
+    <motion.div
+      variants={cardVar}
+      className="h-full"
+      style={{ perspective: 1100 }}
+    >
       <motion.div
-        role="button"
-        tabIndex={0}
-        onClick={() => onClick(feature)}
-        onKeyDown={(e) => {
-          if (e.key === "Enter" || e.key === " ") {
-            e.preventDefault();
-            onClick(feature);
-          }
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        style={{
+          rotateX: prefersReducedMotion ? 0 : rotateX,
+          rotateY: prefersReducedMotion ? 0 : rotateY,
+          transformStyle: "preserve-3d",
         }}
-        whileHover={prefersReducedMotion ? {} : { y: -2 }}
-        transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-        className="group relative w-full h-full min-h-[310px] flex flex-col items-center text-center p-8 sm:p-[34px] rounded-[22px] cursor-pointer overflow-hidden
-          bg-white
-          border border-black/[0.15]
-          shadow-[0_2px_12px_rgba(0,0,0,0.03)]
-          hover:border-black/[0.35] hover:shadow-[0_12px_32px_rgba(0,0,0,0.08)]
-          transition-colors duration-350 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+        className="silver-glow-wrapper h-full will-change-transform"
       >
-        {/* Minimal Number Indicator */}
-        <span
-          className="absolute top-5 right-5 text-[11px] font-mono font-medium text-gray-900/30 group-hover:text-gray-900/50 transition-colors select-none tracking-widest"
-          aria-hidden="true"
+        <motion.div
+          role="button"
+          tabIndex={0}
+          onClick={() => onClick(feature)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" || e.key === " ") {
+              e.preventDefault();
+              onClick(feature);
+            }
+          }}
+          style={{ transformStyle: "preserve-3d" }}
+          className="silver-glow-inner group relative w-full h-full min-h-[310px] flex flex-col items-center text-center p-8 sm:p-[34px] cursor-pointer overflow-hidden
+            bg-white
+            focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
         >
-          {feature.number}
-        </span>
+          {/* Subtle Monochrome Specular Top-Edge Reflection */}
+          <div
+            className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/90 via-white/30 to-transparent pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity"
+            aria-hidden="true"
+          />
 
-        {/* ── 60×60 Icon Container with 24px Icon ── */}
-        <div
-          className="w-[60px] h-[60px] rounded-full flex items-center justify-center mb-5 border border-gray-900/10 bg-gray-50/80 transition-all duration-350 group-hover:bg-gray-900 group-hover:border-gray-900 group-hover:shadow-xs shrink-0"
-        >
-          <motion.div
-            animate={prefersReducedMotion ? {} : undefined}
-            whileHover={prefersReducedMotion ? {} : { scale: 1.05 }}
-            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          {/* Minimal Number Indicator with 3D Z-lift */}
+          <span
+            style={{ transform: "translateZ(20px)" }}
+            className="absolute top-5 right-5 text-[11px] font-mono font-bold text-neutral-400 group-hover:text-black transition-colors select-none tracking-widest"
+            aria-hidden="true"
           >
-            <Icon className="w-6 h-6 text-gray-900 transition-colors duration-350 group-hover:text-white" />
-          </motion.div>
-        </div>
+            {feature.number}
+          </span>
 
-        {/* ── 32px Thinner Divider Line ── */}
-        <div className="w-8 h-[1px] bg-gray-200 mb-4 rounded-full" />
+          {/* ── 60×60 Icon Container with Physical 3D Z-lift (30px) ── */}
+          <div
+            style={{ transform: "translateZ(30px)" }}
+            className="w-[62px] h-[62px] rounded-2xl flex items-center justify-center mb-5 border border-neutral-200/80 bg-neutral-50 shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all duration-350 group-hover:bg-neutral-900 group-hover:border-neutral-900 group-hover:shadow-md shrink-0"
+          >
+            <motion.div
+              animate={prefersReducedMotion ? {} : undefined}
+              whileHover={prefersReducedMotion ? {} : { scale: 1.08 }}
+              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+            >
+              <Icon className="w-6 h-6 text-neutral-900 transition-colors duration-350 group-hover:text-white" />
+            </motion.div>
+          </div>
 
-        {/* ── Heading (18-20px Semibold) ── */}
-        <h3 className="font-semibold text-[18px] sm:text-[19px] mb-2 text-gray-900 tracking-tight leading-tight transition-colors duration-300">
-          {feature.title}
-        </h3>
+          {/* ── 32px Thinner Divider Line ── */}
+          <div
+            style={{ transform: "translateZ(14px)" }}
+            className="w-8 h-[1px] bg-neutral-200 mb-4 rounded-full group-hover:bg-neutral-300 transition-colors"
+          />
 
-        {/* ── Body Copy (14-15px, 1.6 line height) ── */}
-        <p className="text-[14px] sm:text-[14.5px] text-gray-600 leading-[1.6] font-normal max-w-[240px] mx-auto mb-4 group-hover:text-gray-900 transition-colors duration-300">
-          {feature.description}
-        </p>
+          {/* ── Heading with 3D Z-lift (22px) ── */}
+          <h3
+            style={{ transform: "translateZ(22px)" }}
+            className="font-bold text-[18px] sm:text-[19px] mb-2 text-neutral-900 tracking-tight leading-tight transition-colors duration-300"
+          >
+            {feature.title}
+          </h3>
 
-        {/* ── CTA Link Aligned at Bottom ── */}
-        <div className="mt-auto pt-2 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500 group-hover:text-gray-900 transition-colors duration-300">
-          <span>Learn more</span>
-          <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
-        </div>
+          {/* ── Body Copy with 3D Z-lift (14px) ── */}
+          <p
+            style={{ transform: "translateZ(14px)" }}
+            className="text-[14px] sm:text-[14.5px] text-neutral-600 leading-[1.6] font-normal max-w-[240px] mx-auto mb-4 group-hover:text-neutral-900 transition-colors duration-300"
+          >
+            {feature.description}
+          </p>
+
+          {/* ── CTA Link Aligned at Bottom with 3D Z-lift (18px) ── */}
+          <div
+            style={{ transform: "translateZ(18px)" }}
+            className="mt-auto pt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-neutral-500 group-hover:text-neutral-900 transition-colors duration-300"
+          >
+            <span>Learn more</span>
+            <ArrowRight className="w-3.5 h-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
+          </div>
+        </motion.div>
       </motion.div>
     </motion.div>
   );
@@ -236,55 +297,55 @@ function MobileScrollDrivenTrack({
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
               >
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => {
-                    if (!isDraggingRef.current) onCardClick(feature);
-                  }}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onCardClick(feature);
-                    }
-                  }}
-                  className="group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 sm:p-7 rounded-[22px] cursor-pointer overflow-hidden
-                    bg-white
-                    border border-black/[0.15]
-                    shadow-[0_2px_12px_rgba(0,0,0,0.03)]
-                    active:scale-[0.98]
-                    transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
-                >
-                  {/* Number Indicator */}
-                  <span
-                    className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
-                    aria-hidden="true"
+                <div className="silver-glow-wrapper h-full">
+                  <div
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      if (!isDraggingRef.current) onCardClick(feature);
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onCardClick(feature);
+                      }
+                    }}
+                    className="silver-glow-inner group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 sm:p-7 cursor-pointer overflow-hidden
+                      bg-white
+                      active:scale-[0.98]
+                      transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
                   >
-                    {feature.number}
-                  </span>
+                    {/* Number Indicator */}
+                    <span
+                      className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
+                      aria-hidden="true"
+                    >
+                      {feature.number}
+                    </span>
 
-                  {/* Icon Container */}
-                  <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                    <feature.icon className="w-5 h-5 text-gray-900" />
-                  </div>
+                    {/* Icon Container */}
+                    <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                      <feature.icon className="w-5 h-5 text-gray-900" />
+                    </div>
 
-                  {/* Divider */}
-                  <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
+                    {/* Divider */}
+                    <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
 
-                  {/* Title */}
-                  <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
-                    {feature.title}
-                  </h3>
+                    {/* Title */}
+                    <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
+                      {feature.title}
+                    </h3>
 
-                  {/* Description */}
-                  <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
-                    {feature.description}
-                  </p>
+                    {/* Description */}
+                    <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
+                      {feature.description}
+                    </p>
 
-                  {/* CTA Link */}
-                  <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                    <span>Learn more</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
+                    {/* CTA Link */}
+                    <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
+                      <span>Learn more</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </div>
                   </div>
                 </div>
               </div>

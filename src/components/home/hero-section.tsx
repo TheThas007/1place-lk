@@ -19,11 +19,37 @@ if (typeof window !== "undefined") {
 export default function HeroSection() {
   const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [isPaused, setIsPaused] = useState(false);
+  const [direction, setDirection] = useState<number>(1);
   const heroRef = useRef<HTMLDivElement | null>(null);
   const heroBgRef = useRef<HTMLDivElement | null>(null);
   const heroContentRef = useRef<HTMLDivElement | null>(null);
   const { motionSettings, isReducedMotion } = useSmoothScroll();
+
+  // Touch Swipe Gesture State
+  const touchStartX = useRef<number | null>(null);
+  const touchEndX = useRef<number | null>(null);
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    if (touchStartX.current === null || touchEndX.current === null) return;
+    const diff = touchStartX.current - touchEndX.current;
+    if (diff > 45) {
+      // Swiped Left -> Next
+      handleNext();
+    } else if (diff < -45) {
+      // Swiped Right -> Prev
+      handlePrev();
+    }
+    touchStartX.current = null;
+    touchEndX.current = null;
+  };
 
   // Subtle Apple-inspired scroll-linked hero parallax and scale
   useEffect(() => {
@@ -100,24 +126,27 @@ export default function HeroSection() {
     }
   }, []);
 
-  // Continuous auto-play rotation every 4.5 seconds (pauses on hover)
+  // Continuous auto-swipe rotation every 4.0 seconds (plays continuously even when hovering with cursor!)
   useEffect(() => {
-    if (slides.length <= 1 || isPaused) return;
+    if (slides.length <= 1) return;
     const timer = setInterval(() => {
+      setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % slides.length);
-    }, 4500);
+    }, 4000);
     return () => clearInterval(timer);
-  }, [slides.length, isPaused]);
+  }, [slides.length]);
 
   if (slides.length === 0) {
     return null;
   }
 
   const handlePrev = () => {
+    setDirection(-1);
     setCurrentIndex((prev) => (prev - 1 + slides.length) % slides.length);
   };
 
   const handleNext = () => {
+    setDirection(1);
     setCurrentIndex((prev) => (prev + 1) % slides.length);
   };
 
@@ -216,17 +245,20 @@ export default function HeroSection() {
       <section
         className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
         aria-label="Mobile Featured Hero Showcase"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
         <div className="relative w-full aspect-[16/9] overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white">
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
-            <AnimatePresence mode="wait">
+            <AnimatePresence mode="wait" custom={direction}>
               <motion.img
                 key={currentSlide.id || currentIndex}
-                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, scale: 1.03 }}
-                animate={{ opacity: 1, scale: 1.0 }}
-                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7 }}
-                transition={{ duration: 0.45, ease: "easeOut" }}
+                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, x: direction * 30, scale: 1.02 }}
+                animate={{ opacity: 1, x: 0, scale: 1.0 }}
+                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, x: direction * -30 }}
+                transition={{ duration: 0.5, ease: "easeOut" }}
                 src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
                 alt={currentSlide.alt || line1Text || "Latest Smartphones"}
                 className="w-full h-full object-cover"
@@ -295,7 +327,10 @@ export default function HeroSection() {
                   <button
                     key={idx}
                     type="button"
-                    onClick={() => setCurrentIndex(idx)}
+                    onClick={() => {
+                      setDirection(idx > currentIndex ? 1 : -1);
+                      setCurrentIndex(idx);
+                    }}
                     aria-label={`Slide ${idx + 1}`}
                     className={`transition-all duration-300 rounded-full cursor-pointer ${
                       isActive
@@ -313,22 +348,23 @@ export default function HeroSection() {
       {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
       <section
         ref={heroRef}
-        className="hidden md:flex group relative w-full w-screen max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none"
+        className="hidden md:flex group relative w-full w-screen max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none select-none"
         style={{
           fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
         }}
-        onMouseEnter={() => setIsPaused(true)}
-        onMouseLeave={() => setIsPaused(false)}
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
       >
       {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
       <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
-        <AnimatePresence mode="wait">
+        <AnimatePresence mode="wait" custom={direction}>
           <motion.div
             key={currentSlide.id || currentIndex}
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.6, ease: "easeOut" }}
+            initial={{ opacity: 0, x: direction * 40 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction * -40 }}
+            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 w-full h-full"
           >
             {/* Desktop Background Image with subtle cinematic scale */}

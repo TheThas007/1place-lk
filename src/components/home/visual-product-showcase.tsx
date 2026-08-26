@@ -131,17 +131,20 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Full-Width Edge-to-Edge Product Showcase (clamp(440px, 118vw, 480px)) ── */}
+      {/* ── Mobile Layout (< 768px): Full-Width Edge-to-Edge Product Showcase with Uncropped Images ── */}
       <section
         className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
         style={backgroundStyle}
         aria-label={showcase.section_title || "Featured Visual Showcase"}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
       >
         <div
-          className="relative w-full h-[clamp(440px,118vw,480px)] min-h-[440px] max-h-[480px] aspect-auto border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-7 sm:pt-8 px-4 pb-6"
+          className="relative w-full min-h-[500px] sm:min-h-[540px] border-0 rounded-none shadow-none flex flex-col justify-between items-center text-center pt-8 sm:pt-10 px-4 pb-4"
         >
           {/* Top Content Block: Badge -> Heading -> Subtitle -> Action CTAs */}
-          <div className="relative z-10 w-full flex flex-col items-center max-w-md mx-auto space-y-1.5">
+          <div className="relative z-10 w-full flex flex-col items-center max-w-md mx-auto space-y-2">
             {/* 1. Eyebrow / Campaign Badge */}
             <div className="flex items-center gap-1.5 select-none">
               <span className="text-[10px] sm:text-xs font-bold px-2.5 py-0.5 rounded-full uppercase tracking-wider bg-neutral-900 text-white shadow-2xs">
@@ -152,7 +155,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
             {/* 2. Main Heading (Centered, desktop heading color) */}
             {hasTitle && (
               <h2
-                className="text-xl sm:text-2xl font-black tracking-tight leading-tight transition-colors"
+                className="text-2xl sm:text-3xl font-black tracking-tight leading-tight transition-colors"
                 style={{ color: currentSlide.heading_color || "#1D1D1F" }}
               >
                 {currentSlide.title}
@@ -171,11 +174,11 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
 
             {/* 4. Action CTA Buttons (Centered Row, min 44px touch height, desktop colors) */}
             {hasButtons && (
-              <div className="flex flex-wrap items-center justify-center gap-2 pt-0.5 z-20">
+              <div className="flex flex-wrap items-center justify-center gap-2.5 pt-1 z-20">
                 {hasPrimaryCta && (
                   <Link
                     href={currentSlide.primary_cta_url || "/products"}
-                    className="inline-flex items-center justify-center min-h-[44px] px-5 sm:px-6 py-2 rounded-full text-xs sm:text-sm font-bold bg-neutral-900 hover:bg-black text-white transition-all active:scale-95 shadow-sm"
+                    className="inline-flex items-center justify-center min-h-[44px] px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold bg-neutral-900 hover:bg-black text-white transition-all active:scale-95 shadow-sm"
                   >
                     {currentSlide.primary_cta_text}
                   </Link>
@@ -184,7 +187,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
                 {hasSecondaryCta && (
                   <Link
                     href={currentSlide.secondary_cta_url || "/products"}
-                    className="inline-flex items-center justify-center min-h-[44px] px-4 sm:px-5 py-2 rounded-full text-xs sm:text-sm font-medium border border-neutral-900/30 hover:border-neutral-900 text-neutral-900 hover:bg-neutral-900/5 transition-all active:scale-95"
+                    className="inline-flex items-center justify-center min-h-[44px] px-5 py-2.5 rounded-full text-xs sm:text-sm font-medium border border-neutral-900/30 hover:border-neutral-900 text-neutral-900 hover:bg-neutral-900/5 transition-all active:scale-95"
                     style={{
                       color: currentSlide.heading_color || "#1D1D1F",
                     }}
@@ -196,24 +199,43 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
             )}
           </div>
 
-          {/* Lower Product Visual: Proportionally scaled with ~24px safe margin below */}
-          <div className="relative w-full flex-1 flex items-end justify-center overflow-hidden max-h-[62%] mt-auto">
+          {/* Lower Product Visual: Full phone height completely uncropped with safe margin */}
+          <div className="relative w-full flex-1 flex items-end justify-center overflow-visible min-h-[260px] sm:min-h-[300px] pt-4 pb-2 mt-auto">
             <Link
               href={targetProductUrl}
               aria-label={`View ${currentSlide.title || "featured product"}`}
-              className="w-full h-full flex items-end justify-center"
+              className="w-full flex items-end justify-center"
             >
               <img
                 src={currentSlide.mobile_image || currentSlide.desktop_image || "/placeholder-phone.webp"}
                 alt={currentSlide.title || "Featured Visual"}
                 loading="lazy"
-                className="max-h-full w-auto max-w-[94%] object-contain object-bottom"
+                className="max-h-[290px] sm:max-h-[340px] w-auto max-w-[96%] object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.09)]"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                 }}
               />
             </Link>
           </div>
+
+          {/* Mobile Pagination Indicator Dots (if > 1 slide) */}
+          {totalSlides > 1 && (
+            <div className="flex items-center justify-center gap-1.5 pt-2 pb-1 z-20">
+              {activeSlides.map((_, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => setCurrentIndex(idx)}
+                  className={`transition-all rounded-full ${
+                    idx === currentIndex
+                      ? "w-4 h-1.5 bg-neutral-900"
+                      : "w-1.5 h-1.5 bg-neutral-400/60"
+                  }`}
+                  aria-label={`Go to slide ${idx + 1}`}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
