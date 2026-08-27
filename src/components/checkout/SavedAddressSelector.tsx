@@ -52,12 +52,37 @@ export default function SavedAddressSelector({
       try {
         const q = query(collection(db, "users", user!.uid, "addresses"));
         const snap = await getDocs(q);
-        const list = snap.docs.map((d) => ({ id: d.id, ...d.data() } as SavedAddress));
-        setAddresses(list);
+        
+        // Deduplicate addresses based on normalized content
+        const seenKeys = new Set<string>();
+        const uniqueList: SavedAddress[] = [];
+        const duplicateDocIds: string[] = [];
 
-        if (list.length > 0 && !selectedAddressId) {
+        snap.docs.forEach((d) => {
+          const data = d.data() as SavedAddress;
+          const key = `${(data.address || "").trim().toLowerCase()}|${(data.city || "").trim().toLowerCase()}|${(data.district || "").trim().toLowerCase()}|${(data.phone || "").replace(/\D/g, "")}`;
+          
+          if (seenKeys.has(key)) {
+            // Mark duplicate document for deletion
+            duplicateDocIds.push(d.id);
+          } else {
+            seenKeys.add(key);
+            uniqueList.push({ ...data, id: d.id });
+          }
+        });
+
+        // Asynchronously clean up duplicate address documents in Firestore
+        if (duplicateDocIds.length > 0) {
+          duplicateDocIds.forEach((dupId) => {
+            deleteDoc(doc(db, "users", user!.uid, "addresses", dupId)).catch(() => null);
+          });
+        }
+
+        setAddresses(uniqueList);
+
+        if (uniqueList.length > 0 && !selectedAddressId) {
           // Auto-select the first saved address
-          onSelectAddress(list[0]);
+          onSelectAddress(uniqueList[0]);
         }
       } catch (err) {
         console.warn("Could not load user addresses from Firestore:", err);
@@ -90,21 +115,12 @@ export default function SavedAddressSelector({
 
   return (
     <div className="mb-6 p-4 sm:p-5 rounded-2xl bg-neutral-50/80 border border-neutral-200/90 space-y-4">
-      {/* Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-neutral-800" />
-          <span className="text-xs sm:text-sm font-bold text-neutral-900">
-            {isFormUsingSaved
-              ? "Saved details filled automatically"
-              : "Choose from your saved addresses"}
-          </span>
-        </div>
-
+      {/* Header Actions */}
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={onAddNewClick}
-          className="text-xs font-bold text-neutral-900 hover:text-black flex items-center gap-1 self-start sm:self-auto hover:underline"
+          className="text-xs font-bold text-neutral-900 hover:text-black flex items-center gap-1 hover:underline cursor-pointer"
         >
           <Plus className="w-3.5 h-3.5" />
           <span>Use a different address</span>

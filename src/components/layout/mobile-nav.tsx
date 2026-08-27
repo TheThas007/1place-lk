@@ -115,6 +115,7 @@ export default function MobileNav() {
             <UserAvatar
               gender={gender || profile?.gender || "male"}
               name={user.displayName || "User"}
+              photoURL={user.photoURL}
               size="xs"
               className={isAccount ? "ring-1.5 ring-white" : ""}
             />

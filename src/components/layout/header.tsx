@@ -452,6 +452,7 @@ export default function Header() {
                     <UserAvatar
                       gender={gender || profile?.gender || "male"}
                       name={user.displayName || "User"}
+                      photoURL={user.photoURL}
                       size="md"
                     />
                   ) : (
@@ -482,6 +483,7 @@ export default function Header() {
                           <UserAvatar
                             gender={gender || profile?.gender || "male"}
                             name={user.displayName || "User"}
+                            photoURL={user.photoURL}
                             size="lg"
                             showBadge
                           />

@@ -5,6 +5,7 @@ import React from "react";
 interface UserAvatarProps {
   gender?: "male" | "female" | "other" | string | null;
   name?: string | null;
+  photoURL?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl";
   className?: string;
   showBadge?: boolean;
@@ -79,10 +80,12 @@ export function FemaleIcon({ className = "w-full h-full" }: { className?: string
 export default function UserAvatar({
   gender = "male",
   name = "",
+  photoURL = null,
   size = "md",
   className = "",
   showBadge = false,
 }: UserAvatarProps) {
+  const [imageError, setImageError] = React.useState(false);
   const isFemale = gender === "female";
 
   const sizeClasses = {
@@ -101,12 +104,22 @@ export default function UserAvatar({
     xl: "w-5 h-5 text-xs",
   };
 
+  const hasValidPhoto = !!photoURL && !imageError;
+
   return (
     <div
-      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 border border-white/20 shadow-xs transition-transform active:scale-95 select-none ${sizeClasses[size]} ${className}`}
-      title={name ? `${name} (${isFemale ? "Female" : "Male"})` : isFemale ? "Female User" : "Male User"}
+      className={`relative inline-flex items-center justify-center rounded-full overflow-hidden shrink-0 border border-white/20 shadow-xs transition-transform active:scale-95 select-none bg-neutral-900 ${sizeClasses[size]} ${className}`}
+      title={name ? `${name}` : isFemale ? "Female User" : "Male User"}
     >
-      {isFemale ? (
+      {hasValidPhoto ? (
+        <img
+          src={photoURL}
+          alt={name || "User profile photo"}
+          onError={() => setImageError(true)}
+          referrerPolicy="no-referrer"
+          className="w-full h-full object-cover rounded-full"
+        />
+      ) : isFemale ? (
         <FemaleIcon className="w-full h-full" />
       ) : (
         <MaleIcon className="w-full h-full" />
@@ -114,7 +127,7 @@ export default function UserAvatar({
 
       {showBadge && (
         <span
-          className={`absolute -bottom-0.5 -right-0.5 rounded-full flex items-center justify-center font-bold ${
+          className={`absolute -bottom-0.5 -right-0.5 rounded-full flex items-center justify-center font-bold shadow-xs ${
             isFemale ? "bg-pink-500 text-white" : "bg-blue-500 text-white"
           } ${badgeSizeClasses[size]}`}
         >

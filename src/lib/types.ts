@@ -1206,4 +1206,24 @@ export interface TodayDealSettings {
   updatedBy?: string;
 }
 
+export type CouponDiscountType = "percentage" | "fixed" | "free_shipping";
 
+export interface Coupon {
+  id: string;
+  code: string;
+  title: string;
+  description?: string;
+  discountType: CouponDiscountType;
+  discountValue: number;
+  minSpend?: number;
+  maxDiscount?: number;
+  status: "active" | "disabled";
+  targetAudience?: "all" | "logged_in";
+  startAt?: string;
+  endAt?: string;
+  noExpiry?: boolean;
+  usageLimit?: number;
+  usageCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
+}

@@ -19,7 +19,96 @@ export async function POST(req: Request) {
     const cleanCode = code.trim().toUpperCase();
     const orderSubtotal = Math.max(0, Number(subtotal) || 0);
 
-    // 1. Fetch active offer banners from Firestore
+    // 1. First check dedicated 'coupons' collection
+    try {
+      const couponSnap = await getDocs(collection(db, "coupons"));
+      const allCoupons = couponSnap.docs.map((d) => ({ ...d.data(), id: d.id } as any));
+      const matchedCoupon = allCoupons.find(
+        (c) => c.code && c.code.trim().toUpperCase() === cleanCode
+      );
+
+      if (matchedCoupon) {
+        // Check if disabled
+        if (matchedCoupon.status === "disabled") {
+          return NextResponse.json(
+            { valid: false, message: "This promo code is currently inactive or disabled." },
+            { status: 400 }
+          );
+        }
+
+        const now = new Date();
+
+        // Check start date
+        if (matchedCoupon.startAt) {
+          const startDate = new Date(matchedCoupon.startAt);
+          if (!isNaN(startDate.getTime()) && now < startDate) {
+            return NextResponse.json(
+              { valid: false, message: "This promo code is not active yet." },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Check expiry date
+        if (matchedCoupon.endAt && !matchedCoupon.noExpiry) {
+          const endDate = new Date(matchedCoupon.endAt);
+          if (!isNaN(endDate.getTime()) && now > endDate) {
+            return NextResponse.json(
+              { valid: false, message: "This promo code has expired." },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Check target audience
+        if (matchedCoupon.targetAudience === "logged_in" && (!userId || userId === "guest")) {
+          return NextResponse.json(
+            { valid: false, message: "This promo code is exclusively for registered members. Please sign in to apply." },
+            { status: 403 }
+          );
+        }
+
+        // Check minimum spend
+        if (matchedCoupon.minSpend && orderSubtotal < Number(matchedCoupon.minSpend)) {
+          return NextResponse.json(
+            {
+              valid: false,
+              message: `A minimum order spend of Rs. ${Number(matchedCoupon.minSpend).toLocaleString()} is required to use this code.`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Calculate discount
+        let discountAmount = 0;
+        if (matchedCoupon.discountType === "percentage") {
+          const percent = Math.min(100, Math.max(1, Number(matchedCoupon.discountValue) || 10));
+          discountAmount = Math.round(orderSubtotal * (percent / 100));
+          if (matchedCoupon.maxDiscount && matchedCoupon.maxDiscount > 0) {
+            discountAmount = Math.min(discountAmount, Number(matchedCoupon.maxDiscount));
+          }
+        } else if (matchedCoupon.discountType === "free_shipping") {
+          discountAmount = 450;
+        } else {
+          // fixed
+          discountAmount = Number(matchedCoupon.discountValue) || 0;
+        }
+
+        discountAmount = Math.min(discountAmount, orderSubtotal);
+
+        return NextResponse.json({
+          valid: true,
+          code: cleanCode,
+          discountAmount,
+          discountType: matchedCoupon.discountType || "percentage",
+          message: `Promo code '${cleanCode}' applied successfully!`,
+        });
+      }
+    } catch (couponErr) {
+      console.warn("Error checking coupons collection:", couponErr);
+    }
+
+    // 2. Fallback: Fetch active offer banners from Firestore
     let allBanners: OfferBanner[] = [];
     try {
       const snap = await getDocs(collection(db, "offer_banners"));

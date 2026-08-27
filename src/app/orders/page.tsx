@@ -288,6 +288,7 @@ export default function OrderHistoryPage() {
               <UserAvatar
                 gender={gender || profile?.gender || "male"}
                 name={user.displayName || "User"}
+                photoURL={user.photoURL}
                 size="xl"
                 showBadge
               />

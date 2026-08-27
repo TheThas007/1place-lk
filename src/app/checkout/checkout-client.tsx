@@ -30,6 +30,7 @@ import {
   collection,
   doc,
   getDoc,
+  getDocs,
   setDoc,
   updateDoc,
 } from "firebase/firestore";
@@ -486,8 +487,22 @@ export default function CheckoutClient() {
         };
 
         if (user) {
-          // Save in user addresses collection
-          await addDoc(collection(db, "users", user.uid, "addresses"), addressData);
+          try {
+            // Check if identical address is already saved
+            const existingSnap = await getDocs(collection(db, "users", user.uid, "addresses"));
+            const newKey = `${address.trim().toLowerCase()}|${city.trim().toLowerCase()}|${district.trim().toLowerCase()}|${phone.trim().replace(/\D/g, "")}`;
+            const alreadyExists = existingSnap.docs.some((d: any) => {
+              const data = d.data();
+              const existingKey = `${(data.address || "").trim().toLowerCase()}|${(data.city || "").trim().toLowerCase()}|${(data.district || "").trim().toLowerCase()}|${(data.phone || "").replace(/\D/g, "")}`;
+              return existingKey === newKey;
+            });
+
+            if (!alreadyExists) {
+              await addDoc(collection(db, "users", user.uid, "addresses"), addressData);
+            }
+          } catch (addrErr) {
+            console.warn("Could not check/save user address:", addrErr);
+          }
         } else {
           // Save in guest cookie session
           await fetch("/api/checkout/remember-me", {

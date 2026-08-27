@@ -86,6 +86,9 @@ import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
 import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
+import CouponsTab from "@/components/admin/tabs/CouponsTab";
+import CouponModal from "@/components/admin/CouponModal";
+import { Coupon } from "@/lib/types";
 
 type Tab =
   | "overview"
@@ -104,6 +107,7 @@ type Tab =
   | "gallery"
   | "hero"
   | "banners"
+  | "coupons"
   | "footer"
   | "inventory"
   | "payments"
@@ -187,6 +191,10 @@ function DashboardContent() {
 
   const [isBannerModalOpen, setIsBannerModalOpen] = useState(false);
   const [editingBanner, setEditingBanner] = useState<OfferBanner | null>(null);
+
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState<Coupon | null>(null);
 
   const [isHeroModalOpen, setIsHeroModalOpen] = useState(false);
   const [editingHeroSlide, setEditingHeroSlide] = useState<HeroSlide | null>(null);
@@ -292,6 +300,15 @@ function DashboardContent() {
 
       const mergedBanners = Array.from(bannerMap.values());
       setBanners(mergedBanners.filter((b) => b.status !== "archived"));
+
+      // Coupons / Promo Codes
+      try {
+        const coupSnap = await getDocs(collection(db, "coupons"));
+        const coupList = coupSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Coupon));
+        setCoupons(coupList);
+      } catch (coupErr) {
+        console.warn("Error fetching coupons:", coupErr);
+      }
 
       // Hero Slides
       const heroSnap = await getDocs(collection(db, "hero_slides"));
@@ -654,6 +671,44 @@ function DashboardContent() {
       console.error("Error toggling banner status:", e);
     }
     setBanners((prev) => prev.map((b) => (b.id === id ? { ...b, status: newStatus } : b)));
+  };
+
+  const handleDeleteCoupon = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this promo code?")) return;
+    try {
+      await deleteDoc(doc(db, "coupons", id));
+      setCoupons((prev) => prev.filter((c) => c.id !== id));
+    } catch (e) {
+      console.error("Error deleting coupon:", e);
+      alert("Failed to delete promo code");
+    }
+  };
+
+  const handleToggleCouponStatus = async (id: string, currentStatus: "active" | "disabled") => {
+    const newStatus = currentStatus === "active" ? "disabled" : "active";
+    try {
+      await setDoc(doc(db, "coupons", id), { status: newStatus }, { merge: true });
+      setCoupons((prev) => prev.map((c) => (c.id === id ? { ...c, status: newStatus } : c)));
+    } catch (e) {
+      console.error("Error toggling coupon status:", e);
+      alert("Failed to update status");
+    }
+  };
+
+  const handleDuplicateCoupon = async (coupon: Coupon) => {
+    try {
+      const duplicatedData = {
+        ...coupon,
+        code: `${coupon.code}_COPY`,
+        title: `${coupon.title} (Copy)`,
+        createdAt: new Date().toISOString(),
+      };
+      delete (duplicatedData as any).id;
+      const docRef = await addDoc(collection(db, "coupons"), duplicatedData);
+      setCoupons((prev) => [...prev, { ...duplicatedData, id: docRef.id } as Coupon]);
+    } catch (e) {
+      console.error("Error duplicating coupon:", e);
+    }
   };
 
   const handleSaveHeroSlide = async (slideData: Partial<HeroSlide>) => {
@@ -1317,6 +1372,26 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          TAB 5A: PROMO CODES & COUPONS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "coupons" && (
+        <CouponsTab
+          coupons={coupons}
+          onAdd={() => {
+            setEditingCoupon(null);
+            setIsCouponModalOpen(true);
+          }}
+          onEdit={(c: Coupon) => {
+            setEditingCoupon(c);
+            setIsCouponModalOpen(true);
+          }}
+          onDelete={handleDeleteCoupon}
+          onToggleStatus={handleToggleCouponStatus}
+          onDuplicate={handleDuplicateCoupon}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB 5B: HOMEPAGE HERO SLIDER TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "hero" && (
@@ -1797,6 +1872,17 @@ function DashboardContent() {
           refreshData();
         }}
         initialData={editingReview}
+      />
+
+      {/* Coupon Modal */}
+      <CouponModal
+        isOpen={isCouponModalOpen}
+        onClose={() => {
+          setIsCouponModalOpen(false);
+          setEditingCoupon(null);
+        }}
+        coupon={editingCoupon}
+        onSaved={refreshData}
       />
 
       {/* Quick Add Stock Modal */}
