@@ -5,14 +5,18 @@ import { usePathname } from "next/navigation";
 import { Home, Store, Search, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
+import { useAuth } from "@/lib/auth-context";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 export default function MobileNav() {
   const pathname = usePathname();
   const { itemCount } = useCart();
+  const { user, profile, gender } = useAuth();
 
-  // Hide bottom nav on admin, checkout, and product detail pages
+  // Hide bottom nav on admin, login, checkout, and product detail pages
   if (
     pathname.startsWith("/admin") ||
+    pathname.startsWith("/login") ||
     pathname.startsWith("/checkout") ||
     (pathname.startsWith("/products/") && pathname !== "/products")
   ) {
@@ -101,19 +105,28 @@ export default function MobileNav() {
 
         {/* 5. Account */}
         <Link
-          href="/orders"
+          href={user ? "/orders" : "/login"}
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
             isAccount ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
           )}
         >
-          <User
-            className={cn(
-              "w-5 h-5 transition-transform",
-              isAccount ? "text-white stroke-[2.5]" : "text-neutral-400"
-            )}
-          />
-          <span>Account</span>
+          {user ? (
+            <UserAvatar
+              gender={gender || profile?.gender || "male"}
+              name={user.displayName || "User"}
+              size="xs"
+              className={isAccount ? "ring-1.5 ring-white" : ""}
+            />
+          ) : (
+            <User
+              className={cn(
+                "w-5 h-5 transition-transform",
+                isAccount ? "text-white stroke-[2.5]" : "text-neutral-400"
+              )}
+            />
+          )}
+          <span>{user ? "Account" : "Sign In"}</span>
         </Link>
       </div>
     </nav>

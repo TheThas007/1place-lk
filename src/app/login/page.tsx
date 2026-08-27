@@ -36,6 +36,7 @@ function LoginFormContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [signupGender, setSignupGender] = useState<"male" | "female">("male");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
@@ -116,7 +117,7 @@ function LoginFormContent() {
         setSuccess("Signed in successfully!");
         setTimeout(() => handlePostAuthRedirect(), 500);
       } else {
-        await signUp(name, email, password);
+        await signUp(name, email, password, signupGender);
         setSuccess("Account created successfully!");
         setTimeout(() => handlePostAuthRedirect(), 500);
       }
@@ -228,13 +229,6 @@ function LoginFormContent() {
           <span className="transition-transform group-hover:-translate-x-1">&larr;</span>
           <span>Back to Street Mobile</span>
         </Link>
-
-        <Link
-          href="/admin/login"
-          className="text-[11px] sm:text-xs font-semibold tracking-wider uppercase text-[#666666] hover:text-[#111111] transition-colors"
-        >
-          Admin Portal &rarr;
-        </Link>
       </div>
 
       {/* Main Centered Authentication Container */}
@@ -249,14 +243,16 @@ function LoginFormContent() {
            ══════════════════════════════════════════════════════ */}
         <div className="md:hidden bg-[#000000] text-[#FFFFFF] p-6 border-b border-[#1a1a1a] relative overflow-hidden">
           <div className="flex items-center justify-between">
-            <div className="inline-flex items-center gap-2">
-              <span className="font-extrabold tracking-tight text-[#FFFFFF] uppercase text-base leading-none">
-                STREET MOBILE
-              </span>
-              <span className="text-[10px] font-mono font-bold tracking-wider uppercase px-2 py-0.5 rounded bg-white/10 text-white/90 border border-white/15">
-                .LK
-              </span>
-            </div>
+            <Link href="/" className="inline-flex items-center">
+              <img
+                src="/logo.png"
+                alt="STREET MOBILE Logo"
+                className="h-14 sm:h-16 w-auto object-contain"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logo.svg";
+                }}
+              />
+            </Link>
             <Link
               href="/"
               className="text-xs font-medium text-neutral-400 hover:text-white transition-colors"
@@ -264,17 +260,13 @@ function LoginFormContent() {
               Back to Store &rarr;
             </Link>
           </div>
-          <div className="mt-4">
+          <div className="mt-5">
             <h2 className="text-xl font-semibold text-[#FFFFFF] tracking-tight">
               Welcome back.
             </h2>
-            <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] text-neutral-300 font-medium">
-              <span>✓ Authentic Products</span>
-              <span>•</span>
-              <span>✓ Islandwide Delivery</span>
-              <span>•</span>
-              <span>✓ Premium Support</span>
-            </div>
+            <p className="mt-1 text-xs text-neutral-400 font-normal">
+              Sign in to manage your orders and tech purchases.
+            </p>
           </div>
         </div>
 
@@ -323,50 +315,25 @@ function LoginFormContent() {
 
           {/* Top Brand Stack */}
           <div className="relative z-10">
-            <div className="space-y-0.5">
-              <div className="text-xl sm:text-2xl font-extrabold tracking-tighter text-[#FFFFFF] uppercase leading-none">
-                Street
-              </div>
-              <div className="text-xl sm:text-2xl font-extrabold tracking-tighter text-[#FFFFFF] uppercase leading-none">
-                Mobile
-              </div>
-              <div className="inline-block pt-1.5">
-                <span className="text-[10px] font-mono font-bold tracking-widest uppercase px-2.5 py-0.5 rounded bg-white/10 text-white/90 border border-white/15">
-                  .LK
-                </span>
-              </div>
-            </div>
+            <Link href="/" className="inline-block">
+              <img
+                src="/logo.png"
+                alt="STREET MOBILE Logo"
+                className="h-24 sm:h-28 lg:h-32 w-auto object-contain max-w-[320px]"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).src = "/logo.svg";
+                }}
+              />
+            </Link>
 
             {/* Statement & Welcome Heading */}
-            <div className="mt-8 sm:mt-12 lg:mt-14">
+            <div className="mt-8 sm:mt-10 lg:mt-12">
               <h2 className="text-2xl sm:text-3xl lg:text-3xl font-semibold tracking-tight text-[#FFFFFF] leading-tight">
                 Welcome back.
               </h2>
               <p className="mt-3 text-xs sm:text-sm text-neutral-400 font-normal leading-relaxed">
                 Your trusted destination for premium smartphones and technology in Sri Lanka.
               </p>
-            </div>
-          </div>
-
-          {/* Three Trust Features */}
-          <div className="relative z-10 mt-8 sm:mt-10 lg:mt-12 space-y-3">
-            <div className="flex items-center gap-3 text-xs sm:text-sm text-neutral-300">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                ✓
-              </span>
-              <span className="font-medium tracking-tight">Authentic Products</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs sm:text-sm text-neutral-300">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                ✓
-              </span>
-              <span className="font-medium tracking-tight">Islandwide Delivery</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs sm:text-sm text-neutral-300">
-              <span className="w-5 h-5 rounded-full bg-white/10 flex items-center justify-center text-white text-xs font-semibold shrink-0">
-                ✓
-              </span>
-              <span className="font-medium tracking-tight">Premium Support</span>
             </div>
           </div>
 
@@ -463,19 +430,21 @@ function LoginFormContent() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Full Name (Sign Up mode) */}
               {tab === "signup" && (
-                <div className="space-y-1.5">
-                  <label className="block text-xs font-medium text-[#111111]">
-                    Full name
-                  </label>
-                  <input
-                    type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Enter your full name"
-                    required
-                    className="w-full px-4 py-3 bg-[#F7F7F7] focus:bg-[#FFFFFF] border border-[#E5E5E5] focus:border-[#111111] rounded-xl text-[#111111] placeholder:text-[#999999] text-sm outline-none transition-all duration-150"
-                  />
-                </div>
+                <>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs font-medium text-[#111111]">
+                      Full name
+                    </label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Enter your full name"
+                      required
+                      className="w-full px-4 py-3 bg-[#F7F7F7] focus:bg-[#FFFFFF] border border-[#E5E5E5] focus:border-[#111111] rounded-xl text-[#111111] placeholder:text-[#999999] text-sm outline-none transition-all duration-150"
+                    />
+                  </div>
+                </>
               )}
 
               {/* Email Address */}

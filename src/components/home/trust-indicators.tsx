@@ -222,12 +222,17 @@ function MobileScrollDrivenTrack({
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
   const [maxTranslate, setMaxTranslate] = useState(0);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
   const isDraggingRef = useRef(false);
 
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: isMounted ? containerRef : undefined,
     offset: ["start start", "end end"],
   });
 

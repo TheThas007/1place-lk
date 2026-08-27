@@ -58,6 +58,16 @@ function FacebookIcon({ className = "w-5 h-5" }: { className?: string }) {
 
 export default function Footer() {
   const pathname = usePathname();
+
+  // Only show footer on the home page (pathname === "/")
+  if (pathname !== "/") {
+    return null;
+  }
+
+  return <HomePageFooter />;
+}
+
+function HomePageFooter() {
   const [settings, setSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
   const footerRef = useRef<HTMLElement>(null);
 
@@ -107,11 +117,6 @@ export default function Footer() {
     [0, 0.5, 1],
     ["brightness(0) invert(0)", "brightness(0.6) invert(0.5)", "brightness(0) invert(1)"]
   );
-
-  // Only show footer on the home page (pathname === "/")
-  if (pathname !== "/") {
-    return null;
-  }
 
   if (settings.enabled === false) {
     return null;

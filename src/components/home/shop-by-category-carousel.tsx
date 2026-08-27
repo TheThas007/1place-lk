@@ -132,7 +132,7 @@ function renderCategoryDefaultIcon(name: string, slug: string) {
 export default function ShopByCategoryCarousel({ categories = [] }: ShopByCategoryCarouselProps) {
   const shouldReduceMotion = useReducedMotion();
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [isHovered, setIsHovered] = useState(false);
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
   const [hoveredId, setHoveredId] = useState<string | null>(null);
 
   const activeCategories = useMemo(() => {
@@ -152,44 +152,26 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     return unique.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, [categories]);
 
-  const [isMobilePaused, setIsMobilePaused] = useState(false);
+  // Triple the list for seamless infinite mobile scrolling
+  const mobileTripledCategories = useMemo(() => {
+    if (activeCategories.length === 0) return [];
+    if (activeCategories.length < 4) {
+      return [...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories, ...activeCategories];
+    }
+    return [...activeCategories, ...activeCategories, ...activeCategories];
+  }, [activeCategories]);
+
+  // Mobile Auto-Scroll + Touch Drag State
+  const [isMobileInteracting, setIsMobileInteracting] = useState(false);
   const [isInViewport, setIsInViewport] = useState(true);
-  const [durationSec, setDurationSec] = useState<number>(45);
-  const mobileContainerRef = useRef<HTMLDivElement>(null);
-  const sequence1Ref = useRef<HTMLDivElement>(null);
+  const mobileResumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDraggingMobileRef = useRef(false);
+  const dragStartXRef = useRef(0);
+  const dragMovedRef = useRef(0);
 
-  // Dynamic duration calculation: 14 pixels per second (Right to Left)
-  const updateDuration = useCallback(() => {
-    if (sequence1Ref.current) {
-      const width = sequence1Ref.current.offsetWidth || sequence1Ref.current.scrollWidth;
-      if (width > 0) {
-        const calculated = width / 14;
-        setDurationSec(Math.round(calculated * 10) / 10);
-      }
-    }
-  }, []);
-
+  // IntersectionObserver to only auto-scroll when in viewport
   useEffect(() => {
-    updateDuration();
-    const el = sequence1Ref.current;
-    let ro: ResizeObserver | null = null;
-    if (el && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => updateDuration());
-      ro.observe(el);
-    }
-
-    window.addEventListener("resize", updateDuration);
-    window.addEventListener("load", updateDuration);
-
-    return () => {
-      if (ro) ro.disconnect();
-      window.removeEventListener("resize", updateDuration);
-      window.removeEventListener("load", updateDuration);
-    };
-  }, [updateDuration]);
-
-  useEffect(() => {
-    const el = mobileContainerRef.current;
+    const el = mobileScrollRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
 
     const observer = new IntersectionObserver(
@@ -211,16 +193,80 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     };
   }, []);
 
-  const mobileCategories = useMemo(() => {
-    if (activeCategories.length === 0) return [];
-    if (activeCategories.length >= 6) return activeCategories;
-    const rep: Category[] = [];
-    while (rep.length < 6) {
-      rep.push(...activeCategories);
+  // Initial center scroll position setup for seamless two-way swiping
+  useEffect(() => {
+    if (mobileScrollRef.current) {
+      const container = mobileScrollRef.current;
+      const singleSetWidth = container.scrollWidth / 3;
+      if (singleSetWidth > 0 && container.scrollLeft === 0) {
+        container.scrollLeft = singleSetWidth;
+      }
     }
-    return rep;
-  }, [activeCategories]);
+  }, [mobileTripledCategories]);
 
+  // ── Mobile Auto-Scroll Loop (requestAnimationFrame) ──
+  useEffect(() => {
+    if (shouldReduceMotion || activeCategories.length <= 1) return;
+
+    let animId: number;
+
+    const tick = () => {
+      if (mobileScrollRef.current && !isMobileInteracting && isInViewport) {
+        const container = mobileScrollRef.current;
+        container.scrollLeft += 0.8;
+
+        const singleSetWidth = container.scrollWidth / 3;
+        if (singleSetWidth > 0) {
+          if (container.scrollLeft >= singleSetWidth * 2) {
+            container.scrollLeft -= singleSetWidth;
+          } else if (container.scrollLeft <= 0) {
+            container.scrollLeft += singleSetWidth;
+          }
+        }
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [isMobileInteracting, isInViewport, shouldReduceMotion, activeCategories.length]);
+
+  // Touch handlers for mobile
+  const handleTouchStart = (e: React.TouchEvent) => {
+    setIsMobileInteracting(true);
+    dragStartXRef.current = e.touches[0].clientX;
+    dragMovedRef.current = 0;
+    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent) => {
+    const dx = Math.abs(e.touches[0].clientX - dragStartXRef.current);
+    dragMovedRef.current = dx;
+  };
+
+  const handleTouchEnd = () => {
+    if (dragMovedRef.current > 8) {
+      isDraggingMobileRef.current = true;
+      setTimeout(() => {
+        isDraggingMobileRef.current = false;
+      }, 250);
+    }
+    // Resume auto-scroll smoothly after 2 seconds of inactivity
+    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+    mobileResumeTimerRef.current = setTimeout(() => {
+      setIsMobileInteracting(false);
+    }, 2000);
+  };
+
+  // Prevent accidental link clicks while swiping
+  const handleCategoryClick = (e: React.MouseEvent) => {
+    if (isDraggingMobileRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  // ── Desktop Infinite Auto-Scroll ──
   const desktopDisplayList = useMemo(() => {
     if (activeCategories.length === 0) return [];
     if (activeCategories.length < 4) {
@@ -229,7 +275,6 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
     return [...activeCategories, ...activeCategories, ...activeCategories];
   }, [activeCategories]);
 
-  // Smooth Infinite Continuous Auto-Scroll Loop (Desktop - Continues playing on hover)
   useEffect(() => {
     let animationFrameId: number;
 
@@ -265,9 +310,8 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Category Marquee ── */}
+      {/* ── Mobile Layout (< 768px): Continuous Auto-Scroll + Smooth Touch/Finger Swipe ── */}
       <section
-        ref={mobileContainerRef}
         className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none overflow-hidden"
         aria-label="Shop by Category"
       >
@@ -290,97 +334,57 @@ export default function ShopByCategoryCarousel({ categories = [] }: ShopByCatego
           </Link>
         </motion.div>
 
-        {/* Continuous Linear Marquee Track (Autoplay never stops on hover) */}
-        <div className="relative w-full overflow-hidden select-none -mx-3 px-3 sm:-mx-4 sm:px-4 touch-pan-y">
-          <div
-            className="mobile-categories-track flex w-max will-change-transform motion-reduce:animate-none"
-            style={{
-              ["--mobile-categories-duration" as any]: `${durationSec}s`,
-              animationDuration: `${durationSec}s`,
-              animationPlayState: !isInViewport ? "paused" : "running",
-            }}
-          >
-            {/* Sequence 1 */}
-            <div ref={sequence1Ref} className="flex items-center gap-2.5 pr-2.5 shrink-0 py-2">
-              {mobileCategories.map((item, i) => {
-                const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
-                const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
+        {/* Interactive Scroll & Touch Swipe Container */}
+        <div
+          ref={mobileScrollRef}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
+          onTouchCancel={handleTouchEnd}
+          onPointerDown={() => setIsMobileInteracting(true)}
+          onPointerUp={handleTouchEnd}
+          className="flex items-center gap-2.5 overflow-x-auto scrollbar-none py-2 -mx-3 px-3 sm:-mx-4 sm:px-4 touch-pan-x cursor-grab active:cursor-grabbing"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+        >
+          {mobileTripledCategories.map((item, i) => {
+            const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
+            const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
 
-                return (
-                  <div key={`mob-cat-a-${item.id || i}`} className="shrink-0">
-                    <Link
-                      href={targetUrl}
-                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black hover:scale-115 hover:shadow-lg active:scale-95 transition-all duration-300 text-center block relative z-10"
-                    >
-                      <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                        {hasCustomImg ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            loading="lazy"
-                            className="max-h-7 max-w-7 object-contain transition-transform duration-300 group-hover:scale-115"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="scale-75 transition-transform duration-300">
-                            {renderCategoryDefaultIcon(item.name, item.slug)}
-                          </div>
-                        )}
+            return (
+              <div key={`mob-cat-${item.id || item.slug || i}-${i}`} className="shrink-0">
+                <Link
+                  href={targetUrl}
+                  onClick={handleCategoryClick}
+                  className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black active:scale-95 transition-all text-center block relative z-10 select-none"
+                >
+                  <div className="w-8 h-8 flex items-center justify-center shrink-0 pointer-events-none">
+                    {hasCustomImg ? (
+                      <img
+                        src={item.image_url}
+                        alt={item.name}
+                        loading="lazy"
+                        className="max-h-7 max-w-7 object-contain pointer-events-none"
+                        onError={(e) => {
+                          (e.target as HTMLImageElement).style.display = "none";
+                        }}
+                      />
+                    ) : (
+                      <div className="scale-75 pointer-events-none">
+                        {renderCategoryDefaultIcon(item.name, item.slug)}
                       </div>
-                      <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full">
-                        {item.name}
-                      </span>
-                    </Link>
+                    )}
                   </div>
-                );
-              })}
-            </div>
-
-            {/* Sequence 2 (Identical Clone for continuous loop) */}
-            <div className="flex items-center gap-2.5 pr-2.5 shrink-0 py-2" aria-hidden="true">
-              {mobileCategories.map((item, i) => {
-                const hasCustomImg = Boolean(item.image_url && item.image_url.trim());
-                const targetUrl = item.slug ? `/categories/${item.slug}` : `/products?category=${encodeURIComponent(item.name)}`;
-
-                return (
-                  <div key={`mob-cat-b-${item.id || i}`} className="shrink-0">
-                    <Link
-                      href={targetUrl}
-                      tabIndex={-1}
-                      className="w-[88px] sm:w-[96px] h-full bg-white border border-[#E8E8E8] rounded-xl py-3 px-2 flex flex-col items-center justify-center gap-1.5 shadow-2xs hover:border-black hover:scale-115 hover:shadow-lg active:scale-95 transition-all duration-300 text-center block relative z-10"
-                    >
-                      <div className="w-8 h-8 flex items-center justify-center shrink-0">
-                        {hasCustomImg ? (
-                          <img
-                            src={item.image_url}
-                            alt={item.name}
-                            loading="lazy"
-                            className="max-h-7 max-w-7 object-contain transition-transform duration-300 group-hover:scale-115"
-                            onError={(e) => {
-                              (e.target as HTMLImageElement).style.display = "none";
-                            }}
-                          />
-                        ) : (
-                          <div className="scale-75 transition-transform duration-300">
-                            {renderCategoryDefaultIcon(item.name, item.slug)}
-                          </div>
-                        )}
-                      </div>
-                      <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full">
-                        {item.name}
-                      </span>
-                    </Link>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
+                  <span className="text-[10px] font-bold text-neutral-800 tracking-tight truncate max-w-full pointer-events-none">
+                    {item.name}
+                  </span>
+                </Link>
+              </div>
+            );
+          })}
         </div>
       </section>
 
-      {/* ── Desktop Layout ── */}
+      {/* ── Desktop Layout (>= 768px) ── */}
       <div className="hidden md:block">
         <section className="py-16 bg-white border-b border-neutral-100 relative overflow-hidden font-outfit">
           <div className="max-w-7xl mx-auto px-4 lg:px-6">

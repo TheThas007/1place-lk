@@ -1,47 +1,51 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useLayoutEffect } from "react";
 
 export default function HomeScrollReset() {
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (typeof window === "undefined") return;
 
-    // 1. Force manual scroll restoration so browsers never restore old scrolled positions
     if ("scrollRestoration" in window.history) {
       window.history.scrollRestoration = "manual";
     }
 
-    // 2. Clear any hash fragments (e.g. #new-arrivals) that might trigger auto-scrolling
+    // Force top position immediately before painting
+    window.scrollTo(0, 0);
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    // 1. Clear any hash fragments (e.g. #new-arrivals) that might trigger auto-scrolling
     if (window.location.hash) {
       window.history.replaceState(null, "", window.location.pathname + window.location.search);
     }
 
-    // 3. Immediately scroll to top (Hero section)
-    window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-
-    // 4. Re-assert top position on next frames and after initial hydration
-    const rafId = requestAnimationFrame(() => {
-      window.scrollTo(0, 0);
-    });
-
-    const timer1 = setTimeout(() => {
+    const resetToTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    }, 50);
-
-    const timer2 = setTimeout(() => {
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" as ScrollBehavior });
-    }, 200);
-
-    const handlePageShow = () => {
-      window.scrollTo(0, 0);
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     };
-    window.addEventListener("pageshow", handlePageShow);
+
+    resetToTop();
+
+    // 2. Re-assert top position on consecutive frames and after initial hydration
+    const rafId = requestAnimationFrame(resetToTop);
+    const timer1 = setTimeout(resetToTop, 20);
+    const timer2 = setTimeout(resetToTop, 80);
+    const timer3 = setTimeout(resetToTop, 250);
+
+    window.addEventListener("pageshow", resetToTop);
 
     return () => {
       cancelAnimationFrame(rafId);
       clearTimeout(timer1);
       clearTimeout(timer2);
-      window.removeEventListener("pageshow", handlePageShow);
+      clearTimeout(timer3);
+      window.removeEventListener("pageshow", resetToTop);
     };
   }, []);
 

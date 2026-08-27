@@ -17,12 +17,13 @@ import {
   Image as ImageIcon,
   CheckCircle2,
   Layers,
-  ShoppingBag,
-  ChevronDown,
-  ChevronUp,
-  LayoutTemplate,
-  MapPin,
   ExternalLink,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Sun,
+  Moon,
+  Palette,
 } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -143,15 +144,20 @@ export default function ShowcaseTab({
     const newSlide: VisualShowcaseSlide = {
       id: `slide-${Date.now()}`,
       enabled: true,
+      eyebrow: "New",
+      eyebrow_bg: "#000000",
+      eyebrow_color: "#FFFFFF",
       title: "",
       subtitle: "",
-      desktop_image: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1200&auto=format&fit=crop",
-      image_alt: "Featured Product",
-      bg_type: "gradient",
-      bg_gradient_from: "#F2F6FA",
-      bg_gradient_to: "#FFFFFF",
-      heading_color: "#1D1D1F",
-      subtitle_color: "#6E6E73",
+      desktop_image: "",
+      bg_type: "image",
+      bg_image: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop",
+      bg_overlay_opacity: 25,
+      bg_overlay_color: "#000000",
+      text_align: "center",
+      content_position: "center",
+      heading_color: "#FFFFFF",
+      subtitle_color: "#E5E5E5",
       primary_cta_text: "Explore",
       primary_cta_url: "/products",
       secondary_cta_text: "Buy Now",
@@ -207,14 +213,22 @@ export default function ShowcaseTab({
     setActiveSlideIndex(targetIdx);
   };
 
-  // Image Upload Handler
-  const handleImageUpload = async (index: number, file: File, type: "desktop" | "mobile") => {
+  // Image Upload Handler (Supports Background Image, Mobile Background, Desktop Foreground, Mobile Foreground)
+  const handleImageUpload = async (
+    index: number,
+    file: File,
+    type: "background" | "background_mobile" | "desktop" | "mobile"
+  ) => {
     const key = `${index}-${type}`;
     try {
       setUploadingImageKey(key);
       const uploadedUrl = await uploadImageWithFallback(file, "showcase");
       if (uploadedUrl) {
-        if (type === "desktop") {
+        if (type === "background") {
+          updateSlide(index, { bg_image: uploadedUrl, bg_type: "image" });
+        } else if (type === "background_mobile") {
+          updateSlide(index, { bg_image_mobile: uploadedUrl, bg_type: "image" });
+        } else if (type === "desktop") {
           updateSlide(index, { desktop_image: uploadedUrl });
         } else {
           updateSlide(index, { mobile_image: uploadedUrl });
@@ -261,6 +275,15 @@ export default function ShowcaseTab({
   const previewSlide = slides[activeSlideIndex] || slides[0];
 
   // Preview header contents check
+  const prevIsImageBg = previewSlide?.bg_type === "image" && Boolean(previewSlide?.bg_image);
+  const prevBgImageUrl =
+    previewDevice === "mobile" && previewSlide?.bg_image_mobile
+      ? previewSlide.bg_image_mobile
+      : previewSlide?.bg_image || "";
+  const prevOverlayOpacity = (previewSlide?.bg_overlay_opacity ?? (prevIsImageBg ? 20 : 0)) / 100;
+  const prevOverlayColor = previewSlide?.bg_overlay_color || "#000000";
+
+  const prevHasEyebrow = Boolean(previewSlide?.eyebrow && previewSlide.eyebrow.trim().length > 0);
   const prevHasTitle = Boolean(previewSlide?.title && previewSlide.title.trim().length > 0);
   const prevHasSubtitle = Boolean(previewSlide?.subtitle && previewSlide.subtitle.trim().length > 0);
   const prevHasPrimaryCta = Boolean(previewSlide?.primary_cta_text && previewSlide.primary_cta_text.trim().length > 0);
@@ -270,7 +293,25 @@ export default function ShowcaseTab({
     previewSlide.secondary_cta_text.trim().length > 0
   );
   const prevHasButtons = prevHasPrimaryCta || prevHasSecondaryCta;
-  const prevHasHeader = prevHasTitle || prevHasSubtitle || prevHasButtons;
+  const prevHasHeader = prevHasEyebrow || prevHasTitle || prevHasSubtitle || prevHasButtons;
+  const prevHasForeground = Boolean(
+    previewSlide?.desktop_image && previewSlide.desktop_image.trim().length > 0
+  );
+
+  const prevTextAlign = previewSlide?.text_align || "center";
+  const prevAlignClass =
+    prevTextAlign === "left"
+      ? "text-left items-start"
+      : prevTextAlign === "right"
+      ? "text-right items-end"
+      : "text-center items-center";
+
+  const prevButtonsJustify =
+    prevTextAlign === "left"
+      ? "justify-start"
+      : prevTextAlign === "right"
+      ? "justify-end"
+      : "justify-center";
 
   return (
     <div className="space-y-8">
@@ -286,7 +327,7 @@ export default function ShowcaseTab({
                 Featured Visual Showcase
               </h1>
               <p className="text-xs sm:text-sm text-white/50 font-medium">
-                Create and position full-width cinematic showcase banners across different sections of your homepage.
+                Create and position full-width cinematic showcase banners with background images &amp; text overlay across your homepage.
               </p>
             </div>
           </div>
@@ -298,7 +339,7 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
-            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 border ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 border cursor-pointer ${
               settings.enabled
                 ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
                 : "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
@@ -316,7 +357,7 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, auto_slide: !prev.auto_slide }))}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
               settings.auto_slide !== false
                 ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
                 : "bg-white/5 text-white/40 border-white/10"
@@ -329,7 +370,7 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, enable_animation: prev.enable_animation === false }))}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
               settings.enable_animation !== false
                 ? "bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20"
                 : "bg-white/5 text-white/40 border-white/10 hover:text-white"
@@ -341,7 +382,7 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5"
+            className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
             title="Reset to default showcase"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -352,7 +393,7 @@ export default function ShowcaseTab({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50"
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
               <>
@@ -390,7 +431,7 @@ export default function ShowcaseTab({
             <button
               type="button"
               onClick={handleAddSlide}
-              className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10"
+              className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer"
             >
               <Plus className="w-4 h-4" /> Add Banner
             </button>
@@ -421,7 +462,7 @@ export default function ShowcaseTab({
                     <div className="truncate space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
                         <h3 className="font-extrabold text-sm text-white truncate">
-                          {slide.title || `Banner #${idx + 1} (Image Only)`}
+                          {slide.title || `Banner #${idx + 1} (${slide.bg_type === "image" ? "Full Background Image" : "Showcase"})`}
                         </h3>
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
@@ -436,6 +477,11 @@ export default function ShowcaseTab({
                         <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 truncate max-w-[200px]">
                           {getPlacementDisplay(slidePlacement)}
                         </span>
+                        {slide.bg_type === "image" && (
+                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                            🖼️ Full BG Image
+                          </span>
+                        )}
                       </div>
                       <p className="text-[11px] text-white/40 truncate">
                         {slide.primary_cta_url ? `Links to: ${slide.primary_cta_url}` : "Links to: /products"}
@@ -452,8 +498,7 @@ export default function ShowcaseTab({
                         moveSlide(idx, "up");
                       }}
                       disabled={idx === 0}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white disabled:opacity-20 transition-colors"
-                      title="Move Up"
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
@@ -464,87 +509,79 @@ export default function ShowcaseTab({
                         moveSlide(idx, "down");
                       }}
                       disabled={idx === slides.length - 1}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/60 hover:text-white disabled:opacity-20 transition-colors"
-                      title="Move Down"
+                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
 
-                    {/* Delete Button */}
+                    {/* Delete Slide Button */}
                     <button
                       type="button"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleDeleteSlide(idx);
                       }}
-                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors"
+                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 transition-colors ml-1 cursor-pointer"
                       title="Delete Slide"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
                     </button>
-
-                    <span className="text-white/40 p-1">
-                      {isExpanded ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                    </span>
                   </div>
                 </div>
 
-                {/* Expanded Slide Form */}
+                {/* ── Slide Expanded Editor Body ── */}
                 {isExpanded && (
-                  <div className="p-6 pt-2 border-t border-white/10 space-y-5 text-xs">
-                    {/* ── 1. Individual Banner Homepage Placement ── */}
-                    <div className="p-4 bg-gradient-to-r from-amber-500/10 via-blue-500/5 to-transparent border border-amber-500/20 rounded-2xl space-y-2">
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-                        <label className="block font-extrabold text-amber-300 uppercase tracking-wider text-[11px] flex items-center gap-1.5">
-                          <LayoutTemplate className="w-4 h-4 text-amber-400" />
-                          Banner #{idx + 1} Placement Position
-                        </label>
-                        <span className="text-[10px] text-white/50">
-                          Select where this banner appears on homepage
-                        </span>
+                  <div className="p-6 border-t border-white/10 space-y-6 bg-white/[0.01]">
+                    {/* 1. Placement & Active Status */}
+                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div>
+                          <label className="block text-xs font-bold text-white uppercase tracking-wider mb-1">
+                            Homepage Placement Position
+                          </label>
+                          <p className="text-[11px] text-white/50">
+                            Choose where on the homepage this showcase banner is displayed.
+                          </p>
+                        </div>
+
+                        <select
+                          value={slide.placement || "below_category"}
+                          onChange={(e) =>
+                            updateSlide(idx, { placement: e.target.value as ShowcasePlacement })
+                          }
+                          className="bg-[#1E293B] border border-blue-500/40 text-amber-300 px-3 py-2 rounded-xl text-xs font-bold outline-none cursor-pointer"
+                        >
+                          {PLACEMENT_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.icon} {opt.label}
+                            </option>
+                          ))}
+                        </select>
                       </div>
 
-                      <select
-                        value={slidePlacement}
-                        onChange={(e) =>
-                          updateSlide(idx, { placement: e.target.value as ShowcasePlacement })
-                        }
-                        className="w-full bg-[#1E293B] border border-white/20 hover:border-amber-400 text-white font-bold text-xs px-3.5 py-2.5 rounded-xl outline-none transition-all cursor-pointer shadow-md"
-                      >
-                        {PLACEMENT_OPTIONS.map((opt) => (
-                          <option key={opt.value} value={opt.value}>
-                            {opt.icon} {opt.label}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    {/* Enable Toggle & Autofill */}
-                    <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 bg-white/5 border border-white/10 rounded-2xl">
-                      <div className="flex flex-wrap items-center gap-3">
+                      <div className="flex items-center justify-between pt-2 border-t border-white/10">
+                        <span className="text-xs text-white/70 font-semibold">Slide Active Status</span>
                         <div className="flex items-center gap-2">
-                          <span className="font-bold text-white/80">Banner:</span>
                           <button
                             type="button"
                             onClick={() => updateSlide(idx, { enabled: slide.enabled === false })}
-                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all ${
+                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${
                               slide.enabled !== false
                                 ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
                                 : "bg-red-500/20 text-red-400 border border-red-500/30"
                             }`}
                           >
-                            {slide.enabled !== false ? "ENABLED" : "DISABLED"}
+                            {slide.enabled !== false ? "ACTIVE" : "DISABLED"}
                           </button>
-                        </div>
 
-                        <div className="flex items-center gap-2">
-                          <span className="font-bold text-white/80">Animation:</span>
                           <button
                             type="button"
                             onClick={() =>
-                              updateSlide(idx, { enable_animation: slide.enable_animation === false })
+                              updateSlide(idx, {
+                                enable_animation: slide.enable_animation === false,
+                              })
                             }
-                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all ${
+                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${
                               slide.enable_animation !== false
                                 ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
                                 : "bg-white/10 text-white/40 border border-white/10"
@@ -556,16 +593,16 @@ export default function ShowcaseTab({
                       </div>
 
                       {/* Quick Store Autofill */}
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 pt-1">
                         <select
                           onChange={(e) => {
                             if (e.target.value) handleSelectProduct(idx, e.target.value);
                           }}
                           defaultValue=""
-                          className="bg-[#1E293B] border border-white/10 px-2.5 py-1.5 rounded-xl text-white outline-none text-[11px]"
+                          className="bg-[#1E293B] border border-white/10 px-2.5 py-1.5 rounded-xl text-white outline-none text-[11px] cursor-pointer"
                         >
                           <option value="" disabled>
-                            Autofill Product...
+                            Autofill from Product...
                           </option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
@@ -579,10 +616,10 @@ export default function ShowcaseTab({
                             if (e.target.value) handleSelectCategory(idx, e.target.value);
                           }}
                           defaultValue=""
-                          className="bg-[#1E293B] border border-white/10 px-2.5 py-1.5 rounded-xl text-white outline-none text-[11px]"
+                          className="bg-[#1E293B] border border-white/10 px-2.5 py-1.5 rounded-xl text-white outline-none text-[11px] cursor-pointer"
                         >
                           <option value="" disabled>
-                            Autofill Category...
+                            Autofill from Category...
                           </option>
                           {categories.map((c) => (
                             <option key={c.id || c.slug} value={c.id || c.slug}>
@@ -593,49 +630,31 @@ export default function ShowcaseTab({
                       </div>
                     </div>
 
-                    {/* Titles (Optional) */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block font-bold text-white/70 uppercase tracking-wider mb-1">
-                          Product Heading <span className="text-white/40 font-normal normal-case">(Optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={slide.title || ""}
-                          onChange={(e) => updateSlide(idx, { title: e.target.value })}
-                          placeholder="Leave blank for clean image-only banner"
-                          className="w-full bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl text-white font-bold outline-none focus:border-blue-500 text-sm"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block font-bold text-white/70 uppercase tracking-wider mb-1">
-                          Subtitle / Tagline <span className="text-white/40 font-normal normal-case">(Optional)</span>
-                        </label>
-                        <input
-                          type="text"
-                          value={slide.subtitle || ""}
-                          onChange={(e) => updateSlide(idx, { subtitle: e.target.value })}
-                          placeholder="Leave blank if not needed"
-                          className="w-full bg-white/5 border border-white/10 px-4 py-2.5 rounded-xl text-white outline-none focus:border-blue-500"
-                        />
-                      </div>
-                    </div>
-
-                    {/* Colors & Gradient Settings */}
+                    {/* 2. Background Styling (Full Background Image, Gradient, Solid Color) */}
                     <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-white/80 uppercase tracking-wider">
-                          Background Styling
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                        <span className="font-bold text-white/90 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                          <Palette className="w-4 h-4 text-blue-400" /> Background Mode &amp; Styling
                         </span>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => updateSlide(idx, { bg_type: "image" })}
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-extrabold transition-all cursor-pointer ${
+                              slide.bg_type === "image"
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                                : "bg-white/5 text-white/60 hover:text-white border border-white/10"
+                            }`}
+                          >
+                            🖼️ Full Background Image
+                          </button>
                           <button
                             type="button"
                             onClick={() => updateSlide(idx, { bg_type: "gradient" })}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
-                              slide.bg_type !== "color"
-                                ? "bg-blue-600 text-white"
-                                : "bg-white/5 text-white/50 hover:text-white"
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
+                              slide.bg_type === "gradient" || (!slide.bg_type && !slide.bg_image)
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                                : "bg-white/5 text-white/60 hover:text-white border border-white/10"
                             }`}
                           >
                             Subtle Gradient
@@ -643,10 +662,10 @@ export default function ShowcaseTab({
                           <button
                             type="button"
                             onClick={() => updateSlide(idx, { bg_type: "color" })}
-                            className={`px-3 py-1 rounded-lg text-[10px] font-bold transition-all ${
+                            className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all cursor-pointer ${
                               slide.bg_type === "color"
-                                ? "bg-blue-600 text-white"
-                                : "bg-white/5 text-white/50 hover:text-white"
+                                ? "bg-blue-600 text-white shadow-md shadow-blue-600/30"
+                                : "bg-white/5 text-white/60 hover:text-white border border-white/10"
                             }`}
                           >
                             Solid Color
@@ -654,8 +673,231 @@ export default function ShowcaseTab({
                         </div>
                       </div>
 
-                      {slide.bg_type === "color" ? (
-                        <div className="flex items-center gap-3">
+                      {/* FULL BACKGROUND IMAGE CONTROLS */}
+                      {slide.bg_type === "image" && (
+                        <div className="space-y-4 pt-2">
+                          {/* Desktop Background Image */}
+                          <div className="flex items-start gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl">
+                            <div className="w-24 h-20 rounded-xl bg-white/10 border border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative">
+                              {slide.bg_image ? (
+                                <img
+                                  src={slide.bg_image}
+                                  alt="Background preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <ImageIcon className="w-6 h-6 text-white/20" />
+                              )}
+                              {uploadingImageKey === `${idx}-background` && (
+                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 space-y-2">
+                              <span className="text-[11px] font-bold text-white/90">
+                                Full Desktop Background Image (Required)
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <label className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-md flex items-center gap-1.5 shrink-0">
+                                  <Upload className="w-3.5 h-3.5" /> Upload Image
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        handleImageUpload(idx, e.target.files[0], "background");
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                <input
+                                  type="text"
+                                  value={slide.bg_image || ""}
+                                  onChange={(e) => updateSlide(idx, { bg_image: e.target.value })}
+                                  placeholder="https://images.unsplash.com/..."
+                                  className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none font-mono text-[11px] focus:border-blue-500"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Mobile Background Image (Optional) */}
+                          <div className="flex items-start gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl">
+                            <div className="w-24 h-20 rounded-xl bg-white/10 border border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative">
+                              {slide.bg_image_mobile ? (
+                                <img
+                                  src={slide.bg_image_mobile}
+                                  alt="Mobile background preview"
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <Smartphone className="w-6 h-6 text-white/20" />
+                              )}
+                              {uploadingImageKey === `${idx}-background_mobile` && (
+                                <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
+                                  <RefreshCw className="w-4 h-4 text-white animate-spin" />
+                                </div>
+                              )}
+                            </div>
+
+                            <div className="flex-1 space-y-2">
+                              <span className="text-[11px] font-bold text-white/80">
+                                Mobile Background Image (Optional — falls back to desktop)
+                              </span>
+                              <div className="flex items-center gap-2">
+                                <label className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shrink-0">
+                                  <Upload className="w-3.5 h-3.5" /> Upload Mobile
+                                  <input
+                                    type="file"
+                                    accept="image/*"
+                                    className="hidden"
+                                    onChange={(e) => {
+                                      if (e.target.files && e.target.files[0]) {
+                                        handleImageUpload(idx, e.target.files[0], "background_mobile");
+                                      }
+                                    }}
+                                  />
+                                </label>
+                                <input
+                                  type="text"
+                                  value={slide.bg_image_mobile || ""}
+                                  onChange={(e) => updateSlide(idx, { bg_image_mobile: e.target.value })}
+                                  placeholder="Leave blank to use desktop image"
+                                  className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none font-mono text-[11px]"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Overlay Darkness / Dimming Slider & Tint */}
+                          <div className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[11px] font-bold text-white/80">
+                                Text Overlay Tint &amp; Dimming: {slide.bg_overlay_opacity ?? 25}%
+                              </label>
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-[10px] text-white/40">Presets:</span>
+                                {[
+                                  { label: "0% Clear", val: 0 },
+                                  { label: "20% Soft", val: 20 },
+                                  { label: "40% Balanced", val: 40 },
+                                  { label: "60% High", val: 60 },
+                                ].map((p) => (
+                                  <button
+                                    key={p.val}
+                                    type="button"
+                                    onClick={() => updateSlide(idx, { bg_overlay_opacity: p.val })}
+                                    className={`px-2 py-0.5 rounded-md text-[10px] font-bold transition-all cursor-pointer ${
+                                      (slide.bg_overlay_opacity ?? 25) === p.val
+                                        ? "bg-blue-600 text-white"
+                                        : "bg-white/5 text-white/60 hover:text-white"
+                                    }`}
+                                  >
+                                    {p.label}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                              <input
+                                type="range"
+                                min="0"
+                                max="90"
+                                value={slide.bg_overlay_opacity ?? 25}
+                                onChange={(e) =>
+                                  updateSlide(idx, { bg_overlay_opacity: Number(e.target.value) })
+                                }
+                                className="w-full accent-blue-500 cursor-pointer"
+                              />
+
+                              <div className="flex items-center gap-1.5 shrink-0">
+                                <span className="text-[10px] text-white/50">Tint:</span>
+                                <input
+                                  type="color"
+                                  value={slide.bg_overlay_color || "#000000"}
+                                  onChange={(e) =>
+                                    updateSlide(idx, { bg_overlay_color: e.target.value })
+                                  }
+                                  className="w-7 h-7 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Text Alignment & Content Placement */}
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                              <label className="block text-[11px] font-bold text-white/80">
+                                Text Alignment Over Banner
+                              </label>
+                              <div className="flex items-center gap-2">
+                                {[
+                                  { id: "left", label: "Left", icon: AlignLeft },
+                                  { id: "center", label: "Center", icon: AlignCenter },
+                                  { id: "right", label: "Right", icon: AlignRight },
+                                ].map((al) => {
+                                  const IconComp = al.icon;
+                                  const isSel = (slide.text_align || "center") === al.id;
+                                  return (
+                                    <button
+                                      key={al.id}
+                                      type="button"
+                                      onClick={() => updateSlide(idx, { text_align: al.id as any })}
+                                      className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                                        isSel
+                                          ? "bg-blue-600 text-white shadow-sm"
+                                          : "bg-white/5 text-white/60 hover:text-white"
+                                      }`}
+                                    >
+                                      <IconComp className="w-3.5 h-3.5" />
+                                      <span>{al.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+
+                            <div className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-2">
+                              <label className="block text-[11px] font-bold text-white/80">
+                                Vertical Content Position
+                              </label>
+                              <div className="flex items-center gap-2">
+                                {[
+                                  { id: "top", label: "Top" },
+                                  { id: "center", label: "Center" },
+                                  { id: "bottom", label: "Bottom" },
+                                ].map((pos) => {
+                                  const isSel = (slide.content_position || "center") === pos.id;
+                                  return (
+                                    <button
+                                      key={pos.id}
+                                      type="button"
+                                      onClick={() =>
+                                        updateSlide(idx, { content_position: pos.id as any })
+                                      }
+                                      className={`flex-1 py-1.5 px-2 rounded-xl text-xs font-bold flex items-center justify-center gap-1 transition-all cursor-pointer ${
+                                        isSel
+                                          ? "bg-blue-600 text-white shadow-sm"
+                                          : "bg-white/5 text-white/60 hover:text-white"
+                                      }`}
+                                    >
+                                      <span>{pos.label}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* SOLID COLOR CONTROLS */}
+                      {slide.bg_type === "color" && (
+                        <div className="flex items-center gap-3 pt-2">
                           <input
                             type="color"
                             value={slide.bg_color || "#FFFFFF"}
@@ -669,83 +911,245 @@ export default function ShowcaseTab({
                             className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-white font-mono font-bold uppercase outline-none focus:border-blue-500"
                           />
                         </div>
-                      ) : (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <div>
-                            <label className="block text-[10px] text-white/50 font-bold mb-1">
-                              Gradient Top Color
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                value={slide.bg_gradient_from || "#F2F6FA"}
-                                onChange={(e) => updateSlide(idx, { bg_gradient_from: e.target.value })}
-                                className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
-                              />
-                              <input
-                                type="text"
-                                value={slide.bg_gradient_from || "#F2F6FA"}
-                                onChange={(e) => updateSlide(idx, { bg_gradient_from: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white font-mono text-[11px] outline-none"
-                              />
+                      )}
+
+                      {/* GRADIENT CONTROLS */}
+                      {(slide.bg_type === "gradient" || (!slide.bg_type && !slide.bg_image)) && (
+                        <div className="space-y-3 pt-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-[10px] text-white/50 font-bold mb-1">
+                                Gradient Top Color
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={slide.bg_gradient_from || "#F2F6FA"}
+                                  onChange={(e) => updateSlide(idx, { bg_gradient_from: e.target.value })}
+                                  className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
+                                />
+                                <input
+                                  type="text"
+                                  value={slide.bg_gradient_from || "#F2F6FA"}
+                                  onChange={(e) => updateSlide(idx, { bg_gradient_from: e.target.value })}
+                                  className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white font-mono text-[11px] outline-none"
+                                />
+                              </div>
+                            </div>
+
+                            <div>
+                              <label className="block text-[10px] text-white/50 font-bold mb-1">
+                                Gradient Bottom Color
+                              </label>
+                              <div className="flex items-center gap-2">
+                                <input
+                                  type="color"
+                                  value={slide.bg_gradient_to || "#FFFFFF"}
+                                  onChange={(e) => updateSlide(idx, { bg_gradient_to: e.target.value })}
+                                  className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
+                                />
+                                <input
+                                  type="text"
+                                  value={slide.bg_gradient_to || "#FFFFFF"}
+                                  onChange={(e) => updateSlide(idx, { bg_gradient_to: e.target.value })}
+                                  className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white font-mono text-[11px] outline-none"
+                                />
+                              </div>
                             </div>
                           </div>
 
-                          <div>
-                            <label className="block text-[10px] text-white/50 font-bold mb-1">
-                              Gradient Bottom Color
-                            </label>
-                            <div className="flex items-center gap-2">
-                              <input
-                                type="color"
-                                value={slide.bg_gradient_to || "#FFFFFF"}
-                                onChange={(e) => updateSlide(idx, { bg_gradient_to: e.target.value })}
-                                className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
-                              />
-                              <input
-                                type="text"
-                                value={slide.bg_gradient_to || "#FFFFFF"}
-                                onChange={(e) => updateSlide(idx, { bg_gradient_to: e.target.value })}
-                                className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white font-mono text-[11px] outline-none"
-                              />
-                            </div>
+                          {/* Quick Presets */}
+                          <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                            <span className="text-[10px] text-white/40 mr-1">Presets:</span>
+                            {[
+                              { name: "Ice Blue", from: "#F2F6FA", to: "#FFFFFF" },
+                              { name: "Titanium Warm", from: "#FAF6F2", to: "#FFFFFF" },
+                              { name: "Dark Midnight", from: "#0F172A", to: "#020617" },
+                              { name: "Soft Grey", from: "#F5F5F7", to: "#FFFFFF" },
+                              { name: "Pure White", from: "#FFFFFF", to: "#FFFFFF" },
+                            ].map((preset) => (
+                              <button
+                                key={preset.name}
+                                type="button"
+                                onClick={() =>
+                                  updateSlide(idx, {
+                                    bg_type: "gradient",
+                                    bg_gradient_from: preset.from,
+                                    bg_gradient_to: preset.to,
+                                  })
+                                }
+                                className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white/70 font-semibold transition-colors cursor-pointer"
+                              >
+                                {preset.name}
+                              </button>
+                            ))}
                           </div>
                         </div>
                       )}
+                    </div>
 
-                      {/* Quick Color Presets */}
-                      <div className="flex flex-wrap items-center gap-1.5 pt-1">
-                        <span className="text-[10px] text-white/40 mr-1">Presets:</span>
-                        {[
-                          { name: "Ice Blue", from: "#F2F6FA", to: "#FFFFFF" },
-                          { name: "Titanium Warm", from: "#FAF6F2", to: "#FFFFFF" },
-                          { name: "Sky Blue", from: "#EBF3F9", to: "#FFFFFF" },
-                          { name: "Soft Grey", from: "#F5F5F7", to: "#FFFFFF" },
-                          { name: "Pure White", from: "#FFFFFF", to: "#FFFFFF" },
-                        ].map((preset) => (
+                    {/* 3. Text Overlay & Typography (Badge, Heading, Subtitle) */}
+                    <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-white/90 text-xs uppercase tracking-wider">
+                          Text Overlay Over Banner
+                        </label>
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[10px] text-white/40">Text Tone:</span>
                           <button
-                            key={preset.name}
                             type="button"
                             onClick={() =>
                               updateSlide(idx, {
-                                bg_type: "gradient",
-                                bg_gradient_from: preset.from,
-                                bg_gradient_to: preset.to,
+                                heading_color: "#FFFFFF",
+                                subtitle_color: "#E5E5E5",
                               })
                             }
-                            className="px-2.5 py-1 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg text-[10px] text-white/70 font-semibold transition-colors"
+                            className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 hover:bg-white/20 text-white flex items-center gap-1 cursor-pointer"
                           >
-                            {preset.name}
+                            <Moon className="w-3 h-3" /> Light Text
                           </button>
-                        ))}
+                          <button
+                            type="button"
+                            onClick={() =>
+                              updateSlide(idx, {
+                                heading_color: "#1D1D1F",
+                                subtitle_color: "#6E6E73",
+                              })
+                            }
+                            className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-white/10 hover:bg-white/20 text-white flex items-center gap-1 cursor-pointer"
+                          >
+                            <Sun className="w-3 h-3" /> Dark Text
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Eyebrow / Campaign Tag */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                        <div className="sm:col-span-2">
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Eyebrow / Campaign Badge Tag <span className="text-white/40 font-normal normal-case">(e.g. "New", "Galaxy AI", "Special Deal")</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.eyebrow ?? "New"}
+                            onChange={(e) => updateSlide(idx, { eyebrow: e.target.value })}
+                            placeholder="e.g. New (leave blank to hide)"
+                            className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-white text-xs outline-none focus:border-blue-500 font-bold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Badge Colors
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="color"
+                                value={slide.eyebrow_bg || "#000000"}
+                                onChange={(e) => updateSlide(idx, { eyebrow_bg: e.target.value })}
+                                className="w-7 h-7 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                                title="Badge Background Color"
+                              />
+                              <span className="text-[9px] text-white/40">BG</span>
+                            </div>
+                            <div className="flex items-center gap-1">
+                              <input
+                                type="color"
+                                value={slide.eyebrow_color || "#FFFFFF"}
+                                onChange={(e) => updateSlide(idx, { eyebrow_color: e.target.value })}
+                                className="w-7 h-7 rounded-lg bg-transparent cursor-pointer border border-white/20"
+                                title="Badge Text Color"
+                              />
+                              <span className="text-[9px] text-white/40">Text</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Product Heading & Color */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div className="sm:col-span-3">
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Main Heading Title <span className="text-white/40 font-normal normal-case">(e.g. "Galaxy S26 Ultra")</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.title || ""}
+                            onChange={(e) => updateSlide(idx, { title: e.target.value })}
+                            placeholder="e.g. Galaxy S26 Ultra (leave blank for clean graphic banner)"
+                            className="w-full bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl text-white font-bold outline-none focus:border-blue-500 text-sm"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Heading Color
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={slide.heading_color || (slide.bg_type === "image" ? "#FFFFFF" : "#1D1D1F")}
+                              onChange={(e) => updateSlide(idx, { heading_color: e.target.value })}
+                              className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
+                            />
+                            <input
+                              type="text"
+                              value={slide.heading_color || (slide.bg_type === "image" ? "#FFFFFF" : "#1D1D1F")}
+                              onChange={(e) => updateSlide(idx, { heading_color: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 px-2 py-1.5 rounded-xl text-white font-mono text-[11px] uppercase outline-none"
+                            />
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Subtitle & Color */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                        <div className="sm:col-span-3">
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Subtitle / Description Overlay <span className="text-white/40 font-normal normal-case">(Optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={slide.subtitle || ""}
+                            onChange={(e) => updateSlide(idx, { subtitle: e.target.value })}
+                            placeholder="e.g. Power. Precision. Ultra Redefined."
+                            className="w-full bg-white/5 border border-white/10 px-3 py-2.5 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="block text-[10px] font-bold text-white/70 uppercase tracking-wider mb-1">
+                            Subtitle Color
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="color"
+                              value={slide.subtitle_color || (slide.bg_type === "image" ? "#E5E5E5" : "#6E6E73")}
+                              onChange={(e) => updateSlide(idx, { subtitle_color: e.target.value })}
+                              className="w-8 h-8 rounded-lg bg-transparent cursor-pointer border border-white/20 shrink-0"
+                            />
+                            <input
+                              type="text"
+                              value={slide.subtitle_color || (slide.bg_type === "image" ? "#E5E5E5" : "#6E6E73")}
+                              onChange={(e) => updateSlide(idx, { subtitle_color: e.target.value })}
+                              className="w-full bg-white/5 border border-white/10 px-2 py-1.5 rounded-xl text-white font-mono text-[11px] uppercase outline-none"
+                            />
+                          </div>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Images (Desktop & Mobile) */}
-                    <div className="space-y-3 pt-2 border-t border-white/10">
-                      <label className="block font-bold text-white/70 uppercase tracking-wider">
-                        Product Images (Transparent PNG or WebP Recommended)
-                      </label>
+                    {/* 4. Foreground Product Image (Transparent Cutout — Optional when using Full Background Image) */}
+                    <div className="space-y-3 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                      <div className="flex items-center justify-between">
+                        <label className="font-bold text-white/80 text-xs uppercase tracking-wider">
+                          Foreground Product Image (Transparent PNG / Cutout)
+                        </label>
+                        <span className="text-[10px] text-white/40 font-normal">
+                          {slide.bg_type === "image" ? "Optional if graphics are in background" : "Recommended PNG"}
+                        </span>
+                      </div>
 
                       {/* Desktop Image */}
                       <div className="flex items-start gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl">
@@ -753,7 +1157,7 @@ export default function ShowcaseTab({
                           {slide.desktop_image ? (
                             <img
                               src={slide.desktop_image}
-                              alt="Desktop"
+                              alt="Desktop cutout"
                               className="w-full h-full object-contain p-1"
                             />
                           ) : (
@@ -767,10 +1171,10 @@ export default function ShowcaseTab({
                         </div>
 
                         <div className="flex-1 space-y-2">
-                          <span className="text-[11px] font-bold text-white/80">Desktop Image (Primary)</span>
+                          <span className="text-[11px] font-bold text-white/80">Desktop Product Cutout</span>
                           <div className="flex items-center gap-2">
                             <label className="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl cursor-pointer transition-all shadow-md flex items-center gap-1.5 shrink-0">
-                              <Upload className="w-3.5 h-3.5" /> Upload
+                              <Upload className="w-3.5 h-3.5" /> Upload Cutout
                               <input
                                 type="file"
                                 accept="image/*"
@@ -784,22 +1188,22 @@ export default function ShowcaseTab({
                             </label>
                             <input
                               type="text"
-                              value={slide.desktop_image}
+                              value={slide.desktop_image || ""}
                               onChange={(e) => updateSlide(idx, { desktop_image: e.target.value })}
-                              placeholder="https://..."
+                              placeholder="Leave blank if whole design is inside background image"
                               className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-xl text-white outline-none font-mono text-[11px]"
                             />
                           </div>
                         </div>
                       </div>
 
-                      {/* Mobile Image (Optional) */}
+                      {/* Mobile Foreground Image */}
                       <div className="flex items-start gap-4 p-3 bg-white/5 border border-white/10 rounded-2xl">
                         <div className="w-20 h-20 rounded-xl bg-white/10 border border-white/10 overflow-hidden flex items-center justify-center shrink-0 relative">
                           {slide.mobile_image ? (
                             <img
                               src={slide.mobile_image}
-                              alt="Mobile"
+                              alt="Mobile cutout"
                               className="w-full h-full object-contain p-1"
                             />
                           ) : (
@@ -814,11 +1218,11 @@ export default function ShowcaseTab({
 
                         <div className="flex-1 space-y-2">
                           <span className="text-[11px] font-bold text-white/80">
-                            Mobile Image (Optional — falls back to desktop)
+                            Mobile Product Cutout (Optional)
                           </span>
                           <div className="flex items-center gap-2">
                             <label className="px-3 py-1.5 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl cursor-pointer transition-all flex items-center gap-1.5 shrink-0">
-                              <Upload className="w-3.5 h-3.5" /> Upload
+                              <Upload className="w-3.5 h-3.5" /> Upload Mobile
                               <input
                                 type="file"
                                 accept="image/*"
@@ -842,9 +1246,9 @@ export default function ShowcaseTab({
                       </div>
                     </div>
 
-                    {/* ── 3. Destination URL & Action Buttons Configuration ── */}
-                    <div className="space-y-3 pt-2 border-t border-white/10">
-                      <label className="block font-bold text-white/70 uppercase tracking-wider">
+                    {/* 5. Destination URL & Action Buttons Configuration */}
+                    <div className="space-y-3 p-4 bg-white/5 border border-white/10 rounded-2xl">
+                      <label className="block font-bold text-white/90 text-xs uppercase tracking-wider">
                         Destination Link &amp; CTA Buttons
                       </label>
 
@@ -859,11 +1263,11 @@ export default function ShowcaseTab({
                             type="text"
                             value={slide.primary_cta_url || ""}
                             onChange={(e) => updateSlide(idx, { primary_cta_url: e.target.value })}
-                            placeholder="/products/iphone-16-pro-max or /products"
+                            placeholder="/products/samsung-s26-ultra or /products"
                             className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-white font-mono outline-none focus:border-blue-500 text-[11px]"
                           />
                           <p className="text-[10px] text-white/40 mt-1">
-                            Clicking anywhere on the banner image navigates to this URL.
+                            Clicking the banner navigates to this URL.
                           </p>
                         </div>
 
@@ -884,13 +1288,13 @@ export default function ShowcaseTab({
                       {/* Secondary CTA (Outlined Button) */}
                       <div className="p-3 bg-white/5 border border-white/10 rounded-2xl space-y-3">
                         <div className="flex items-center justify-between">
-                          <span className="font-bold text-white/80">Secondary CTA (Outlined Button)</span>
+                          <span className="font-bold text-white/80 text-xs">Secondary CTA (Outlined Button)</span>
                           <button
                             type="button"
                             onClick={() =>
                               updateSlide(idx, { show_secondary_cta: slide.show_secondary_cta === false })
                             }
-                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all ${
+                            className={`px-3 py-1 rounded-full text-[10px] font-extrabold transition-all cursor-pointer ${
                               slide.show_secondary_cta !== false
                                 ? "bg-blue-500/20 text-blue-400 border border-blue-500/30"
                                 : "bg-white/10 text-white/40"
@@ -911,7 +1315,7 @@ export default function ShowcaseTab({
                                 value={slide.secondary_cta_text || ""}
                                 onChange={(e) => updateSlide(idx, { secondary_cta_text: e.target.value })}
                                 placeholder="Buy Now"
-                                className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-white outline-none focus:border-blue-500"
+                                className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
                               />
                             </div>
 
@@ -952,7 +1356,7 @@ export default function ShowcaseTab({
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                     previewDevice === "desktop" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -961,7 +1365,7 @@ export default function ShowcaseTab({
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 ${
+                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
                     previewDevice === "mobile" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
                   }`}
                 >
@@ -979,30 +1383,39 @@ export default function ShowcaseTab({
                     {getPlacementDisplay(previewSlide.placement)}
                   </span>
                 </div>
-                <span
-                  className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md shrink-0 ${
-                    previewSlide.enable_animation !== false && settings.enable_animation !== false
-                      ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
-                      : "bg-white/10 text-white/40"
-                  }`}
-                >
-                  {previewSlide.enable_animation !== false && settings.enable_animation !== false
-                    ? "✨ ANIMATION ON"
-                    : "ANIMATION OFF"}
-                </span>
+                <div className="flex items-center gap-1">
+                  {prevIsImageBg && (
+                    <span className="text-[10px] font-extrabold px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 border border-purple-500/30">
+                      BG IMAGE
+                    </span>
+                  )}
+                  <span
+                    className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md shrink-0 ${
+                      previewSlide.enable_animation !== false && settings.enable_animation !== false
+                        ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
+                        : "bg-white/10 text-white/40"
+                    }`}
+                  >
+                    {previewSlide.enable_animation !== false && settings.enable_animation !== false
+                      ? "✨ ANIMATION ON"
+                      : "ANIMATION OFF"}
+                  </span>
+                </div>
               </div>
             )}
 
-            {/* Preview Frame with Taller Height */}
+            {/* Preview Frame */}
             <div
-              className={`rounded-2xl overflow-hidden border border-white/10 mx-auto transition-all shadow-inner ${
+              className={`rounded-2xl overflow-hidden border border-white/10 mx-auto transition-all shadow-inner relative ${
                 previewDevice === "desktop" ? "w-full" : "max-w-xs"
               }`}
             >
               {previewSlide ? (
                 <div
                   style={
-                    previewSlide.bg_type === "color" && previewSlide.bg_color
+                    prevIsImageBg
+                      ? { backgroundColor: "#0A0A0A" }
+                      : previewSlide.bg_type === "color" && previewSlide.bg_color
                       ? { backgroundColor: previewSlide.bg_color }
                       : {
                           background: `linear-gradient(180deg, ${
@@ -1011,39 +1424,90 @@ export default function ShowcaseTab({
                         }
                   }
                   className={`p-4 sm:p-5 pb-0 flex flex-col ${
-                    prevHasHeader ? "justify-between" : "justify-center"
-                  } items-center text-center select-none min-h-[450px] sm:min-h-[480px]`}
+                    prevHasForeground ? "justify-between" : "justify-center py-10"
+                  } items-center select-none min-h-[450px] sm:min-h-[480px] relative overflow-hidden`}
                 >
-                  {/* Top Text (Rendered ONLY if title, subtitle, or button exists) */}
+                  {/* Full Background Image in Preview */}
+                  {prevIsImageBg && prevBgImageUrl && (
+                    <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none z-0">
+                      <img
+                        src={prevBgImageUrl}
+                        alt="Preview background"
+                        className="w-full h-full object-cover"
+                      />
+                      {prevOverlayOpacity > 0 && (
+                        <div
+                          className="absolute inset-0 pointer-events-none"
+                          style={{
+                            backgroundColor: prevOverlayColor,
+                            opacity: prevOverlayOpacity,
+                          }}
+                        />
+                      )}
+                    </div>
+                  )}
+
+                  {/* Top / Overlaid Text Block */}
                   {prevHasHeader && (
-                    <div className="space-y-1.5 z-10 mb-1">
+                    <div className={`space-y-1.5 z-10 mb-1 w-full flex flex-col ${prevAlignClass}`}>
+                      {/* Eyebrow Badge */}
+                      {prevHasEyebrow && (
+                        <span
+                          className="text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider mb-0.5 shadow-sm"
+                          style={{
+                            backgroundColor: previewSlide.eyebrow_bg || "#000000",
+                            color: previewSlide.eyebrow_color || "#FFFFFF",
+                          }}
+                        >
+                          {previewSlide.eyebrow}
+                        </span>
+                      )}
+
+                      {/* Main Title */}
                       {prevHasTitle && (
                         <h4
-                          className="font-bold text-xl sm:text-2xl tracking-tight"
-                          style={{ color: previewSlide.heading_color || "#1D1D1F" }}
+                          className="font-bold text-xl sm:text-2xl tracking-tight leading-tight"
+                          style={{
+                            color:
+                              previewSlide.heading_color ||
+                              (prevIsImageBg ? "#FFFFFF" : "#1D1D1F"),
+                          }}
                         >
                           {previewSlide.title}
                         </h4>
                       )}
+
+                      {/* Subtitle */}
                       {prevHasSubtitle && (
                         <p
-                          className="text-xs sm:text-sm font-normal max-w-xs mx-auto"
-                          style={{ color: previewSlide.subtitle_color || "#6E6E73" }}
+                          className="text-xs sm:text-sm font-normal max-w-xs"
+                          style={{
+                            color:
+                              previewSlide.subtitle_color ||
+                              (prevIsImageBg ? "#E5E5E5" : "#6E6E73"),
+                          }}
                         >
                           {previewSlide.subtitle}
                         </p>
                       )}
 
-                      {/* Buttons */}
+                      {/* CTA Buttons */}
                       {prevHasButtons && (
-                        <div className="flex items-center justify-center gap-2 pt-1">
+                        <div className={`flex items-center gap-2 pt-1.5 ${prevButtonsJustify}`}>
                           {prevHasPrimaryCta && (
-                            <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-neutral-900 text-white">
+                            <span className="px-4 py-1.5 rounded-full text-xs font-medium bg-neutral-900 text-white shadow-sm">
                               {previewSlide.primary_cta_text}
                             </span>
                           )}
                           {prevHasSecondaryCta && (
-                            <span className="px-4 py-1.5 rounded-full text-xs font-medium border border-neutral-900/30 text-neutral-900 bg-white/60">
+                            <span
+                              className="px-4 py-1.5 rounded-full text-xs font-medium border border-current/30 backdrop-blur-xs bg-white/20"
+                              style={{
+                                color:
+                                  previewSlide.heading_color ||
+                                  (prevIsImageBg ? "#FFFFFF" : "#1D1D1F"),
+                              }}
+                            >
                               {previewSlide.secondary_cta_text}
                             </span>
                           )}
@@ -1052,11 +1516,9 @@ export default function ShowcaseTab({
                     </div>
                   )}
 
-                  {/* Product Image (Rests flush on bottom rim & right under buttons) */}
-                  <div
-                    className="relative w-full flex-1 flex items-end justify-center mt-1 pb-0 overflow-visible"
-                  >
-                    {previewSlide.desktop_image ? (
+                  {/* Product Cutout Image (Rendered only if provided) */}
+                  {prevHasForeground && (
+                    <div className="relative w-full flex-1 flex items-end justify-center mt-1 pb-0 overflow-visible z-10">
                       <img
                         src={
                           previewDevice === "mobile" && previewSlide.mobile_image
@@ -1065,13 +1527,11 @@ export default function ShowcaseTab({
                         }
                         alt="preview"
                         className={`w-auto h-auto max-w-[98%] ${
-                          prevHasHeader ? "max-h-[300px] sm:max-h-[340px]" : "max-h-[340px] sm:max-h-[380px]"
-                        } object-contain object-bottom block drop-shadow-[0_15px_25px_rgba(0,0,0,0.1)]`}
+                          prevHasHeader ? "max-h-[280px] sm:max-h-[320px]" : "max-h-[340px] sm:max-h-[380px]"
+                        } object-contain object-bottom block drop-shadow-[0_15px_25px_rgba(0,0,0,0.15)]`}
                       />
-                    ) : (
-                      <span className="text-xs text-neutral-400 pb-8">No Image Uploaded</span>
-                    )}
-                  </div>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <div className="p-10 text-center text-neutral-400 text-xs">No active slide to preview</div>
@@ -1086,7 +1546,7 @@ export default function ShowcaseTab({
                     key={i}
                     type="button"
                     onClick={() => setActiveSlideIndex(i)}
-                    className={`h-1.5 rounded-full transition-all ${
+                    className={`h-1.5 rounded-full transition-all cursor-pointer ${
                       activeSlideIndex === i ? "w-6 bg-blue-500" : "w-1.5 bg-white/20 hover:bg-white/40"
                     }`}
                   />

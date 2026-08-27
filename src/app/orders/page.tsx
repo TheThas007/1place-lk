@@ -21,6 +21,7 @@ import { useAuth } from "@/lib/auth-context";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { formatPrice } from "@/lib/utils";
+import UserAvatar from "@/components/ui/UserAvatar";
 
 interface OrderItem {
   productId: string;
@@ -117,7 +118,7 @@ function getDeliveryEstimate(createdAtStr: string, status: string) {
 }
 
 export default function OrderHistoryPage() {
-  const { user } = useAuth();
+  const { user, profile, gender, updateGender } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [phoneSearch, setPhoneSearch] = useState("");
@@ -253,7 +254,7 @@ export default function OrderHistoryPage() {
       <div className="max-w-4xl mx-auto px-4 lg:px-6">
         
         {/* Header */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
           <div>
             <Link
               href="/products"
@@ -262,10 +263,10 @@ export default function OrderHistoryPage() {
               <ArrowLeft className="w-3.5 h-3.5" /> Continue Shopping
             </Link>
             <h1 className="text-3xl font-black text-gray-900 flex items-center gap-2">
-              <Package className="w-8 h-8 text-black" /> My Order History
+              <Package className="w-8 h-8 text-black" /> My Account &amp; Orders
             </h1>
             <p className="text-sm text-gray-400 mt-1">
-              Track live order statuses and estimated delivery dates
+              Track live order statuses and manage your account
             </p>
           </div>
 
@@ -279,6 +280,31 @@ export default function OrderHistoryPage() {
             <MessageCircle className="w-4 h-4" /> Order Help
           </a>
         </div>
+
+        {/* Logged-In User Profile Card with Avatar & Gender Switcher */}
+        {user && (
+          <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <UserAvatar
+                gender={gender || profile?.gender || "male"}
+                name={user.displayName || "User"}
+                size="xl"
+                showBadge
+              />
+              <div>
+                <h3 className="text-base font-extrabold text-gray-900">
+                  {user.displayName || "Customer"}
+                </h3>
+                <p className="text-xs text-gray-500 font-mono mt-0.5">{user.email}</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-800 border border-neutral-200">
+                    {(gender || profile?.gender) === "female" ? "👩 Female Account" : "👨 Male Account"}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Track Order Search Box (Always visible for all users) */}
         <div className="bg-white border border-gray-100 rounded-3xl p-6 mb-8 shadow-sm">

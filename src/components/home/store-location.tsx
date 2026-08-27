@@ -77,32 +77,21 @@ export default function StoreLocation() {
           </div>
 
           {/* Google Maps Live Frame */}
-          <div className="relative w-full h-[180px] rounded-xl overflow-hidden bg-neutral-950 border border-neutral-200/80 shadow-xs">
-            {loadMap ? (
-              <iframe
-                title="STREET MOBILE Google Maps Location Mobile"
-                src={settings.google_maps_embed}
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen={true}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="w-full h-full block"
-              />
-            ) : (
-              <div className="w-full h-full flex flex-col items-center justify-center bg-neutral-900 text-white p-4 text-center">
-                <MapPin className="w-6 h-6 text-white/80 mb-1.5 animate-bounce" />
-                <p className="text-xs text-neutral-300 font-medium mb-2">Street Mobile — Vavuniya</p>
-                <button
-                  type="button"
-                  onClick={() => setLoadMap(true)}
-                  className="px-3.5 py-1 rounded-full bg-white text-black text-[11px] font-bold shadow-xs active:scale-95 transition-transform"
-                >
-                  Load Google Map
-                </button>
-              </div>
-            )}
+          <div className="relative w-full h-[200px] rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/80 shadow-xs">
+            <iframe
+              title="STREET MOBILE Google Maps Location Mobile"
+              src={
+                settings.google_maps_embed ||
+                "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed"
+              }
+              width="100%"
+              height="100%"
+              style={{ border: 0 }}
+              allowFullScreen={true}
+              loading="lazy"
+              referrerPolicy="no-referrer-when-downgrade"
+              className="w-full h-full block"
+            />
           </div>
 
           {/* Store Details List */}
@@ -194,33 +183,20 @@ export default function StoreLocation() {
           <div className="grid lg:grid-cols-2">
             {/* Map Area */}
             <div className="h-[400px] lg:h-auto bg-gray-900 relative overflow-hidden min-h-[350px] flex items-center justify-center">
-              <div className="absolute inset-0 bg-black/5 mix-blend-multiply z-10 pointer-events-none" />
-              {loadMap ? (
-                <iframe
-                  title="STREET MOBILE Google Maps Location"
-                  src={settings.google_maps_embed}
-                  width="100%"
-                  height="100%"
-                  style={{ border: 0 }}
-                  allowFullScreen={true}
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                  className="absolute inset-0 grayscale contrast-125 opacity-90 hover:grayscale-0 transition-all duration-1000 z-0"
-                />
-              ) : (
-                <div className="text-center p-6 z-0">
-                  <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mx-auto mb-3 text-emerald-400">
-                    <MapPin className="w-6 h-6" />
-                  </div>
-                  <p className="text-zinc-400 text-sm mb-4">Click below or scroll to load Google Maps</p>
-                  <button
-                    onClick={() => setLoadMap(true)}
-                    className="px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white text-xs font-semibold transition-all"
-                  >
-                    Load Map
-                  </button>
-                </div>
-              )}
+              <iframe
+                title="STREET MOBILE Google Maps Location"
+                src={
+                  settings.google_maps_embed ||
+                  "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed"
+                }
+                width="100%"
+                height="100%"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+                className="absolute inset-0 grayscale-0 opacity-100 transition-all duration-500 z-0"
+              />
             </div>
 
             {/* Info Area */}

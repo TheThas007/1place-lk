@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef, useMemo } from "react";
+import React, { useRef, useMemo, useState, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useTexture, OrthographicCamera } from "@react-three/drei";
 import * as THREE from "three";
@@ -395,8 +395,14 @@ function ScrollDissolveContent({
   children?: React.ReactNode;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: isMounted ? containerRef : undefined,
     offset: ["start start", "end end"],
     ...(scrollContainerRef && { container: scrollContainerRef })
   });

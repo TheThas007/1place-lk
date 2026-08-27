@@ -239,9 +239,13 @@ export default function HeroSection() {
     return lower.includes("whatsapp") || lower.includes("wa.me") || lower.includes("api.whatsapp");
   };
 
+  const hideAllMobile = currentSlide.hide_content_on_mobile === true;
+  const hideTextMobile = hideAllMobile || currentSlide.hide_text_on_mobile === true;
+  const hideButtonsMobile = hideAllMobile || currentSlide.hide_buttons_on_mobile === true;
+
   return (
     <>
-      {/* ── Mobile Hero Banner (Fixed 16:9 Aspect Ratio, Full-Width Edge-to-Edge with Text Overlay) ── */}
+      {/* ── Mobile Hero Banner (Fixed 16:9 Aspect Ratio, Full-Width Edge-to-Edge with Text/Clean Overlay) ── */}
       <section
         className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
         aria-label="Mobile Featured Hero Showcase"
@@ -252,16 +256,16 @@ export default function HeroSection() {
         <div className="relative w-full aspect-[16/9] overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white">
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
-            <AnimatePresence mode="wait" custom={direction}>
+            <AnimatePresence mode="popLayout" custom={direction} initial={false}>
               <motion.img
                 key={currentSlide.id || currentIndex}
-                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, x: direction * 30, scale: 1.02 }}
+                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * 50, scale: 1.03 }}
                 animate={{ opacity: 1, x: 0, scale: 1.0 }}
-                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0.7, x: direction * -30 }}
-                transition={{ duration: 0.5, ease: "easeOut" }}
+                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * -50, scale: 0.98 }}
+                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
                 src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
                 alt={currentSlide.alt || line1Text || "Latest Smartphones"}
-                className="w-full h-full object-cover"
+                className="w-full h-full object-cover will-change-transform"
                 style={{
                   objectPosition: currentSlide.mobile_image_position || currentSlide.desktop_image_position || "center",
                 }}
@@ -271,52 +275,71 @@ export default function HeroSection() {
               />
             </AnimatePresence>
 
-            {/* Subtle transparent dark gradient on left for text readability while keeping product image clearly visible on the right */}
-            <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-60% to-transparent z-10 pointer-events-none" />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
-          </div>
-
-          {/* Left Text & CTA Content Overlay (Max 66% width to leave right product image clear) */}
-          <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4">
-            {currentSlide.show_badge !== false && (
-              <span
-                className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
-              >
-                {currentSlide.campaign_label || "NEW ARRIVAL"}
-              </span>
+            {/* Subtle transparent dark gradient on left only if text is visible */}
+            {!hideAllMobile && !hideTextMobile && (
+              <>
+                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-60% to-transparent z-10 pointer-events-none" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
+              </>
             )}
 
-            {/* Responsive Clamp Heading: Max 3 lines */}
-            <h1
-              className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
-              style={{ color: line1Color }}
-            >
-              {line1Text || "Latest Smartphones."}
-              {line2Text ? <br /> : " "}
-              {line2Text || "Ultimate Performance."}
-            </h1>
-
-            {/* Full Subtitle in max 2 lines */}
-            {currentSlide.show_description !== false && currentSlide.description && (
-              <p
-                className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
-                style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
-              >
-                {currentSlide.description}
-              </p>
-            )}
-
-            {/* Compact 44–48px CTA Button */}
-            {currentSlide.show_primary_button !== false && (
+            {/* Clickable Full Banner overlay link when all text is hidden */}
+            {hideAllMobile && currentSlide.primary_button_url && (
               <Link
-                href={currentSlide.primary_button_url || "/products"}
-                className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
-              >
-                <span>{currentSlide.primary_button_text || "Shop Now"}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
-              </Link>
+                href={currentSlide.primary_button_url}
+                className="absolute inset-0 z-10 block cursor-pointer"
+                aria-label={currentSlide.alt || "Hero Banner"}
+              />
             )}
           </div>
+
+          {/* Left Text & CTA Content Overlay (Only if not hidden on mobile) */}
+          {!hideAllMobile && (
+            <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4">
+              {!hideTextMobile && (
+                <>
+                  {currentSlide.show_badge !== false && (
+                    <span
+                      className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
+                    >
+                      {currentSlide.campaign_label || "NEW ARRIVAL"}
+                    </span>
+                  )}
+
+                  {/* Responsive Clamp Heading: Max 3 lines */}
+                  <h1
+                    className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
+                    style={{ color: line1Color }}
+                  >
+                    {line1Text || "Latest Smartphones."}
+                    {line2Text ? <br /> : " "}
+                    {line2Text || "Ultimate Performance."}
+                  </h1>
+
+                  {/* Full Subtitle in max 2 lines */}
+                  {currentSlide.show_description !== false && currentSlide.description && (
+                    <p
+                      className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
+                      style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
+                    >
+                      {currentSlide.description}
+                    </p>
+                  )}
+                </>
+              )}
+
+              {/* Compact 44–48px CTA Button */}
+              {!hideButtonsMobile && currentSlide.show_primary_button !== false && (
+                <Link
+                  href={currentSlide.primary_button_url || "/products"}
+                  className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
+                >
+                  <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              )}
+            </div>
+          )}
 
           {/* Fixed Bottom-Left Slider Indicator Dots (No overlap with content) */}
           {slides.length > 1 && (
@@ -358,21 +381,18 @@ export default function HeroSection() {
       >
       {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
       <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
-        <AnimatePresence mode="wait" custom={direction}>
+        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
           <motion.div
             key={currentSlide.id || currentIndex}
-            initial={{ opacity: 0, x: direction * 40 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * -40 }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 w-full h-full"
+            initial={{ opacity: 0, scale: 1.04, x: direction * 60 }}
+            animate={{ opacity: 1, scale: 1, x: 0 }}
+            exit={{ opacity: 0, scale: 0.98, x: direction * -60 }}
+            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+            className="absolute inset-0 w-full h-full will-change-transform"
           >
             {/* Desktop Background Image with subtle cinematic scale */}
-            <motion.img
+            <img
               key={`img-desktop-${currentIndex}`}
-              initial={{ scale: 1.02 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
               src={desktopBg}
               alt={currentSlide.alt || line1Text || "Hero Banner"}
               className="hidden lg:block w-full h-full object-cover"
@@ -381,11 +401,8 @@ export default function HeroSection() {
               }}
             />
             {/* Mobile Background Image */}
-            <motion.img
+            <img
               key={`img-mobile-${currentIndex}`}
-              initial={{ scale: 1.02 }}
-              animate={{ scale: 1 }}
-              transition={{ duration: 0.8, ease: "easeOut" }}
               src={mobileBg}
               alt={currentSlide.alt || line1Text || "Hero Banner"}
               className="lg:hidden w-full h-full object-cover"

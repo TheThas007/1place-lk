@@ -107,17 +107,6 @@ export default function CartClient() {
           )}
         </div>
 
-        {/* ── Trust Banner: Genuine Guarantee & Fast Delivery ── */}
-        {cart.length > 0 && (
-          <div className="mb-5 p-3 sm:p-3.5 bg-neutral-50 border border-neutral-200/90 rounded-2xl flex items-center justify-between gap-3 text-xs text-neutral-700">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-neutral-900 shrink-0" />
-              <span className="font-semibold">100% Genuine Sri Lankan Warranty Included</span>
-            </div>
-            <span className="text-[11px] text-neutral-500 hidden sm:inline">Islandwide Safe Delivery</span>
-          </div>
-        )}
-
         {cart.length === 0 ? (
           <div className="text-center py-16 sm:py-20 bg-[#FAFAFA] border border-[#EAEAEA] rounded-3xl max-w-xl mx-auto p-6 sm:p-8">
             <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">

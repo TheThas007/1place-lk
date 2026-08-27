@@ -13,6 +13,7 @@ import SearchOverlay from "@/components/ui/SearchOverlay";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import AnnouncementBar from "@/components/ui/AnnouncementBar";
 import CampaignPopup from "@/components/ui/CampaignPopup";
+import GenderPromptModal from "@/components/auth/GenderPromptModal";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import Script from "next/script";
 
@@ -91,6 +92,7 @@ export default function RootLayout({
                   <StreetAssistant />
                   <SearchOverlay />
                   <CampaignPopup />
+                  <GenderPromptModal />
                 </SmoothScrollProvider>
               </ToastProvider>
             </WishlistProvider>

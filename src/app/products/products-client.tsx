@@ -7,16 +7,10 @@ import {
   SlidersHorizontal,
   X,
   Package,
-  RotateCcw,
   LayoutGrid,
   List,
   ChevronLeft,
   ChevronRight,
-  Filter,
-  Check,
-  Search,
-  ArrowUpDown,
-  Sparkles,
 } from "lucide-react";
 import { Product, Category, Brand } from "@/lib/types";
 import ProductCard from "@/components/products/ProductCard";
@@ -45,6 +39,20 @@ function getEffectivePrice(p: Product): number {
     return p.sale_price;
   }
   return p.price || 0;
+}
+
+// Windowed desktop pagination generator
+function getPaginationItems(current: number, total: number): (number | "...")[] {
+  if (total <= 7) {
+    return Array.from({ length: total }, (_, i) => i + 1);
+  }
+  if (current <= 4) {
+    return [1, 2, 3, 4, 5, "...", total];
+  }
+  if (current >= total - 3) {
+    return [1, "...", total - 4, total - 3, total - 2, total - 1, total];
+  }
+  return [1, "...", current - 1, current, current + 1, "...", total];
 }
 
 export default function ProductsClient({
@@ -96,7 +104,6 @@ export default function ProductsClient({
     const p = searchParams.get("page");
     return p ? Math.max(1, parseInt(p)) : 1;
   });
-  const [mobileVisibleCount, setMobileVisibleCount] = useState(ITEMS_PER_PAGE);
 
   /* ── 5. Mobile Filter Drawer ── */
   const [showMobileFilters, setShowMobileFilters] = useState(false);
@@ -416,13 +423,13 @@ export default function ProductsClient({
   };
 
   return (
-    <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
-      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-4 sm:pt-6">
+    <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24 w-full">
+      <div className="max-w-[1440px] px-3 sm:px-6 lg:px-8 mx-auto pt-2 sm:pt-6 w-full">
         
-        {/* ── 1. Breadcrumb ── */}
+        {/* ── 1. Breadcrumb (Desktop Only) ── */}
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-4 select-none"
+          className="hidden sm:flex items-center gap-2 text-xs font-medium text-neutral-500 mb-4 select-none"
         >
           <Link href="/" className="hover:text-black transition-colors">
             Home
@@ -431,62 +438,8 @@ export default function ProductsClient({
           <span className="text-black font-bold">Shop All</span>
         </nav>
 
-        {/* ── 2. Page Header & Mobile Search Bar (Top Search on Mobile) ── */}
-        <div className="mb-4 sm:mb-6">
-          <div className="flex flex-col sm:flex-row sm:items-baseline justify-between gap-1 mb-3 sm:mb-2">
-            <h1 className="text-2xl sm:text-4xl font-extrabold text-neutral-900 tracking-tight">
-              Shop All Products
-            </h1>
-            <p className="text-xs sm:text-sm text-neutral-500 font-medium">
-              Discover genuine smartphones, laptops and official accessories.
-            </p>
-          </div>
-
-          {/* ── Mobile Top Search Bar (Dedicated Mobile Search UI) ── */}
-          <div className="mt-2 mb-3.5 block">
-            <div className="relative flex items-center w-full">
-              <div className="absolute left-3.5 text-neutral-400 pointer-events-none flex items-center">
-                <Search className="w-4 h-4" />
-              </div>
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setCurrentPage(1);
-                  updateUrlParams({ search: e.target.value.trim() || null, page: null });
-                }}
-                placeholder="Search phones, laptops, audio, accessories..."
-                className="w-full h-11 sm:h-12 pl-10 pr-10 text-xs sm:text-sm font-medium bg-[#F5F5F7] hover:bg-[#EFEFF2] focus:bg-white text-neutral-900 placeholder:text-neutral-400 border border-neutral-200/80 focus:border-black rounded-2xl outline-none transition-all shadow-2xs focus:ring-2 focus:ring-black/10"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSearchQuery("");
-                    setCurrentPage(1);
-                    updateUrlParams({ search: null, page: null });
-                  }}
-                  className="absolute right-3 p-1 rounded-full bg-neutral-200 hover:bg-neutral-300 text-neutral-600 transition-colors cursor-pointer"
-                  title="Clear Search"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
-            </div>
-            {searchQuery.trim() && (
-              <div className="flex items-center justify-between text-[11px] text-neutral-500 mt-1.5 px-1 font-medium">
-                <span>
-                  Showing results for <strong className="text-neutral-900">"{searchQuery.trim()}"</strong>
-                </span>
-                <span>{filteredProducts.length} items found</span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* ── 3. Primary Category Tabs (Sleek Horizontal Scroll on Mobile & Desktop) ── */}
-        <div className="flex items-center justify-start border-b border-neutral-200 mb-4 sm:mb-6 overflow-x-auto whitespace-nowrap scrollbar-none -mx-4 px-4 sm:mx-0 sm:px-0">
+        {/* ── 2. Primary Category Tabs ── */}
+        <div className="flex items-center justify-start border-b border-neutral-200 mb-4 sm:mb-6 overflow-x-auto whitespace-nowrap scrollbar-none">
           <div className="flex items-center gap-1.5 sm:gap-4 pb-2 sm:pb-0">
             {PRIMARY_CATEGORY_TABS.map((tab) => {
               const isActive = activePrimaryTab === tab.id;
@@ -508,7 +461,7 @@ export default function ProductsClient({
           </div>
         </div>
 
-        {/* ── 4. Compact Toolbar Row ── */}
+        {/* ── 3. Compact Toolbar Row ── */}
         <div className="flex items-center justify-between gap-2.5 mb-4 sm:mb-6 flex-wrap">
           {/* Left: Filtered Count */}
           <div className="text-xs sm:text-sm font-bold text-neutral-800 flex items-center gap-1.5">
@@ -518,7 +471,7 @@ export default function ProductsClient({
             </span>
           </div>
 
-          {/* Right: Filters Button, In Stock, Sort, View Toggle */}
+          {/* Right: Filters Button, Sort, View Toggle */}
           <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
             {/* Filters Button (Mobile & Desktop Toggle) */}
             <button
@@ -537,23 +490,6 @@ export default function ProductsClient({
                   {activeChips.length}
                 </span>
               )}
-            </button>
-
-            {/* In Stock Toggle */}
-            <button
-              type="button"
-              onClick={handleToggleInStock}
-              className={`px-3 sm:px-3.5 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
-                inStockOnly
-                  ? "bg-neutral-900 text-white border-neutral-900"
-                  : "bg-white text-neutral-700 border-neutral-200/90 hover:bg-neutral-50"
-              }`}
-            >
-              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
-                {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
-              </span>
-              <span className="hidden sm:inline">In Stock</span>
-              <span className="sm:hidden">Stock</span>
             </button>
 
             {/* Sort Dropdown */}
@@ -597,7 +533,7 @@ export default function ProductsClient({
           </div>
         </div>
 
-        {/* ── 5. Active Filter Chips Row ── */}
+        {/* ── 4. Active Filter Chips Row ── */}
         {activeChips.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap mb-6 pb-2">
             <span className="text-xs font-bold text-neutral-500">Active Filters:</span>
@@ -627,11 +563,11 @@ export default function ProductsClient({
           </div>
         )}
 
-        {/* ── 6. Two-Column Layout (Sidebar + Product Grid) ── */}
+        {/* ── 5. Two-Column Layout (Sidebar + Product Grid) ── */}
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           
           {/* Desktop Filter Sidebar (240px wide, sticky below navbar) */}
-          <aside className="hidden lg:block w-[240px] shrink-0 sticky top-28 self-start bg-white">
+          <aside className="hidden lg:block w-[240px] shrink-0 sticky top-28 self-start bg-white max-h-[calc(100vh-8rem)] overflow-y-auto overscroll-contain pr-1 scrollbar-thin">
             <ShopFilterSidebar {...sidebarProps} />
           </aside>
 
@@ -672,45 +608,84 @@ export default function ProductsClient({
                   ))}
                 </div>
 
-                {/* ── 7. Desktop Pagination Controls ── */}
+                {/* ── 6. Pagination Controls ── */}
                 {totalPages > 1 && (
-                  <div className="mt-12 pt-6 border-t border-neutral-200 flex items-center justify-between">
-                    <button
-                      type="button"
-                      disabled={currentPage === 1}
-                      onClick={() => handlePageChange(currentPage - 1)}
-                      className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
-                    >
-                      <ChevronLeft className="w-3.5 h-3.5" />
-                      <span>Previous</span>
-                    </button>
+                  <div className="mt-12 pt-6 border-t border-neutral-200 w-full">
+                    {/* Mobile Compact Pagination (< sm) */}
+                    <div className="flex sm:hidden items-center justify-between gap-2 w-full">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        className="px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 transition-colors shadow-2xs"
+                      >
+                        <ChevronLeft className="w-4 h-4" />
+                        <span>Prev</span>
+                      </button>
 
-                    <div className="flex items-center gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => (
-                        <button
-                          key={pageNum}
-                          type="button"
-                          onClick={() => handlePageChange(pageNum)}
-                          className={`w-8 h-8 rounded-lg text-xs font-bold transition-all ${
-                            currentPage === pageNum
-                              ? "bg-black text-white shadow-xs"
-                              : "text-neutral-600 hover:bg-neutral-100"
-                          }`}
-                        >
-                          {pageNum}
-                        </button>
-                      ))}
+                      <span className="text-xs font-extrabold text-neutral-800 font-mono">
+                        Page {currentPage} of {totalPages}
+                      </span>
+
+                      <button
+                        type="button"
+                        disabled={currentPage === totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        className="px-3.5 py-2 rounded-xl border border-neutral-200 text-xs font-bold text-neutral-700 bg-white hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1 transition-colors shadow-2xs"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-4 h-4" />
+                      </button>
                     </div>
 
-                    <button
-                      type="button"
-                      disabled={currentPage === totalPages}
-                      onClick={() => handlePageChange(currentPage + 1)}
-                      className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
-                    >
-                      <span>Next</span>
-                      <ChevronRight className="w-3.5 h-3.5" />
-                    </button>
+                    {/* Desktop Pagination (>= sm) - Exact Original Layout */}
+                    <div className="hidden sm:flex items-center justify-between w-full">
+                      <button
+                        type="button"
+                        disabled={currentPage === 1}
+                        onClick={() => handlePageChange(currentPage - 1)}
+                        className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                      >
+                        <ChevronLeft className="w-3.5 h-3.5" />
+                        <span>Previous</span>
+                      </button>
+
+                      <div className="flex items-center gap-1">
+                        {getPaginationItems(currentPage, totalPages).map((item, idx) => (
+                          item === "..." ? (
+                            <span
+                              key={`dots-${idx}`}
+                              className="w-8 h-8 flex items-center justify-center text-xs text-neutral-400 font-bold select-none"
+                            >
+                              ...
+                            </span>
+                          ) : (
+                            <button
+                              key={item}
+                              type="button"
+                              onClick={() => handlePageChange(item as number)}
+                              className={`w-8 h-8 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                currentPage === item
+                                  ? "bg-black text-white shadow-xs"
+                                  : "text-neutral-600 hover:bg-neutral-100"
+                              }`}
+                            >
+                              {item}
+                            </button>
+                          )
+                        ))}
+                      </div>
+
+                      <button
+                        type="button"
+                        disabled={currentPage === totalPages}
+                        onClick={() => handlePageChange(currentPage + 1)}
+                        className="px-4 py-2 rounded-lg border border-neutral-200 text-xs font-bold text-neutral-700 hover:bg-neutral-50 disabled:opacity-30 disabled:cursor-not-allowed flex items-center gap-1.5 transition-colors"
+                      >
+                        <span>Next</span>
+                        <ChevronRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
@@ -720,7 +695,7 @@ export default function ProductsClient({
 
       </div>
 
-      {/* ── 8. Mobile Filter Full-Height Bottom Sheet / Drawer ── */}
+      {/* ── 7. Mobile Filter Full-Height Bottom Sheet / Drawer ── */}
       {showMobileFilters && (
         <div className="fixed inset-0 z-50 lg:hidden flex flex-col justify-end">
           {/* Backdrop */}

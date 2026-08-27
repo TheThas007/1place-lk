@@ -640,9 +640,6 @@ export default function ProductDetailClient({
                 </Link>
               )}
             </div>
-            <span className="text-[11px] font-mono text-neutral-400">
-              SKU: {currentSku}
-            </span>
           </div>
 
           <h1 className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mb-2 leading-tight">
@@ -725,9 +722,6 @@ export default function ProductDetailClient({
                     </Link>
                   )}
                 </div>
-                <span className="text-xs font-mono text-gray-400">
-                  SKU: {currentSku}
-                </span>
               </div>
 
               {/* Desktop Title */}

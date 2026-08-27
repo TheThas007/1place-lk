@@ -427,44 +427,45 @@ export default function ReviewsSection({
     };
   }, [currentSettings, effectiveDirection, isReducedMotion, baseItems]);
 
-  const [isMobileReviewsPaused, setIsMobileReviewsPaused] = useState(false);
+  // Mobile Continuous Auto-Scroll + Touch/Finger Swipe Engine
+  const mobileScrollRef = useRef<HTMLDivElement>(null);
+  const [isMobileInteracting, setIsMobileInteracting] = useState(false);
   const [isInViewport, setIsInViewport] = useState(true);
-  const [durationSec, setDurationSec] = useState<number>(75);
-  const mobileContainerRef = useRef<HTMLDivElement>(null);
-  const sequence1Ref = useRef<HTMLDivElement>(null);
+  const mobileResumeTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isDraggingMobileRef = useRef(false);
+  const mobileDragStartXRef = useRef(0);
+  const mobileDragMovedRef = useRef(0);
 
-  // Dynamic duration calculation: 10 pixels per second (Left to Right)
-  const updateDuration = useCallback(() => {
-    if (sequence1Ref.current) {
-      const width = sequence1Ref.current.offsetWidth || sequence1Ref.current.scrollWidth;
-      if (width > 0) {
-        const calculated = width / 10;
-        setDurationSec(Math.round(calculated * 10) / 10);
+  const mobileReviews = useMemo(() => {
+    if (displayReviews.length === 0) return [];
+    if (displayReviews.length >= 4) return displayReviews;
+    const repeated: Review[] = [];
+    while (repeated.length < 4) {
+      repeated.push(...displayReviews);
+    }
+    return repeated;
+  }, [displayReviews]);
+
+  // Tripled list for seamless infinite loop
+  const mobileTripledReviews = useMemo(() => {
+    if (mobileReviews.length === 0) return [];
+    return [...mobileReviews, ...mobileReviews, ...mobileReviews];
+  }, [mobileReviews]);
+
+  // Set initial scroll to center set for bidirectional seamless swiping
+  useEffect(() => {
+    if (mobileScrollRef.current) {
+      const container = mobileScrollRef.current;
+      const singleSetWidth = container.scrollWidth / 3;
+      if (singleSetWidth > 0 && container.scrollLeft === 0) {
+        container.scrollLeft = singleSetWidth;
       }
     }
-  }, []);
+  }, [mobileTripledReviews]);
 
+  // Mobile IntersectionObserver
   useEffect(() => {
-    updateDuration();
-    const el = sequence1Ref.current;
-    let ro: ResizeObserver | null = null;
-    if (el && typeof ResizeObserver !== "undefined") {
-      ro = new ResizeObserver(() => updateDuration());
-      ro.observe(el);
-    }
-
-    window.addEventListener("resize", updateDuration);
-    window.addEventListener("load", updateDuration);
-
-    return () => {
-      if (ro) ro.disconnect();
-      window.removeEventListener("resize", updateDuration);
-      window.removeEventListener("load", updateDuration);
-    };
-  }, [updateDuration]);
-
-  useEffect(() => {
-    const el = mobileContainerRef.current;
+    const el = mobileScrollRef.current;
     if (!el || typeof IntersectionObserver === "undefined") return;
 
     const observer = new IntersectionObserver(
@@ -486,17 +487,70 @@ export default function ReviewsSection({
     };
   }, []);
 
-  const mobileReviews = useMemo(() => {
-    if (displayReviews.length === 0) return [];
-    if (displayReviews.length >= 4) return displayReviews;
-    const repeated: Review[] = [];
-    while (repeated.length < 4) {
-      repeated.push(...displayReviews);
-    }
-    return repeated;
-  }, [displayReviews]);
+  // ── Mobile Auto-Scroll Loop (requestAnimationFrame) ──
+  useEffect(() => {
+    if (isReducedMotion || mobileTripledReviews.length <= 1) return;
 
-  // Pointer drag & touch swipe handlers
+    let animId: number;
+
+    const tick = () => {
+      if (mobileScrollRef.current && !isMobileInteracting && isInViewport) {
+        const container = mobileScrollRef.current;
+        // Direction: opposite movement or right-to-left
+        const speed = effectiveDirection === "left" ? 0.75 : -0.75;
+        container.scrollLeft += speed;
+
+        const singleSetWidth = container.scrollWidth / 3;
+        if (singleSetWidth > 0) {
+          if (container.scrollLeft >= singleSetWidth * 2) {
+            container.scrollLeft -= singleSetWidth;
+          } else if (container.scrollLeft <= 0) {
+            container.scrollLeft += singleSetWidth;
+          }
+        }
+      }
+      animId = requestAnimationFrame(tick);
+    };
+
+    animId = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(animId);
+  }, [isMobileInteracting, isInViewport, isReducedMotion, mobileTripledReviews.length, effectiveDirection]);
+
+  // Touch handlers for mobile reviews
+  const handleMobileTouchStart = (e: React.TouchEvent) => {
+    setIsMobileInteracting(true);
+    mobileDragStartXRef.current = e.touches[0].clientX;
+    mobileDragMovedRef.current = 0;
+    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+  };
+
+  const handleMobileTouchMove = (e: React.TouchEvent) => {
+    const dx = Math.abs(e.touches[0].clientX - mobileDragStartXRef.current);
+    mobileDragMovedRef.current = dx;
+  };
+
+  const handleMobileTouchEnd = () => {
+    if (mobileDragMovedRef.current > 8) {
+      isDraggingMobileRef.current = true;
+      setTimeout(() => {
+        isDraggingMobileRef.current = false;
+      }, 250);
+    }
+    // Resume auto-scroll smoothly after 2 seconds
+    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+    mobileResumeTimerRef.current = setTimeout(() => {
+      setIsMobileInteracting(false);
+    }, 2000);
+  };
+
+  const handleMobileCardClick = (e: React.MouseEvent) => {
+    if (isDraggingMobileRef.current) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+  };
+
+  // Pointer drag & touch swipe handlers for desktop
   const handlePointerDown = (e: React.PointerEvent) => {
     if (currentSettings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
     isDraggingRef.current = true;
@@ -558,9 +612,8 @@ export default function ReviewsSection({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Continuous Linear Horizontal Reviews Marquee (10 px/s, Moving Right) ── */}
+      {/* ── Mobile Layout (< 768px): Continuous Auto-Scroll + Touch/Finger Swipe Reviews ── */}
       <section
-        ref={mobileContainerRef}
         className="md:hidden w-full bg-white py-6 select-none overflow-hidden"
         aria-label="Customer Reviews"
       >
@@ -620,200 +673,102 @@ export default function ReviewsSection({
           </div>
         </motion.div>
 
-        {/* Continuous Linear Marquee Track (10 px/s Left to Right) */}
+        {/* Interactive Scroll & Touch Swipe Container */}
         <div
-          className="relative w-full overflow-hidden select-none touch-pan-y"
-          onTouchStart={() => setIsMobileReviewsPaused(true)}
-          onTouchEnd={() => setIsMobileReviewsPaused(false)}
-          onPointerDown={() => setIsMobileReviewsPaused(true)}
-          onPointerUp={() => setIsMobileReviewsPaused(false)}
-          onPointerCancel={() => setIsMobileReviewsPaused(false)}
-          onMouseEnter={() => setIsMobileReviewsPaused(true)}
-          onMouseLeave={() => setIsMobileReviewsPaused(false)}
+          ref={mobileScrollRef}
+          onTouchStart={handleMobileTouchStart}
+          onTouchMove={handleMobileTouchMove}
+          onTouchEnd={handleMobileTouchEnd}
+          onTouchCancel={handleMobileTouchEnd}
+          onPointerDown={() => setIsMobileInteracting(true)}
+          onPointerUp={handleMobileTouchEnd}
+          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-x cursor-grab active:cursor-grabbing"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
         >
-          <div
-            className="mobile-reviews-track flex w-max will-change-transform motion-reduce:animate-none"
-            style={{
-              ["--mobile-reviews-duration" as any]: `${durationSec}s`,
-              animationDuration: `${durationSec}s`,
-              animationPlayState: isMobileReviewsPaused || !isInViewport ? "paused" : "running",
-            }}
-          >
-            {/* Sequence 1 */}
-            <div ref={sequence1Ref} className="flex items-stretch gap-3.5 pr-3.5 shrink-0">
-              {mobileReviews.map((rev, idx) => {
-                const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
-                const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
-                const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
+          {mobileTripledReviews.map((rev, idx) => {
+            const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
+            const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
+            const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
 
-                return (
-                  <div
-                    key={`mob-rev-a-${rev.id || idx}`}
-                    className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0"
-                  >
-                    <a
-                      href={cardTargetUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      aria-label={`Google review by ${rev.author_name}`}
-                      className="w-full h-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 cursor-pointer select-none block"
-                    >
-                      {/* Top Badges & Stars */}
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-0.5">
-                            {[...Array(safeRating)].map((_, i) => (
-                              <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
-                            ))}
-                          </div>
-
-                          <div className="flex items-center gap-1">
-                            {rev.featured && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
-                                <Sparkles className="w-2.5 h-2.5 text-white" />
-                                <span>Featured</span>
-                              </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
-                              <span>Verified</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Review Text */}
-                        <div className="relative mb-2">
-                          <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
-                          <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
-                            {rev.text}
-                          </p>
-                        </div>
+            return (
+              <div
+                key={`mob-rev-${rev.id || idx}-${idx}`}
+                className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0 flex"
+              >
+                <a
+                  href={cardTargetUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={handleMobileCardClick}
+                  aria-label={`Google review by ${rev.author_name}`}
+                  className="w-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 select-none block"
+                >
+                  {/* Top Badges & Stars */}
+                  <div>
+                    <div className="flex items-center justify-between gap-2 mb-3 pointer-events-none">
+                      <div className="flex items-center gap-0.5">
+                        {[...Array(safeRating)].map((_, i) => (
+                          <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
+                        ))}
                       </div>
 
-                      {/* Reviewer Profile */}
-                      <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
-                            {rev.author_photo ? (
-                              <img
-                                src={rev.author_photo}
-                                alt={rev.author_name}
-                                className="w-full h-full object-cover"
-                                draggable={false}
-                              />
-                            ) : (
-                              <span>{authorInitial}</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1">
-                              <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
-                                {rev.author_name}
-                              </h4>
-                              <GoogleIcon className="w-3 h-3 shrink-0" />
-                            </div>
-                            <p className="text-[10px] text-neutral-400 m-0">
-                              {rev.review_date || "Verified Google Review"}
-                            </p>
-                          </div>
-                        </div>
-
-                        <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                      <div className="flex items-center gap-1">
+                        {rev.featured && (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
+                            <Sparkles className="w-2.5 h-2.5 text-white" />
+                            <span>Featured</span>
+                          </span>
+                        )}
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
+                          <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
+                          <span>Verified</span>
+                        </span>
                       </div>
-                    </a>
+                    </div>
+
+                    {/* Review Text */}
+                    <div className="relative mb-2 pointer-events-none">
+                      <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
+                      <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
+                        {rev.text}
+                      </p>
+                    </div>
                   </div>
-                );
-              })}
-            </div>
 
-            {/* Sequence 2 (Identical Clone for seamless continuous loop, hidden from screenreaders & keyboard tab) */}
-            <div className="flex items-stretch gap-3.5 pr-3.5 shrink-0" aria-hidden="true">
-              {mobileReviews.map((rev, idx) => {
-                const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
-                const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
-                const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
-
-                return (
-                  <div
-                    key={`mob-rev-b-${rev.id || idx}`}
-                    className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0"
-                  >
-                    <a
-                      href={cardTargetUrl}
-                      target="_blank"
-                      tabIndex={-1}
-                      rel="noopener noreferrer"
-                      aria-label={`Google review by ${rev.author_name}`}
-                      className="w-full h-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 cursor-pointer select-none block"
-                    >
-                      {/* Top Badges & Stars */}
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-3">
-                          <div className="flex items-center gap-0.5">
-                            {[...Array(safeRating)].map((_, i) => (
-                              <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
-                            ))}
-                          </div>
-
-                          <div className="flex items-center gap-1">
-                            {rev.featured && (
-                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
-                                <Sparkles className="w-2.5 h-2.5 text-white" />
-                                <span>Featured</span>
-                              </span>
-                            )}
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
-                              <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
-                              <span>Verified</span>
-                            </span>
-                          </div>
-                        </div>
-
-                        {/* Review Text */}
-                        <div className="relative mb-2">
-                          <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
-                          <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
-                            {rev.text}
-                          </p>
-                        </div>
+                  {/* Reviewer Profile */}
+                  <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5 pointer-events-none">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
+                        {rev.author_photo ? (
+                          <img
+                            src={rev.author_photo}
+                            alt={rev.author_name}
+                            className="w-full h-full object-cover"
+                            draggable={false}
+                          />
+                        ) : (
+                          <span>{authorInitial}</span>
+                        )}
                       </div>
-
-                      {/* Reviewer Profile */}
-                      <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
-                            {rev.author_photo ? (
-                              <img
-                                src={rev.author_photo}
-                                alt={rev.author_name}
-                                className="w-full h-full object-cover"
-                                draggable={false}
-                              />
-                            ) : (
-                              <span>{authorInitial}</span>
-                            )}
-                          </div>
-                          <div className="min-w-0">
-                            <div className="flex items-center gap-1">
-                              <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
-                                {rev.author_name}
-                              </h4>
-                              <GoogleIcon className="w-3 h-3 shrink-0" />
-                            </div>
-                            <p className="text-[10px] text-neutral-400 m-0">
-                              {rev.review_date || "Verified Google Review"}
-                            </p>
-                          </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
+                            {rev.author_name}
+                          </h4>
+                          <GoogleIcon className="w-3 h-3 shrink-0" />
                         </div>
-
-                        <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                        <p className="text-[10px] text-neutral-400 m-0">
+                          {rev.review_date || "Verified Google Review"}
+                        </p>
                       </div>
-                    </a>
+                    </div>
+
+                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                </a>
+              </div>
+            );
+          })}
         </div>
       </section>
 

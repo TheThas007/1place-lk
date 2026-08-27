@@ -99,31 +99,6 @@ export default function CompatibleAccessories({
         </Link>
       </div>
 
-      {/* Category Filter Pills */}
-      {rawAccessories.length > 4 && (
-        <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 no-scrollbar">
-          {filterTabs.map((tab) => {
-            const isActive = selectedFilter === tab.id;
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setSelectedFilter(tab.id)}
-                className={`px-4 py-2 rounded-full text-xs font-bold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer ${
-                  isActive
-                    ? "bg-black text-white shadow-sm scale-100"
-                    : "bg-[#F7F7F8] text-gray-700 hover:bg-gray-200 border border-neutral-200/60"
-                }`}
-              >
-                <Icon className="w-3 h-3" />
-                <span>{tab.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      )}
-
       {/* Compatible Devices Preview (If viewing an accessory) */}
       {!isPhone && compatibleDevices.length > 0 && (
         <div className="mb-10 p-5 bg-[#F9FAFB] border border-[#E5E7EB] rounded-2xl">

@@ -248,6 +248,16 @@ export interface ProductColor {
   alt_text?: string;
 }
 
+export interface UserProfile {
+  uid: string;
+  displayName: string;
+  email: string;
+  gender?: "male" | "female" | "other";
+  avatarUrl?: string;
+  phone?: string;
+  createdAt?: string;
+}
+
 export interface ProductVariantCombo {
   id: string;
   color_id?: string;
@@ -558,6 +568,11 @@ export interface HeroSlide {
   trust_item_1?: string;
   trust_item_2?: string;
   trust_item_3?: string;
+
+  // Mobile Specific Visibility Options
+  hide_content_on_mobile?: boolean;
+  hide_text_on_mobile?: boolean;
+  hide_buttons_on_mobile?: boolean;
 
   // Custom Styling & Overlay Controls
   badge_text_color?: string;
@@ -873,17 +888,26 @@ export interface TickerSettings {
 export interface VisualShowcaseSlide {
   id: string;
   enabled: boolean;
+  eyebrow?: string;           // Optional badge/tag e.g. "NEW", "SPECIAL OFFER"
+  eyebrow_bg?: string;        // Badge background color e.g. "#000000" or "#ED0712"
+  eyebrow_color?: string;     // Badge text color e.g. "#FFFFFF"
   title?: string;             // Optional: e.g. "iPhone 17 Pro Max" (leave blank for clean image-only banner)
   subtitle?: string;          // Optional: e.g. "Power. Precision. Pro."
-  desktop_image: string;      // Transparent high-res PNG or WebP
-  mobile_image?: string;      // Optional mobile-specific image
+  desktop_image?: string;     // Transparent high-res PNG or WebP foreground image (optional when using full bg banner)
+  mobile_image?: string;      // Optional mobile-specific foreground image
   image_alt?: string;
-  bg_type?: "color" | "gradient";
+  bg_type?: "color" | "gradient" | "image";
   bg_color?: string;          // e.g. "#FFFFFF" or "#F5F5F7"
   bg_gradient_from?: string;  // e.g. "#F0F5FA"
   bg_gradient_to?: string;    // e.g. "#FFFFFF"
-  heading_color?: string;     // Default "#1D1D1F" or custom
-  subtitle_color?: string;    // Default "#6E6E73" or custom
+  bg_image?: string;          // Full background image URL for desktop
+  bg_image_mobile?: string;   // Full background image URL for mobile (falls back to desktop)
+  bg_overlay_opacity?: number;// 0 to 100 (% darkness/tint)
+  bg_overlay_color?: string;  // e.g. "#000000" or "#FFFFFF"
+  text_align?: "left" | "center" | "right";
+  content_position?: "top" | "center" | "bottom";
+  heading_color?: string;     // Default "#1D1D1F" or custom e.g. "#FFFFFF"
+  subtitle_color?: string;    // Default "#6E6E73" or custom e.g. "#E5E5E5"
   primary_cta_text?: string;  // Optional: e.g. "Explore"
   primary_cta_url?: string;   // Optional: e.g. "/products/iphone-16-pro-max"
   secondary_cta_text?: string;// Optional: e.g. "Buy Now"

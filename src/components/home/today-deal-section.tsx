@@ -94,7 +94,7 @@ export default function TodayDealSection({
   const activeCtaLabel =
     isExpired && deal.expiryAction === "replacement-cta" && deal.replacementCtaLabel
       ? deal.replacementCtaLabel
-      : deal.ctaLabel || "SHOP TODAY'S DEALS";
+      : deal.ctaLabel || "Shop Today's Deals";
 
   const activeCtaUrl =
     isExpired && deal.expiryAction === "replacement-cta" && deal.replacementCtaUrl
@@ -109,14 +109,11 @@ export default function TodayDealSection({
     deal.desktopImageUrl ||
     "/images/today-deal-phone-card.png";
 
-  // 100% SHARP SQUARE CORNERS (0px radius)
-  const frameRadius = deal.frameBorderRadius ?? 0;
   const imgScale = (deal.imageScale ?? 100) / 100;
 
   // Background Banner Behind Both Cards
   const hasBgBanner = Boolean(deal.backgroundBannerEnabled && deal.backgroundBannerUrl);
   const bgOverlayOpacity = (deal.backgroundBannerOverlayOpacity ?? 30) / 100;
-  const bgBannerRadius = deal.backgroundBannerBorderRadius ?? 0;
 
   // Colors & Typography
   const cardBgColor = deal.boxBackgroundColor || "#FFFFFF";
@@ -143,7 +140,7 @@ export default function TodayDealSection({
       ? "max-h-full max-w-full object-contain"
       : deal.imageFit === "fill"
       ? "w-full h-full object-fill"
-      : "w-full h-full object-cover"; // default cover for 100% full frame fill!
+      : "w-full h-full object-cover"; // default cover for 100% full frame fill
 
   // Layout & Alignment
   const isBoxOnRight = deal.boxPosition === "right";
@@ -158,15 +155,13 @@ export default function TodayDealSection({
     <section
       id="todays-deal-section"
       aria-label="Today's Deal Promotional Showcase"
-      className={`w-full py-8 sm:py-14 select-none relative ${className}`}
+      className={`w-full py-6 sm:py-12 lg:py-14 select-none relative ${className}`}
     >
-      {/* ── 100% Sharp Background Banner Behind Both Cards ── */}
+      {/* ── 100% Sharp 90-Degree Square Background Banner Behind Both Cards ── */}
       {hasBgBanner && (
         <div
           className="absolute inset-0 w-full h-full pointer-events-none z-0 overflow-hidden rounded-none"
-          style={{
-            borderRadius: `${bgBannerRadius}px`,
-          }}
+          style={{ borderRadius: 0 }}
         >
           <img
             src={deal.backgroundBannerUrl}
@@ -177,34 +172,35 @@ export default function TodayDealSection({
             className="absolute inset-0 w-full h-full rounded-none"
             style={{
               backgroundColor: `rgba(0, 0, 0, ${bgOverlayOpacity})`,
+              borderRadius: 0,
             }}
           />
         </div>
       )}
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-7 lg:gap-8 items-stretch">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 sm:gap-6 lg:gap-8 items-stretch">
           
-          {/* ── Left Card: 100% Sharp Square Corners (0px Radius) ── */}
+          {/* ── Left Card: 100% Sharp 90-Degree Square Corners (0px Radius) ── */}
           <div
             style={{
               backgroundColor: cardBgColor,
-              borderRadius: `${frameRadius}px`,
+              borderRadius: 0,
             }}
-            className={`border border-neutral-100/90 shadow-[0_12px_40px_rgba(0,0,0,0.06)] p-7 sm:p-10 lg:p-12 flex flex-col justify-between transition-all duration-300 aspect-auto md:aspect-square min-h-[380px] md:min-h-[460px] rounded-none ${
+            className={`border border-neutral-200/90 shadow-sm p-6 sm:p-10 lg:p-12 flex flex-col justify-between transition-all duration-300 rounded-none ${
               isBoxOnRight ? "md:order-2" : "md:order-1"
             }`}
           >
             <div className={`flex flex-col ${contentAlignClass}`}>
-              {/* 1. Red Dot + TODAY'S DEAL Eyebrow */}
-              <div className="flex items-center gap-2 mb-4 sm:mb-5">
+              {/* 1. Sharp Square Indicator + TODAY'S DEAL Eyebrow */}
+              <div className="flex items-center gap-2 mb-3.5 sm:mb-5">
                 <span
                   style={{ backgroundColor: eyebrowTagColor }}
-                  className="w-2.5 h-2.5 rounded-full shrink-0"
+                  className="w-2 h-2 rounded-none shrink-0"
                 />
                 <span
                   style={{ color: eyebrowTagColor }}
-                  className="font-black text-xs tracking-[0.14em] uppercase font-mono"
+                  className="font-black text-[11px] sm:text-xs tracking-[0.14em] uppercase font-mono"
                 >
                   {deal.eyebrow || "TODAY'S DEAL"}
                 </span>
@@ -213,7 +209,7 @@ export default function TodayDealSection({
               {/* 2. Headline: Today Only. Better Prices. */}
               <h2
                 style={{ color: headingTextColor }}
-                className="text-3xl sm:text-4xl lg:text-[44px] font-black tracking-tight leading-[1.08] mb-3"
+                className="text-2xl sm:text-3xl lg:text-[42px] font-black tracking-tight leading-[1.08] mb-3"
               >
                 {deal.heading ? (
                   deal.heading.includes(".") ? (
@@ -237,14 +233,14 @@ export default function TodayDealSection({
               {/* 3. Subtitle */}
               <p
                 style={{ color: descTextColor }}
-                className="text-sm sm:text-[15px] font-medium text-neutral-500 leading-relaxed mb-6 sm:mb-8 max-w-sm"
+                className="text-xs sm:text-sm lg:text-[15px] font-medium leading-relaxed mb-6 sm:mb-8 max-w-sm"
               >
                 {deal.description || "Limited-time savings on selected devices & accessories."}
               </p>
 
-              {/* 4. CTA Button (Sharp Square Rectangular) */}
+              {/* 4. CTA Button (100% Sharp Square Rectangular, 0px Radius) */}
               {deal.ctaEnabled !== false && activeCtaLabel && (
-                <div>
+                <div className="w-full sm:w-auto">
                   {isExternalCta ? (
                     <a
                       href={activeCtaUrl}
@@ -253,8 +249,9 @@ export default function TodayDealSection({
                       style={{
                         backgroundColor: ctaBtnBg,
                         color: ctaBtnText,
+                        borderRadius: 0,
                       }}
-                      className="inline-flex items-center justify-center gap-2.5 px-7 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 rounded-none"
+                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:shadow-md active:scale-98 rounded-none w-full sm:w-auto"
                     >
                       <span>{activeCtaLabel}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -266,8 +263,9 @@ export default function TodayDealSection({
                       style={{
                         backgroundColor: ctaBtnBg,
                         color: ctaBtnText,
+                        borderRadius: 0,
                       }}
-                      className="inline-flex items-center justify-center gap-2.5 px-7 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-md hover:shadow-lg active:scale-98 rounded-none"
+                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:shadow-md active:scale-98 rounded-none w-full sm:w-auto"
                     >
                       <span>{activeCtaLabel}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -278,10 +276,10 @@ export default function TodayDealSection({
             </div>
 
             {/* 5. Bottom Section: Divider & Offer Status with LIVE TICKING CLOCK */}
-            <div className={`pt-6 sm:pt-8 flex flex-col ${contentAlignClass}`}>
-              <div className="w-full h-[1px] bg-neutral-100 mb-4 sm:mb-5" />
+            <div className={`pt-6 sm:pt-8 flex flex-col ${contentAlignClass} w-full`}>
+              <div className="w-full h-[1px] bg-neutral-200/80 mb-4 sm:mb-5" />
 
-              <div className={`flex flex-col ${contentAlignClass}`}>
+              <div className={`flex flex-col ${contentAlignClass} w-full`}>
                 <span className="text-[10px] sm:text-[11px] font-extrabold tracking-widest text-neutral-400 uppercase font-mono mb-2 block">
                   OFFER STATUS
                 </span>
@@ -292,8 +290,9 @@ export default function TodayDealSection({
                       borderColor: `${eyebrowTagColor}70`,
                       color: eyebrowTagColor,
                       backgroundColor: timerBg,
+                      borderRadius: 0,
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-none border text-xs font-bold tracking-wider uppercase"
+                    className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-none border text-xs font-bold tracking-wider uppercase w-full sm:w-auto justify-center sm:justify-start"
                   >
                     <Clock className="w-3.5 h-3.5" />
                     <span>DEAL ENDED</span>
@@ -305,8 +304,9 @@ export default function TodayDealSection({
                       borderColor: `${eyebrowTagColor}70`,
                       color: timerText,
                       backgroundColor: timerBg,
+                      borderRadius: 0,
                     }}
-                    className="inline-flex items-center justify-between gap-4 px-4 py-2 rounded-none border text-xs font-bold font-mono tracking-wide"
+                    className="inline-flex items-center justify-between gap-4 px-4 py-2.5 rounded-none border text-xs font-bold font-mono tracking-wide w-full sm:w-auto"
                   >
                     <div className="flex items-center gap-1.5 uppercase font-bold text-[11px]">
                       <Clock className="w-3.5 h-3.5 text-[#ED0712] animate-pulse" />
@@ -323,13 +323,13 @@ export default function TodayDealSection({
             </div>
           </div>
 
-          {/* ── Right Card: 100% Sharp Square Poster (0px Radius) ── */}
+          {/* ── Right Card: 100% Sharp 90-Degree Square Poster (0px Radius) ── */}
           <div
             style={{
               backgroundColor: deal.bannerBgColor || cardBgColor,
-              borderRadius: `${frameRadius}px`,
+              borderRadius: 0,
             }}
-            className={`border border-neutral-100/90 shadow-[0_12px_40px_rgba(0,0,0,0.06)] ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 aspect-square min-h-[380px] md:min-h-[460px] rounded-none ${
+            className={`border border-neutral-200/90 shadow-sm ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 aspect-square w-full rounded-none ${
               isBoxOnRight ? "md:order-1" : "md:order-2"
             }`}
           >
@@ -351,6 +351,7 @@ export default function TodayDealSection({
                   alt={deal.imageAlt || deal.heading || "Today's Deal Product Mockup"}
                   style={{
                     transform: imgScale !== 1 ? `scale(${imgScale})` : undefined,
+                    borderRadius: 0,
                   }}
                   className={`${imageFitClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none`}
                   onError={() => setImgError(true)}

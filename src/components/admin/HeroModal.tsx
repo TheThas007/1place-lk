@@ -83,6 +83,11 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [lineHeight, setLineHeight] = useState("1.04");
   const [letterSpacing, setLetterSpacing] = useState("-0.045em");
 
+  // Mobile Visibility Controls
+  const [hideContentOnMobile, setHideContentOnMobile] = useState(false);
+  const [hideTextOnMobile, setHideTextOnMobile] = useState(false);
+  const [hideButtonsOnMobile, setHideButtonsOnMobile] = useState(false);
+
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
   const [desktopPreview, setDesktopPreview] = useState<string>("");
@@ -130,6 +135,11 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setExpiryDate(slide.expiry_date || "");
       setSortOrder(slide.sort_order ?? 1);
       setActive(slide.active ?? true);
+
+      // Mobile Visibility Settings
+      setHideContentOnMobile(slide.hide_content_on_mobile ?? false);
+      setHideTextOnMobile(slide.hide_text_on_mobile ?? false);
+      setHideButtonsOnMobile(slide.hide_buttons_on_mobile ?? false);
 
       // Custom Styling
       setBadgeTextColor(slide.badge_text_color || "#FFFFFF");
@@ -191,6 +201,11 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setExpiryDate("");
       setSortOrder(1);
       setActive(true);
+
+      // Mobile Visibility Settings (Default: false / visible)
+      setHideContentOnMobile(false);
+      setHideTextOnMobile(false);
+      setHideButtonsOnMobile(false);
 
       // Default Custom Styling
       setBadgeTextColor("#FFFFFF");
@@ -303,6 +318,11 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         expiry_date: expiryDate,
         sort_order: Number(sortOrder) || 1,
         active,
+
+        // Mobile Specific Visibility Options
+        hide_content_on_mobile: hideContentOnMobile,
+        hide_text_on_mobile: hideTextOnMobile,
+        hide_buttons_on_mobile: hideButtonsOnMobile,
 
         // Custom Styling
         badge_text_color: badgeTextColor,
@@ -1173,6 +1193,80 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   </div>
                 </div>
               )}
+            </div>
+          </div>
+
+          {/* 📱 Mobile UI Display Controls Section */}
+          <div className="p-4 bg-purple-950/20 border border-purple-500/30 rounded-2xl space-y-3.5">
+            <div className="flex items-center gap-2">
+              <Smartphone className="w-4 h-4 text-purple-400" />
+              <div>
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-purple-300">
+                  Mobile UI Display Controls (மொபைல் திரை விருப்பங்கள்)
+                </h4>
+                <p className="text-[11px] text-white/50">
+                  Control text and button visibility on mobile devices for this hero banner
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              {/* 1. Hide All Text & Buttons on Mobile (Clean Banner Mode) */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-start gap-3 hover:border-purple-500/40 transition-colors">
+                <input
+                  type="checkbox"
+                  id="hideContentOnMobile"
+                  checked={hideContentOnMobile}
+                  onChange={(e) => {
+                    setHideContentOnMobile(e.target.checked);
+                    if (e.target.checked) {
+                      setHideTextOnMobile(true);
+                      setHideButtonsOnMobile(true);
+                    }
+                  }}
+                  className="w-4 h-4 accent-purple-500 rounded mt-0.5 cursor-pointer shrink-0"
+                />
+                <label htmlFor="hideContentOnMobile" className="cursor-pointer select-none">
+                  <span className="block text-xs font-bold text-white">Hide All on Mobile</span>
+                  <span className="block text-[10px] text-white/60 leading-snug mt-0.5">
+                    Show clean full image banner without text, badge, or buttons on mobile
+                  </span>
+                </label>
+              </div>
+
+              {/* 2. Hide Text / Heading Only on Mobile */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-start gap-3 hover:border-purple-500/40 transition-colors">
+                <input
+                  type="checkbox"
+                  id="hideTextOnMobile"
+                  checked={hideTextOnMobile}
+                  onChange={(e) => setHideTextOnMobile(e.target.checked)}
+                  className="w-4 h-4 accent-purple-500 rounded mt-0.5 cursor-pointer shrink-0"
+                />
+                <label htmlFor="hideTextOnMobile" className="cursor-pointer select-none">
+                  <span className="block text-xs font-bold text-white">Hide Text on Mobile</span>
+                  <span className="block text-[10px] text-white/60 leading-snug mt-0.5">
+                    Hide title heading, badge, and description on mobile screens
+                  </span>
+                </label>
+              </div>
+
+              {/* 3. Hide CTA Buttons Only on Mobile */}
+              <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-start gap-3 hover:border-purple-500/40 transition-colors">
+                <input
+                  type="checkbox"
+                  id="hideButtonsOnMobile"
+                  checked={hideButtonsOnMobile}
+                  onChange={(e) => setHideButtonsOnMobile(e.target.checked)}
+                  className="w-4 h-4 accent-purple-500 rounded mt-0.5 cursor-pointer shrink-0"
+                />
+                <label htmlFor="hideButtonsOnMobile" className="cursor-pointer select-none">
+                  <span className="block text-xs font-bold text-white">Hide Buttons on Mobile</span>
+                  <span className="block text-[10px] text-white/60 leading-snug mt-0.5">
+                    Hide CTA action buttons on mobile screens
+                  </span>
+                </label>
+              </div>
             </div>
           </div>
 

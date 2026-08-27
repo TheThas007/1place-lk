@@ -114,6 +114,13 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, 
                 <div>
                   <h4 className="text-sm font-bold text-white truncate">{slide.heading || slide.alt || "Hero Banner Slide"}</h4>
                   <p className="text-xs text-white/40 mt-1 truncate">{slide.description || slide.image_url}</p>
+                  {(slide.hide_content_on_mobile || slide.hide_text_on_mobile || slide.hide_buttons_on_mobile) && (
+                    <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">
+                        📱 {slide.hide_content_on_mobile ? "Clean Banner on Mobile" : slide.hide_text_on_mobile ? "Text Hidden on Mobile" : "Buttons Hidden on Mobile"}
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

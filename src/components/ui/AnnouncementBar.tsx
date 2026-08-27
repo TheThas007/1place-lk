@@ -2,11 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { X, Sparkles, ArrowRight } from "lucide-react";
 import { OfferBanner } from "@/lib/types";
 import { getOfferBanners } from "@/lib/firestore-client";
 
 export default function AnnouncementBar() {
+  const pathname = usePathname();
   const [banner, setBanner] = useState<OfferBanner | null>(null);
   const [dismissed, setDismissed] = useState(false);
 
@@ -24,7 +26,9 @@ export default function AnnouncementBar() {
     loadAnnouncement();
   }, []);
 
-  if (!banner || dismissed) return null;
+  if (!banner || dismissed || pathname.startsWith("/admin") || pathname.startsWith("/login")) {
+    return null;
+  }
 
   return (
     <div className="bg-gradient-to-r from-amber-500 via-amber-400 to-yellow-500 text-black py-2 px-4 relative z-[60] text-xs font-semibold">

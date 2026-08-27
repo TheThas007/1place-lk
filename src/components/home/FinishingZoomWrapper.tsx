@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useRef } from "react";
+import React, { useRef, useState, useEffect } from "react";
 import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
 
@@ -14,10 +14,15 @@ export default function FinishingZoomWrapper({
   className = "",
 }: FinishingZoomWrapperProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
   const { isReducedMotion } = useSmoothScroll();
 
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
   const { scrollYProgress } = useScroll({
-    target: containerRef,
+    target: isMounted ? containerRef : undefined,
     offset: ["start end", "end end"],
   });
 

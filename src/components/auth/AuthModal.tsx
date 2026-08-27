@@ -36,6 +36,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
+  const [signupGender, setSignupGender] = useState<"male" | "female">("male");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
@@ -100,7 +101,7 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
         setSuccess("Signed in successfully. Welcome back!");
         setTimeout(() => handlePostAuth(), 400);
       } else {
-        await signUp(name, email, password);
+        await signUp(name, email, password, signupGender);
         setSuccess("Account created successfully!");
         setTimeout(() => handlePostAuth(), 400);
       }
@@ -317,22 +318,24 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
             <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-3.5">
               {/* Full Name Input (Sign Up Only) */}
               {tab === "signup" && (
-                <div className="space-y-1">
-                  <label className="block text-[11px] font-bold text-neutral-700 tracking-wide uppercase">
-                    Full Name
-                  </label>
-                  <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 stroke-[1.8]" />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      placeholder="e.g. Alex Silva"
-                      required
-                      className="w-full h-[48px] sm:h-[50px] pl-10 pr-4 bg-white border border-[#E5E5E5] focus:border-black rounded-[12px] text-black placeholder:text-[#999999] text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
-                    />
+                <>
+                  <div className="space-y-1">
+                    <label className="block text-[11px] font-bold text-neutral-700 tracking-wide uppercase">
+                      Full Name
+                    </label>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400 stroke-[1.8]" />
+                      <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        placeholder="e.g. Alex Silva"
+                        required
+                        className="w-full h-[48px] sm:h-[50px] pl-10 pr-4 bg-white border border-[#E5E5E5] focus:border-black rounded-[12px] text-black placeholder:text-[#999999] text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
+                      />
+                    </div>
                   </div>
-                </div>
+                </>
               )}
 
               {/* Email Address Input */}
