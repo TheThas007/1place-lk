@@ -849,7 +849,7 @@ export const DEFAULT_FOOTER_SETTINGS: FooterSettings = {
     { id: "p3", label: "Returns Policy", href: "/return-policy" },
   ],
   developer_credit_text: "Designed & Developed by Aevonix",
-  developer_credit_url: "https://aevonix.com",
+  developer_credit_url: "https://www.thasz.dev/",
 };
 
 // ══════════════════════════════════════════════════════════════════════════

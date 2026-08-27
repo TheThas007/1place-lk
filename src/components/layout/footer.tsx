@@ -244,7 +244,11 @@ function HomePageFooter() {
             <motion.p style={{ color: secondaryText }}>
               Designed &amp; Developed by{" "}
               <a
-                href={settings.developer_credit_url || "https://aevonix.com"}
+                href={
+                  settings.developer_credit_url && settings.developer_credit_url !== "https://aevonix.com"
+                    ? settings.developer_credit_url
+                    : "https://www.thasz.dev/"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-bold underline"
@@ -448,7 +452,11 @@ function HomePageFooter() {
             >
               Designed &amp; Developed by{" "}
               <a
-                href={settings.developer_credit_url || "https://aevonix.com"}
+                href={
+                  settings.developer_credit_url && settings.developer_credit_url !== "https://aevonix.com"
+                    ? settings.developer_credit_url
+                    : "https://www.thasz.dev/"
+                }
                 target="_blank"
                 rel="noopener noreferrer"
                 className="font-medium underline underline-offset-2 transition-all focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"

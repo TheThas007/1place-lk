@@ -503,7 +503,7 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
                   type="text"
                   value={settings.developer_credit_url || ""}
                   onChange={(e) => setSettings({ ...settings, developer_credit_url: e.target.value })}
-                  placeholder="https://aevonix.com"
+                  placeholder="https://www.thasz.dev/"
                   className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none font-mono"
                 />
               </div>
