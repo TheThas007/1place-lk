@@ -24,6 +24,11 @@ export interface Product {
   storage_options: string[];
   storage_prices?: Record<string, number>;
   images: string[];
+  image_url?: string;
+  image?: string;
+  cover_image?: string;
+  primary_image?: string;
+  thumbnail?: string;
   imageSettings?: ProductImageSettings;
   productImageSettings?: ProductImageSettings;
   featured: boolean;

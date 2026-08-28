@@ -35,8 +35,25 @@ import {
 } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
+import { Metadata } from "next";
 
 export const revalidate = 60; // Revalidate cache every 60s for high performance
+
+export const metadata: Metadata = {
+  title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
+  description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. Buy 100% genuine Apple, Samsung, Xiaomi smartphones, chargers, power banks, earbuds, and premium accessories with official warranty and fast islandwide delivery.",
+  alternates: {
+    canonical: "https://www.streetmobile.lk",
+  },
+  openGraph: {
+    title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
+    description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. 100% Genuine Smartphones, Apple, Samsung, Xiaomi & Premium Accessories.",
+    url: "https://www.streetmobile.lk",
+    siteName: "Street Mobile",
+    locale: "en_LK",
+    type: "website",
+  },
+};
 
 export default async function HomePage() {
   const [

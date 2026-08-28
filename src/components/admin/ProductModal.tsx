@@ -367,7 +367,7 @@ export default function ProductModal({
               id: `col-${i}`,
               name: c,
               hex: getColorCSS(c),
-              images: initialData.images || [],
+              images: [],
               is_default: i === 0,
               active: true,
             }))
@@ -729,15 +729,25 @@ export default function ProductModal({
         : baseStock;
       const isOutOfStock = totalVariantStock === 0;
 
+      // Clean general images
+      const cleanGeneral = generalImages.map((u) => u.trim()).filter(Boolean);
+
+      // Clean color variant images
+      const cleanedColorVariants = hasColorVariants
+        ? colorVariants.map((c) => ({
+            ...c,
+            images: (c.images || []).map((u) => u.trim()).filter(Boolean),
+          }))
+        : [];
+
       // Combine general product images and color-specific images
-      const allImages: string[] = [...generalImages];
-      colorVariants.forEach((c) => {
-        if (c.images && c.images.length > 0) allImages.push(...c.images);
-      });
-      const cleanImages = allImages.map((u) => u.trim()).filter(Boolean);
-      const finalImages = cleanImages.length > 0
-        ? Array.from(new Set(cleanImages))
-        : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"];
+      const allImages: string[] = [...cleanGeneral];
+      if (hasColorVariants) {
+        cleanedColorVariants.forEach((c) => {
+          if (c.images && c.images.length > 0) allImages.push(...c.images);
+        });
+      }
+      const finalImages = Array.from(new Set(allImages.map((u) => u.trim()).filter(Boolean)));
 
       // First active price
       const primaryPrice = variantCombos[0]?.price || basePrice || 0;
@@ -745,9 +755,9 @@ export default function ProductModal({
 
       // Enrich every variant combo with full variant metadata (color_hex, image_ref, warranty, storage, stock, sku, price)
       const enrichedVariantCombos: ProductVariantCombo[] = variantCombos.map((v) => {
-        const matchedColor = colorVariants.find((c) => c.name === v.color_name || c.id === v.color_id);
+        const matchedColor = cleanedColorVariants.find((c) => c.name === v.color_name || c.id === v.color_id);
         const colorHex = v.color_hex || matchedColor?.hex || (v.color_name ? getColorCSS(v.color_name) : "#000000");
-        const colorImage = matchedColor?.images?.[0] || matchedColor?.cover_image || finalImages[0];
+        const colorImage = matchedColor?.images?.[0] || matchedColor?.cover_image || finalImages[0] || "";
         return {
           ...v,
           id: v.id || `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
@@ -760,7 +770,7 @@ export default function ProductModal({
           stock_quantity: Number(v.stock_quantity) || 0,
           available_stock: Math.max(0, (Number(v.stock_quantity) || 0) - (v.reserved_stock || 0)),
           sku: v.sku || code || slug,
-          image_ref: v.image_ref || colorImage,
+          image_ref: v.image_ref && finalImages.includes(v.image_ref) ? v.image_ref : colorImage,
           warranty: v.warranty || warrantyOptions[0]?.title || "1 Month Shop Warranty",
         };
       });
@@ -794,10 +804,14 @@ export default function ProductModal({
         featured,
         is_new_arrival: isNewArrival,
         images: finalImages,
+        image_url: finalImages[0] || "",
+        image: finalImages[0] || "",
+        cover_image: finalImages[0] || "",
+        primary_image: finalImages[0] || "",
         imageSettings: imageSettings,
         productImageSettings: imageSettings,
-        colors: colorVariants.map((c) => c.name),
-        color_variants: colorVariants,
+        colors: cleanedColorVariants.map((c) => c.name),
+        color_variants: cleanedColorVariants,
         variant_combos: enrichedVariantCombos,
         warranty_options: warrantyOptions,
         warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
@@ -1460,11 +1474,26 @@ export default function ProductModal({
                       <button
                         type="button"
                         onClick={() => {
+                          const removedUrl = (generalImages[i] || "").trim();
                           const updated = generalImages.filter((_, idx) => idx !== i);
                           setGeneralImages(updated.length > 0 ? updated : [""]);
+                          if (removedUrl) {
+                            setColorVariants((prev) =>
+                              prev.map((col) => ({
+                                ...col,
+                                images: (col.images || []).filter((u) => u.trim() !== removedUrl),
+                              }))
+                            );
+                            setVariantCombos((prev) =>
+                              prev.map((v) => ({
+                                ...v,
+                                image_ref: v.image_ref === removedUrl ? "" : v.image_ref,
+                              }))
+                            );
+                          }
                           setHasUnsavedChanges(true);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors cursor-pointer"
                         title="Remove image slot"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -1809,11 +1838,24 @@ export default function ProductModal({
                           />
                         </div>
 
-                        {/* Previews */}
+                        {/* Previews with Quick Remove Button */}
                         <div className="flex flex-wrap gap-2 pt-1">
                           {(col.images || []).map((img, i) => (
-                            <div key={i} className="w-14 h-14 bg-white border border-gray-200 rounded-xl overflow-hidden p-1">
+                            <div key={i} className="relative group/thumb w-14 h-14 bg-white border border-gray-200 rounded-xl overflow-hidden p-1">
                               <img src={img} alt="" className="w-full h-full object-contain" />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const updated = [...colorVariants];
+                                  updated[cIdx].images = (col.images || []).filter((_, idx) => idx !== i);
+                                  setColorVariants(updated);
+                                  setHasUnsavedChanges(true);
+                                }}
+                                className="absolute top-0.5 right-0.5 bg-red-600 hover:bg-red-700 text-white rounded-full p-0.5 opacity-80 group-hover/thumb:opacity-100 transition-opacity shadow-xs hover:scale-110 cursor-pointer"
+                                title="Delete this image"
+                              >
+                                <X className="w-3 h-3" />
+                              </button>
                             </div>
                           ))}
                         </div>

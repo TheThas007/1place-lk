@@ -19,15 +19,32 @@ const KNOWN_BRANDS = [
 export async function generateMetadata({ params }: CategoryPageProps) {
   const { slug } = await params;
   const categories = await getCategories();
-  const cat = categories.find((c) => c.slug === slug || c.id === slug);
+  const cat = categories.find((c) => c.slug?.toLowerCase() === slug.toLowerCase() || c.id?.toLowerCase() === slug.toLowerCase());
 
-  if (!cat) {
-    return { title: `${slug.toUpperCase()} Products | StreetMobile.lk` };
-  }
+  const categoryName = cat?.name || slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
+  const title = `${categoryName} in Sri Lanka | Street Mobile`;
+  const description = cat?.description || `Shop genuine ${categoryName} in Sri Lanka at Street Mobile. Best prices, official warranty, cash on delivery & express islandwide delivery from Vavuniya.`;
+  const canonicalUrl = `https://www.streetmobile.lk/category/${slug.toLowerCase()}`;
 
   return {
-    title: `${cat.name} — Buy Genuine ${cat.name} in Sri Lanka | StreetMobile.lk`,
-    description: cat.description || `Browse original ${cat.name} at best prices in Sri Lanka with official warranty & islandwide delivery.`,
+    title,
+    description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
+    openGraph: {
+      title,
+      description,
+      url: canonicalUrl,
+      type: "website",
+      siteName: "Street Mobile",
+      locale: "en_LK",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+    },
   };
 }
 
@@ -63,7 +80,7 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     }
   }
 
-  const categoryName = cat?.name || slug.replace(/-/g, " ");
+  const categoryName = cat?.name || slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
 
   // Products belonging to this category
   const categoryProducts = products.filter((p) => {
@@ -85,8 +102,59 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     return bName === selectedBrandSlug.toLowerCase();
   });
 
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `https://www.streetmobile.lk/category/${slug}#collection`,
+    "name": `${categoryName} in Sri Lanka`,
+    "description": `Browse genuine ${categoryName} available at Street Mobile Sri Lanka.`,
+    "url": `https://www.streetmobile.lk/category/${slug}`,
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": finalProducts.slice(0, 24).map((p, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "url": `https://www.streetmobile.lk/products/${p.slug}`,
+        "name": p.name,
+      })),
+    },
+  };
+
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.streetmobile.lk"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Categories",
+        "item": "https://www.streetmobile.lk/categories"
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": categoryName,
+        "item": `https://www.streetmobile.lk/category/${slug}`
+      }
+    ]
+  };
+
   return (
     <div className="min-h-screen bg-white text-[#090909] pt-24 pb-16">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
+      />
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         
         {/* Breadcrumb */}

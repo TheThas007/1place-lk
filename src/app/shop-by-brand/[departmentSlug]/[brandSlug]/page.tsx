@@ -48,15 +48,30 @@ export async function generateMetadata({
     config?.description ||
     `Shop 100% genuine ${brandName} ${deptName} with official company warranty, best prices, and islandwide fast delivery at Street Mobile Vavuniya.`;
 
+  const canonicalUrl = `https://www.streetmobile.lk/shop-by-brand/${departmentSlug.toLowerCase()}/${brandSlug.toLowerCase()}`;
+
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalUrl,
+    },
     openGraph: {
       title,
       description,
+      url: canonicalUrl,
+      type: "website",
+      siteName: "Street Mobile",
+      locale: "en_LK",
       images: config?.desktopBannerUrl
         ? [{ url: config.desktopBannerUrl, alt: `${brandName} ${deptName}` }]
-        : undefined,
+        : [{ url: "https://www.streetmobile.lk/logo.png", alt: `${brandName} - Street Mobile` }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: config?.desktopBannerUrl ? [config.desktopBannerUrl] : ["https://www.streetmobile.lk/logo.png"],
     },
   };
 }
@@ -85,6 +100,9 @@ export default async function DepartmentBrandRoute({
   if (!department || !brand) {
     notFound();
   }
+
+  const brandName = brand.name || brandSlug.toUpperCase();
+  const deptName = department.name || departmentSlug.toUpperCase();
 
   // Check if brand is enabled
   if (brand.enabled === false && brand.status === "inactive") {
@@ -165,22 +183,75 @@ export default async function DepartmentBrandRoute({
   const finalProducts =
     departmentBrandProducts.length > 0 ? departmentBrandProducts : allBrandProducts;
 
-  return (
-    <Suspense
-      fallback={
-        <div className="min-h-screen bg-white pt-28 flex items-center justify-center">
-          <div className="w-8 h-8 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
-        </div>
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}#collection`,
+    "name": `${brandName} ${deptName} in Sri Lanka`,
+    "description": `Shop genuine ${brandName} ${deptName} with warranty and fast delivery in Sri Lanka at Street Mobile.`,
+    "url": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}`,
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": finalProducts.slice(0, 24).map((p, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "url": `https://www.streetmobile.lk/products/${p.slug}`,
+        "name": p.name,
+      })),
+    },
+  };
+
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.streetmobile.lk"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": deptName,
+        "item": `https://www.streetmobile.lk/products?department=${departmentSlug}`
+      },
+      {
+        "@type": "ListItem",
+        "position": 3,
+        "name": `${brandName} ${deptName}`,
+        "item": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}`
       }
-    >
-      <DepartmentBrandPage
-        config={config}
-        brand={brand}
-        department={department}
-        products={finalProducts}
-        categories={categories}
-        allBrands={brands}
+    ]
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
       />
-    </Suspense>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-white pt-28 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-full border-2 border-red-600 border-t-transparent animate-spin" />
+          </div>
+        }
+      >
+        <DepartmentBrandPage
+          config={config}
+          brand={brand}
+          department={department}
+          products={finalProducts}
+          categories={categories}
+          allBrands={brands}
+        />
+      </Suspense>
+    </>
   );
 }
