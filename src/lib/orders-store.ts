@@ -24,6 +24,9 @@ export interface OrderRecord {
   totalPrice: number;
   paymentMethod: string;
   status: string;
+  paymentStatus?: string;
+  payherePaymentId?: string;
+  payhereVerified?: boolean;
   createdAt: string;
 }
 

@@ -4,7 +4,7 @@ import React, { useState, useMemo } from "react";
 import { formatPrice } from "@/lib/utils";
 import { Product, Category, Brand } from "@/lib/types";
 import { db } from "@/lib/firebase";
-import { doc, updateDoc, writeBatch } from "firebase/firestore";
+import { doc, updateDoc, writeBatch, setDoc } from "firebase/firestore";
 import { 
   Package, 
   Plus, 
@@ -381,14 +381,29 @@ export default function ProductsTab({
       const newQty = Math.max(0, Number(tempStockValue) || 0);
       const newStatus = newQty === 0 ? "out_of_stock" : newQty <= 5 ? "low_stock" : "in_stock";
 
-      await updateDoc(doc(db, "products", product.id), {
+      let updatedVariants = product.variant_combos;
+      if (Array.isArray(updatedVariants) && updatedVariants.length > 0) {
+        updatedVariants = updatedVariants.map((v) => ({
+          ...v,
+          stock_quantity: newQty,
+          available_stock: newQty,
+        }));
+      }
+
+      const updateData: Record<string, any> = {
         stock_quantity: newQty,
+        stock_count: newQty,
         stock_status: newStatus,
         updated_at: new Date().toISOString(),
-      });
+      };
+      if (updatedVariants) updateData.variant_combos = updatedVariants;
+
+      await setDoc(doc(db, "products", product.id), updateData, { merge: true });
 
       product.stock_quantity = newQty;
+      product.stock_count = newQty;
       product.stock_status = newStatus;
+      if (updatedVariants) product.variant_combos = updatedVariants;
       setEditingStockId(null);
     } catch (e) {
       console.error("Failed to update stock:", e);

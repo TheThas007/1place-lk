@@ -459,14 +459,41 @@ export default function CheckoutClient() {
         subtotal,
         finalTotal,
         paymentMethod: paymentMethod === "card" ? "Card (PayHere)" : "COD",
-        paymentStatus: paymentMethod === "card" ? "Pending Payment" : "Pending COD",
+        paymentStatus: paymentMethod === "card" ? "Paid" : "Pending COD",
         orderStatus: "Processing",
         createdAt: new Date().toISOString(),
       };
 
-      // 1. Create order in Firestore
-      const docRef = await addDoc(collection(db, "orders"), orderPayload);
-      const generatedOrderId = docRef.id;
+      let generatedOrderId = `SM-${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
+
+      // 1. For COD: Create order immediately in DB (Firestore + local) and deduct stock
+      if (paymentMethod !== "card") {
+        try {
+          const res = await fetch("/api/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              ...orderPayload,
+              id: generatedOrderId,
+              userId: user?.uid || "guest_authenticated",
+              customerName: orderPayload.customerName,
+              primaryPhone: orderPayload.phone,
+              secondaryPhone: orderPayload.altPhone,
+              address: orderPayload.deliveryAddress.address,
+              district: orderPayload.deliveryAddress.district,
+              totalPrice: orderPayload.finalTotal,
+              status: "pending",
+              paymentStatus: "Pending COD",
+            }),
+          });
+          const data = await res.json();
+          if (data.orderId) generatedOrderId = data.orderId;
+        } catch (saveErr) {
+          console.warn("API COD save fallback:", saveErr);
+          const docRef = await addDoc(collection(db, "orders"), orderPayload);
+          generatedOrderId = docRef.id;
+        }
+      }
 
       // 2. Handle saving address profile if opted in
       if (saveProfile) {
@@ -532,8 +559,33 @@ export default function CheckoutClient() {
             items:
               itemsToUse.map((i) => `${i.name} (${i.quantity})`).join(", ") ||
               `Street Mobile Order #${generatedOrderId.slice(0, 8)}`,
-            onCompleted: (completedOrderId) => {
+            onCompleted: async (completedOrderId) => {
               console.log("[Checkout] PayHere payment completed successfully:", completedOrderId);
+              try {
+                // Save confirmed PAID order to DB and deduct stock
+                await fetch("/api/orders", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    ...orderPayload,
+                    id: generatedOrderId,
+                    userId: user?.uid || "guest_authenticated",
+                    customerName: orderPayload.customerName,
+                    primaryPhone: orderPayload.phone,
+                    secondaryPhone: orderPayload.altPhone,
+                    address: orderPayload.deliveryAddress.address,
+                    district: orderPayload.deliveryAddress.district,
+                    totalPrice: orderPayload.finalTotal,
+                    payherePaymentId: completedOrderId,
+                    paymentStatus: "Paid",
+                    orderStatus: "Processing",
+                    status: "processing",
+                    payhereVerified: true,
+                  }),
+                });
+              } catch (e) {
+                console.error("Error saving completed PayHere order:", e);
+              }
               clearCart();
               router.push(`/payment/success?order_id=${generatedOrderId}`);
             },

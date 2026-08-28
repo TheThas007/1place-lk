@@ -58,13 +58,13 @@ export default function ProductGallery({
   const safeActiveIdx = activeIdx < displayImages.length ? activeIdx : 0;
 
   return (
-    <div className="space-y-4">
-      {/* ── Main Media Display Container ── */}
-      <div className="relative w-full aspect-square max-h-[360px] sm:max-h-[520px] rounded-[22px] sm:rounded-[28px] overflow-hidden bg-white p-3 sm:p-6 border border-[#EAEAEA] flex items-center justify-center group shadow-xs">
-        {/* Bottom-Left Discount Badge (Anchored on Image Bottom Edge) */}
+    <div className="space-y-3 sm:space-y-4">
+      {/* ── Main Media Display Container (Square 1:1 shape on mobile and desktop) ── */}
+      <div className="relative w-full aspect-square max-h-[340px] sm:max-h-[520px] rounded-[22px] sm:rounded-[28px] overflow-hidden bg-white border border-[#EAEAEA] flex items-center justify-center group shadow-xs p-2 sm:p-6">
+        {/* Bottom-Left Discount Badge */}
         {discount > 0 && (
           <div className="absolute bottom-0 left-0 z-10">
-            <span className="bg-red-600 text-white text-[11px] font-black px-3 py-1 sm:px-3.5 sm:py-1.5 rounded-tr-2xl uppercase tracking-wider shadow-sm inline-block">
+            <span className="bg-red-600 text-white text-[10px] sm:text-[11px] font-black px-2.5 py-1 sm:px-3.5 sm:py-1.5 rounded-tr-xl sm:rounded-tr-2xl uppercase tracking-wider shadow-sm inline-block">
               -{discount}% OFF
             </span>
           </div>
@@ -74,7 +74,7 @@ export default function ProductGallery({
         <button
           type="button"
           onClick={() => setIsFullscreen(true)}
-          className="absolute top-3 right-3 sm:top-4 sm:right-4 z-10 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/90 backdrop-blur-sm border border-[#EAEAEA] flex items-center justify-center text-black opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm hover:scale-105 cursor-pointer"
+          className="absolute top-2.5 right-2.5 sm:top-4 sm:right-4 z-10 w-7 h-7 sm:w-9 sm:h-9 rounded-full bg-white/90 backdrop-blur-sm border border-[#EAEAEA] flex items-center justify-center text-black opacity-0 group-hover:opacity-100 transition-opacity duration-200 shadow-sm hover:scale-105 cursor-pointer"
           aria-label="Enlarge image"
         >
           <Maximize2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-black" />
@@ -94,12 +94,14 @@ export default function ProductGallery({
             />
           </div>
         ) : (
-          <img
-            src={displayImages[safeActiveIdx]}
-            alt={`${name} - Image ${safeActiveIdx + 1}`}
-            className="w-full h-full max-h-[330px] sm:max-h-[480px] object-contain mix-blend-multiply transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer"
-            onClick={() => setIsFullscreen(true)}
-          />
+          <div className="w-full h-full flex items-center justify-center overflow-hidden">
+            <img
+              src={displayImages[safeActiveIdx]}
+              alt={`${name} - Image ${safeActiveIdx + 1}`}
+              className="w-full h-full object-contain object-center p-1 sm:p-2 transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer select-none"
+              onClick={() => setIsFullscreen(true)}
+            />
+          </div>
         )}
       </div>
 
@@ -110,17 +112,17 @@ export default function ProductGallery({
             key={i}
             type="button"
             onClick={() => handleThumbnailClick(i)}
-            className={`relative shrink-0 w-16 h-16 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl p-1.5 sm:p-2 overflow-hidden border-2 cursor-pointer transition-all ${
+            className={`relative shrink-0 w-13 h-13 sm:w-20 sm:h-20 rounded-xl sm:rounded-2xl p-1 sm:p-1.5 overflow-hidden border-2 cursor-pointer transition-all ${
               i === safeActiveIdx && !showVideo
                 ? "border-black ring-2 ring-black shadow-xs scale-102"
                 : "border-neutral-200 hover:border-neutral-400"
-            } bg-[#F8F9FA]`}
+            } bg-white flex items-center justify-center`}
             aria-label={`View ${name} image ${i + 1}`}
           >
             <img
               src={img}
               alt={`${name} thumbnail ${i + 1}`}
-              className="w-full h-full object-contain mix-blend-multiply"
+              className="max-w-full max-h-full w-auto h-auto object-contain"
             />
           </button>
         ))}

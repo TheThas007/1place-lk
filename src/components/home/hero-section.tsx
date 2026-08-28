@@ -247,7 +247,7 @@ export default function HeroSection() {
     <>
       {/* ── Mobile Hero Banner (Fixed 16:9 Aspect Ratio, Full-Width Edge-to-Edge with Text/Clean Overlay) ── */}
       <section
-        className="md:hidden w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
+        className="md:hidden w-full max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
         aria-label="Mobile Featured Hero Showcase"
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
@@ -371,7 +371,7 @@ export default function HeroSection() {
       {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
       <section
         ref={heroRef}
-        className="hidden md:flex group relative w-full w-screen max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none select-none"
+        className="hidden md:flex group relative w-full max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none select-none"
         style={{
           fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
         }}

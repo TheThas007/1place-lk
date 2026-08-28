@@ -528,6 +528,10 @@ export default function ProductDetailClient({
       onSuccess: () => {
         setAdded(true);
         setTimeout(() => setAdded(false), 2000);
+        // Automatically open the Shopping Bag drawer on add to bag
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("open-cart-drawer"));
+        }
       },
     });
   };
@@ -688,10 +692,10 @@ export default function ProductDetailClient({
           </div>
         </div>
 
-        <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start">
+        <div className="grid lg:grid-cols-12 gap-8 lg:gap-14 items-start w-full min-w-0 max-w-full">
           
           {/* Left Column: Image Gallery (Shows ALL uploaded photos & syncs with color selection) */}
-          <div className="lg:col-span-6">
+          <div className="lg:col-span-6 w-full min-w-0 max-w-full">
             <ProductGallery
               images={allMasterImages}
               name={product.name}
@@ -703,8 +707,8 @@ export default function ProductDetailClient({
           </div>
 
           {/* Right Column: Information & Linked Variant Controls */}
-          <div className="lg:col-span-6 flex flex-col justify-between">
-            <div>
+          <div className="lg:col-span-6 w-full min-w-0 max-w-full flex flex-col justify-between">
+            <div className="w-full min-w-0 max-w-full">
               {/* Desktop Category, Brand Link & SKU */}
               <div className="hidden lg:flex items-center justify-between gap-4 mb-3">
                 <div className="flex items-center gap-2">
@@ -725,7 +729,7 @@ export default function ProductDetailClient({
               </div>
 
               {/* Desktop Title */}
-              <h1 className="hidden lg:block text-3xl lg:text-4xl font-extrabold text-black tracking-tight mb-3 leading-snug">
+              <h1 className="hidden lg:block text-3xl lg:text-4xl font-extrabold text-black tracking-tight mb-3 leading-snug break-words">
                 {product.name}
               </h1>
 
@@ -765,44 +769,44 @@ export default function ProductDetailClient({
                 </div>
               </div>
 
-              {/* Price Display */}
-              <div className="flex items-baseline flex-wrap gap-3 mb-6">
-                <span className="text-3xl sm:text-4xl font-black text-black tracking-tight">
+              {/* Price Display (Fully responsive flex-wrap) */}
+              <div className="flex items-baseline flex-wrap gap-2.5 sm:gap-3 mb-4 sm:mb-6 w-full min-w-0 max-w-full">
+                <span className="text-2xl sm:text-3xl md:text-4xl font-black text-black tracking-tight shrink-0">
                   {formatPrice(currentVariantPrice)}
                 </span>
                 {currentVariantOldPrice && currentVariantOldPrice > currentVariantPrice && (
-                  <span className="text-lg text-gray-400 line-through font-medium">
+                  <span className="text-base sm:text-lg text-gray-400 line-through font-medium shrink-0">
                     {formatPrice(currentVariantOldPrice)}
                   </span>
                 )}
                 {discountPercent > 0 && (
-                  <span className="text-xs font-black text-red-600 bg-red-50 border border-red-200 px-2.5 py-1 rounded-md animate-pulse">
+                  <span className="text-[11px] sm:text-xs font-black text-red-600 bg-red-50 border border-red-200 px-2.5 py-0.5 sm:py-1 rounded-md shrink-0">
                     SAVE {discountPercent}%
                   </span>
                 )}
               </div>
 
-              {/* Short Description */}
+              {/* Product Description (Full natural text wrap, no horizontal cutoff) */}
               {product.description && (
-                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6 line-clamp-3">
+                <p className="text-xs sm:text-sm text-gray-600 leading-relaxed mb-6 w-full max-w-full min-w-0 break-words [overflow-wrap:anywhere]">
                   {product.description}
                 </p>
               )}
 
-              {/* ── Warranty Badges ── */}
+              {/* ── Warranty Badges (Fully contained) ── */}
               {(availableWarranties.length > 0 || product.warranty || product.brand_warranty) && (
-                <div className="space-y-2 mb-6">
+                <div className="space-y-2 mb-6 w-full min-w-0 max-w-full">
                   {availableWarranties.length > 0 ? (
                     availableWarranties.map((w) => (
                       <div
                         key={w.id}
-                        className="flex items-center gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl"
+                        className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl w-full min-w-0 max-w-full"
                       >
-                        <ShieldCheck className="w-5 h-5 text-black shrink-0" />
-                        <div>
-                          <span>Warranty: <strong className="font-extrabold text-black">{w.title}</strong></span>
+                        <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
+                        <div className="min-w-0 flex-1 break-words">
+                          <span className="block leading-snug">Warranty: <strong className="font-extrabold text-black">{w.title}</strong></span>
                           {w.coverage_details && (
-                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5">{w.coverage_details}</span>
+                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5 leading-snug">{w.coverage_details}</span>
                           )}
                         </div>
                       </div>
@@ -810,16 +814,21 @@ export default function ProductDetailClient({
                   ) : (
                     <>
                       {product.warranty && (
-                        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl">
-                          <ShieldCheck className="w-5 h-5 text-black shrink-0" />
-                          <span>Warranty: <strong className="font-extrabold text-black">{product.warranty}</strong></span>
+                        <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl w-full min-w-0 max-w-full">
+                          <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1 break-words">
+                            <span className="block leading-snug">Warranty: <strong className="font-extrabold text-black">{product.warranty}</strong></span>
+                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5 leading-snug">Hardware defect warranty from Street Mobile main store.</span>
+                          </div>
                         </div>
                       )}
 
                       {product.brand_warranty && (
-                        <div className="flex items-center gap-2.5 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-4 py-3 rounded-2xl">
-                          <Award className="w-5 h-5 text-black shrink-0" />
-                          <span>Brand Warranty: <strong className="font-extrabold text-black">{product.brand_warranty}</strong></span>
+                        <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl w-full min-w-0 max-w-full">
+                          <Award className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
+                          <div className="min-w-0 flex-1 break-words">
+                            <span className="block leading-snug">Brand Warranty: <strong className="font-extrabold text-black">{product.brand_warranty}</strong></span>
+                          </div>
                         </div>
                       )}
                     </>
@@ -827,11 +836,11 @@ export default function ProductDetailClient({
                 </div>
               )}
 
-              {/* ── 1. COLOUR SELECTOR ── */}
+              {/* ── 1. COLOUR SELECTOR (Responsive heading & swatches) ── */}
               {colorVariants.length > 0 && (
-                <div className="mb-6">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <label className="text-xs font-bold text-black uppercase tracking-wider">
+                <div className="mb-6 w-full min-w-0 max-w-full">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5 mb-2.5 w-full min-w-0 max-w-full">
+                    <label className="text-xs font-bold text-black uppercase tracking-wider min-w-0 break-words">
                       Colour:{" "}
                       <span className="font-semibold text-neutral-800">
                         {hasUserChosenColor ? selectedColor : "Overview (Select a color to preview)"}
@@ -842,13 +851,13 @@ export default function ProductDetailClient({
                       <button
                         type="button"
                         onClick={handleResetToAllPhotos}
-                        className="text-[11px] font-bold text-neutral-500 hover:text-black underline cursor-pointer"
+                        className="text-[11px] font-bold text-neutral-500 hover:text-black underline cursor-pointer shrink-0"
                       >
                         View All Photos
                       </button>
                     )}
                   </div>
-                  <div className="flex flex-wrap gap-3">
+                  <div className="flex flex-wrap gap-2.5 sm:gap-3 w-full min-w-0 max-w-full">
                     {colorVariants.map((c) => {
                       const isSelected = hasUserChosenColor && selectedColor.toLowerCase() === c.name.toLowerCase();
                       const hexColor = c.hex && c.hex.startsWith("#") ? c.hex : getColorCSS(c.name);
@@ -1017,14 +1026,14 @@ export default function ProductDetailClient({
                 </div>
               </div>
 
-              {/* ── Primary Action Buttons ── */}
-              <div className="flex flex-col sm:flex-row items-stretch gap-3 mb-8">
+              {/* ── Primary Action Buttons (Add to Bag, Buy Now, Wishlist) ── */}
+              <div className="flex flex-col sm:flex-row items-stretch gap-2.5 sm:gap-3 mb-8 w-full min-w-0 max-w-full">
                 {/* 1. Add to Bag */}
                 <button
                   type="button"
                   disabled={isVariantOutOfStock}
                   onClick={handleAddToCart}
-                  className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm border-2 flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                  className={`flex-1 py-3.5 sm:py-4 px-4 sm:px-6 rounded-full font-bold text-xs sm:text-sm border-2 flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
                     isVariantOutOfStock
                       ? "bg-gray-100 border-gray-200 text-gray-400 cursor-not-allowed"
                       : added
@@ -1056,7 +1065,7 @@ export default function ProductDetailClient({
                   <button
                     type="button"
                     onClick={() => setIsPreOrderOpen(true)}
-                    className="flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
+                    className="flex-1 py-3.5 sm:py-4 px-4 sm:px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#20bd5a] text-white shadow-md transition-all active:scale-[0.98] cursor-pointer"
                   >
                     <MessageCircle className="w-4 h-4" />
                     <span>Pre-Order / Book Device</span>
@@ -1066,7 +1075,7 @@ export default function ProductDetailClient({
                     type="button"
                     disabled={isVariantOutOfStock || buyingNow}
                     onClick={handleBuyNow}
-                    className={`flex-1 py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
+                    className={`flex-1 py-3.5 sm:py-4 px-4 sm:px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] ${
                       isVariantOutOfStock
                         ? "bg-gray-200 text-gray-400 cursor-not-allowed"
                         : "bg-black text-white hover:bg-gray-800 shadow-md cursor-pointer"
@@ -1087,7 +1096,7 @@ export default function ProductDetailClient({
                 <button
                   type="button"
                   onClick={() => toggleWishlist(product.id)}
-                  className={`py-4 px-5 rounded-full border-2 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 font-bold text-xs ${
+                  className={`py-3.5 sm:py-4 px-4 sm:px-5 rounded-full border-2 flex items-center justify-center gap-2 transition-all active:scale-95 cursor-pointer shrink-0 font-bold text-xs ${
                     isWishlisted
                       ? "bg-red-50 border-red-300 text-red-600"
                       : "bg-white border-[#EAEAEA] text-neutral-700 hover:border-black hover:text-black"
@@ -1100,35 +1109,35 @@ export default function ProductDetailClient({
                       isWishlisted ? "fill-red-600 text-red-600 scale-110" : "text-neutral-600"
                     }`}
                   />
-                  <span className="hidden sm:inline">{isWishlisted ? "Saved" : "Wishlist"}</span>
+                  <span>{isWishlisted ? "Saved" : "Wishlist"}</span>
                 </button>
               </div>
 
               {/* ── Trust Badges ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs text-gray-700">
-                <div className="flex items-center gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3.5 sm:p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs text-gray-700 w-full min-w-0 max-w-full">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <ShieldCheck className="w-4 h-4 text-black shrink-0" />
-                  <span className="font-bold">{product.warranty || "Genuine Warranty"}</span>
+                  <span className="font-bold truncate">{product.warranty || "Genuine Warranty"}</span>
                 </div>
                 {product.allow_cod !== false ? (
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-2.5 min-w-0">
                     <Banknote className="w-4 h-4 text-black shrink-0" />
-                    <span>Cash on Delivery</span>
+                    <span className="truncate">Cash on Delivery</span>
                   </div>
                 ) : product.allow_card !== false ? (
-                  <div className="flex items-center gap-2.5 text-blue-700">
+                  <div className="flex items-center gap-2.5 text-blue-700 min-w-0">
                     <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="font-bold">Card / Online Payment</span>
+                    <span className="font-bold truncate">Card / Online Payment</span>
                   </div>
                 ) : (
-                  <div className="flex items-center gap-2.5 text-emerald-700">
+                  <div className="flex items-center gap-2.5 text-emerald-700 min-w-0">
                     <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-bold">WhatsApp Direct Order</span>
+                    <span className="font-bold truncate">WhatsApp Direct Order</span>
                   </div>
                 )}
-                <div className="flex items-center gap-2.5">
+                <div className="flex items-center gap-2.5 min-w-0">
                   <Truck className="w-4 h-4 text-black shrink-0" />
-                  <span>{product.delivery_info || "Express Delivery Sri Lanka"}</span>
+                  <span className="truncate">{product.delivery_info || "Express Delivery Sri Lanka"}</span>
                 </div>
               </div>
 
@@ -1138,8 +1147,8 @@ export default function ProductDetailClient({
         </div>
 
         {/* ── 2. Content Tabs Below ── */}
-        <div className="mt-16 sm:mt-20 border-t border-[#EAEAEA] pt-10">
-          <div className="flex items-center gap-6 border-b border-[#EAEAEA] overflow-x-auto no-scrollbar mb-8">
+        <div className="mt-16 sm:mt-20 border-t border-[#EAEAEA] pt-10 w-full min-w-0 max-w-full">
+          <div className="flex items-center gap-6 border-b border-[#EAEAEA] overflow-x-auto no-scrollbar mb-8 w-full max-w-full">
             <button
               onClick={() => setActiveTab("description")}
               className={`pb-4 text-xs sm:text-sm font-bold transition-all relative shrink-0 ${
@@ -1177,15 +1186,15 @@ export default function ProductDetailClient({
             </button>
           </div>
 
-          <div className="max-w-4xl">
+          <div className="max-w-4xl w-full min-w-0">
             {activeTab === "description" && (
-              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed space-y-4">
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed space-y-4 break-words [overflow-wrap:anywhere] w-full min-w-0">
                 <p>{product.description}</p>
               </div>
             )}
 
             {activeTab === "specifications" && (
-              <div className="border border-[#EAEAEA] rounded-2xl overflow-hidden">
+              <div className="border border-[#EAEAEA] rounded-2xl overflow-hidden overflow-x-auto w-full min-w-0">
                 <table className="w-full text-xs sm:text-sm text-left">
                   <tbody>
                     {product.specifications && Object.keys(product.specifications).length > 0 ? (
@@ -1194,10 +1203,10 @@ export default function ProductDetailClient({
                           key={key}
                           className={idx % 2 === 0 ? "bg-[#FAFAFA]" : "bg-white"}
                         >
-                          <td className="px-5 py-3.5 font-bold text-black border-r border-[#EAEAEA] w-1/3">
+                          <td className="px-4 sm:px-5 py-3 sm:py-3.5 font-bold text-black border-r border-[#EAEAEA] w-1/3 break-words">
                             {key}
                           </td>
-                          <td className="px-5 py-3.5 text-gray-700">{val}</td>
+                          <td className="px-4 sm:px-5 py-3 sm:py-3.5 text-gray-700 break-words">{val}</td>
                         </tr>
                       ))
                     ) : (
@@ -1213,17 +1222,17 @@ export default function ProductDetailClient({
             )}
 
             {activeTab === "warranty" && (
-              <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl p-6">
+              <div className="space-y-4 text-xs sm:text-sm text-gray-700 leading-relaxed bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl p-4 sm:p-6 w-full min-w-0 break-words">
                 <div className="flex items-start gap-3">
                   <ShieldCheck className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-black mb-1">Warranty Details</h4>
                     <p>{product.warranty || "1 Year Company Warranty against manufacturer defects."}</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-3 pt-3 border-t border-[#EAEAEA]">
                   <Truck className="w-5 h-5 text-black shrink-0 mt-0.5" />
-                  <div>
+                  <div className="min-w-0 flex-1">
                     <h4 className="font-bold text-black mb-1">Delivery Information</h4>
                     <p>{product.delivery_info || "Express island-wide delivery in Sri Lanka within 1-3 business days. Cash on delivery available."}</p>
                   </div>
@@ -1241,22 +1250,22 @@ export default function ProductDetailClient({
       </div>
 
       {/* ── 6. Mobile Sticky Bottom Purchase Bar (Screens < 1024px) ── */}
-      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-4 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-3 safe-bottom select-none">
-        <div className="flex flex-col min-w-0 pr-2">
-          <span className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Price</span>
-          <span className="text-sm sm:text-base font-black text-black leading-tight truncate">
+      <div className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 backdrop-blur-md border-t border-neutral-200 px-3.5 sm:px-5 py-2.5 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] flex items-center justify-between gap-2 safe-bottom select-none">
+        <div className="flex flex-col min-w-0 pr-1 shrink-0">
+          <span className="text-[9px] sm:text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Price</span>
+          <span className="text-xs sm:text-sm font-black text-black leading-tight">
             {formatPrice(currentVariantPrice)}
           </span>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           {isVariantOutOfStock && isMobileOrLaptop ? (
             <button
               type="button"
               onClick={() => setIsPreOrderOpen(true)}
-              className="min-h-[44px] px-5 py-2.5 rounded-full bg-[#25D366] text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
+              className="min-h-[42px] px-4 sm:px-5 py-2 rounded-full bg-[#25D366] text-white font-bold text-xs flex items-center gap-1.5 shadow-md active:scale-95 transition-all cursor-pointer"
             >
-              <MessageCircle className="w-4 h-4" />
+              <MessageCircle className="w-3.5 h-3.5" />
               <span>Pre-Order</span>
             </button>
           ) : (
@@ -1265,7 +1274,7 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isVariantOutOfStock}
                 onClick={handleAddToCart}
-                className={`min-h-[44px] px-3.5 sm:px-4 py-2.5 rounded-full border text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer ${
+                className={`min-h-[42px] px-3 sm:px-4 py-2 rounded-full border text-[11px] sm:text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 ${
                   isVariantOutOfStock
                     ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
                     : added
@@ -1281,7 +1290,7 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isVariantOutOfStock || buyingNow}
                 onClick={handleBuyNow}
-                className="min-h-[44px] px-4 sm:px-5 py-2.5 rounded-full bg-black text-white font-bold text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all cursor-pointer hover:bg-neutral-800"
+                className="min-h-[42px] px-3.5 sm:px-5 py-2 rounded-full bg-black text-white font-bold text-[11px] sm:text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all cursor-pointer hover:bg-neutral-800 shrink-0"
               >
                 <span>{buyingNow ? "..." : "Buy Now"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

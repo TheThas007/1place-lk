@@ -139,6 +139,17 @@ export default function OrdersTab({
     // Payment status filter
     if (paymentStatusFilter !== "all") {
       list = list.filter((o) => o.paymentStatus.toLowerCase() === paymentStatusFilter.toLowerCase());
+    } else {
+      // Exclude unpaid / abandoned PayHere card attempts from standard orders view
+      list = list.filter((o) => {
+        const method = (o.paymentMethod || "").toString().toLowerCase();
+        const isCardOrPayHere = method.includes("payhere") || method.includes("card");
+        if (isCardOrPayHere) {
+          const isPaid = o.paymentStatus.toLowerCase() === "paid" || o.orderStatus.toLowerCase() === "delivered" || o.orderStatus.toLowerCase() === "shipped" || o.orderStatus.toLowerCase() === "packed" || o.orderStatus.toLowerCase() === "confirmed";
+          return isPaid;
+        }
+        return true;
+      });
     }
 
     // Order status filter

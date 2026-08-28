@@ -253,7 +253,15 @@ export default function Header() {
             )}
           >
             {/* Logo */}
-            <Link href="/" className="flex items-center shrink-0 group">
+            <Link
+              href="/"
+              onClick={() => {
+                if (pathname === "/") {
+                  window.scrollTo({ top: 0, behavior: "smooth" });
+                }
+              }}
+              className="flex items-center shrink-0 group cursor-pointer"
+            >
               <motion.div
                 className="relative flex items-center"
                 whileHover={{ scale: 1.04 }}
@@ -596,14 +604,25 @@ export default function Header() {
               className="fixed top-0 right-0 bottom-0 w-[85%] max-w-[340px] bg-black border-l border-white/[0.06] z-50 lg:hidden flex flex-col"
             >
               <div className="flex items-center justify-between px-5 py-4 border-b border-white/[0.06]">
-                <img
-                  src="/logo.png"
-                  alt="STREET MOBILE"
-                  className="h-9 w-auto object-contain"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = "none";
+                <Link
+                  href="/"
+                  onClick={() => {
+                    setIsMobileMenuOpen(false);
+                    if (pathname === "/") {
+                      window.scrollTo({ top: 0, behavior: "smooth" });
+                    }
                   }}
-                />
+                  className="flex items-center"
+                >
+                  <img
+                    src="/logo.png"
+                    alt="STREET MOBILE"
+                    className="h-9 w-auto object-contain cursor-pointer"
+                    onError={(e) => {
+                      (e.target as HTMLImageElement).style.display = "none";
+                    }}
+                  />
+                </Link>
                 <button
                   onClick={() => setIsMobileMenuOpen(false)}
                   className="p-2 rounded-lg text-white/50 hover:text-white hover:bg-white/10 transition-all"

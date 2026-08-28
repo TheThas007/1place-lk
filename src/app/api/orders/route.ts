@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getLocalOrders, saveLocalOrder, updateLocalOrderStatus, deleteLocalOrder, OrderRecord } from "@/lib/orders-store";
 import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { deductProductStock } from "@/lib/stock-deduction";
 
 // GET /api/orders - returns all orders
 export async function GET(req: Request) {
@@ -10,6 +11,7 @@ export async function GET(req: Request) {
     const phone = searchParams.get("phone")?.trim();
     const userId = searchParams.get("userId")?.trim();
     const orderId = searchParams.get("id")?.trim();
+    const includeUnpaid = searchParams.get("includeUnpaid") === "true";
 
     // 1. Read local persistent orders
     let localList = getLocalOrders();
@@ -32,6 +34,21 @@ export async function GET(req: Request) {
     });
 
     let result = Array.from(map.values());
+
+    // Filter out unpaid/abandoned PayHere card attempts from general order listings
+    if (!includeUnpaid && !orderId) {
+      result = result.filter((o: any) => {
+        const method = (o.paymentMethod || "").toString().toLowerCase();
+        const isCardOrPayHere = method.includes("payhere") || method.includes("card");
+        if (isCardOrPayHere) {
+          const payStatus = (o.paymentStatus || "").toString().toLowerCase();
+          const ordStatus = (o.status || o.orderStatus || "").toString().toLowerCase();
+          const isPaid = payStatus === "paid" || ordStatus === "paid" || o.payhereVerified || o.payhereStatusCode === "2";
+          return isPaid;
+        }
+        return true;
+      });
+    }
 
     // Apply filtering if parameters provided
     if (orderId) {
@@ -92,10 +109,24 @@ export async function POST(req: Request) {
 
     // 2. Try saving to Firestore
     try {
-      const cleanData = JSON.parse(JSON.stringify(newOrder));
+      const cleanData = JSON.parse(JSON.stringify({
+        ...newOrder,
+        ...(body.paymentStatus ? { paymentStatus: body.paymentStatus } : {}),
+        ...(body.payherePaymentId ? { payherePaymentId: body.payherePaymentId } : {}),
+        ...(body.payhereVerified ? { payhereVerified: body.payhereVerified } : {}),
+      }));
       await setDoc(doc(db, "orders", newOrder.id), cleanData, { merge: true });
     } catch (fsErr) {
       console.warn("Firestore save fallback error (saved to local store):", fsErr);
+    }
+
+    // 3. Automatically deduct product stock for ordered items
+    try {
+      if (newOrder.items && newOrder.items.length > 0) {
+        await deductProductStock(newOrder.items);
+      }
+    } catch (stockErr) {
+      console.warn("[Stock Deduction Warning]:", stockErr);
     }
 
     return NextResponse.json({ success: true, orderId: newOrder.id, order: newOrder });

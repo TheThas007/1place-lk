@@ -188,12 +188,12 @@ export default function NewArrivalsSection({
                       )}
 
                       {/* 1:1 Square Image Container with Discount Badge in current image position */}
-                      <div className="relative aspect-square bg-[#F7F7F7] rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1.5 sm:p-2">
+                      <div className="relative aspect-square bg-white rounded-xl flex items-center justify-center overflow-hidden mb-1.5 p-1 sm:p-2 border border-neutral-100/80">
                         <img
                           src={mainImage}
                           alt={product.name}
                           loading="lazy"
-                          className="w-full h-full object-contain transition-transform duration-300 group-hover:scale-105"
+                          className="w-full h-full object-contain object-center transition-transform duration-300 group-hover:scale-105"
                           onError={(e) => {
                             (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                           }}
@@ -302,7 +302,7 @@ export default function NewArrivalsSection({
                   className="group relative bg-white border border-neutral-200/90 rounded-2xl overflow-hidden flex flex-col justify-between shadow-xs hover:shadow-md hover:border-black hover:-translate-y-1 transition-all duration-300 h-full"
                 >
                   {/* Image Section */}
-                  <div className="relative aspect-square bg-[#F7F7F8] p-5 flex items-center justify-center overflow-hidden rounded-t-2xl">
+                  <div className="product-image-container relative aspect-square bg-white p-2.5 sm:p-3 flex items-center justify-center overflow-hidden rounded-t-2xl border-b border-neutral-100/80">
                     
                     {/* Top-Left Out-of-Stock Badge */}
                     {isOutOfStock && (
@@ -315,7 +315,7 @@ export default function NewArrivalsSection({
 
                     {/* Bottom-Left Discount Badge (Anchored on Image Bottom Edge) */}
                     {hasDiscount && (
-                      <div className="absolute bottom-0 left-0 z-10">
+                      <div className="product-offer-badge absolute bottom-0 left-0 z-10">
                         <span className="bg-red-600 text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
                           -{discountPercent}% OFF
                         </span>

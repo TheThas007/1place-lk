@@ -30,6 +30,9 @@ export default function AddToBagButton({ product, className = "", size = "md" }:
       onSuccess: () => {
         setAdded(true);
         setTimeout(() => setAdded(false), 1800);
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("open-cart-drawer"));
+        }
       },
     });
   };

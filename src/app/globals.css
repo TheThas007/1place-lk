@@ -42,6 +42,13 @@ body:has([data-admin-root]) main {
   margin-top: 0 !important;
 }
 
+/* Hide Next.js dev indicator / portal badges that overlap mobile UI */
+nextjs-portal,
+[data-nextjs-toast],
+[data-nextjs-dev-overlay] {
+  display: none !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
@@ -607,5 +614,36 @@ html.lenis body {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ── Product Card Image Container Uniform Proportions & Containment ── */
+.product-image-container {
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #ffffff !important;
+}
+
+.product-image-container img {
+  width: 100% !important;
+  height: 100% !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: contain !important;
+  object-position: center !important;
+  padding: 4px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 768px) {
+  .product-image-container {
+    height: 180px !important;
+    min-height: 180px !important;
+    max-height: 180px !important;
   }
 }

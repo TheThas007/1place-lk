@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
+import { deductProductStock } from "@/lib/stock-deduction";
 
 export async function POST(req: Request) {
   try {
@@ -144,6 +145,15 @@ export async function POST(req: Request) {
           paidAt: nowIso,
           updatedAt: nowIso,
         });
+
+        // Deduct stock for ordered items upon successful webhook verification
+        try {
+          if (orderData.items && Array.isArray(orderData.items) && orderData.items.length > 0) {
+            await deductProductStock(orderData.items);
+          }
+        } catch (stockErr) {
+          console.warn("[PayHere Webhook] Stock deduction warning:", stockErr);
+        }
 
         console.log(`[PayHere Webhook] SUCCESS: Order ${order_id} marked as PAID (LKR ${payhere_amount}, Payment ID: ${payment_id})`);
         break;

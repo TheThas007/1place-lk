@@ -170,7 +170,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
     <>
       {/* ── Mobile Layout (< 768px): Full-Width Edge-to-Edge Showcase Banner ── */}
       <section
-        className="md:hidden relative w-full w-screen max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
+        className="md:hidden relative w-full max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none"
         style={backgroundStyle}
         aria-label={showcase.section_title || "Featured Visual Showcase"}
         onTouchStart={onTouchStart}

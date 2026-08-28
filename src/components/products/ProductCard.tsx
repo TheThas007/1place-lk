@@ -114,8 +114,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         href={`/products/${product.slug}`}
         className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
-        {/* ── 1. Image Container (1:1 square, #F7F7F7 background, overflow hidden) ── */}
-        <div className="product-image-container relative aspect-square bg-[#F7F7F7] flex items-center justify-center overflow-hidden rounded-t-2xl">
+        {/* ── 1. Image Container (Equal responsive height, pure white background, seamless blend) ── */}
+        <div className="product-image-container relative w-full h-[180px] sm:h-[220px] md:h-[240px] aspect-square bg-white flex items-center justify-center overflow-hidden rounded-t-2xl border-b border-neutral-100/80">
           
           {/* ── Approved Offer Badge Position: Bottom-Left Corner ── */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
@@ -153,20 +153,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </button>
 
           {/* Product Image */}
-          <div className="w-full h-full flex items-center justify-center overflow-hidden p-2">
+          <div className="w-full h-full flex items-center justify-center overflow-hidden p-1.5 sm:p-2.5">
             <img
               src={mainImage}
               alt={product.name}
               loading="lazy"
               onError={() => setImageError(true)}
-              style={{
-                objectPosition: `${50 + posX}% ${50 + posY}%`,
-                transform: `scale(${userScale})`,
-                transformOrigin: "center center",
-              }}
-              className={`w-full h-full ${
-                isCover ? "object-cover" : "object-contain"
-              } transition-transform duration-500 ease-out group-hover:scale-105`}
+              className="w-full h-full max-w-full max-h-full object-contain object-center transition-transform duration-300 ease-out group-hover:scale-105"
             />
           </div>
         </div>

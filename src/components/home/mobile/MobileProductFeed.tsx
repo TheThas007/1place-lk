@@ -125,11 +125,11 @@ export default function MobileProductFeed({ initialProducts = [] }: MobileProduc
               className="bg-white rounded-2xl p-2.5 border border-neutral-200/80 flex flex-col justify-between active:scale-98 transition-transform shadow-2xs group"
             >
               {/* Product Thumbnail Container */}
-              <div className="relative aspect-square w-full rounded-xl bg-[#F8F9FA] p-2 mb-2 flex items-center justify-center overflow-hidden border border-neutral-100">
+              <div className="product-image-container relative aspect-square w-full rounded-xl bg-white p-1 mb-2 flex items-center justify-center overflow-hidden border border-neutral-100">
                 <img
                   src={image}
                   alt={product.name}
-                  className={`w-full h-full object-contain ${isOutOfStock ? "grayscale opacity-50" : ""}`}
+                  className={`w-full h-full object-contain object-center ${isOutOfStock ? "grayscale opacity-50" : ""}`}
                   loading="lazy"
                 />
                 

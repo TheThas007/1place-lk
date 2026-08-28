@@ -165,7 +165,10 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
         setTimeout(() => {
           setAdded(false);
           onClose();
-        }, 1200);
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("open-cart-drawer"));
+          }
+        }, 1000);
       },
     });
   };
@@ -194,14 +197,14 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
         </button>
 
         {/* Left Side: Product Gallery */}
-        <div className="w-full md:w-1/2 bg-[#F8F8F9] p-6 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-neutral-100 shrink-0">
+        <div className="w-full md:w-1/2 bg-white p-6 flex flex-col items-center justify-between border-b md:border-b-0 md:border-r border-neutral-100 shrink-0">
           
           {/* Main Image */}
-          <div className="relative aspect-square w-full flex items-center justify-center p-4">
+          <div className="relative aspect-square w-full flex items-center justify-center p-2">
             <img
               src={mainDisplayImage}
               alt={product.name}
-              className="max-h-full max-w-full object-contain mix-blend-multiply transition-all duration-300"
+              className="max-h-full max-w-full object-contain transition-all duration-300"
             />
 
             {/* Bottom-Left SALE Badge */}

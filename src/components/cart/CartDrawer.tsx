@@ -183,30 +183,19 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         items: sanitizedItems,
         totalPrice: total,
         paymentMethod: "PayHere Card",
-        status: "pending",
+        status: "processing",
+        paymentStatus: "Paid",
+        payhereVerified: true,
         createdAt: new Date().toISOString(),
         district: codDistrict || "Vavuniya",
         address: codAddress || "PayHere Payment Gateway",
         primaryPhone: codPhone1 || "N/A"
       };
 
-      let finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
-
-      try {
-        const res = await fetch("/api/orders", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(orderData)
-        });
-        const data = await res.json();
-        if (data.orderId) finalOrderId = data.orderId;
-      } catch (e) {
-        console.warn("API order save warning:", e);
-      }
-
+      const finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
       setOrderId(finalOrderId);
 
-      // Fetch PayHere hash
+      // Fetch PayHere hash without pre-creating pending database order
       const hashRes = await fetch("/api/payhere/hash", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -241,10 +230,51 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
           country: "Sri Lanka",
         };
 
-        payhere.onCompleted = function onCompleted(completedOrderId: string) {
+        payhere.onCompleted = async function onCompleted(completedOrderId: string) {
           console.log("PayHere payment completed:", completedOrderId);
+          try {
+            // Save confirmed PAID order to DB and trigger stock deduction
+            await fetch("/api/orders", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...orderData,
+                id: finalOrderId,
+                payherePaymentId: completedOrderId,
+                paymentStatus: "Paid",
+                status: "processing",
+                payhereVerified: true,
+              })
+            });
+
+            // Store in user's recent orders in local storage
+            try {
+              const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+              if (!stored.includes(finalOrderId)) {
+                localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
+              }
+            } catch {}
+
+            // Send notification
+            fetch("/api/order-alert", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                orderId: finalOrderId,
+                customerName: orderData.customerName,
+                totalPrice: total,
+                itemsCount: cart.length,
+                paymentMethod: "PayHere Card",
+                primaryPhone: orderData.primaryPhone
+              })
+            }).catch(e => console.error(e));
+          } catch (err) {
+            console.error("Failed to save completed PayHere order:", err);
+          }
+
           clearCart();
           setStep("success");
+          setLoading(false);
         };
 
         payhere.onDismissed = function onDismissed() {
@@ -259,10 +289,24 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
         payhere.startPayment(payment);
       } else {
-        // Fallback simulation
-        setTimeout(() => {
+        // Fallback simulation (dev environment fallback when SDK not loaded)
+        setTimeout(async () => {
+          try {
+            await fetch("/api/orders", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                ...orderData,
+                id: finalOrderId,
+                paymentStatus: "Paid",
+                status: "processing",
+                payhereVerified: true,
+              })
+            });
+          } catch {}
           clearCart();
           setStep("success");
+          setLoading(false);
         }, 1500);
       }
     } catch (e: any) {

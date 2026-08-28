@@ -84,12 +84,12 @@ export default async function FeaturedAccessories() {
                   )}
 
                   {/* 1:1 Image Container with Bottom-Left Offer Badge */}
-                  <div className="relative aspect-square bg-[#F7F7F7] rounded-lg flex items-center justify-center overflow-hidden mb-1.5 p-1">
+                  <div className="relative aspect-square bg-white rounded-lg flex items-center justify-center overflow-hidden mb-1.5 p-0.5 sm:p-1 border border-neutral-100/80">
                     <img
                       src={mainImage}
                       alt={product.name}
                       loading="lazy"
-                      className="w-full h-full object-contain"
+                      className="w-full h-full object-contain object-center"
                     />
 
                     {/* Offer Badge (Bottom-Left) */}
