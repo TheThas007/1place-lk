@@ -4,6 +4,23 @@ import { getBrandsFromDb, getDepartmentsFromDb } from "@/lib/firestore-brands";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Sanitizes any raw string/slug into a safe URL slug.
+ * Replaces '&' with 'and', removes special characters, and trims hyphens.
+ * This guarantees 100% valid XML with no unescaped ampersands or spaces.
+ */
+function cleanSlug(text: string | undefined | null): string {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&+/g, "and") // Replace '&' with 'and' to prevent XML parse entity errors
+    .replace(/[^\w\s-]/g, "") // Strip characters that are invalid in slugs/XML
+    .replace(/[\s_-]+/g, "-") // Collapse whitespace, underscores and multiple dashes to a single hyphen
+    .replace(/^-+|-+$/g, ""); // Remove leading and trailing hyphens
+}
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const baseUrl = "https://www.streetmobile.lk";
 
@@ -29,30 +46,38 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ]);
 
     // 1. Dynamic Category Routes
-    const categoryRoutes: MetadataRoute.Sitemap = categories
-      .filter((cat) => cat.slug && cat.slug.trim() !== "")
-      .map((cat) => ({
-        url: `${baseUrl}/category/${cat.slug.trim().toLowerCase()}`,
-        lastModified: new Date(),
-        changeFrequency: "daily",
-        priority: 0.85,
-      }));
+    const categoryRoutes: MetadataRoute.Sitemap = categories.flatMap((cat) => {
+      const slug = cleanSlug(cat.slug || cat.id || cat.name);
+      if (!slug) return [];
+      return [
+        {
+          url: `${baseUrl}/category/${slug}`,
+          lastModified: new Date(),
+          changeFrequency: "daily",
+          priority: 0.85,
+        },
+      ];
+    });
 
     // 2. Dynamic Product Routes (Exclude draft/inactive products)
     const productRoutes: MetadataRoute.Sitemap = products
-      .filter((prod) => prod.slug && prod.slug.trim() !== "" && (prod as any).status !== "draft" && (prod as any).status !== "inactive")
-      .map((prod) => {
+      .filter((prod) => prod.slug && (prod as any).status !== "draft" && (prod as any).status !== "inactive")
+      .flatMap((prod) => {
+        const slug = cleanSlug(prod.slug);
+        if (!slug) return [];
         let lastMod = new Date();
         if (prod.created_at) {
           const parsed = new Date(prod.created_at);
           if (!isNaN(parsed.getTime())) lastMod = parsed;
         }
-        return {
-          url: `${baseUrl}/products/${prod.slug.trim()}`,
-          lastModified: lastMod,
-          changeFrequency: "daily",
-          priority: 0.9,
-        };
+        return [
+          {
+            url: `${baseUrl}/products/${slug}`,
+            lastModified: lastMod,
+            changeFrequency: "daily",
+            priority: 0.9,
+          },
+        ];
       });
 
     // 3. Dynamic Brand & Department-Brand Landing Page Routes
@@ -61,7 +86,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const activeDepts = departments.filter((d) => d.slug && d.enabled !== false);
 
     activeBrands.forEach((brand) => {
-      const bSlug = brand.slug.trim().toLowerCase();
+      const bSlug = cleanSlug(brand.slug);
+      if (!bSlug) return;
+
       // Primary Brand Route
       brandRoutes.push({
         url: `${baseUrl}/brand/${bSlug}`,
@@ -73,8 +100,10 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       // Department-Brand specific routes
       const assigned = brand.assigned_departments || (activeDepts.map((d) => d.slug));
       assigned.forEach((deptSlug) => {
+        const dSlug = cleanSlug(deptSlug);
+        if (!dSlug) return;
         brandRoutes.push({
-          url: `${baseUrl}/shop-by-brand/${deptSlug.trim().toLowerCase()}/${bSlug}`,
+          url: `${baseUrl}/shop-by-brand/${dSlug}/${bSlug}`,
           lastModified: new Date(),
           changeFrequency: "weekly",
           priority: 0.8,

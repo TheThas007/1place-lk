@@ -16,15 +16,31 @@ const KNOWN_BRANDS = [
   "realme", "google", "jbl", "lenyes", "ugreen", "anker", "baseus", "oraimo"
 ];
 
+function normalizeCategorySlug(text: string | undefined | null): string {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&+/g, "and")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
 export async function generateMetadata({ params }: CategoryPageProps) {
   const { slug } = await params;
   const categories = await getCategories();
-  const cat = categories.find((c) => c.slug?.toLowerCase() === slug.toLowerCase() || c.id?.toLowerCase() === slug.toLowerCase());
+  const target = normalizeCategorySlug(slug);
+  const cat = categories.find((c) => {
+    const s = normalizeCategorySlug(c.slug || c.id || c.name);
+    return s === target || (c.slug && c.slug.toLowerCase() === slug.toLowerCase()) || (c.id && c.id.toLowerCase() === slug.toLowerCase());
+  });
 
   const categoryName = cat?.name || slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
   const title = `${categoryName} in Sri Lanka | Street Mobile`;
   const description = cat?.description || `Shop genuine ${categoryName} in Sri Lanka at Street Mobile. Best prices, official warranty, cash on delivery & express islandwide delivery from Vavuniya.`;
-  const canonicalUrl = `https://www.streetmobile.lk/category/${slug.toLowerCase()}`;
+  const canonicalUrl = `https://www.streetmobile.lk/category/${target}`;
 
   return {
     title,
@@ -63,17 +79,17 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
     getBrands(),
   ]);
 
-  const cat = categories.find(
-    (c) => c.slug.toLowerCase() === slug.toLowerCase() || c.id.toLowerCase() === slug.toLowerCase()
-  );
+  const targetSlug = normalizeCategorySlug(slug);
+  const cat = categories.find((c) => {
+    const s = normalizeCategorySlug(c.slug || c.id || c.name);
+    return s === targetSlug || (c.slug && c.slug.toLowerCase() === slug.toLowerCase()) || (c.id && c.id.toLowerCase() === slug.toLowerCase());
+  });
 
   if (!cat) {
     // If not found in categories, search products by category matching
     const matchingProducts = products.filter(
       (p) =>
-        (p.category_slug || p.categorySlug || p.category_id || p.category_name || "")
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-") === slug.toLowerCase()
+        normalizeCategorySlug(p.category_slug || p.categorySlug || p.category_id || p.category_name || "") === targetSlug
     );
     if (matchingProducts.length === 0) {
       notFound();
@@ -84,10 +100,10 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
 
   // Products belonging to this category
   const categoryProducts = products.filter((p) => {
-    const cSlug = (p.category_slug || p.categorySlug || p.category_id || p.category_name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const cSlug = normalizeCategorySlug(p.category_slug || p.categorySlug || p.category_id || p.category_name || "");
     const cName = (p.category_name || p.categoryName || "").toLowerCase();
-    const target = categoryName.toLowerCase();
-    return cSlug === slug.toLowerCase() || cName.includes(target) || target.includes(cName);
+    const targetName = categoryName.toLowerCase();
+    return cSlug === targetSlug || cName.includes(targetName) || targetName.includes(cName);
   });
 
   // Unique brands available for products in this category
