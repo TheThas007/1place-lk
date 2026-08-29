@@ -437,6 +437,48 @@ export default function OfferBannerModal({
 
               {activeTab === "media" && (
                 <div className="space-y-4">
+                  {/* ── BANNER SIZE / ASPECT RATIO SELECTOR ── */}
+                  <div className="p-4 bg-zinc-900 border border-white/10 rounded-2xl space-y-2.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-xs font-bold text-amber-400 uppercase tracking-wider">
+                        📐 Banner Size &amp; Aspect Ratio Preset
+                      </label>
+                      <span className="px-2 py-0.5 rounded-full bg-amber-400/20 text-amber-300 font-mono text-[10px] font-bold">
+                        {formData.bannerSizeRatio || "default"}
+                      </span>
+                    </div>
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                      {[
+                        { id: "default", label: "Default", badge: "Auto Fit", desc: "Standard Responsive Fit" },
+                        { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Social Format" },
+                        { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Compact Deal Strip" },
+                        { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic" },
+                        { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Poster / Story" },
+                      ].map((preset) => {
+                        const isSelected = (formData.bannerSizeRatio || "default") === preset.id;
+                        return (
+                          <button
+                            key={preset.id}
+                            type="button"
+                            onClick={() => setFormData({ ...formData, bannerSizeRatio: preset.id as any })}
+                            className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                              isSelected
+                                ? "bg-amber-400/20 border-amber-400 text-amber-300 shadow-md ring-1 ring-amber-400"
+                                : "bg-white/5 border-white/10 text-white/70 hover:bg-white/10 hover:text-white"
+                            }`}
+                          >
+                            <div className="flex items-center justify-between">
+                              <span className="font-black text-[11px]">{preset.label}</span>
+                            </div>
+                            <span className={`text-[9px] font-bold px-1 py-0.5 rounded w-fit ${isSelected ? "bg-amber-400 text-black" : "bg-white/10 text-white/50"}`}>
+                              {preset.badge}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+
                   {/* Background Video Section */}
                   <div className="p-3.5 bg-amber-500/10 border border-amber-500/30 rounded-2xl space-y-2">
                     <div className="flex justify-between items-center">

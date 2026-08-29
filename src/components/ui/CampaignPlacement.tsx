@@ -102,8 +102,31 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
       }`}
       style={{ borderRadius: 0 }}
     >
-      {/* ── Outer Height Container ── */}
-      <div className="relative w-full h-[clamp(620px,78vh,680px)] md:h-[clamp(480px,62vh,620px)] flex items-end md:items-center">
+      {/* ── Outer Height / Aspect Ratio Container ── */}
+      <div
+        style={
+          banner.bannerSizeRatio === "1080x1080"
+            ? { aspectRatio: "1 / 1" }
+            : banner.bannerSizeRatio === "860x270"
+            ? { aspectRatio: "860 / 270" }
+            : banner.bannerSizeRatio === "1920x850"
+            ? { aspectRatio: "1920 / 850" }
+            : banner.bannerSizeRatio === "1080x1440"
+            ? { aspectRatio: "1080 / 1440" }
+            : undefined
+        }
+        className={`relative w-full flex items-end md:items-center ${
+          banner.bannerSizeRatio === "1080x1080"
+            ? "aspect-square min-h-[420px]"
+            : banner.bannerSizeRatio === "860x270"
+            ? "aspect-[860/270] min-h-[220px] md:min-h-[280px]"
+            : banner.bannerSizeRatio === "1920x850"
+            ? "aspect-[1920/850] min-h-[360px] md:min-h-[480px]"
+            : banner.bannerSizeRatio === "1080x1440"
+            ? "aspect-[1080/1440] min-h-[480px] md:min-h-[640px]"
+            : "h-[380px] sm:h-[460px] md:h-[clamp(480px,60vh,580px)]"
+        }`}
+      >
         {/* ── 1. Full-Frame Background Image with Subtle Entrance Scaling ── */}
         <motion.div
           initial={{ scale: 1.02 }}
@@ -141,36 +164,34 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
           className="md:hidden absolute inset-0 pointer-events-none z-[1]"
           style={{
             background:
-              "linear-gradient(0deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.55) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)",
+              "linear-gradient(0deg, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.65) 45%, rgba(0,0,0,0.1) 75%, transparent 100%)",
           }}
         />
 
-        {/* ── 3. Content Group (Responsive Left Offset & Consistent 18-24px Spacing) ── */}
-        <div className="relative z-10 w-full h-full flex flex-col justify-end md:justify-center px-6 sm:px-10 lg:pl-[8vw] lg:pr-12 pb-10 md:pb-0">
+        {/* ── 3. Content Group ── */}
+        <div className="relative z-10 w-full h-full flex flex-col justify-end md:justify-center px-4 sm:px-8 lg:pl-[8vw] lg:pr-12 pb-6 md:pb-0 font-outfit">
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            className="max-w-[480px] w-full flex flex-col items-start gap-5 sm:gap-6 text-left"
+            className="max-w-[480px] w-full flex flex-col items-start gap-2.5 sm:gap-4 md:gap-5 text-left"
           >
             {/* Eyebrow */}
-            <span className="text-[11px] sm:text-xs font-bold tracking-[0.2em] text-white/80 uppercase">
+            <span className="text-[10px] sm:text-xs font-bold tracking-[0.2em] text-white/80 uppercase">
               {banner.badgeText || banner.promoLabel || "LIMITED-TIME OFFER"}
             </span>
 
             {/* Main Heading */}
             <h2
-              className="text-white font-bold tracking-[-0.04em] leading-[0.98] m-0 p-0"
-              style={{ fontSize: "clamp(38px, 4.5vw, 76px)" }}
+              className="text-white font-black tracking-tight leading-[1.05] m-0 p-0 text-2xl sm:text-4xl md:text-5xl lg:text-6xl"
             >
               {banner.headline || "Sound On. World Off."}
             </h2>
 
             {/* Supporting Text */}
             <p
-              className="text-[17px] sm:text-[19px] leading-[1.55] m-0 font-normal"
-              style={{ color: "rgba(255, 255, 255, 0.76)" }}
+              className="text-xs sm:text-sm md:text-base leading-relaxed m-0 font-normal line-clamp-2 sm:line-clamp-none text-white/80"
             >
               {banner.description ||
                 "Premium headphones designed for deeper sound, clearer calls and all-day comfort."}
@@ -187,22 +208,22 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
                       handleCopyCoupon(banner.couponCode!, e);
                     }
                   }}
-                  className="inline-flex items-center gap-3 px-4 py-2.5 rounded-[8px] border border-white/22 bg-black/45 backdrop-blur-md text-white hover:bg-black/60 transition-all cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-white outline-none active:scale-[0.98]"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg border border-white/20 bg-black/50 backdrop-blur-md text-white hover:bg-black/70 transition-all cursor-pointer select-none focus-visible:ring-2 focus-visible:ring-white outline-none active:scale-[0.98]"
                   aria-label={`Copy coupon code ${banner.couponCode}`}
                 >
-                  <span className="text-xs sm:text-sm text-white/70 font-normal">Use code</span>
-                  <span className="text-sm sm:text-base font-bold font-mono tracking-wider text-white">
+                  <span className="text-[11px] sm:text-xs text-white/70 font-normal">Use code</span>
+                  <span className="text-xs sm:text-sm font-bold font-mono tracking-wider text-amber-300">
                     {banner.couponCode}
                   </span>
-                  <span className="flex items-center gap-1.5 text-xs text-white/80 border-l border-white/20 pl-3">
+                  <span className="flex items-center gap-1 text-[11px] sm:text-xs text-white/80 border-l border-white/20 pl-2">
                     {copied ? (
                       <>
-                        <Check className="w-3.5 h-3.5 text-emerald-400" />
+                        <Check className="w-3 h-3 text-emerald-400" />
                         <span className="text-emerald-400 font-semibold">Copied</span>
                       </>
                     ) : (
                       <>
-                        <Copy className="w-3.5 h-3.5" />
+                        <Copy className="w-3 h-3" />
                         <span>Copy</span>
                       </>
                     )}
@@ -212,19 +233,19 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
             )}
 
             {/* CTA Actions */}
-            <div className="flex items-center flex-wrap gap-5 pt-1">
+            <div className="flex items-center flex-wrap gap-3 pt-1">
               <Link
                 href={destinationUrl}
-                className="group inline-flex items-center justify-center gap-2 h-[50px] px-7 rounded-[8px] bg-white text-black font-bold text-sm hover:bg-[#F1F1F1] transition-all shadow-md active:scale-[0.98]"
+                className="group inline-flex items-center justify-center gap-1.5 h-10 sm:h-12 px-5 sm:px-6 rounded-lg bg-white text-black font-bold text-xs sm:text-sm hover:bg-neutral-200 transition-all shadow-md active:scale-[0.98]"
               >
                 <span>{banner.primaryCtaText || "Shop Headphones"}</span>
-                <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
+                <ArrowRight className="w-3.5 h-3.5 transition-transform duration-200 group-hover:translate-x-[3px]" />
               </Link>
 
               {(banner.secondaryCtaText || "Explore Audio") && (
                 <Link
                   href={banner.secondaryCtaUrl || destinationUrl}
-                  className="inline-flex items-center text-sm font-medium text-white/80 hover:text-white underline underline-offset-4 transition-colors"
+                  className="inline-flex items-center text-xs sm:text-sm font-medium text-white/80 hover:text-white underline underline-offset-4 transition-colors"
                 >
                   {banner.secondaryCtaText || "Explore Audio"}
                 </Link>

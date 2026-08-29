@@ -180,6 +180,8 @@ export interface DepartmentBrandPageConfig {
   mobileBannerUrl?: string;
   bannerAlt?: string;
   decorative?: boolean;
+  bannerSizeRatio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
+  banner_size_ratio?: string;
 
   desktopFocalPosition?: string;
   tabletFocalPosition?: string;
@@ -604,6 +606,8 @@ export interface HeroSlide {
   font_weight?: string;
   line_height?: string;
   letter_spacing?: string;
+  banner_size_ratio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
+  bannerSizeRatio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
 }
 
 export interface ProductBanner {
@@ -695,6 +699,7 @@ export interface OfferBanner {
   enableCta?: boolean;
   cornerRadius?: number;
   bannerHeightDesktop?: number;
+  bannerSizeRatio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
   sectionSpacing?: number;
 
   additionalImages?: string[];
@@ -921,6 +926,7 @@ export interface VisualShowcaseSlide {
   order?: number;
   placement?: ShowcasePlacement; // Per-slide placement position on homepage
   enable_animation?: boolean;    // Toggle floating image animation on/off
+  banner_size_ratio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
   product_id?: string;
   category_id?: string;
 }
@@ -1150,13 +1156,206 @@ export interface TodayDealSettings {
   imageAlt: string;
   desktopFocalPosition: TodayDealFocalPosition;
   mobileFocalPosition: TodayDealFocalPosition;
+  | "above_location";
+
+export interface VisualShowcaseSettings {
+  enabled: boolean;
+  section_title?: string;
+  auto_slide?: boolean;
+  slide_interval?: number; // duration in ms, default 6000 (6s)
+  placement?: ShowcasePlacement; // Position on homepage
+  enable_animation?: boolean;    // Global toggle for floating image animation
+  slides?: VisualShowcaseSlide[];
+  tiles?: ShowcaseTile[]; // fallback for older 2x2 grid data
+  updated_at?: string;
+}
+
+// ===== Street Assistant AI Shopping Chatbot Types =====
+export type AssistantLanguage = "en" | "ta" | "si";
+
+export type AssistantMessageType =
+  | "text"
+  | "product_list"
+  | "comparison"
+  | "order_status"
+  | "contact_info"
+  | "human_handoff"
+  | "quick_actions"
+  | "repairs";
+
+export interface AssistantAction {
+  label: string;
+  action: string;
+  payload?: Record<string, unknown> | string | number | boolean | null;
+  icon?: string;
+}
+
+export interface AssistantProductSummary {
+  id: string;
+  name: string;
+  slug: string;
+  price: number;
+  old_price?: number | null;
+  image: string;
+  storage?: string;
+  color?: string;
+  colors?: string[];
+  storage_options?: string[];
+  specifications?: Record<string, string>;
+  brand_name?: string;
+  warranty?: string;
+  stock_status?: string;
+  category_name?: string;
+  installment_price?: string;
+}
+
+export interface AssistantMessage {
+  id: string;
+  sender: "user" | "assistant" | "system";
+  text: string;
+  timestamp: string;
+  language?: AssistantLanguage;
+  type?: AssistantMessageType;
+  products?: AssistantProductSummary[];
+  comparisonProducts?: AssistantProductSummary[];
+  orderData?: {
+    id: string;
+    customerName: string;
+    paymentStatus: string;
+    orderStatus: string;
+    deliveryOption?: string;
+    estimatedDelivery?: string;
+    finalTotal: number;
+    items: {
+      name: string;
+      quantity: number;
+      price: number;
+      image?: string;
+    }[];
+  };
+  actions?: AssistantAction[];
+}
+
+export interface AssistantFAQ {
+  id: string;
+  category: "products" | "repairs" | "orders" | "warranty" | "payment" | "store";
+  question_en: string;
+  answer_en: string;
+  question_ta?: string;
+  answer_ta?: string;
+  question_si?: string;
+  answer_si?: string;
+  order?: number;
+  created_at?: string;
+}
+
+export interface AssistantSettings {
+  enabled: boolean;
+  assistant_name: string;
+  assistant_subtitle: string;
+  avatar_url?: string;
+  tooltip_text?: string;
+  welcome_message_en?: string;
+  welcome_message_ta?: string;
+  welcome_message_si?: string;
+  supported_languages?: AssistantLanguage[];
+  business_hours?: string;
+  offline_message?: string;
+  phone?: string;
+  whatsapp?: string;
+  email?: string;
+  address?: string;
+  rate_limit_per_minute?: number;
+  retention_days?: number;
+  updated_at?: string;
+}
+
+export interface AssistantConversation {
+  id: string;
+  sessionId: string;
+  userId?: string;
+  userName?: string;
+  userEmail?: string;
+  userPhone?: string;
+  language: AssistantLanguage;
+  messages: AssistantMessage[];
+  status: "active" | "resolved" | "handed_off" | "blocked";
+  notes?: string;
+  rating?: number; // 1-5 satisfaction score
+  createdAt: string;
+  updatedAt: string;
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// FEATURED COLLECTIONS (Homepage 2-Column Editorial Grid)
+// ══════════════════════════════════════════════════════════════════════════
+export interface FeaturedCollectionCard {
+  id: string;
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  primary_cta_text?: string;
+  primary_cta_url?: string;
+  secondary_cta_text?: string;
+  secondary_cta_url?: string;
+  desktop_image_url: string;
+  mobile_image_url?: string;
+  image_alt?: string;
+  image_layout?: "full_card" | "split";
+  image_fit?: "contain" | "cover";
+  focal_position?: "center" | "top" | "bottom" | "left" | "right" | "top left" | "top right" | "bottom left" | "bottom right" | "custom" | string;
+  custom_focal_position?: string;
+  theme?: "light" | "dark";
+  bg_color?: string; // e.g. #F5F5F7, #000000, #FFFFFF
+  text_color?: "auto" | "black" | "white" | "light" | "dark" | string;
+  text_align?: "left" | "center" | "right";
+  content_position?: "top" | "center" | "bottom";
+  overlay_enabled?: boolean;
+  overlay_strength?: number; // 0 to 25%
+  link_type?: "product" | "category" | "brand" | "custom" | "none";
+  link_destination?: string;
+  card_link_url?: string;
+  open_in_new_tab?: boolean;
+  start_date?: string;
+  expiry_date?: string;
+  active: boolean;
+  sort_order: number;
+}
+
+export interface FeaturedCollectionsSettings {
+  enabled: boolean;
+  title?: string;
+  subtitle?: string;
+  cards: FeaturedCollectionCard[];
+}
+
+// ===== Today's Deal Promotional Banner Settings =====
+export type TodayDealStatus = "draft" | "scheduled" | "live" | "expired";
+export type TodayDealFocalPosition = "left" | "center" | "right";
+export type TodayDealBoxPosition = "left" | "center" | "right";
+export type TodayDealVerticalAlignment = "top" | "center" | "bottom";
+export type TodayDealContentAlignment = "left" | "center" | "right";
+export type TodayDealMobileLayout = "overlay" | "stacked";
+export type TodayDealExpiryAction = "hide" | "deal-ended" | "replacement-cta" | "keep-banner";
+
+export interface TodayDealSettings {
+  enabled: boolean;
+  status?: TodayDealStatus;
+
+  eyebrow: string;
+  heading: string;
+  description: string;
+
+  desktopImageUrl: string;
+  mobileImageUrl?: string;
+  imageAlt: string;
+  desktopFocalPosition: TodayDealFocalPosition;
+  mobileFocalPosition: TodayDealFocalPosition;
 
   bannerUrl?: string;
   ctaEnabled: boolean;
   ctaLabel: string;
   ctaUrl: string;
-  openInNewTab: boolean;
-
   boxPosition: TodayDealBoxPosition;
   verticalAlignment: TodayDealVerticalAlignment;
   contentAlignment: TodayDealContentAlignment;
@@ -1176,6 +1375,7 @@ export interface TodayDealSettings {
   boxWidth: number;
   boxPadding: number;
   borderRadius: number;
+  bannerSizeRatio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
 
   bannerMode?: "full_image" | "custom_bg_with_square_image";
   bannerBgType?: "solid" | "gradient";

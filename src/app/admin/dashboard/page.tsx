@@ -88,6 +88,7 @@ import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
 import CouponsTab from "@/components/admin/tabs/CouponsTab";
 import CouponModal from "@/components/admin/CouponModal";
+import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
 import { Coupon } from "@/lib/types";
 
 type Tab =
@@ -228,9 +229,19 @@ function DashboardContent() {
       fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
       catList.forEach((c) => {
         const key = c.id || c.slug;
-        catMap.set(key, { ...catMap.get(key), ...c, id: key });
+        const existing = catMap.get(key) || catMap.get(c.id);
+
+        if ((c as any).isDeleted === true || c.status === "deleted") {
+          catMap.delete(key);
+          catMap.delete(c.id);
+          if (c.slug) catMap.delete(c.slug);
+          return;
+        }
+
+        const image_url = c.image_url !== undefined ? c.image_url : (existing?.image_url || "");
+        catMap.set(key, { ...existing, ...c, id: c.id, image_url });
       });
-      setCategories(Array.from(catMap.values()));
+      setCategories(Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted"));
 
       // Orders
       const ordSnap = await getDocs(collection(db, "orders"));
@@ -592,22 +603,35 @@ function DashboardContent() {
       (p) => p.category_id === id || p.category_name?.toLowerCase() === categoryName.toLowerCase() || (categorySlug && p.category_id === categorySlug)
     );
 
+    let confirmMsg = `Are you sure you want to delete category "${categoryName}"?`;
     if (linkedProducts.length > 0) {
-      alert(
-        `⚠️ Cannot delete "${categoryName}"!\n\nThis category currently has ${linkedProducts.length} linked product(s). Please reassign or update these products to another category before deleting this category.`
-      );
-      return;
+      confirmMsg = `⚠️ Notice: "${categoryName}" is currently linked to ${linkedProducts.length} product(s).\n\nAre you sure you want to delete this category from the store catalog? (Products will remain intact)`;
     }
 
-    if (!confirm(`Are you sure you want to delete category "${categoryName}"?`)) return;
+    if (!confirm(confirmMsg)) return;
+
     try {
-      if (id && !id.startsWith("default-")) {
-        await deleteDoc(doc(db, "categories", id));
+      if (id) {
+        // Write tombstone so default category won't resurrect on refresh
+        await setDoc(
+          doc(db, "categories", id),
+          {
+            id,
+            name: categoryName,
+            slug: categorySlug || id,
+            isDeleted: true,
+            status: "deleted",
+            show_on_homepage: false,
+            show_in_selector: false,
+            updatedAt: new Date().toISOString(),
+          },
+          { merge: true }
+        );
       }
     } catch (e) {
       console.error("Error deleting category:", e);
     }
-    setCategories((prev) => prev.filter((c) => c.id !== id));
+    setCategories((prev) => prev.filter((c) => c.id !== id && c.slug !== categorySlug));
   };
 
   const handleSaveBanner = async (bannerData: Partial<OfferBanner>) => {
@@ -1363,6 +1387,27 @@ function DashboardContent() {
           }}
           onEdit={(b: OfferBanner) => {
             setEditingBanner(b);
+            setIsBannerModalOpen(true);
+          }}
+          onDelete={handleDeleteBanner}
+          onDuplicate={handleDuplicateBanner}
+          onToggleStatus={handleToggleBannerStatus}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB 5: OFFERS & BANNERS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "banners" && (
+        <BannersTab
+          banners={banners}
+          products={products}
+          onAdd={() => {
+            setEditingBanner(null);
+            setIsBannerModalOpen(true);
+          }}
+          onEdit={(banner: OfferBanner) => {
+            setEditingBanner(banner);
             setIsBannerModalOpen(true);
           }}
           onDelete={handleDeleteBanner}

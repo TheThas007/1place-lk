@@ -21,6 +21,7 @@ import {
   AlertTriangle,
   Sparkles,
   Sliders,
+  Maximize2,
 } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
@@ -491,6 +492,57 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
         {activeTabGroup === "media" && (
           <div className="space-y-6 animate-in fade-in-50 duration-200">
             
+            {/* ── BANNER SIZE / ASPECT RATIO SELECTOR ── */}
+            <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="font-extrabold text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                    <Maximize2 className="w-4 h-4 text-red-400" /> Today's Deal Banner Size &amp; Aspect Ratio
+                  </h4>
+                  <p className="text-[11px] text-white/50">
+                    Select the aspect ratio / frame dimension for the Today's Deal showcase on the homepage.
+                  </p>
+                </div>
+                <span className="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-300 font-mono text-[10px] font-bold">
+                  {settings.bannerSizeRatio || "default"}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
+                {[
+                  { id: "default", label: "Default", badge: "Auto Fit", desc: "1920×600 Responsive Standard" },
+                  { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Instagram & Product Focus" },
+                  { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Compact Deal Strip" },
+                  { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
+                  { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
+                ].map((preset) => {
+                  const isSelected = (settings.bannerSizeRatio || "default") === preset.id;
+                  return (
+                    <button
+                      key={preset.id}
+                      type="button"
+                      onClick={() => setSettings({ ...settings, bannerSizeRatio: preset.id as any })}
+                      className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1.5 ${
+                        isSelected
+                          ? "bg-red-600/20 border-red-500 text-white shadow-md ring-1 ring-red-500"
+                          : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-extrabold text-xs text-white">{preset.label}</span>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-red-500 text-white" : "bg-white/10 text-white/50"}`}>
+                          {preset.badge}
+                        </span>
+                      </div>
+                      <p className="text-[10px] leading-tight text-white/50 line-clamp-2">
+                        {preset.desc}
+                      </p>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
             {/* Banner Mode Switcher */}
             <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
               <div className="flex items-center justify-between">

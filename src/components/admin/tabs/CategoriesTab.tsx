@@ -357,32 +357,32 @@ export default function CategoriesTab({
       {deleteWarningCategory && (
         <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
           <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
-            <div className="flex items-center gap-3 text-red-400 border-b border-white/10 pb-3">
-              <ShieldAlert className="w-6 h-6 shrink-0" />
-              <h3 className="font-extrabold text-lg text-white">Deletion Blocked</h3>
+            <div className="flex items-center gap-3 text-amber-400 border-b border-white/10 pb-3">
+              <AlertTriangle className="w-6 h-6 shrink-0" />
+              <h3 className="font-extrabold text-lg text-white">Category Deletion Warning</h3>
             </div>
 
             <p className="text-xs text-white/70 leading-relaxed">
-              Cannot delete category <strong>&quot;{deleteWarningCategory.cat.name}&quot;</strong> because{" "}
-              <span className="font-extrabold text-white">{deleteWarningCategory.linkedCount} product(s)</span> are currently assigned to it.
+              Category <strong>&quot;{deleteWarningCategory.cat.name}&quot;</strong> has{" "}
+              <span className="font-extrabold text-white">{deleteWarningCategory.linkedCount} product(s)</span> assigned to it.
             </p>
 
             <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs space-y-1">
               <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Recommended Safer Alternative:
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Note:
               </p>
               <p className="text-[11px] text-amber-300/80">
-                Hide this category from the homepage instead of deleting to keep product listings safe.
+                You can hide this category from the homepage or permanently delete it (linked products will remain safe in inventory).
               </p>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
+            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setDeleteWarningCategory(null)}
                 className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:bg-white/10 text-white"
               >
-                Close
+                Cancel
               </button>
               <button
                 type="button"
@@ -390,9 +390,20 @@ export default function CategoriesTab({
                   await handleToggleVisibility(deleteWarningCategory.cat);
                   setDeleteWarningCategory(null);
                 }}
-                className="px-5 py-2 rounded-xl text-xs font-bold bg-amber-600 hover:bg-amber-500 text-white shadow-md"
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600/80 hover:bg-amber-600 text-white"
               >
-                Hide From Homepage Instead
+                Hide From Homepage
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const catId = deleteWarningCategory.cat.id;
+                  setDeleteWarningCategory(null);
+                  onDelete(catId);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md flex items-center gap-1.5"
+              >
+                <Trash2 className="w-3.5 h-3.5" /> Delete Category Permanently
               </button>
             </div>
           </div>

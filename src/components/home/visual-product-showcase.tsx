@@ -195,9 +195,20 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
           </div>
         )}
 
+        {/* ── Slide Frame / Container ── */}
         <div
           className={`relative w-full ${
-            hasForegroundImage ? "min-h-[500px] sm:min-h-[540px] justify-between" : "min-h-[420px] sm:min-h-[480px] justify-center"
+            currentSlide.banner_size_ratio === "1080x1080"
+              ? "aspect-square min-h-[440px] justify-center"
+              : currentSlide.banner_size_ratio === "860x270"
+              ? "aspect-[860/270] min-h-[220px] md:min-h-[280px] justify-center"
+              : currentSlide.banner_size_ratio === "1920x850"
+              ? "aspect-[1920/850] min-h-[360px] md:min-h-[480px] justify-center"
+              : currentSlide.banner_size_ratio === "1080x1440"
+              ? "aspect-[1080/1440] min-h-[480px] md:min-h-[640px] justify-center"
+              : hasForegroundImage
+              ? "min-h-[500px] sm:min-h-[540px] justify-between"
+              : "min-h-[420px] sm:min-h-[480px] justify-center"
           } border-0 rounded-none shadow-none flex flex-col items-center pt-8 sm:pt-10 px-4 pb-4 z-10`}
         >
           {/* Top Content Block: Badge -> Heading -> Subtitle -> Action CTAs */}
@@ -349,8 +360,27 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
         )}
 
         <div
+          style={
+            (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1080x1080"
+              ? { aspectRatio: "1 / 1", minHeight: "480px" }
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "860x270"
+              ? { aspectRatio: "860 / 270", minHeight: "260px" }
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1920x850"
+              ? { aspectRatio: "1920 / 850", minHeight: "380px" }
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1080x1440"
+              ? { aspectRatio: "1080 / 1440", minHeight: "560px" }
+              : undefined
+          }
           className={`relative w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col ${desktopJustifyClass} items-center ${
-            hasForegroundImage
+            (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1080x1080"
+              ? "aspect-square py-12 justify-center"
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "860x270"
+              ? "aspect-[860/270] py-6 justify-center"
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1920x850"
+              ? "aspect-[1920/850] py-10 justify-center"
+              : (currentSlide.banner_size_ratio || (currentSlide as any).bannerSizeRatio) === "1080x1440"
+              ? "aspect-[1080/1440] py-16 justify-center"
+              : hasForegroundImage
               ? "min-h-[480px] sm:min-h-[560px] md:min-h-[620px] lg:min-h-[680px] xl:min-h-[720px] pt-6 sm:pt-8 md:pt-10 pb-0"
               : "min-h-[440px] sm:min-h-[500px] md:min-h-[560px] lg:min-h-[620px]"
           } z-10`}

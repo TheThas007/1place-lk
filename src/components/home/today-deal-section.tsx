@@ -42,8 +42,8 @@ export default function TodayDealSection({
 
   // Compute countdown time and status
   const { isLive, isScheduled, isExpired, days, hours, minutes, seconds } = useMemo(() => {
-    let endTime = deal.endsAt ? new Date(deal.endsAt).getTime() : 0;
     const startTime = deal.startsAt ? new Date(deal.startsAt).getTime() : 0;
+    let endTime = deal.endsAt ? new Date(deal.endsAt).getTime() : 0;
 
     let scheduled = false;
     let expired = false;
@@ -51,13 +51,11 @@ export default function TodayDealSection({
     if (startTime && now < startTime) {
       scheduled = true;
     } else if (endTime && now >= endTime) {
-      if (deal.expiryAction === "deal-ended" || deal.expiryAction === "hide") {
-        expired = true;
-      }
+      expired = true;
     }
 
-    // If no future endTime or expired in standard mode, fallback to Midnight tonight (23:59:59) for continuous live ticking
-    if (!endTime || (!expired && endTime <= now)) {
+    // If no explicit endTime provided, default to midnight today for continuous live deals
+    if (!endTime) {
       const midnight = new Date(now);
       midnight.setHours(23, 59, 59, 999);
       endTime = midnight.getTime();
@@ -78,15 +76,31 @@ export default function TodayDealSection({
       minutes: m,
       seconds: s,
     };
-  }, [deal.startsAt, deal.endsAt, deal.showDays, deal.expiryAction, now]);
+  }, [deal.startsAt, deal.endsAt, deal.showDays, now]);
 
-  // If explicitly disabled and not in live preview mode, hide
+  // 1. If explicitly disabled and not in live preview mode, hide
   if (deal.enabled === false && !isLivePreview) {
     return null;
   }
 
-  // Handle expired state
-  if (isExpired && !isLivePreview && deal.expiryAction === "hide") {
+  // 2. If scheduled for future and not in live preview mode, hide
+  if (isScheduled && !isLivePreview) {
+    return null;
+  }
+
+  // 3. Automatic Auto-Hide when time ends (timer reaches 0 or endsAt passed)
+  if (isExpired && !isLivePreview) {
+    // If admin explicitly requested a replacement CTA or deal-ended badge, honor it; otherwise hide by default
+    if (deal.expiryAction === "deal-ended" || deal.expiryAction === "replacement-cta" || deal.expiryAction === "keep-banner") {
+      // Keep visible only if explicit non-hide action is configured
+    } else {
+      // Default & automatic action: Hide completely
+      return null;
+    }
+  }
+
+  // If explicit hide action is set on expired deal
+  if (isExpired && !isLivePreview && (deal.expiryAction === "hide" || !deal.expiryAction)) {
     return null;
   }
 
@@ -328,8 +342,28 @@ export default function TodayDealSection({
             style={{
               backgroundColor: deal.bannerBgColor || cardBgColor,
               borderRadius: 0,
+              aspectRatio:
+                deal.bannerSizeRatio === "1080x1080"
+                  ? "1 / 1"
+                  : deal.bannerSizeRatio === "860x270"
+                  ? "860 / 270"
+                  : deal.bannerSizeRatio === "1920x850"
+                  ? "1920 / 850"
+                  : deal.bannerSizeRatio === "1080x1440"
+                  ? "1080 / 1440"
+                  : undefined,
             }}
-            className={`border border-neutral-200/90 shadow-sm ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 aspect-square w-full rounded-none ${
+            className={`border border-neutral-200/90 shadow-sm ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 w-full rounded-none ${
+              deal.bannerSizeRatio === "1080x1080"
+                ? "aspect-square"
+                : deal.bannerSizeRatio === "860x270"
+                ? "aspect-[860/270] min-h-[180px]"
+                : deal.bannerSizeRatio === "1920x850"
+                ? "aspect-[1920/850] min-h-[240px]"
+                : deal.bannerSizeRatio === "1080x1440"
+                ? "aspect-[1080/1440] min-h-[340px]"
+                : "min-h-[360px]"
+            } ${
               isBoxOnRight ? "md:order-1" : "md:order-2"
             }`}
           >

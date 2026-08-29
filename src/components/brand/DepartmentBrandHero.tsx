@@ -117,8 +117,35 @@ export default function DepartmentBrandHero({
     config.linkAriaLabel ||
     `Shop ${brand.name} ${department.name} collection`;
 
+  const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "default";
+
   const bannerContent = (
-    <div className="relative w-full aspect-[16/5] md:aspect-[16/5] max-md:aspect-[16/6] max-sm:aspect-[4/3] overflow-hidden rounded-lg select-none bg-neutral-100">
+    <div
+      style={{
+        aspectRatio:
+          ratio === "1080x1080"
+            ? "1 / 1"
+            : ratio === "860x270"
+            ? "860 / 270"
+            : ratio === "1920x850"
+            ? "1920 / 850"
+            : ratio === "1080x1440"
+            ? "1080 / 1440"
+            : "1920 / 600",
+        borderRadius: 0,
+      }}
+      className={`relative w-full overflow-hidden rounded-none select-none bg-black border-none p-0 m-0 ${
+        ratio === "1080x1080"
+          ? "aspect-square"
+          : ratio === "860x270"
+          ? "aspect-[860/270]"
+          : ratio === "1920x850"
+          ? "aspect-[1920/850]"
+          : ratio === "1080x1440"
+          ? "aspect-[1080/1440]"
+          : "aspect-[1920/600] max-md:aspect-[16/7] max-sm:aspect-[16/9]"
+      }`}
+    >
       <picture className="w-full h-full block">
         {resolvedMobileBanner && (
           <source
@@ -141,6 +168,7 @@ export default function DepartmentBrandHero({
           onError={() => setImgError(true)}
           style={{
             objectPosition: desktopFocal,
+            borderRadius: 0,
           }}
           className="w-full h-full object-cover block transition-transform duration-700 ease-out"
         />
@@ -149,7 +177,7 @@ export default function DepartmentBrandHero({
   );
 
   return (
-    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full mb-8">
+    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full max-w-full overflow-hidden p-0 m-0 border-none rounded-none mb-6 sm:mb-8">
       {destinationUrl ? (
         isExternalLink ? (
           <a
@@ -157,7 +185,7 @@ export default function DepartmentBrandHero({
             target={config.openInNewTab ? "_blank" : "_self"}
             rel={config.openInNewTab ? "noopener noreferrer" : undefined}
             aria-label={ariaLabel}
-            className="block focus:outline-none focus:ring-2 focus:ring-red-600 rounded-lg overflow-hidden group"
+            className="block focus:outline-none rounded-none overflow-hidden group w-full"
           >
             {bannerContent}
           </a>
@@ -166,7 +194,7 @@ export default function DepartmentBrandHero({
             href={destinationUrl}
             target={config.openInNewTab ? "_blank" : "_self"}
             aria-label={ariaLabel}
-            className="block focus:outline-none focus:ring-2 focus:ring-red-600 rounded-lg overflow-hidden group"
+            className="block focus:outline-none rounded-none overflow-hidden group w-full"
           >
             {bannerContent}
           </Link>

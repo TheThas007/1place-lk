@@ -79,13 +79,23 @@ export const getCategories = cache(async (): Promise<Category[]> => {
       const id = d.id;
       const key = id || data.slug || data.name;
       const existing = catMap.get(key) || catMap.get(id);
-      catMap.set(key, { ...existing, ...data, id });
+
+      if ((data as any).isDeleted === true || data.status === "deleted") {
+        catMap.delete(key);
+        catMap.delete(id);
+        if (data.slug) catMap.delete(data.slug);
+        return;
+      }
+
+      const image_url = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
+
+      catMap.set(key, { ...existing, ...data, id, image_url });
     });
   } catch (e) {
     console.warn("Offline/Error fetching categories:", e);
   }
 
-  const docs = Array.from(catMap.values());
+  const docs = Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted");
   const cleanDocs = docs.filter((c) => {
     const cName = (c.name || "").toLowerCase();
     const cSlug = (c.slug || "").toLowerCase();
@@ -112,14 +122,32 @@ export const getBrands = cache(async (): Promise<Brand[]> => {
         (data.slug ? Array.from(brandMap.values()).find((b) => b.slug === data.slug) : undefined) ||
         (data.name ? Array.from(brandMap.values()).find((b) => b.name.toLowerCase() === data.name.toLowerCase()) : undefined);
 
+      if ((data as any).isDeleted === true || data.status === "deleted") {
+        if (existing) brandMap.delete(existing.id);
+        brandMap.delete(id);
+        for (const [k, b] of Array.from(brandMap.entries())) {
+          if (
+            (data.slug && b.slug?.toLowerCase() === data.slug?.toLowerCase()) ||
+            (data.name && b.name?.toLowerCase().trim() === data.name?.toLowerCase().trim()) ||
+            k === id ||
+            b.id === id
+          ) {
+            brandMap.delete(k);
+          }
+        }
+        return;
+      }
+
+      const logo_url = data.logo_url !== undefined ? data.logo_url : (existing?.logo_url || "");
+
       const merged: Brand = {
         ...existing,
         ...data,
         id,
-        logo_url: data.logo_url || (data as any).logo || (data as any).image_url || existing?.logo_url || "",
+        logo_url,
       };
 
-      if (existing) {
+      if (existing && existing.id !== id) {
         brandMap.delete(existing.id);
       }
       brandMap.set(id, merged);
@@ -128,8 +156,8 @@ export const getBrands = cache(async (): Promise<Brand[]> => {
     console.warn("Offline/Error fetching brands:", e);
   }
 
-  const result = Array.from(brandMap.values());
-  return result.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  const result = Array.from(brandMap.values()).filter((b) => (b as any).isDeleted !== true && b.status !== "deleted");
+  return result.sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
 });
 
 export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {

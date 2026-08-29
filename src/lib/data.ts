@@ -915,7 +915,7 @@ export const DEFAULT_TODAY_DEAL_SETTINGS: TodayDealSettings = {
   endsAt: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
   timezone: "Asia/Colombo",
   showDays: false,
-  expiryAction: "deal-ended",
+  expiryAction: "hide",
   replacementCtaLabel: "Browse All Deals",
   replacementCtaUrl: "/products",
   imageFit: "cover",

@@ -328,13 +328,28 @@ export default function CategoryModal({
 
           {/* Icon Source Selector: Upload File or Image URL */}
           <div className="space-y-4 p-4 bg-white/5 border border-white/10 rounded-2xl">
-            <div className="flex items-center justify-between">
-              <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
-                <ImageIcon className="w-4 h-4 text-blue-400" /> Icon Source Selector
-              </h4>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <h4 className="text-xs font-extrabold text-white uppercase tracking-wider flex items-center gap-2">
+                  <ImageIcon className="w-4 h-4 text-blue-400" /> Icon Source Selector
+                </h4>
+                {(imagePreview || formData.image_url) && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImagePreview("");
+                      setImageFile(null);
+                      setFormData({ ...formData, image_url: "" });
+                    }}
+                    className="text-[11px] font-bold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1 cursor-pointer ml-2"
+                  >
+                    <X className="w-3.5 h-3.5" /> Remove / Clear Image
+                  </button>
+                )}
+              </div>
               
               {/* Tab Selector */}
-              <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl">
+              <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-xl self-start sm:self-auto">
                 <button
                   type="button"
                   onClick={() => setIconSourceMode("file")}

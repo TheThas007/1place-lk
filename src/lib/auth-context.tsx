@@ -176,8 +176,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+const fallbackAuthContext: AuthContextType = {
+  user: null,
+  profile: null,
+  gender: null,
+  loading: true,
+  signIn: async () => {},
+  signUp: async () => {},
+  signInWithGoogle: async () => {},
+  updateGender: async () => {},
+  signOut: async () => {},
+};
+
 export function useAuth() {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used inside AuthProvider");
-  return ctx;
+  return ctx || fallbackAuthContext;
 }

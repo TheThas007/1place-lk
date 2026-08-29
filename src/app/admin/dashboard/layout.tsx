@@ -36,6 +36,7 @@ import {
   FolderTree,
   Clock,
   Phone,
+  Layers,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
@@ -77,7 +78,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const activeTabParam = searchParams.get("tab") || "overview";
-  const [isAuthed, setIsAuthed] = useState(false);
+  const [isAuthed, setIsAuthed] = useState<boolean>(() => {
+    if (typeof window !== "undefined") {
+      return (
+        sessionStorage.getItem("admin_auth") === "true" ||
+        localStorage.getItem("admin_auth") === "true"
+      );
+    }
+    return true;
+  });
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
   // Search & Modals
@@ -89,14 +98,15 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const lastOrderId = useRef<string | null>(null);
 
   useEffect(() => {
-    const auth =
-      typeof window !== "undefined" &&
-      (sessionStorage.getItem("admin_auth") === "true" ||
-        localStorage.getItem("admin_auth") === "true");
-    if (!auth) {
-      router.push("/admin/login");
-    } else {
-      setIsAuthed(true);
+    if (typeof window !== "undefined") {
+      const auth =
+        sessionStorage.getItem("admin_auth") === "true" ||
+        localStorage.getItem("admin_auth") === "true";
+      if (!auth) {
+        router.push("/admin/login");
+      } else {
+        setIsAuthed(true);
+      }
     }
   }, [router]);
 
@@ -166,11 +176,17 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (!isAuthed) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center text-white font-sans">
-        <div className="flex items-center gap-2 font-bold text-sm">
+      <div className="min-h-screen bg-[#090D14] flex flex-col items-center justify-center text-white font-sans p-4 gap-4">
+        <div className="flex items-center gap-2 font-bold text-sm text-white/80">
           <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
           Authenticating Admin Session...
         </div>
+        <Link
+          href="/admin/login"
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+        >
+          Go to Admin Login
+        </Link>
       </div>
     );
   }

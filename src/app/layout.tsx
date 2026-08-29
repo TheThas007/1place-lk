@@ -15,6 +15,7 @@ import AnnouncementBar from "@/components/ui/AnnouncementBar";
 import CampaignPopup from "@/components/ui/CampaignPopup";
 import GenderPromptModal from "@/components/auth/GenderPromptModal";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
+import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
 import Script from "next/script";
 
 const inter = Inter({
@@ -229,6 +230,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans bg-black text-white">
         <Script src="https://www.payhere.lk/lib/payhere.js" strategy="afterInteractive" />
+        <AppLoadingScreen />
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>

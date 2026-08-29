@@ -203,12 +203,16 @@ export default function CategoriesSection({
                 existing?.logo_url ||
                 "";
 
+              const orderNum = Number(data.sort_order ?? data.order ?? existing?.sort_order ?? existing?.order ?? 999);
+
               brandMap.set(id, {
                 ...existing,
                 ...data,
                 id,
                 slug,
                 logo_url,
+                order: orderNum,
+                sort_order: orderNum,
                 assigned_departments,
                 enabled: data.enabled !== false && data.status !== "inactive",
                 show_on_homepage: data.show_on_homepage !== false,
@@ -251,13 +255,13 @@ export default function CategoriesSection({
 
   const visibleBrands = useMemo(() => {
     return liveBrands
-      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
+      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false && (b as any).isDeleted !== true)
       .filter((b) => {
         const assigned =
           b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
         return assigned.includes(activeDeptSlug);
       })
-      .sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0));
+      .sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
   }, [liveBrands, activeDeptSlug]);
 
   const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 12);

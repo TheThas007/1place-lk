@@ -93,11 +93,13 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [desktopPreview, setDesktopPreview] = useState<string>("");
   const [mobilePreview, setMobilePreview] = useState<string>("");
   const [previewDevice, setPreviewDevice] = useState<"desktop" | "tablet" | "mobile">("desktop");
+  const [bannerSizeRatio, setBannerSizeRatio] = useState<"1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default">("default");
 
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     if (slide) {
+      setBannerSizeRatio(slide.banner_size_ratio || slide.bannerSizeRatio || "default");
       setImageUrl(slide.desktop_image_url || slide.image_url || "");
       setMobileImageUrl(slide.mobile_image_url || "");
       setDesktopPreview(slide.desktop_image_url || slide.image_url || "");
@@ -349,6 +351,8 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         font_weight: fontWeight,
         line_height: lineHeight,
         letter_spacing: letterSpacing,
+        banner_size_ratio: bannerSizeRatio,
+        bannerSizeRatio: bannerSizeRatio,
       });
 
       onClose();
@@ -483,6 +487,49 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* ── BANNER SIZE / ASPECT RATIO SELECTOR ── */}
+          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5" /> Banner Size &amp; Aspect Ratio Preset
+              </label>
+              <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                {bannerSizeRatio}
+              </span>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+              {[
+                { id: "default", label: "Default", badge: "1920×640", desc: "Responsive Standard Hero" },
+                { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Banner Frame" },
+                { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Wide Banner Strip" },
+                { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
+                { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
+              ].map((preset) => {
+                const isSelected = bannerSizeRatio === preset.id;
+                return (
+                  <button
+                    key={preset.id}
+                    type="button"
+                    onClick={() => setBannerSizeRatio(preset.id as any)}
+                    className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                      isSelected
+                        ? "bg-emerald-600/30 border-emerald-500 text-white shadow-md ring-1 ring-emerald-500"
+                        : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-[11px] text-white">{preset.label}</span>
+                      <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"}`}>
+                        {preset.badge}
+                      </span>
+                    </div>
+                    <p className="text-[9px] leading-tight text-white/50 line-clamp-1">{preset.desc}</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
 

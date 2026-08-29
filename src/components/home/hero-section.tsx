@@ -253,7 +253,31 @@ export default function HeroSection() {
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div className="relative w-full aspect-[16/9] overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white">
+        <div
+          style={{
+            aspectRatio:
+              (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
+                ? "1 / 1"
+                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
+                ? "860 / 270"
+                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
+                ? "1920 / 850"
+                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
+                ? "1080 / 1440"
+                : "16 / 9",
+          }}
+          className={`relative w-full overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white ${
+            (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
+              ? "aspect-square"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
+              ? "aspect-[860/270]"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
+              ? "aspect-[1920/850]"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
+              ? "aspect-[1080/1440]"
+              : "aspect-[16/9]"
+          }`}
+        >
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
             <AnimatePresence mode="popLayout" custom={direction} initial={false}>
@@ -371,9 +395,29 @@ export default function HeroSection() {
       {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
       <section
         ref={heroRef}
-        className="hidden md:flex group relative w-full max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:max-h-none select-none"
+        className={`hidden md:flex group relative w-full max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 ${
+          (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
+            ? "aspect-square md:h-auto md:min-h-[540px]"
+            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
+            ? "aspect-[860/270] md:h-auto md:min-h-[320px]"
+            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
+            ? "aspect-[1920/850] md:h-auto md:min-h-[480px]"
+            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
+            ? "aspect-[1080/1440] md:h-auto md:min-h-[640px]"
+            : "md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))]"
+        } md:max-h-none select-none`}
         style={{
           fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
+          aspectRatio:
+            (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
+              ? "1 / 1"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
+              ? "860 / 270"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
+              ? "1920 / 850"
+              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
+              ? "1080 / 1440"
+              : undefined,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}

@@ -54,6 +54,7 @@ import {
   Globe,
   SlidersHorizontal,
   ArrowRight,
+  Maximize2,
 } from "lucide-react";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 import DepartmentBrandHero from "@/components/brand/DepartmentBrandHero";
@@ -428,24 +429,31 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         slug,
         logo_url: formData.logo_url?.trim() || "",
         icon_url: formData.icon_url?.trim() || "",
-        description: formData.description || "",
-        assigned_departments: formData.assigned_departments || ["phones"],
+        description: formData.description?.trim() || "",
+        assigned_departments: formData.assigned_departments && formData.assigned_departments.length > 0 ? formData.assigned_departments : ["phones"],
         status: formData.enabled !== false ? "active" : "inactive",
         enabled: formData.enabled !== false,
         show_on_homepage: formData.show_on_homepage !== false,
         featured: Boolean(formData.featured),
         order: Number(formData.order) || 1,
-        seo_title: formData.seo_title || `${formData.name} Products | Street Mobile`,
+        seo_title: formData.seo_title || `${formData.name.trim()} Products | Street Mobile`,
         seo_description: formData.seo_description || "",
         updatedAt: new Date().toISOString(),
       };
 
+      // Save brand to DB
       await saveBrandToDb(brandToSave);
 
-      // Save each department page configuration
+      // Optimistically update brands state immediately
+      setBrands((prev) => {
+        const filtered = prev.filter((b) => b.id !== brandToSave.id && b.slug !== brandToSave.slug);
+        return [brandToSave, ...filtered];
+      });
+
+      // Save each department page configuration safely
       for (const deptSlug of brandToSave.assigned_departments || ["phones"]) {
-        const config = pageConfigs[deptSlug];
-        if (config) {
+        try {
+          const config = pageConfigs[deptSlug] || generateDefaultDepartmentPageConfig(deptSlug, brandToSave);
           const configToSave: DepartmentBrandPageConfig = {
             ...config,
             id: `${deptSlug}_${slug}`,
@@ -457,6 +465,8 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
             updatedAt: new Date().toISOString(),
           };
           await saveDepartmentBrandPageConfig(configToSave);
+        } catch (deptErr) {
+          console.warn(`Could not save department page for ${deptSlug}:`, deptErr);
         }
       }
 
@@ -465,7 +475,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
       await fetchBrandsAndDepartments();
       setTimeout(() => {
         setIsModalOpen(false);
-      }, 1000);
+      }, 500);
     } catch (err) {
       console.error("Failed to save brand:", err);
       alert("Failed to save brand details.");
@@ -475,11 +485,14 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
   };
 
   const handleDeleteBrand = async (brandId: string, brandName: string) => {
+    const targetBrand = brands.find((b) => b.id === brandId || b.name === brandName);
     if (!confirm(`Are you sure you want to delete brand "${brandName}"? This will also remove all its department page configurations.`)) {
       return;
     }
+    // Optimistically remove from state immediately
+    setBrands((prev) => prev.filter((b) => b.id !== brandId && b.name !== brandName && b.slug !== targetBrand?.slug));
     try {
-      await deleteBrandFromDb(brandId);
+      await deleteBrandFromDb(brandId, targetBrand || { id: brandId, name: brandName });
       await fetchBrandsAndDepartments();
     } catch (e) {
       console.error("Failed to delete brand:", e);
@@ -487,21 +500,34 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
     }
   };
 
-  // Filtered Brands
+  const handleUpdateBrandOrder = async (brand: Brand, newOrder: number) => {
+    setBrands((prev) =>
+      prev.map((b) => (b.id === brand.id ? { ...b, order: newOrder, sort_order: newOrder } : b))
+    );
+    try {
+      await saveBrandToDb({ ...brand, order: newOrder, sort_order: newOrder });
+    } catch (e) {
+      console.error("Failed to update brand order:", e);
+    }
+  };
+
+  // Filtered & Sorted Brands
   const filteredBrands = useMemo(() => {
-    return brands.filter((b) => {
-      if (selectedDeptFilter !== "all") {
-        const depts = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
-        if (!depts.includes(selectedDeptFilter)) return false;
-      }
-      if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase();
-        const matchName = b.name.toLowerCase().includes(q);
-        const matchSlug = b.slug.toLowerCase().includes(q);
-        return matchName || matchSlug;
-      }
-      return true;
-    });
+    return brands
+      .filter((b) => {
+        if (selectedDeptFilter !== "all") {
+          const depts = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
+          if (!depts.includes(selectedDeptFilter)) return false;
+        }
+        if (searchQuery.trim()) {
+          const q = searchQuery.toLowerCase();
+          const matchName = b.name.toLowerCase().includes(q);
+          const matchSlug = b.slug.toLowerCase().includes(q);
+          return matchName || matchSlug;
+        }
+        return true;
+      })
+      .sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
   }, [brands, selectedDeptFilter, searchQuery]);
 
   const activeDepartment =
@@ -598,6 +624,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
           <table className="w-full text-left text-xs text-white/80">
             <thead className="bg-black/40 text-white/40 uppercase tracking-widest text-[10px] font-bold border-b border-white/10">
               <tr>
+                <th className="py-3 px-3 w-20 text-center">Order #</th>
                 <th className="py-3 px-5">Brand</th>
                 <th className="py-3 px-4">Slug</th>
                 <th className="py-3 px-4">Assigned Departments</th>
@@ -611,6 +638,21 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 const depts = brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
                 return (
                   <tr key={brand.id} className="hover:bg-white/5 transition-colors">
+                    <td className="py-3 px-3 text-center">
+                      <input
+                        type="number"
+                        min="1"
+                        value={brand.sort_order ?? brand.order ?? 1}
+                        onChange={(e) => {
+                          const val = parseInt(e.target.value, 10);
+                          if (!isNaN(val) && val >= 1) {
+                            handleUpdateBrandOrder(brand, val);
+                          }
+                        }}
+                        className="w-14 bg-black/50 border border-white/20 hover:border-red-500 focus:border-red-500 px-2 py-1 rounded-xl text-white font-mono font-black text-center text-xs outline-none transition-all shadow-inner"
+                        title="Edit display order (1 = first logo on homepage)"
+                      />
+                    </td>
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
                         <div className="w-9 h-9 rounded-xl bg-white/10 p-1 flex items-center justify-center border border-white/10">
@@ -789,22 +831,110 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                       />
                     </div>
 
-                    <div className="sm:col-span-2">
-                      <label className="block text-white/70 font-bold mb-1">Logo URL (Transparent PNG or SVG)</label>
-                      <input
-                        type="url"
-                        value={formData.logo_url || ""}
-                        onChange={(e) => {
-                          setFormData({ ...formData, logo_url: e.target.value });
-                          setHasUnsavedChanges(true);
-                        }}
-                        placeholder="https://cdn.simpleicons.org/apple/000000"
-                        className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
-                      />
+                    <div className="sm:col-span-2 p-3.5 bg-white/5 border border-white/10 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                      <div>
+                        <label className="block text-white font-extrabold text-xs">
+                          Display Order # (1, 2, 3...)
+                        </label>
+                        <p className="text-[11px] text-white/50 mt-0.5">
+                          Set the exact display sequence on Homepage &quot;Shop by Brand&quot; (1 = First Brand Logo, 2 = Second, etc.)
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-bold text-white/60">Position:</span>
+                        <input
+                          type="number"
+                          min="1"
+                          value={formData.order ?? formData.sort_order ?? 1}
+                          onChange={(e) => {
+                            const val = parseInt(e.target.value, 10) || 1;
+                            setFormData({ ...formData, order: val, sort_order: val });
+                            setHasUnsavedChanges(true);
+                          }}
+                          className="w-20 bg-black/50 border border-white/20 px-3 py-1.5 rounded-xl text-white font-mono font-black text-center text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 shadow-inner"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="sm:col-span-2 space-y-2 p-3.5 bg-black/30 border border-white/10 rounded-2xl">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-white/80 font-extrabold uppercase tracking-wider text-[11px] flex items-center gap-1.5">
+                          <ImageIcon className="w-3.5 h-3.5 text-red-400" /> Brand Logo (Icon / SVG / PNG)
+                        </label>
+                        {formData.logo_url && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setFormData({ ...formData, logo_url: "" });
+                              setHasUnsavedChanges(true);
+                            }}
+                            className="text-[11px] font-bold text-red-400 hover:text-red-300 hover:underline flex items-center gap-1 cursor-pointer"
+                          >
+                            <Trash2 className="w-3 h-3" /> Remove / Clear Logo
+                          </button>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-3">
+                        {/* Logo Preview Box */}
+                        <div className="w-14 h-14 rounded-xl bg-white/10 p-2 flex items-center justify-center border border-white/15 shrink-0 overflow-hidden">
+                          {formData.logo_url ? (
+                            <img
+                              src={formData.logo_url}
+                              alt="Brand Logo"
+                              className="w-full h-full object-contain filter brightness-0 invert"
+                            />
+                          ) : (
+                            <span className="text-white/30 font-extrabold text-xs">NO LOGO</span>
+                          )}
+                        </div>
+
+                        {/* Input & Upload */}
+                        <div className="flex-1 space-y-2">
+                          <input
+                            type="url"
+                            value={formData.logo_url || ""}
+                            onChange={(e) => {
+                              setFormData({ ...formData, logo_url: e.target.value });
+                              setHasUnsavedChanges(true);
+                            }}
+                            placeholder="https://cdn.simpleicons.org/apple/000000"
+                            className="w-full bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl text-white outline-none focus:border-red-500 font-mono text-[11px]"
+                          />
+                          
+                          <div className="flex items-center gap-2">
+                            <input
+                              type="file"
+                              id="brandLogoUpload"
+                              accept="image/png,image/svg+xml,image/webp,image/jpeg"
+                              className="hidden"
+                              onChange={async (e) => {
+                                if (e.target.files && e.target.files[0]) {
+                                  try {
+                                    const uploaded = await uploadImageWithFallback(e.target.files[0], "brands");
+                                    if (uploaded) {
+                                      setFormData({ ...formData, logo_url: uploaded });
+                                      setHasUnsavedChanges(true);
+                                    }
+                                  } catch (err) {
+                                    alert("Failed to upload brand logo.");
+                                  }
+                                }
+                              }}
+                            />
+                            <label
+                              htmlFor="brandLogoUpload"
+                              className="px-3 py-1 bg-white/10 hover:bg-white/15 border border-white/10 text-white font-bold text-[10px] rounded-lg cursor-pointer transition-colors flex items-center gap-1.5"
+                            >
+                              <Upload className="w-3 h-3 text-red-400" /> Upload File (PNG/SVG)
+                            </label>
+                          </div>
+                        </div>
+                      </div>
                       
-                      <div className="flex items-center gap-1.5 flex-wrap mt-2">
+                      <div className="flex items-center gap-1.5 flex-wrap pt-1 border-t border-white/5">
                         <span className="text-[10px] text-white/40">Presets:</span>
-                        {BRAND_LOGO_PRESETS.slice(0, 8).map((preset) => (
+                        {BRAND_LOGO_PRESETS.slice(0, 10).map((preset) => (
                           <button
                             key={preset.name}
                             type="button"
@@ -1064,6 +1194,49 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                           >
                             {activePageConfig.status === "published" ? "Switch to Draft" : "Publish"}
                           </button>
+                        </div>
+                      </div>
+
+                      {/* ── BANNER FRAME SIZE & ASPECT RATIO SELECTOR ── */}
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Maximize2 className="w-3.5 h-3.5" /> Department Banner Size &amp; Aspect Ratio Preset
+                          </label>
+                          <span className="px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-mono text-[10px] font-bold">
+                            {activePageConfig.bannerSizeRatio || "default"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {[
+                            { id: "default", label: "Default", badge: "1920×600", desc: "Edge-to-Edge Widescreen" },
+                            { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Banner Frame" },
+                            { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Wide Banner Strip" },
+                            { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
+                            { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
+                          ].map((preset) => {
+                            const isSelected = (activePageConfig.bannerSizeRatio || "default") === preset.id;
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => handleUpdateActivePageConfig({ bannerSizeRatio: preset.id as any, banner_size_ratio: preset.id })}
+                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                  isSelected
+                                    ? "bg-blue-600/30 border-blue-500 text-white shadow-md ring-1 ring-blue-500"
+                                    : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-extrabold text-[11px] text-white">{preset.label}</span>
+                                  <span className={`text-[8px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-blue-500 text-white" : "bg-white/10 text-white/50"}`}>
+                                    {preset.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[9px] leading-tight text-white/50 line-clamp-1">{preset.desc}</p>
+                              </button>
+                            );
+                          })}
                         </div>
                       </div>
 

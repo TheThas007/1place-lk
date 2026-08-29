@@ -461,12 +461,11 @@ export default function DepartmentBrandPage({
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
-      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-4 sm:pt-6">
-        
-        {/* ── Breadcrumb Navigation: Home / Shop by Brand / [Department] / [Brand] ── */}
+      {/* ── Breadcrumb Navigation (Compact Flush Top Bar) ── */}
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-2 sm:pt-2.5 pb-2 sm:pb-2.5 select-none">
         <nav
           aria-label="Breadcrumb"
-          className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-6 select-none"
+          className="flex items-center gap-2 text-xs font-medium text-neutral-500"
         >
           <Link href="/" className="hover:text-black transition-colors">
             Home
@@ -482,10 +481,15 @@ export default function DepartmentBrandPage({
           <span className="text-neutral-400">/</span>
           <span className="text-black font-bold">{brand.name}</span>
         </nav>
+      </div>
 
-        {/* ── Banner-Only Hero (Single externally designed full-frame artwork) ── */}
+      {/* ── 100% Full-Width Edge-to-Edge Banner Hero (Zero Side/Top Margin, Flush to Screen) ── */}
+      <div className="w-full max-w-full p-0 m-0 border-none rounded-none overflow-hidden">
         <DepartmentBrandHero config={config} brand={brand} department={department} />
+      </div>
 
+      {/* ── Page Main Content Container ── */}
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto">
         {/* ── Horizontal Underline Category Navigation Tabs ── */}
         <div className="flex items-center justify-start sm:justify-start border-b border-neutral-200 mb-8 overflow-x-auto whitespace-nowrap custom-scrollbar">
           <div className="flex items-center gap-2 sm:gap-6 px-1">

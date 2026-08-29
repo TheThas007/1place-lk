@@ -105,21 +105,30 @@ export async function getBrandsFromDb(): Promise<Brand[]> {
         brandMap.delete(existingKey);
       }
 
+      // If marked as deleted, purge from map completely
+      if ((data as any).isDeleted === true || data.status === "deleted") {
+        brandMap.delete(existingKey);
+        brandMap.delete(id);
+        if (data.id) brandMap.delete(data.id);
+        for (const [k, b] of Array.from(brandMap.entries())) {
+          if (
+            (data.slug && b.slug?.toLowerCase() === data.slug?.toLowerCase()) ||
+            (data.name && b.name?.toLowerCase().trim() === nameLower) ||
+            k === id ||
+            b.id === id
+          ) {
+            brandMap.delete(k);
+          }
+        }
+        return;
+      }
+
       const assigned_departments =
         data.assigned_departments && data.assigned_departments.length > 0
           ? data.assigned_departments
           : existing?.assigned_departments || getDefaultBrandDepartments(slug, data.product_group);
 
-      const logo_url =
-        data.logo_url ||
-        (data as any).logo ||
-        (data as any).image_url ||
-        (data as any).imageUrl ||
-        (data as any).icon_url ||
-        (data as any).iconUrl ||
-        (data as any).image ||
-        existing?.logo_url ||
-        "";
+      const logo_url = data.logo_url !== undefined ? data.logo_url : (existing?.logo_url || "");
 
       brandMap.set(id, {
         ...existing,
@@ -135,8 +144,8 @@ export async function getBrandsFromDb(): Promise<Brand[]> {
     console.warn("Error fetching brands from Firestore, using defaults:", err);
   }
 
-  const result = Array.from(brandMap.values());
-  return result.sort((a, b) => (a.sort_order || a.order || 0) - (b.sort_order || b.order || 0));
+  const result = Array.from(brandMap.values()).filter((b) => (b as any).isDeleted !== true && b.status !== "deleted");
+  return result.sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
 }
 
 export async function saveBrandToDb(brand: Partial<Brand>): Promise<void> {
@@ -148,23 +157,50 @@ export async function saveBrandToDb(brand: Partial<Brand>): Promise<void> {
       ? brand.assigned_departments
       : getDefaultBrandDepartments(slug, brand.product_group);
 
-  await setDoc(
-    docRef,
-    {
-      ...brand,
-      id,
-      slug,
-      assigned_departments,
-      enabled: brand.enabled !== false && brand.status !== "inactive",
-      updated_at: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+  const orderNum = Number(brand.sort_order ?? brand.order ?? 999);
+
+  const cleanData: Record<string, any> = {
+    id,
+    name: brand.name?.trim() || "",
+    slug,
+    logo_url: brand.logo_url || "",
+    icon_url: brand.icon_url || "",
+    description: brand.description || "",
+    assigned_departments,
+    enabled: brand.enabled !== false && brand.status !== "inactive",
+    status: brand.enabled !== false && brand.status !== "inactive" ? "active" : "inactive",
+    show_on_homepage: brand.show_on_homepage !== false,
+    featured: Boolean(brand.featured),
+    order: orderNum,
+    sort_order: orderNum,
+    seo_title: brand.seo_title || "",
+    seo_description: brand.seo_description || "",
+    isDeleted: false,
+    updated_at: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+
+  await setDoc(docRef, cleanData, { merge: true });
 }
 
-export async function deleteBrandFromDb(id: string): Promise<void> {
+export async function deleteBrandFromDb(id: string, brandInfo?: Partial<Brand>): Promise<void> {
   try {
-    await deleteDoc(doc(db, "brands", id));
+    // Write tombstone in Firestore so brand will NEVER resurrect on reload
+    await setDoc(
+      doc(db, "brands", id),
+      {
+        id,
+        name: brandInfo?.name || "",
+        slug: brandInfo?.slug || (brandInfo?.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-") || id,
+        isDeleted: true,
+        status: "deleted",
+        enabled: false,
+        show_on_homepage: false,
+        updated_at: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
   } catch (e) {
     console.warn("Error deleting brand from Firestore:", e);
   }
@@ -274,17 +310,12 @@ export async function getDepartmentBrandPageConfig(
 export async function saveDepartmentBrandPageConfig(
   config: DepartmentBrandPageConfig
 ): Promise<void> {
-  const docId = `${config.departmentSlug.toLowerCase()}_${config.brandSlug.toLowerCase()}`;
+  const docId = `${(config.departmentSlug || "phones").toLowerCase()}_${(config.brandSlug || "brand").toLowerCase()}`;
   const docRef = doc(db, "department_brand_pages", docId);
-  await setDoc(
-    docRef,
-    {
-      ...config,
-      id: docId,
-      updatedAt: new Date().toISOString(),
-    },
-    { merge: true }
-  );
+  const cleanConfig = JSON.parse(JSON.stringify(config || {}));
+  cleanConfig.id = docId;
+  cleanConfig.updatedAt = new Date().toISOString();
+  await setDoc(docRef, cleanConfig, { merge: true });
 }
 
 // ── 4. Brand Products & Audit Helpers ──
