@@ -1209,13 +1209,13 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         </div>
                         <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
                           {[
-                            { id: "default", label: "Default", badge: "1920×600", desc: "Edge-to-Edge Widescreen" },
+                            { id: "860x270", label: "860 × 270 (Default)", badge: "860×270", desc: "Crisp High-Res Banner Frame" },
+                            { id: "default", label: "Widescreen", badge: "1920×600", desc: "Widescreen Frame" },
                             { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Banner Frame" },
-                            { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Wide Banner Strip" },
                             { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
                             { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
                           ].map((preset) => {
-                            const isSelected = (activePageConfig.bannerSizeRatio || "default") === preset.id;
+                            const isSelected = (activePageConfig.bannerSizeRatio || "860x270") === preset.id;
                             return (
                               <button
                                 key={preset.id}
@@ -1237,6 +1237,96 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                               </button>
                             );
                           })}
+                        </div>
+                      </div>
+
+                      {/* ── BANNER FRAME BACKGROUND COLOR ── */}
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-sky-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" /> Outer Frame Background Color
+                          </label>
+                          <div className="flex items-center gap-2">
+                            <div
+                              className="w-4 h-4 rounded-full border border-white/40 shadow-xs"
+                              style={{ backgroundColor: activePageConfig.bannerBackgroundColor || "#F4F5F7" }}
+                            />
+                            <span className="text-[10px] font-mono text-white/60 font-bold uppercase">
+                              {activePageConfig.bannerBackgroundColor || "#F4F5F7"}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Preset Swatches */}
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
+                          {[
+                            { hex: "#F4F5F7", label: "Light Slate (Default)" },
+                            { hex: "#FFFFFF", label: "Pure White" },
+                            { hex: "#FAFAFA", label: "Soft Neutral" },
+                            { hex: "#0F172A", label: "Luxury Dark" },
+                            { hex: "#F0F7FC", label: "Ice Sky" },
+                            { hex: "#FFFAF3", label: "Ivory Cream" },
+                            { hex: "#FEF3C7", label: "Amber Warm" },
+                            { hex: "#FFF1F2", label: "Blush Rose" },
+                          ].map((preset) => {
+                            const isSelected =
+                              (activePageConfig.bannerBackgroundColor || "#F4F5F7").toLowerCase() ===
+                              preset.hex.toLowerCase();
+                            return (
+                              <button
+                                key={preset.hex}
+                                type="button"
+                                onClick={() => handleUpdateActivePageConfig({ bannerBackgroundColor: preset.hex })}
+                                className={`p-2 rounded-xl border text-center transition-all cursor-pointer flex flex-col items-center gap-1.5 ${
+                                  isSelected
+                                    ? "bg-white/20 border-white ring-2 ring-blue-500/50 shadow-md"
+                                    : "bg-black/30 border-white/10 hover:bg-white/10"
+                                }`}
+                              >
+                                <div
+                                  className="w-6 h-6 rounded-lg border border-white/30 shadow-2xs flex items-center justify-center"
+                                  style={{ backgroundColor: preset.hex }}
+                                >
+                                  {isSelected && <Check className="w-3.5 h-3.5 text-blue-600 drop-shadow" />}
+                                </div>
+                                <span className="text-[10px] font-bold text-white leading-none line-clamp-1">
+                                  {preset.label}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Custom Color Input & Hex Code */}
+                        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/10">
+                          <div className="flex items-center gap-3">
+                            <input
+                              type="color"
+                              value={
+                                activePageConfig.bannerBackgroundColor?.startsWith("#") && activePageConfig.bannerBackgroundColor.length === 7
+                                  ? activePageConfig.bannerBackgroundColor
+                                  : "#F4F5F7"
+                              }
+                              onChange={(e) =>
+                                handleUpdateActivePageConfig({ bannerBackgroundColor: e.target.value.toUpperCase() })
+                              }
+                              className="w-8 h-8 rounded-lg cursor-pointer bg-transparent border-0 outline-none"
+                            />
+                            <span className="text-xs text-white/70 font-semibold">Custom Color Picker</span>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-white/50 font-mono">Hex:</span>
+                            <input
+                              type="text"
+                              value={activePageConfig.bannerBackgroundColor || "#F4F5F7"}
+                              onChange={(e) =>
+                                handleUpdateActivePageConfig({ bannerBackgroundColor: e.target.value })
+                              }
+                              placeholder="#F4F5F7"
+                              className="w-28 px-3 py-1.5 bg-white/5 border border-white/10 rounded-lg text-white font-mono text-xs font-bold text-center outline-none focus:border-blue-500 uppercase"
+                            />
+                          </div>
                         </div>
                       </div>
 

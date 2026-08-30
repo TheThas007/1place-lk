@@ -90,7 +90,7 @@ export default function DepartmentBrandHero({
   const altText = isDecorative
     ? ""
     : config.bannerAlt ||
-      `${brand.name} ${department.name} Official Promotional Banner`;
+    `${brand.name} ${department.name} Official Promotional Banner`;
 
   const desktopFocal = config.desktop?.focalPosition || config.desktopFocalPosition || "center";
   const tabletFocal = config.tablet?.focalPosition || config.tabletFocalPosition || desktopFocal;
@@ -117,60 +117,77 @@ export default function DepartmentBrandHero({
     config.linkAriaLabel ||
     `Shop ${brand.name} ${department.name} collection`;
 
-  const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "default";
+  const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "860x270";
+  const frameBg = config.bannerBackgroundColor || "#F4F5F7";
 
   const bannerContent = (
     <div
+      className="relative w-full overflow-hidden select-none rounded-2xl sm:rounded-3xl border border-neutral-200/70 shadow-2xs flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
       style={{
-        aspectRatio:
-          ratio === "1080x1080"
-            ? "1 / 1"
-            : ratio === "860x270"
-            ? "860 / 270"
-            : ratio === "1920x850"
-            ? "1920 / 850"
-            : ratio === "1080x1440"
-            ? "1080 / 1440"
-            : "24 / 7",
+        backgroundColor: frameBg,
       }}
-      className={`relative w-full max-h-[170px] sm:max-h-[220px] md:max-h-[260px] lg:max-h-[280px] overflow-hidden rounded-2xl sm:rounded-3xl select-none bg-white border border-neutral-200/80 shadow-2xs ${
-        ratio === "1080x1080"
-          ? "aspect-square max-w-[320px] mx-auto"
-          : ratio === "860x270"
-          ? "aspect-[860/270]"
-          : ratio === "1920x850"
-          ? "aspect-[1920/850]"
-          : ratio === "1080x1440"
-          ? "aspect-[1080/1440] max-w-[360px] mx-auto"
-          : "aspect-[24/7] max-md:aspect-[16/7] max-sm:aspect-[16/9]"
-      }`}
     >
-      <picture className="w-full h-full block">
-        {resolvedMobileBanner && (
-          <source
-            media="(max-width: 767px)"
-            srcSet={resolvedMobileBanner}
+      {/* Subtle ambient backdrop mesh */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-35"
+        style={{
+          background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 80%)`,
+        }}
+      />
+
+      {/* ── Overlay Centered Banner Artwork (860×270 Standard Crisp Size) ── */}
+      <div
+        style={{
+          aspectRatio:
+            ratio === "1080x1080"
+              ? "1 / 1"
+              : ratio === "1920x850"
+              ? "1920 / 850"
+              : ratio === "1080x1440"
+              ? "1080 / 1440"
+              : ratio === "default"
+              ? "1920 / 600"
+              : "860 / 270",
+        }}
+        className={`relative w-full z-10 overflow-hidden rounded-xl sm:rounded-2xl transition-all ${
+          ratio === "1080x1080"
+            ? "max-w-[320px] aspect-square mx-auto"
+            : ratio === "1920x850"
+            ? "max-w-[1100px] aspect-[1920/850] max-h-[320px] mx-auto"
+            : ratio === "1080x1440"
+            ? "max-w-[360px] aspect-[1080/1440] mx-auto"
+            : ratio === "default"
+            ? "max-w-[1200px] aspect-[1920/600] max-h-[300px] mx-auto"
+            : "max-w-[860px] aspect-[860/270] max-h-[270px] mx-auto shadow-2xs"
+        }`}
+      >
+        <picture className="w-full h-full block">
+          {resolvedMobileBanner && (
+            <source
+              media="(max-width: 767px)"
+              srcSet={resolvedMobileBanner}
+            />
+          )}
+          {resolvedTabletBanner && (
+            <source
+              media="(max-width: 1023px)"
+              srcSet={resolvedTabletBanner}
+            />
+          )}
+          <img
+            src={resolvedDesktopBanner}
+            alt={altText}
+            aria-hidden={isDecorative ? "true" : undefined}
+            loading="eager"
+            decoding="async"
+            onError={() => setImgError(true)}
+            style={{
+              objectPosition: desktopFocal,
+            }}
+            className="w-full h-full object-contain sm:object-cover block transition-transform duration-700 ease-out"
           />
-        )}
-        {resolvedTabletBanner && (
-          <source
-            media="(max-width: 1023px)"
-            srcSet={resolvedTabletBanner}
-          />
-        )}
-        <img
-          src={resolvedDesktopBanner}
-          alt={altText}
-          aria-hidden={isDecorative ? "true" : undefined}
-          loading="eager"
-          decoding="async"
-          onError={() => setImgError(true)}
-          style={{
-            objectPosition: desktopFocal,
-          }}
-          className="w-full h-full object-contain sm:object-cover block transition-transform duration-700 ease-out"
-        />
-      </picture>
+        </picture>
+      </div>
     </div>
   );
 

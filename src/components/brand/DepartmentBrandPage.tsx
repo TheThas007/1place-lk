@@ -115,10 +115,10 @@ function BrandProductCard({ product }: { product: Product }) {
   return (
     <div className="group relative bg-white border border-neutral-200/90 rounded-xl overflow-hidden hover:shadow-md hover:border-neutral-300 transition-all flex flex-col justify-between h-full">
       <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col focus:outline-none">
-        
+
         {/* ── Top Badges & Image Box (Equal responsive height, pure white background, seamless blend) ── */}
         <div className="product-image-container relative w-full h-[180px] sm:h-[220px] md:h-[240px] aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-neutral-100/80">
-          
+
           {/* ── Approved Offer Badge Position: Bottom-Left Corner (Anchored to Image Container) ── */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {hasDiscount ? (
@@ -140,9 +140,8 @@ function BrandProductCard({ product }: { product: Product }) {
             className="absolute top-3 right-3 z-10 w-7 h-7 rounded-full bg-white/80 backdrop-blur-sm border border-neutral-200/60 flex items-center justify-center text-neutral-400 hover:text-red-500 hover:scale-110 active:scale-95 transition-all shadow-2xs cursor-pointer"
           >
             <Heart
-              className={`w-3.5 h-3.5 transition-colors ${
-                isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-400"
-              }`}
+              className={`w-3.5 h-3.5 transition-colors ${isWishlisted ? "fill-red-500 text-red-500" : "text-neutral-400"
+                }`}
             />
           </button>
 
@@ -218,11 +217,10 @@ function BrandProductCard({ product }: { product: Product }) {
 
             <div className="flex items-center gap-1 shrink-0">
               <span
-                className={`w-1.5 h-1.5 rounded-full ${
-                  isOutOfStock
+                className={`w-1.5 h-1.5 rounded-full ${isOutOfStock
                     ? "bg-neutral-400"
                     : "bg-emerald-500"
-                }`}
+                  }`}
               />
               <span className="text-[10px] sm:text-[11px] font-semibold text-neutral-700">
                 {isOutOfStock ? "Out of Stock" : "In Stock"}
@@ -238,13 +236,12 @@ function BrandProductCard({ product }: { product: Product }) {
           type="button"
           disabled={isOutOfStock}
           onClick={handleAddToCart}
-          className={`w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${
-            isOutOfStock
+          className={`w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 transition-all active:scale-[0.98] shadow-xs cursor-pointer ${isOutOfStock
               ? "bg-neutral-100 text-neutral-400 cursor-not-allowed"
               : added
-              ? "bg-emerald-600 text-white"
-              : "bg-black text-white hover:bg-neutral-800"
-          }`}
+                ? "bg-emerald-600 text-white"
+                : "bg-black text-white hover:bg-neutral-800"
+            }`}
           aria-label={`Add ${product.name} to bag`}
         >
           {added ? (
@@ -483,8 +480,8 @@ export default function DepartmentBrandPage({
         </nav>
       </div>
 
-      {/* ── Framed Banner Hero (Contained with standard page margin and max-width) ── */}
-      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto my-2 sm:my-3">
+      {/* ── 100% Full-Width Edge-to-Edge Banner Hero (Zero Side/Top Margin, Flush to Screen) ── */}
+      <div className="w-full max-w-full p-0 m-0 border-none rounded-none overflow-hidden">
         <DepartmentBrandHero config={config} brand={brand} department={department} />
       </div>
 
@@ -500,11 +497,10 @@ export default function DepartmentBrandPage({
                   key={tab.slug}
                   type="button"
                   onClick={() => handleTabChange(tab.slug)}
-                  className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${
-                    isActive
+                  className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${isActive
                       ? "text-black font-extrabold border-b-2 border-[#ED0712] -mb-[1px]"
                       : "text-neutral-600 hover:text-black border-b-2 border-transparent"
-                  }`}
+                    }`}
                 >
                   <span>{tab.label}</span>
                 </button>
@@ -525,7 +521,7 @@ export default function DepartmentBrandPage({
 
         {/* ── Clean Filter/Sort Toolbar Row ── */}
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-8">
-          
+
           {/* Left: Search + Storage + Colours + In Stock */}
           <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-1">
             {/* Search Input */}
@@ -585,11 +581,10 @@ export default function DepartmentBrandPage({
             <button
               type="button"
               onClick={() => setInStockOnly(!inStockOnly)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${
-                inStockOnly
+              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${inStockOnly
                   ? "bg-black text-white border-black"
                   : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
-              }`}
+                }`}
             >
               <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
                 {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}

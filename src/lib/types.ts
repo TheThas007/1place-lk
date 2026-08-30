@@ -184,6 +184,8 @@ export interface DepartmentBrandPageConfig {
   decorative?: boolean;
   bannerSizeRatio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
   banner_size_ratio?: string;
+  bannerBackgroundColor?: string;
+  bannerOverlayEnabled?: boolean;
 
   desktopFocalPosition?: string;
   tabletFocalPosition?: string;
