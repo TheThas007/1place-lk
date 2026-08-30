@@ -139,12 +139,12 @@ export default function DepartmentBrandHero({
 
   const bannerContent = (
     <div
-      className="relative w-full overflow-hidden select-none rounded-2xl sm:rounded-3xl border border-neutral-200/70 shadow-2xs flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
+      className="relative w-full max-w-full overflow-hidden select-none rounded-none border-none shadow-none flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
       style={{
         backgroundColor: frameBg,
       }}
     >
-      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
+      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically Across Full Screen) ── */}
       {isBlurEnabled && resolvedDesktopBanner && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
           <img
@@ -174,7 +174,7 @@ export default function DepartmentBrandHero({
         }}
       />
 
-      {/* ── 2. Overlay Centered Banner Artwork (860×270 Standard Crisp Size) ── */}
+      {/* ── 2. Overlay Centered Banner Artwork (Square Shape Corners) ── */}
       <div
         style={{
           aspectRatio:
@@ -188,7 +188,7 @@ export default function DepartmentBrandHero({
               ? "1920 / 600"
               : "860 / 270",
         }}
-        className={`relative w-full z-10 overflow-hidden rounded-xl sm:rounded-2xl transition-all ${
+        className={`relative w-full z-10 overflow-hidden rounded-none transition-all ${
           ratio === "1080x1080"
             ? "max-w-[320px] aspect-square mx-auto"
             : ratio === "1920x850"
@@ -223,8 +223,9 @@ export default function DepartmentBrandHero({
             style={{
               objectPosition: desktopFocal,
               mixBlendMode: blendMode as any,
+              borderRadius: 0,
             }}
-            className="w-full h-full object-contain block transition-transform duration-700 ease-out"
+            className="w-full h-full object-contain block transition-transform duration-700 ease-out rounded-none"
           />
         </picture>
       </div>
@@ -232,7 +233,7 @@ export default function DepartmentBrandHero({
   );
 
   return (
-    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full overflow-hidden p-0 m-0 border-none rounded-2xl sm:rounded-3xl mb-4 sm:mb-6">
+    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full max-w-full overflow-hidden p-0 m-0 border-none rounded-none">
       {destinationUrl ? (
         isExternalLink ? (
           <a
@@ -240,7 +241,7 @@ export default function DepartmentBrandHero({
             target={config.openInNewTab ? "_blank" : "_self"}
             rel={config.openInNewTab ? "noopener noreferrer" : undefined}
             aria-label={ariaLabel}
-            className="block focus:outline-none rounded-2xl sm:rounded-3xl overflow-hidden group w-full"
+            className="block focus:outline-none rounded-none overflow-hidden group w-full"
           >
             {bannerContent}
           </a>
@@ -249,7 +250,7 @@ export default function DepartmentBrandHero({
             href={destinationUrl}
             target={config.openInNewTab ? "_blank" : "_self"}
             aria-label={ariaLabel}
-            className="block focus:outline-none rounded-2xl sm:rounded-3xl overflow-hidden group w-full"
+            className="block focus:outline-none rounded-none overflow-hidden group w-full"
           >
             {bannerContent}
           </Link>
