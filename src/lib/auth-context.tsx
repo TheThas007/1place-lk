@@ -179,7 +179,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 const fallbackAuthContext: AuthContextType = {
   user: null,
   profile: null,
-  gender: null,
+  gender: "male",
   loading: true,
   signIn: async () => {},
   signUp: async () => {},
