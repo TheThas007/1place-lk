@@ -26,9 +26,11 @@ import {
 } from "lucide-react";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import CountdownScreen from "@/components/launch/CountdownScreen";
 import { DEFAULT_PRE_LAUNCH_SETTINGS } from "@/lib/data";
-import { PreLaunchExperienceSettings } from "@/lib/types";
+import { PreLaunchExperienceSettings, Review } from "@/lib/types";
 
 const TIMEZONES = [
   { value: "Asia/Colombo", label: "Asia/Colombo (Sri Lanka Time, GMT+5:30)" },
@@ -51,6 +53,41 @@ const ROTATION_INTERVAL_PRESETS = [
 export default function LaunchControlTab() {
   const { settings, loading, saveSettings, revealNow, disableCountdown, enableCountdown } =
     useLaunchSettings();
+
+  // Live reviews and gallery for preview
+  const [liveReviews, setLiveReviews] = useState<Review[]>([]);
+  const [liveGallery, setLiveGallery] = useState<any[]>([]);
+
+  useEffect(() => {
+    let unsubReviews: (() => void) | null = null;
+    let unsubGallery: (() => void) | null = null;
+
+    try {
+      const qReviews = query(collection(db, "reviews"));
+      unsubReviews = onSnapshot(qReviews, (snap) => {
+        const docs = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Review));
+        if (docs.length > 0) {
+          setLiveReviews(docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+        }
+      });
+
+      const qGallery = query(collection(db, "gallery"));
+      unsubGallery = onSnapshot(qGallery, (snap) => {
+        const docs = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        if (docs.length > 0) {
+          setLiveGallery(docs);
+        }
+      });
+    } catch (e) {
+      console.warn("Could not subscribe to reviews/gallery in LaunchControlTab:", e);
+    }
+
+    return () => {
+      if (unsubReviews) unsubReviews();
+      if (unsubGallery) unsubGallery();
+    };
+  }, []);
+
 
   // Local form state
   const [enabled, setEnabled] = useState<boolean>(true);
@@ -698,6 +735,8 @@ export default function LaunchControlTab() {
               tagline={tagline}
               isTestMode={false}
               preLaunchSettings={compiledPreLaunchSettings}
+              reviews={liveReviews.length > 0 ? liveReviews : undefined}
+              galleryImages={liveGallery.length > 0 ? liveGallery : undefined}
             />
           </div>
         </div>

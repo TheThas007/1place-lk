@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { usePathname } from "next/navigation";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { Review } from "@/lib/types";
 import CountdownScreen from "./CountdownScreen";
 import LaunchReveal from "./LaunchReveal";
 
@@ -15,10 +18,45 @@ export default function LaunchGate({ children }: LaunchGateProps) {
   const pathname = usePathname();
   const { settings, loading } = useLaunchSettings();
 
+  // Live Firestore Reviews & Store Gallery State
+  const [liveReviews, setLiveReviews] = useState<Review[]>([]);
+  const [liveGallery, setLiveGallery] = useState<any[]>([]);
+
+  useEffect(() => {
+    let unsubReviews: (() => void) | null = null;
+    let unsubGallery: (() => void) | null = null;
+
+    try {
+      const qReviews = query(collection(db, "reviews"));
+      unsubReviews = onSnapshot(qReviews, (snap) => {
+        const docs = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Review));
+        if (docs.length > 0) {
+          setLiveReviews(docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0)));
+        }
+      });
+
+      const qGallery = query(collection(db, "gallery"));
+      unsubGallery = onSnapshot(qGallery, (snap) => {
+        const docs = snap.docs.map((d) => ({ ...d.data(), id: d.id }));
+        if (docs.length > 0) {
+          setLiveGallery(docs);
+        }
+      });
+    } catch (e) {
+      console.warn("Could not subscribe to live reviews or gallery:", e);
+    }
+
+    return () => {
+      if (unsubReviews) unsubReviews();
+      if (unsubGallery) unsubGallery();
+    };
+  }, []);
+
   // Test mode state (triggered from admin panel)
   const [testCountdownTarget, setTestCountdownTarget] = useState<number | null>(null);
   const [isRevealing, setIsRevealing] = useState<boolean>(false);
   const [hasManuallyRevealed, setHasManuallyRevealed] = useState<boolean>(false);
+
 
   // Exclude admin routes from launch lock
   const isBypassedRoute = useMemo(() => {
@@ -133,6 +171,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
           tagline={settings.tagline || "VAVUNIYA • SRI LANKA"}
           isTestMode={Boolean(testCountdownTarget)}
           preLaunchSettings={settings.preLaunchExperience}
+          reviews={liveReviews.length > 0 ? liveReviews : undefined}
+          galleryImages={liveGallery.length > 0 ? liveGallery : undefined}
           onSecretUnlock={() => {
             setHasManuallyRevealed(true);
             setHasAdminPreviewAuth(true);
