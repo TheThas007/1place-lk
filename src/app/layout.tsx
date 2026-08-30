@@ -16,6 +16,7 @@ import CampaignPopup from "@/components/ui/CampaignPopup";
 import GenderPromptModal from "@/components/auth/GenderPromptModal";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
+import LaunchGate from "@/components/launch/LaunchGate";
 import Script from "next/script";
 
 const inter = Inter({
@@ -230,26 +231,28 @@ export default function RootLayout({
       </head>
       <body className="min-h-full flex flex-col font-sans bg-black text-white">
         <Script src="https://www.payhere.lk/lib/payhere.js" strategy="afterInteractive" />
-        <AppLoadingScreen />
         <AuthProvider>
           <CartProvider>
             <WishlistProvider>
               <ToastProvider>
-                <SmoothScrollProvider>
-                  {/* Screen reader live region for cart announcements */}
-                  <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
-                  <AnnouncementBar />
-                  <Header />
-                  <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
-                    {children}
-                  </main>
-                  <Footer />
-                  <MobileNav />
-                  <StreetAssistant />
-                  <SearchOverlay />
-                  <CampaignPopup />
-                  <GenderPromptModal />
-                </SmoothScrollProvider>
+                <LaunchGate>
+                  <AppLoadingScreen />
+                  <SmoothScrollProvider>
+                    {/* Screen reader live region for cart announcements */}
+                    <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
+                    <AnnouncementBar />
+                    <Header />
+                    <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
+                      {children}
+                    </main>
+                    <Footer />
+                    <MobileNav />
+                    <StreetAssistant />
+                    <SearchOverlay />
+                    <CampaignPopup />
+                    <GenderPromptModal />
+                  </SmoothScrollProvider>
+                </LaunchGate>
               </ToastProvider>
             </WishlistProvider>
           </CartProvider>

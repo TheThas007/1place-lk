@@ -1242,3 +1242,28 @@ export interface Coupon {
   createdAt?: string;
   updatedAt?: string;
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// LAUNCH COUNTDOWN & ADMIN PREVIEW SETTINGS
+// ══════════════════════════════════════════════════════════════════════════
+export interface LaunchSettings {
+  enabled: boolean;
+  launchTimestamp: string; // ISO string e.g. "2026-09-01T18:00:00+05:30"
+  timezone: string; // Default: "Asia/Colombo"
+  manualReveal?: boolean;
+  title?: string;
+  tagline?: string;
+  allowAdminPreview?: boolean;
+  updatedAt?: string;
+  updatedBy?: string;
+}
+
+export interface LaunchCountdownState {
+  days: string;
+  hours: string;
+  minutes: string;
+  seconds: string;
+  totalSeconds: number;
+  isExpired: boolean;
+}
+

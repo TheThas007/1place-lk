@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings, LaunchSettings } from "./types";
 
 export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
   enabled: true,
@@ -949,6 +949,22 @@ export const DEFAULT_GALLERY_ANIMATION_SETTINGS: GalleryAnimationSettings = {
   edgeFadeWidth: 60,
   edgeFadeColor: "#FAFAFA",
 };
+
+// ══════════════════════════════════════════════════════════════════════════
+// DEFAULT LAUNCH COUNTDOWN SETTINGS
+// ══════════════════════════════════════════════════════════════════════════
+export const DEFAULT_LAUNCH_SETTINGS: LaunchSettings = {
+  enabled: true,
+  // Default to upcoming target in Asia/Colombo timezone (ISO string)
+  launchTimestamp: "2026-09-01T18:00:00+05:30",
+  timezone: "Asia/Colombo",
+  manualReveal: false,
+  title: "STREET MOBILE",
+  tagline: "Vavuniya • Sri Lanka",
+  allowAdminPreview: true,
+  updatedAt: new Date().toISOString(),
+};
+
 
 
 
