@@ -139,12 +139,13 @@ export default function DepartmentBrandHero({
 
   const bannerContent = (
     <div
-      className="relative w-full max-w-full overflow-hidden select-none rounded-none border-none shadow-none flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
+      className="relative w-full overflow-hidden select-none rounded-none border border-neutral-200/80 shadow-2xs flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
       style={{
         backgroundColor: frameBg,
+        borderRadius: 0,
       }}
     >
-      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically Across Full Screen) ── */}
+      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
       {isBlurEnabled && resolvedDesktopBanner && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
           <img
@@ -154,6 +155,7 @@ export default function DepartmentBrandHero({
             className="w-full h-full object-cover scale-135 opacity-40 transform-gpu"
             style={{
               filter: `blur(${blurStrength}) saturate(1.4)`,
+              borderRadius: 0,
             }}
           />
           <div
@@ -161,6 +163,7 @@ export default function DepartmentBrandHero({
             style={{
               backgroundColor: frameBg,
               opacity: 0.65,
+              borderRadius: 0,
             }}
           />
         </div>
@@ -171,10 +174,11 @@ export default function DepartmentBrandHero({
         className="absolute inset-0 pointer-events-none opacity-30 -z-0"
         style={{
           background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 85%)`,
+          borderRadius: 0,
         }}
       />
 
-      {/* ── 2. Overlay Centered Banner Artwork (Square Shape Corners) ── */}
+      {/* ── 2. Overlay Centered Banner Artwork (860×270 Standard Crisp Size with Square Shape) ── */}
       <div
         style={{
           aspectRatio:
@@ -187,6 +191,7 @@ export default function DepartmentBrandHero({
               : ratio === "default"
               ? "1920 / 600"
               : "860 / 270",
+          borderRadius: 0,
         }}
         className={`relative w-full z-10 overflow-hidden rounded-none transition-all ${
           ratio === "1080x1080"
@@ -233,7 +238,7 @@ export default function DepartmentBrandHero({
   );
 
   return (
-    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full max-w-full overflow-hidden p-0 m-0 border-none rounded-none">
+    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full overflow-hidden p-0 m-0 border-none rounded-none mb-4 sm:mb-6">
       {destinationUrl ? (
         isExternalLink ? (
           <a
