@@ -132,6 +132,7 @@ export default function LaunchGate({ children }: LaunchGateProps) {
           title={settings.title || "STREET MOBILE"}
           tagline={settings.tagline || "VAVUNIYA • SRI LANKA"}
           isTestMode={Boolean(testCountdownTarget)}
+          preLaunchSettings={settings.preLaunchExperience}
           onSecretUnlock={() => {
             setHasManuallyRevealed(true);
             setHasAdminPreviewAuth(true);

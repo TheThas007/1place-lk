@@ -3,13 +3,17 @@
 import { memo, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
-import { LaunchCountdownState } from "@/lib/types";
+import { LaunchCountdownState, PreLaunchExperienceSettings, Review } from "@/lib/types";
+import RotatingContentShowcase from "./RotatingContentShowcase";
 
 interface CountdownScreenProps {
   countdown: LaunchCountdownState;
   title?: string;
   tagline?: string;
   isTestMode?: boolean;
+  preLaunchSettings?: PreLaunchExperienceSettings;
+  reviews?: Review[];
+  galleryImages?: any[];
   onSecretUnlock?: () => void;
 }
 
@@ -18,6 +22,9 @@ export const CountdownScreen = memo(function CountdownScreen({
   title = "STREET MOBILE",
   tagline = "VAVUNIYA • SRI LANKA",
   isTestMode = false,
+  preLaunchSettings,
+  reviews,
+  galleryImages,
   onSecretUnlock,
 }: CountdownScreenProps) {
   const { days, hours, minutes, seconds } = countdown;
@@ -72,7 +79,7 @@ export const CountdownScreen = memo(function CountdownScreen({
 
   return (
     <div
-      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#0A0A0A] flex flex-col justify-between items-center px-4 py-8 sm:py-12 select-none overflow-hidden touch-none font-outfit"
+      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#0A0A0A] flex flex-col justify-between items-center px-4 py-4 sm:py-6 md:py-8 select-none overflow-y-auto overflow-x-hidden font-outfit"
       style={{
         backgroundColor: "#FFFFFF",
       }}
@@ -82,7 +89,7 @@ export const CountdownScreen = memo(function CountdownScreen({
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-5xl flex items-center justify-between pt-2 px-2 sm:px-6"
+        className="w-full max-w-5xl flex items-center justify-between pt-1 px-2 sm:px-6 shrink-0"
       >
         <div className="flex items-center gap-2.5">
           <div className="w-2 h-2 rounded-full bg-[#ED0712] animate-pulse" />
@@ -106,25 +113,25 @@ export const CountdownScreen = memo(function CountdownScreen({
         </button>
       </motion.div>
 
-      {/* ── Center Hero Section: Title & Premium Countdown ── */}
-      <div className="w-full max-w-5xl flex flex-col items-center justify-center my-auto text-center px-2">
+      {/* ── Center Shell: Persistent Title, Countdown Header & Rotating Showcase ── */}
+      <div className="w-full max-w-5xl flex flex-col items-center justify-center my-auto text-center px-2 py-2">
         {/* Brand Main Title */}
         <motion.div
           initial={{ opacity: 0, scale: 0.96 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-6 sm:mb-10 md:mb-14"
+          className="mb-3 sm:mb-5"
         >
           <h1
             className="font-black tracking-[0.18em] sm:tracking-[0.22em] text-[#09090B] uppercase drop-shadow-sm leading-none"
             style={{
-              fontSize: "clamp(1.75rem, 5.5vw, 4.5rem)",
+              fontSize: "clamp(1.5rem, 4.5vw, 3.75rem)",
             }}
           >
             {title}
           </h1>
 
-          <div className="flex items-center justify-center gap-3 mt-3 sm:mt-4">
+          <div className="flex items-center justify-center gap-3 mt-2 sm:mt-2.5">
             <span className="h-[1px] w-6 sm:w-10 bg-[#E4E4E7]" />
             <button
               type="button"
@@ -133,7 +140,7 @@ export const CountdownScreen = memo(function CountdownScreen({
                 setPassword("");
                 setIsSecretModalOpen(true);
               }}
-              className="text-[10px] sm:text-xs md:text-sm font-semibold tracking-[0.3em] text-[#71717A] hover:text-[#09090B] uppercase transition-colors cursor-pointer"
+              className="text-[9px] sm:text-xs font-semibold tracking-[0.3em] text-[#71717A] hover:text-[#09090B] uppercase transition-colors cursor-pointer"
             >
               {tagline}
             </button>
@@ -141,23 +148,25 @@ export const CountdownScreen = memo(function CountdownScreen({
           </div>
         </motion.div>
 
-        {/* ── Main Responsive Countdown Grid ── */}
+        {/* ── Persistent Countdown Header ── */}
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
+          initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.9, delay: 0.25, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-4xl"
+          transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full max-w-3xl mb-3 sm:mb-5"
         >
-          <div className="flex items-center justify-center gap-1.5 sm:gap-3 md:gap-6 lg:gap-8">
+          <div className="flex items-center justify-center gap-1 sm:gap-2.5 md:gap-4 lg:gap-5">
             {timeUnits.map((unit, index) => (
               <div key={unit.label} className="flex items-center">
                 {/* Number Box */}
                 <div className="flex flex-col items-center">
-                  <div className="relative flex items-center justify-center bg-[#F4F4F5] border border-[#E4E4E7] rounded-2xl sm:rounded-3xl shadow-[0_4px_24px_rgba(0,0,0,0.03)] px-3 py-3 sm:px-6 sm:py-6 md:px-8 md:py-8 min-w-[64px] sm:min-w-[96px] md:min-w-[130px] lg:min-w-[150px]">
+                  <div
+                    className="relative flex items-center justify-center bg-[#F4F4F5] border border-[#E4E4E7] rounded-xl sm:rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] px-2.5 py-2 sm:px-5 sm:py-3.5 md:px-6 md:py-4 min-w-[56px] sm:min-w-[78px] md:min-w-[104px]"
+                  >
                     <span
                       className="font-black tracking-tight text-[#09090B] font-mono leading-none tabular-nums"
                       style={{
-                        fontSize: "clamp(1.75rem, 6.5vw, 5.5rem)",
+                        fontSize: "clamp(1.4rem, 4.2vw, 3.5rem)",
                       }}
                     >
                       {unit.value}
@@ -165,7 +174,7 @@ export const CountdownScreen = memo(function CountdownScreen({
                   </div>
 
                   {/* Unit Label */}
-                  <span className="mt-2.5 sm:mt-3.5 text-[9px] sm:text-xs md:text-sm font-bold tracking-[0.25em] sm:tracking-[0.3em] text-[#71717A] uppercase">
+                  <span className="mt-1.5 sm:mt-2 text-[8px] sm:text-[10px] md:text-xs font-bold tracking-[0.25em] text-[#71717A] uppercase">
                     {unit.label}
                   </span>
                 </div>
@@ -173,9 +182,9 @@ export const CountdownScreen = memo(function CountdownScreen({
                 {/* Colon Divider (except after the last item) */}
                 {index < timeUnits.length - 1 && (
                   <div
-                    className="flex flex-col items-center justify-center font-black text-[#A1A1AA] pb-5 sm:pb-7 px-0.5 sm:px-1.5 md:px-2 select-none"
+                    className="flex flex-col items-center justify-center font-black text-[#A1A1AA] pb-4 sm:pb-5 px-0.5 sm:px-1 select-none"
                     style={{
-                      fontSize: "clamp(1.25rem, 4vw, 3.5rem)",
+                      fontSize: "clamp(1rem, 2.8vw, 2.2rem)",
                     }}
                   >
                     <span className="animate-pulse">:</span>
@@ -185,6 +194,14 @@ export const CountdownScreen = memo(function CountdownScreen({
             ))}
           </div>
         </motion.div>
+
+        {/* ── Dynamic 5-Minute Rotating Content Showcase ── */}
+        <RotatingContentShowcase
+          settings={preLaunchSettings}
+          reviews={reviews}
+          galleryImages={galleryImages}
+          freeze={false}
+        />
       </div>
 
       {/* ── Bottom Footer Watermark ── */}
@@ -192,7 +209,7 @@ export const CountdownScreen = memo(function CountdownScreen({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.4 }}
-        className="w-full text-center pb-2 pointer-events-none"
+        className="w-full text-center pb-2 shrink-0 pointer-events-none"
       >
         <p className="text-[9px] sm:text-[10px] tracking-[0.35em] text-[#A1A1AA] font-semibold uppercase">
           STREET MOBILE (PVT) LTD • PREPARING FOR LAUNCH

@@ -1246,6 +1246,26 @@ export interface Coupon {
 // ══════════════════════════════════════════════════════════════════════════
 // LAUNCH COUNTDOWN & ADMIN PREVIEW SETTINGS
 // ══════════════════════════════════════════════════════════════════════════
+export interface PreLaunchScreenConfig {
+  id: "thank_you" | "location" | "reviews" | "gallery" | "moments";
+  title: string;
+  enabled: boolean;
+  order: number;
+}
+
+export interface PreLaunchExperienceSettings {
+  enabled: boolean;
+  rotationIntervalSeconds: number; // default 300 (5 minutes)
+  autoplay: boolean;
+  swipeEnabled: boolean;
+  reviewsEnabled: boolean;
+  galleryEnabled: boolean;
+  thankYouEnabled: boolean;
+  locationEnabled: boolean;
+  momentsEnabled: boolean;
+  screens?: PreLaunchScreenConfig[];
+}
+
 export interface LaunchSettings {
   enabled: boolean;
   launchTimestamp: string; // ISO string e.g. "2026-09-01T18:00:00+05:30"
@@ -1254,6 +1274,7 @@ export interface LaunchSettings {
   title?: string;
   tagline?: string;
   allowAdminPreview?: boolean;
+  preLaunchExperience?: PreLaunchExperienceSettings;
   updatedAt?: string;
   updatedBy?: string;
 }
@@ -1266,4 +1287,5 @@ export interface LaunchCountdownState {
   totalSeconds: number;
   isExpired: boolean;
 }
+
 

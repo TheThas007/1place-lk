@@ -1,4 +1,4 @@
-import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings, LaunchSettings } from "./types";
+import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings, LaunchSettings, PreLaunchScreenConfig, PreLaunchExperienceSettings } from "./types";
 
 export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
   enabled: true,
@@ -951,6 +951,30 @@ export const DEFAULT_GALLERY_ANIMATION_SETTINGS: GalleryAnimationSettings = {
 };
 
 // ══════════════════════════════════════════════════════════════════════════
+// DEFAULT PRE-LAUNCH ROTATING EXPERIENCE SETTINGS
+// ══════════════════════════════════════════════════════════════════════════
+export const DEFAULT_PRE_LAUNCH_SCREENS: PreLaunchScreenConfig[] = [
+  { id: "thank_you", title: "Thank You", enabled: true, order: 1 },
+  { id: "location", title: "We Are Near You", enabled: true, order: 2 },
+  { id: "reviews", title: "Customer Reviews", enabled: true, order: 3 },
+  { id: "gallery", title: "Shop Visit Gallery", enabled: true, order: 4 },
+  { id: "moments", title: "Customer Moments", enabled: true, order: 5 },
+];
+
+export const DEFAULT_PRE_LAUNCH_SETTINGS: PreLaunchExperienceSettings = {
+  enabled: true,
+  rotationIntervalSeconds: 300, // 5 minutes (300s)
+  autoplay: true,
+  swipeEnabled: true,
+  reviewsEnabled: true,
+  galleryEnabled: true,
+  thankYouEnabled: true,
+  locationEnabled: true,
+  momentsEnabled: true,
+  screens: DEFAULT_PRE_LAUNCH_SCREENS,
+};
+
+// ══════════════════════════════════════════════════════════════════════════
 // DEFAULT LAUNCH COUNTDOWN SETTINGS
 // ══════════════════════════════════════════════════════════════════════════
 export const DEFAULT_LAUNCH_SETTINGS: LaunchSettings = {
@@ -960,10 +984,12 @@ export const DEFAULT_LAUNCH_SETTINGS: LaunchSettings = {
   timezone: "Asia/Colombo",
   manualReveal: false,
   title: "STREET MOBILE",
-  tagline: "Vavuniya • Sri Lanka",
+  tagline: "VAVUNIYA • SRI LANKA",
   allowAdminPreview: true,
+  preLaunchExperience: DEFAULT_PRE_LAUNCH_SETTINGS,
   updatedAt: new Date().toISOString(),
 };
+
 
 
 

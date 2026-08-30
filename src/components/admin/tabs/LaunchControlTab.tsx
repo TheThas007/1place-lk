@@ -16,10 +16,19 @@ import {
   Sparkles,
   ExternalLink,
   ShieldCheck,
+  Layers,
+  Heart,
+  MapPin,
+  Star,
+  Image as ImageIcon,
+  Smartphone,
+  Sliders,
 } from "lucide-react";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
 import CountdownScreen from "@/components/launch/CountdownScreen";
+import { DEFAULT_PRE_LAUNCH_SETTINGS } from "@/lib/data";
+import { PreLaunchExperienceSettings } from "@/lib/types";
 
 const TIMEZONES = [
   { value: "Asia/Colombo", label: "Asia/Colombo (Sri Lanka Time, GMT+5:30)" },
@@ -28,6 +37,15 @@ const TIMEZONES = [
   { value: "Europe/London", label: "Europe/London (GMT/BST)" },
   { value: "America/New_York", label: "America/New_York (EST/EDT)" },
   { value: "UTC", label: "UTC (Coordinated Universal Time)" },
+];
+
+const ROTATION_INTERVAL_PRESETS = [
+  { value: 30, label: "30 Seconds (Fast Demo)" },
+  { value: 60, label: "1 Minute" },
+  { value: 120, label: "2 Minutes" },
+  { value: 300, label: "5 Minutes (Recommended Default)" },
+  { value: 600, label: "10 Minutes" },
+  { value: 900, label: "15 Minutes" },
 ];
 
 export default function LaunchControlTab() {
@@ -41,6 +59,18 @@ export default function LaunchControlTab() {
   const [timezone, setTimezone] = useState<string>("Asia/Colombo");
   const [title, setTitle] = useState<string>("STREET MOBILE");
   const [tagline, setTagline] = useState<string>("VAVUNIYA • SRI LANKA");
+
+  // Pre-launch experience configuration
+  const [preLaunchEnabled, setPreLaunchEnabled] = useState<boolean>(true);
+  const [rotationIntervalSeconds, setRotationIntervalSeconds] = useState<number>(300);
+  const [autoplay, setAutoplay] = useState<boolean>(true);
+  const [swipeEnabled, setSwipeEnabled] = useState<boolean>(true);
+  const [thankYouEnabled, setThankYouEnabled] = useState<boolean>(true);
+  const [locationEnabled, setLocationEnabled] = useState<boolean>(true);
+  const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
+  const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
+  const [momentsEnabled, setMomentsEnabled] = useState<boolean>(true);
+
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
 
@@ -71,6 +101,18 @@ export default function LaunchControlTab() {
           // Keep current strings if parse fails
         }
       }
+
+      // Pre-launch settings
+      const pl = settings.preLaunchExperience || DEFAULT_PRE_LAUNCH_SETTINGS;
+      setPreLaunchEnabled(pl.enabled ?? true);
+      setRotationIntervalSeconds(pl.rotationIntervalSeconds ?? 300);
+      setAutoplay(pl.autoplay ?? true);
+      setSwipeEnabled(pl.swipeEnabled ?? true);
+      setThankYouEnabled(pl.thankYouEnabled ?? true);
+      setLocationEnabled(pl.locationEnabled ?? true);
+      setReviewsEnabled(pl.reviewsEnabled ?? true);
+      setGalleryEnabled(pl.galleryEnabled ?? true);
+      setMomentsEnabled(pl.momentsEnabled ?? true);
     }
   }, [settings]);
 
@@ -88,6 +130,31 @@ export default function LaunchControlTab() {
     targetTimestamp: computedLaunchTimestamp,
   });
 
+  // Compiled PreLaunchExperience object
+  const compiledPreLaunchSettings: PreLaunchExperienceSettings = useMemo(() => {
+    return {
+      enabled: preLaunchEnabled,
+      rotationIntervalSeconds,
+      autoplay,
+      swipeEnabled,
+      thankYouEnabled,
+      locationEnabled,
+      reviewsEnabled,
+      galleryEnabled,
+      momentsEnabled,
+    };
+  }, [
+    preLaunchEnabled,
+    rotationIntervalSeconds,
+    autoplay,
+    swipeEnabled,
+    thankYouEnabled,
+    locationEnabled,
+    reviewsEnabled,
+    galleryEnabled,
+    momentsEnabled,
+  ]);
+
   // Handle Save
   const handleSave = async () => {
     setIsSaving(true);
@@ -100,6 +167,7 @@ export default function LaunchControlTab() {
         title,
         tagline,
         manualReveal: false,
+        preLaunchExperience: compiledPreLaunchSettings,
       });
       setSaveSuccess(true);
       setTimeout(() => setSaveSuccess(false), 3000);
@@ -133,7 +201,7 @@ export default function LaunchControlTab() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Launch Control</h1>
               <p className="text-xs sm:text-sm text-white/50 mt-0.5 font-medium">
-                Configure official website launch countdown, reveal sequence, and admin preview.
+                Configure official website launch countdown, 5-minute rotating customer showcase, and reveal sequence.
               </p>
             </div>
           </div>
@@ -145,7 +213,7 @@ export default function LaunchControlTab() {
             onClick={() => setIsPreviewOpen(true)}
             className="px-4 py-2.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
           >
-            <Eye className="w-4 h-4" /> Preview Countdown
+            <Eye className="w-4 h-4" /> Preview Pre-Launch Experience
           </button>
           <a
             href="/admin-preview"
@@ -186,7 +254,7 @@ export default function LaunchControlTab() {
             </h3>
             <p className="text-xs text-white/50 mt-1">
               {enabled && !countdown.isExpired
-                ? "Normal visitors only see the #FFFFFF launch countdown screen."
+                ? "Normal visitors only see the #FFFFFF rotating pre-launch showcase."
                 : "The full Street Mobile website is currently visible to everyone."}
             </p>
           </div>
@@ -250,49 +318,226 @@ export default function LaunchControlTab() {
         </div>
       </div>
 
-      {/* ── Live Countdown Display Preview ── */}
+      {/* ── Section 2: Pre-Launch Experience Controls ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
-            <h3 className="text-base font-extrabold flex items-center gap-2">
-              <Timer className="w-5 h-5 text-amber-400" /> Live Countdown Preview
+            <h3 className="text-lg font-extrabold flex items-center gap-2">
+              <Layers className="w-5 h-5 text-red-400" /> Pre-Launch Dynamic Customer Experience
             </h3>
-            <p className="text-xs text-white/40 mt-0.5">Real-time simulation of visitor countdown</p>
+            <p className="text-xs text-white/50 mt-1">
+              Rotating showcase below the persistent countdown, featuring customer appreciation, location, real reviews, and shop gallery.
+            </p>
           </div>
-          <span className="text-xs font-mono font-bold text-amber-400 bg-amber-500/10 border border-amber-500/20 px-3 py-1 rounded-full">
-            {countdown.isExpired ? "EXPIRED" : "LIVE TICKING"}
-          </span>
+
+          <label className="relative inline-flex items-center cursor-pointer shrink-0">
+            <input
+              type="checkbox"
+              checked={preLaunchEnabled}
+              onChange={(e) => setPreLaunchEnabled(e.target.checked)}
+              className="sr-only peer"
+            />
+            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
+            <span className="ml-3 text-xs font-bold text-white">
+              {preLaunchEnabled ? "Showcase ON" : "Showcase OFF"}
+            </span>
+          </label>
         </div>
 
-        <div className="flex flex-wrap items-center justify-center gap-3 sm:gap-6 py-4">
-          {[
-            { label: "DAYS", value: countdown.days },
-            { label: "HOURS", value: countdown.hours },
-            { label: "MINUTES", value: countdown.minutes },
-            { label: "SECONDS", value: countdown.seconds },
-          ].map((item, idx) => (
-            <div key={item.label} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <div className="w-20 sm:w-28 h-20 sm:h-28 rounded-2xl bg-white/5 border border-white/15 flex items-center justify-center shadow-inner">
-                  <span className="font-mono font-black text-2xl sm:text-4xl text-white">
-                    {item.value}
-                  </span>
-                </div>
-                <span className="text-[10px] font-bold text-white/50 tracking-widest mt-2">
-                  {item.label}
-                </span>
-              </div>
-              {idx < 3 && (
-                <span className="font-mono font-black text-2xl sm:text-4xl text-white/20 px-2 sm:px-4 pb-6">
-                  :
-                </span>
-              )}
+        {/* Rotation Interval & Behavior Settings */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+          {/* Rotation Interval */}
+          <div>
+            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
+              Main Slide Rotation Interval
+            </label>
+            <select
+              value={rotationIntervalSeconds}
+              onChange={(e) => setRotationIntervalSeconds(Number(e.target.value))}
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
+            >
+              {ROTATION_INTERVAL_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value} className="bg-slate-900 text-white">
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+            <p className="text-[11px] text-white/40 mt-1">
+              Controls when the entire pre-launch slide changes automatically.
+            </p>
+          </div>
+
+          {/* Autoplay Toggle */}
+          <div>
+            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
+              Autoplay Content
+            </label>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setAutoplay(true)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  autoplay ? "bg-red-600 text-white shadow-md shadow-red-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                ON (Automatic)
+              </button>
+              <button
+                type="button"
+                onClick={() => setAutoplay(false)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  !autoplay ? "bg-red-600 text-white shadow-md shadow-red-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                OFF (Manual Only)
+              </button>
             </div>
-          ))}
+          </div>
+
+          {/* Mobile Swipe Support */}
+          <div>
+            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
+              Mobile Touch Swipe
+            </label>
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setSwipeEnabled(true)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  swipeEnabled ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                Enabled
+              </button>
+              <button
+                type="button"
+                onClick={() => setSwipeEnabled(false)}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  !swipeEnabled ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                }`}
+              >
+                Disabled
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Active Screens Selection ── */}
+        <div className="pt-4 border-t border-white/10">
+          <label className="block text-xs font-bold text-white/70 mb-3 uppercase tracking-wider">
+            Enabled Pre-Launch Screens
+          </label>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+            {/* 1. Thank You */}
+            <label
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                thankYouEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Heart className={`w-5 h-5 ${thankYouEnabled ? "text-red-400" : "text-white/30"}`} />
+                <input
+                  type="checkbox"
+                  checked={thankYouEnabled}
+                  onChange={(e) => setThankYouEnabled(e.target.checked)}
+                  className="rounded border-white/20 text-red-600 focus:ring-0"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold">1. Thank You</h4>
+                <p className="text-[10px] text-white/50 mt-0.5">Customer appreciation message</p>
+              </div>
+            </label>
+
+            {/* 2. We Are Near You */}
+            <label
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                locationEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <MapPin className={`w-5 h-5 ${locationEnabled ? "text-red-400" : "text-white/30"}`} />
+                <input
+                  type="checkbox"
+                  checked={locationEnabled}
+                  onChange={(e) => setLocationEnabled(e.target.checked)}
+                  className="rounded border-white/20 text-red-600 focus:ring-0"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold">2. Near You</h4>
+                <p className="text-[10px] text-white/50 mt-0.5">Vavuniya address & hours</p>
+              </div>
+            </label>
+
+            {/* 3. Customer Reviews */}
+            <label
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                reviewsEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Star className={`w-5 h-5 ${reviewsEnabled ? "text-amber-400" : "text-white/30"}`} />
+                <input
+                  type="checkbox"
+                  checked={reviewsEnabled}
+                  onChange={(e) => setReviewsEnabled(e.target.checked)}
+                  className="rounded border-white/20 text-red-600 focus:ring-0"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold">3. Reviews</h4>
+                <p className="text-[10px] text-white/50 mt-0.5">Auto-slider of 5★ ratings</p>
+              </div>
+            </label>
+
+            {/* 4. Shop Gallery */}
+            <label
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                galleryEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <ImageIcon className={`w-5 h-5 ${galleryEnabled ? "text-blue-400" : "text-white/30"}`} />
+                <input
+                  type="checkbox"
+                  checked={galleryEnabled}
+                  onChange={(e) => setGalleryEnabled(e.target.checked)}
+                  className="rounded border-white/20 text-red-600 focus:ring-0"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold">4. Shop Gallery</h4>
+                <p className="text-[10px] text-white/50 mt-0.5">Store visit & device photos</p>
+              </div>
+            </label>
+
+            {/* 5. Customer Moments */}
+            <label
+              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
+                momentsEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <Sparkles className={`w-5 h-5 ${momentsEnabled ? "text-purple-400" : "text-white/30"}`} />
+                <input
+                  type="checkbox"
+                  checked={momentsEnabled}
+                  onChange={(e) => setMomentsEnabled(e.target.checked)}
+                  className="rounded border-white/20 text-red-600 focus:ring-0"
+                />
+              </div>
+              <div>
+                <h4 className="text-xs font-bold">5. Moments</h4>
+                <p className="text-[10px] text-white/50 mt-0.5">Every visit appreciation</p>
+              </div>
+            </label>
+          </div>
         </div>
       </div>
 
-      {/* ── Configuration Settings Form ── */}
+      {/* ── Section 3: Schedule Date & Time Form ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
         <h3 className="text-base font-extrabold flex items-center gap-2 border-b border-white/10 pb-4">
           <Calendar className="w-5 h-5 text-blue-400" /> Launch Schedule Settings
@@ -433,9 +678,9 @@ export default function LaunchControlTab() {
         <div className="fixed inset-0 z-[99999999] bg-black/80 backdrop-blur-md flex flex-col">
           <div className="bg-[#0F172A] border-b border-white/10 p-4 flex items-center justify-between z-50">
             <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold text-white">Full-Screen Countdown Preview</span>
-              <span className="text-[10px] bg-white/10 text-white/60 px-2 py-0.5 rounded-md font-mono">
-                #FFFFFF Background
+              <span className="text-xs font-extrabold text-white">Full-Screen Pre-Launch Experience Preview</span>
+              <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded-md font-mono">
+                ADMIN PREVIEW
               </span>
             </div>
             <button
@@ -446,12 +691,13 @@ export default function LaunchControlTab() {
             </button>
           </div>
 
-          <div className="relative flex-1">
+          <div className="relative flex-1 bg-white">
             <CountdownScreen
               countdown={countdown}
               title={title}
               tagline={tagline}
               isTestMode={false}
+              preLaunchSettings={compiledPreLaunchSettings}
             />
           </div>
         </div>
