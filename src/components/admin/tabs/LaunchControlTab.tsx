@@ -24,6 +24,8 @@ import {
   Smartphone,
   Sliders,
   RefreshCw,
+  ToggleLeft,
+  ToggleRight,
 } from "lucide-react";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
@@ -103,11 +105,11 @@ export default function LaunchControlTab() {
   const [rotationIntervalSeconds, setRotationIntervalSeconds] = useState<number>(300);
   const [autoplay, setAutoplay] = useState<boolean>(true);
   const [swipeEnabled, setSwipeEnabled] = useState<boolean>(true);
-  const [thankYouEnabled, setThankYouEnabled] = useState<boolean>(true);
+  const [thankYouEnabled, setThankYouEnabled] = useState<boolean>(false);
   const [locationEnabled, setLocationEnabled] = useState<boolean>(true);
   const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
-  const [momentsEnabled, setMomentsEnabled] = useState<boolean>(true);
+  const [momentsEnabled, setMomentsEnabled] = useState<boolean>(false);
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
@@ -147,11 +149,11 @@ export default function LaunchControlTab() {
       setRotationIntervalSeconds(pl.rotationIntervalSeconds ?? 300);
       setAutoplay(pl.autoplay ?? true);
       setSwipeEnabled(pl.swipeEnabled ?? true);
-      setThankYouEnabled(pl.thankYouEnabled ?? true);
+      setThankYouEnabled(pl.thankYouEnabled ?? false);
       setLocationEnabled(pl.locationEnabled ?? true);
       setReviewsEnabled(pl.reviewsEnabled ?? true);
       setGalleryEnabled(pl.galleryEnabled ?? true);
-      setMomentsEnabled(pl.momentsEnabled ?? true);
+      setMomentsEnabled(pl.momentsEnabled ?? false);
     }
   }, [settings]);
 
@@ -242,7 +244,7 @@ export default function LaunchControlTab() {
             <div>
               <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Launch Control</h1>
               <p className="text-xs sm:text-sm text-white/50 mt-0.5 font-medium">
-                Configure official website launch countdown, 5-minute rotating customer showcase, and reveal sequence.
+                Configure official website launch countdown, Store Gallery, Google Reviews, and We Are Near You controls.
               </p>
             </div>
           </div>
@@ -359,34 +361,117 @@ export default function LaunchControlTab() {
         </div>
       </div>
 
-      {/* ── Section 2: Pre-Launch Experience Controls (5-Minute Gallery & Reviews Rotation) ── */}
+      {/* ── Section 2: Individual Section Visibility Controls (ON / OFF) ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
             <h3 className="text-lg font-extrabold flex items-center gap-2">
-              <Layers className="w-5 h-5 text-red-400" /> Store Gallery & Google Reviews Display Timer
+              <Layers className="w-5 h-5 text-red-400" /> Section Visibility Controls (ON / OFF)
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              Configure how often the Store Gallery and Customer Reviews appear below the countdown.
+              Enable or disable Store Gallery, Google Reviews, and We Are Near You individually.
             </p>
           </div>
+        </div>
 
-          <label className="relative inline-flex items-center cursor-pointer shrink-0">
-            <input
-              type="checkbox"
-              checked={preLaunchEnabled}
-              onChange={(e) => setPreLaunchEnabled(e.target.checked)}
-              className="sr-only peer"
-            />
-            <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
-            <span className="ml-3 text-xs font-bold text-white">
-              {preLaunchEnabled ? "Showcase ON" : "Showcase OFF"}
-            </span>
-          </label>
+        {/* Individual Section Toggles Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
+          {/* Toggle 1: Store Gallery */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
+                  <ImageIcon className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">Store Gallery</h4>
+                  <p className="text-[11px] text-white/50">Unboxings & Store Photos</p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={galleryEnabled}
+                  onChange={(e) => setGalleryEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+              </label>
+            </div>
+            <div className="text-xs font-bold text-white/70">
+              Status:{" "}
+              <span className={galleryEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
+                {galleryEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
+              </span>
+            </div>
+          </div>
+
+          {/* Toggle 2: Google Reviews */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
+                  <Star className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">Google Reviews</h4>
+                  <p className="text-[11px] text-white/50">5.0 ★ Verified Feedback</p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={reviewsEnabled}
+                  onChange={(e) => setReviewsEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+              </label>
+            </div>
+            <div className="text-xs font-bold text-white/70">
+              Status:{" "}
+              <span className={reviewsEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
+                {reviewsEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
+              </span>
+            </div>
+          </div>
+
+          {/* Toggle 3: We Are Near You */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
+                  <MapPin className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-extrabold text-white">We Are Near You</h4>
+                  <p className="text-[11px] text-white/50">Address, Hours & Phone</p>
+                </div>
+              </div>
+
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={locationEnabled}
+                  onChange={(e) => setLocationEnabled(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
+              </label>
+            </div>
+            <div className="text-xs font-bold text-white/70">
+              Status:{" "}
+              <span className={locationEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
+                {locationEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
+              </span>
+            </div>
+          </div>
         </div>
 
         {/* Display Mode & Interval Settings */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-white/10">
           {/* Display Mode */}
           <div>
             <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
@@ -402,7 +487,7 @@ export default function LaunchControlTab() {
                     : "bg-white/5 text-white/60 hover:bg-white/10"
                 }`}
               >
-                <span>Rotate Every 5 Mins</span>
+                <span>Rotate Showcase</span>
                 {displayMode === "interval_rotate" && <CheckCircle className="w-4 h-4" />}
               </button>
               <button
@@ -418,11 +503,6 @@ export default function LaunchControlTab() {
                 {displayMode === "always_visible" && <CheckCircle className="w-4 h-4" />}
               </button>
             </div>
-            <p className="text-[11px] text-white/40 mt-2">
-              {displayMode === "interval_rotate"
-                ? "Showcase rotates between Hero Thank You view and Gallery/Reviews every interval."
-                : "Gallery and Reviews cards remain permanently visible."}
-            </p>
           </div>
 
           {/* Rotation Interval Preset */}
@@ -441,9 +521,6 @@ export default function LaunchControlTab() {
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-white/40 mt-2">
-              Time period (e.g. 5 minutes) before Store Gallery & Reviews appear.
-            </p>
           </div>
 
           {/* Autoplay & Swipe */}
@@ -472,7 +549,7 @@ export default function LaunchControlTab() {
               </button>
             </div>
             <p className="text-[11px] text-white/40 mt-2">
-              Photos & reviews slide automatically every 4.5 seconds.
+              Photos & reviews slide automatically every 4 seconds.
             </p>
           </div>
         </div>
