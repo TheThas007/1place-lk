@@ -483,8 +483,8 @@ export default function DepartmentBrandPage({
         </nav>
       </div>
 
-      {/* ── 100% Full-Width Edge-to-Edge Banner Hero (Zero Side/Top Margin, Flush to Screen) ── */}
-      <div className="w-full max-w-full p-0 m-0 border-none rounded-none overflow-hidden">
+      {/* ── Framed Banner Hero (Contained with standard page margin and max-width) ── */}
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto my-2 sm:my-3">
         <DepartmentBrandHero config={config} brand={brand} department={department} />
       </div>
 
