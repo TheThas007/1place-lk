@@ -12,7 +12,8 @@ import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
 import { siteSettings } from "@/lib/data";
 import { db } from "@/lib/firebase";
-import { addDoc, collection } from "firebase/firestore";
+import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
+import { launchPayHerePayment } from "@/lib/payhere";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -177,138 +178,98 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         return itemObj;
       });
 
-      const orderData = {
-        userId: user?.uid || "guest",
-        customerName: cardName || codName || user?.displayName || "Customer",
-        items: sanitizedItems,
-        totalPrice: total,
-        paymentMethod: "PayHere Card",
-        status: "processing",
-        paymentStatus: "Paid",
-        payhereVerified: true,
-        createdAt: new Date().toISOString(),
-        district: codDistrict || "Vavuniya",
-        address: codAddress || "PayHere Payment Gateway",
-        primaryPhone: codPhone1 || "N/A"
-      };
-
       const finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
       setOrderId(finalOrderId);
 
-      // Fetch PayHere hash without pre-creating pending database order
-      const hashRes = await fetch("/api/payhere/hash", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderId: finalOrderId, amount: total, currency: "LKR" })
-      });
-      const hashData = await hashRes.json();
+      const orderData = {
+        userId: user?.uid || "guest_authenticated",
+        customerName: cardName || codName || user?.displayName || "Customer",
+        items: sanitizedItems,
+        totalPrice: total,
+        paymentMethod: "Card (PayHere)",
+        status: "pending",
+        paymentStatus: "Pending",
+        orderStatus: "Payment Pending",
+        payhereVerified: false,
+        payhereStatusCode: "0",
+        createdAt: new Date().toISOString(),
+        district: codDistrict || "Vavuniya",
+        address: codAddress || "PayHere Payment Gateway",
+        primaryPhone: codPhone1 || "0774141118"
+      };
 
-      if (!hashData.hash) {
-        throw new Error(hashData.error || "Failed to generate PayHere security hash");
+      // 1. Pre-create order as Pending in Database
+      try {
+        await fetch("/api/orders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...orderData,
+            id: finalOrderId,
+          })
+        });
+      } catch (err) {
+        console.warn("Pre-order creation note:", err);
       }
 
-      if (typeof window !== "undefined" && (window as any).payhere) {
-        const payhere = (window as any).payhere;
+      // Store in user's recent orders in local storage
+      try {
+        const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+        if (!stored.includes(finalOrderId)) {
+          localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
+        }
+      } catch {}
 
-        const payment = {
-          sandbox: hashData.mode !== "live",
-          merchant_id: hashData.merchantId,
-          return_url: `${window.location.origin}/orders?orderId=${finalOrderId}`,
-          cancel_url: `${window.location.origin}/cart`,
-          notify_url: `${window.location.origin}/api/payhere/notify`,
-          order_id: finalOrderId,
-          items: cart.map(i => i.name).join(", "),
-          amount: hashData.amount,
-          currency: "LKR",
-          hash: hashData.hash,
-          first_name: orderData.customerName,
-          last_name: "",
-          email: user?.email || "customer@streetmobile.lk",
-          phone: orderData.primaryPhone,
-          address: orderData.address,
-          city: orderData.district,
-          country: "Sri Lanka",
-        };
-
-        payhere.onCompleted = async function onCompleted(completedOrderId: string) {
-          console.log("PayHere payment completed:", completedOrderId);
+      // 2. Launch PayHere
+      await launchPayHerePayment({
+        orderId: finalOrderId,
+        amount: total,
+        currency: "LKR",
+        customerFirstName: orderData.customerName,
+        customerLastName: "",
+        email: user?.email || "customer@streetmobile.lk",
+        phone: orderData.primaryPhone,
+        address: orderData.address,
+        city: orderData.district,
+        items: cart.map((i) => i.name).join(", "),
+        onCompleted: async (completedOrderId) => {
+          console.log("[Cart] PayHere payment modal returned for order:", completedOrderId || finalOrderId);
           try {
-            // Save confirmed PAID order to DB and trigger stock deduction
-            await fetch("/api/orders", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ...orderData,
-                id: finalOrderId,
-                payherePaymentId: completedOrderId,
-                paymentStatus: "Paid",
-                status: "processing",
-                payhereVerified: true,
-              })
-            });
-
-            // Store in user's recent orders in local storage
-            try {
-              const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
-              if (!stored.includes(finalOrderId)) {
-                localStorage.setItem("sm_recent_orders", JSON.stringify([finalOrderId, ...stored]));
-              }
-            } catch {}
-
-            // Send notification
-            fetch("/api/order-alert", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                orderId: finalOrderId,
-                customerName: orderData.customerName,
-                totalPrice: total,
-                itemsCount: cart.length,
-                paymentMethod: "PayHere Card",
-                primaryPhone: orderData.primaryPhone
-              })
-            }).catch(e => console.error(e));
-          } catch (err) {
-            console.error("Failed to save completed PayHere order:", err);
-          }
-
-          clearCart();
-          setStep("success");
-          setLoading(false);
-        };
-
-        payhere.onDismissed = function onDismissed() {
-          setLoading(false);
-        };
-
-        payhere.onError = function onError(error: any) {
-          console.error("PayHere Error:", error);
-          alert("PayHere payment error: " + error);
-          setLoading(false);
-        };
-
-        payhere.startPayment(payment);
-      } else {
-        // Fallback simulation (dev environment fallback when SDK not loaded)
-        setTimeout(async () => {
-          try {
-            await fetch("/api/orders", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                ...orderData,
-                id: finalOrderId,
-                paymentStatus: "Paid",
-                status: "processing",
-                payhereVerified: true,
-              })
+            await updateDoc(doc(db, "orders", finalOrderId), {
+              payherePaymentId: completedOrderId || finalOrderId,
+              updatedAt: new Date().toISOString(),
             });
           } catch {}
           clearCart();
-          setStep("success");
+          onClose();
+          router.push(`/payment/success?order_id=${finalOrderId}`);
+        },
+        onDismissed: async () => {
+          console.log("[Cart] PayHere payment dismissed by customer.");
+          try {
+            await updateDoc(doc(db, "orders", finalOrderId), {
+              paymentStatus: "Cancelled",
+              orderStatus: "Cancelled",
+              payhereStatusCode: "-1",
+              updatedAt: new Date().toISOString(),
+            });
+          } catch {}
           setLoading(false);
-        }, 1500);
-      }
+        },
+        onError: async (error: any) => {
+          console.error("[Cart] PayHere Error:", error);
+          try {
+            await updateDoc(doc(db, "orders", finalOrderId), {
+              paymentStatus: "Failed",
+              orderStatus: "Cancelled",
+              payhereStatusCode: "-2",
+              updatedAt: new Date().toISOString(),
+            });
+          } catch {}
+          alert("PayHere payment error: " + (error?.message || error || "Transaction could not be completed"));
+          setLoading(false);
+        },
+      });
     } catch (e: any) {
       console.error("PayHere Error:", e);
       alert(e?.message || "Failed to launch PayHere payment gateway.");

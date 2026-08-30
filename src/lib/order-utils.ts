@@ -152,26 +152,50 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
   }
 
   // 7. Resolve Separate Statuses
-  let orderStatus: NormalizedOrder["orderStatus"] = "Pending";
-  const rawOrderStatus = (data.orderStatus || data.status || "").toString().toLowerCase();
-
-  if (rawOrderStatus.includes("cancel")) orderStatus = "Cancelled";
-  else if (rawOrderStatus.includes("deliver") || rawOrderStatus.includes("complete")) orderStatus = "Delivered";
-  else if (rawOrderStatus.includes("ship") || rawOrderStatus.includes("out")) orderStatus = "Shipped";
-  else if (rawOrderStatus.includes("pack")) orderStatus = "Packed";
-  else if (rawOrderStatus.includes("process")) orderStatus = "Processing";
-  else if (rawOrderStatus.includes("confirm")) orderStatus = "Confirmed";
-  else if (rawOrderStatus.includes("return")) orderStatus = "Returned";
+  const isCardOrPayHere =
+    (data.paymentMethod || "").toString().toLowerCase().includes("payhere") ||
+    (data.paymentMethod || "").toString().toLowerCase().includes("card");
 
   let paymentStatus: NormalizedOrder["paymentStatus"] = "Pending";
   const rawPaymentStatus = (data.paymentStatus || "").toString().toLowerCase();
 
-  if (rawPaymentStatus.includes("paid")) paymentStatus = "Paid";
-  else if (rawPaymentStatus.includes("fail")) paymentStatus = "Failed";
-  else if (rawPaymentStatus.includes("refund")) paymentStatus = "Refunded";
-  else if (rawPaymentStatus.includes("charge")) paymentStatus = "Charged Back";
-  else if (rawPaymentStatus.includes("cancel")) paymentStatus = "Cancelled";
-  else if (data.paymentMethod === "PayHere" && (rawOrderStatus === "paid" || data.payhereVerified)) paymentStatus = "Paid";
+  if (isCardOrPayHere) {
+    // For Card / PayHere: strictly require server webhook verification (status_code 2)
+    // to prevent incomplete/unauthorized card attempts (e.g. before 6-digit OTP is entered) from displaying as Paid
+    if (data.payhereStatusCode === "2" || (data.payhereVerified === true && rawPaymentStatus === "paid")) {
+      paymentStatus = "Paid";
+    } else if (rawPaymentStatus.includes("fail") || data.payhereStatusCode === "-2") {
+      paymentStatus = "Failed";
+    } else if (rawPaymentStatus.includes("refund")) {
+      paymentStatus = "Refunded";
+    } else if (rawPaymentStatus.includes("charge") || data.payhereStatusCode === "-3") {
+      paymentStatus = "Charged Back";
+    } else if (rawPaymentStatus.includes("cancel") || data.payhereStatusCode === "-1") {
+      paymentStatus = "Cancelled";
+    } else {
+      paymentStatus = "Pending";
+    }
+  } else {
+    // For Cash on Delivery (COD) and manual payments:
+    if (rawPaymentStatus.includes("paid")) paymentStatus = "Paid";
+    else if (rawPaymentStatus.includes("fail")) paymentStatus = "Failed";
+    else if (rawPaymentStatus.includes("refund")) paymentStatus = "Refunded";
+    else if (rawPaymentStatus.includes("charge")) paymentStatus = "Charged Back";
+    else if (rawPaymentStatus.includes("cancel")) paymentStatus = "Cancelled";
+    else paymentStatus = "Pending";
+  }
+
+  let orderStatus: NormalizedOrder["orderStatus"] = "Pending";
+  const rawOrderStatus = (data.orderStatus || data.status || "").toString().toLowerCase();
+
+  if (rawOrderStatus.includes("cancel") || paymentStatus === "Cancelled") orderStatus = "Cancelled";
+  else if (rawOrderStatus.includes("deliver") || rawOrderStatus.includes("complete")) orderStatus = "Delivered";
+  else if (rawOrderStatus.includes("ship") || rawOrderStatus.includes("out")) orderStatus = "Shipped";
+  else if (rawOrderStatus.includes("pack")) orderStatus = "Packed";
+  else if (rawOrderStatus.includes("process") || (isCardOrPayHere && paymentStatus === "Paid")) orderStatus = "Processing";
+  else if (rawOrderStatus.includes("confirm")) orderStatus = "Confirmed";
+  else if (rawOrderStatus.includes("return")) orderStatus = "Returned";
+  else orderStatus = isCardOrPayHere && paymentStatus === "Pending" ? "Pending" : "Processing";
 
   return {
     id,

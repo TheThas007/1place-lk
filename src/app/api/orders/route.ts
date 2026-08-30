@@ -88,6 +88,19 @@ export async function POST(req: Request) {
 
     const orderId = body.id || `SM-${Math.floor(100000 + Math.random() * 900000)}`;
 
+    const isCard = (body.paymentMethod || "").toString().toLowerCase().includes("payhere") || (body.paymentMethod || "").toString().toLowerCase().includes("card");
+    const isCod = !isCard;
+
+    // For Card payments, client cannot unilaterally mark order as Paid/Verified.
+    // Server webhook (/api/payhere/notify) is the sole authority for Card payment verification.
+    const initialPaymentStatus = isCod
+      ? (body.paymentStatus || "Pending COD")
+      : (body.paymentStatus === "Cancelled" || body.paymentStatus === "Failed" ? body.paymentStatus : "Pending");
+
+    const initialStatus = isCod
+      ? (body.status || "pending")
+      : (body.status === "cancelled" ? "cancelled" : "pending");
+
     const newOrder: OrderRecord = {
       id: orderId,
       userId: body.userId,
@@ -98,9 +111,12 @@ export async function POST(req: Request) {
       secondaryPhone: body.secondaryPhone || body.codPhone2 || "",
       postalCode: body.postalCode || body.codPostal || "",
       items: body.items || [],
-      totalPrice: Number(body.totalPrice) || 0,
-      paymentMethod: body.paymentMethod || "COD",
-      status: body.status || "pending",
+      totalPrice: Number(body.totalPrice ?? body.finalTotal) || 0,
+      paymentMethod: body.paymentMethod || (isCard ? "Card (PayHere)" : "COD"),
+      status: initialStatus,
+      paymentStatus: initialPaymentStatus,
+      payherePaymentId: body.payherePaymentId || "",
+      payhereVerified: isCod ? false : (body.payhereVerified === true && body.payhereStatusCode === "2"),
       createdAt: body.createdAt || new Date().toISOString()
     };
 
@@ -111,18 +127,33 @@ export async function POST(req: Request) {
     try {
       const cleanData = JSON.parse(JSON.stringify({
         ...newOrder,
-        ...(body.paymentStatus ? { paymentStatus: body.paymentStatus } : {}),
+        deliveryAddress: body.deliveryAddress || {
+          address: newOrder.address,
+          district: newOrder.district,
+          city: body.city || newOrder.district,
+          province: body.province || "Northern Province",
+          postalCode: newOrder.postalCode,
+        },
+        deliveryOption: body.deliveryOption || "standard",
+        deliveryFee: typeof body.deliveryFee === "number" ? body.deliveryFee : 450,
+        codFee: typeof body.codFee === "number" ? body.codFee : (isCod ? 250 : 0),
+        couponDiscount: typeof body.couponDiscount === "number" ? body.couponDiscount : 0,
+        couponCode: body.couponCode || "",
+        subtotal: typeof body.subtotal === "number" ? body.subtotal : newOrder.totalPrice,
+        finalTotal: typeof body.finalTotal === "number" ? body.finalTotal : newOrder.totalPrice,
+        orderStatus: initialStatus === "pending" ? (isCod ? "Processing" : "Payment Pending") : initialStatus,
+        payhereStatusCode: body.payhereStatusCode || "0",
         ...(body.payherePaymentId ? { payherePaymentId: body.payherePaymentId } : {}),
-        ...(body.payhereVerified ? { payhereVerified: body.payhereVerified } : {}),
       }));
       await setDoc(doc(db, "orders", newOrder.id), cleanData, { merge: true });
     } catch (fsErr) {
       console.warn("Firestore save fallback error (saved to local store):", fsErr);
     }
 
-    // 3. Automatically deduct product stock for ordered items
+    // 3. Automatically deduct product stock ONLY for confirmed COD orders
+    // (For Card payments, stock deduction is handled strictly upon verified webhook notification in /api/payhere/notify)
     try {
-      if (newOrder.items && newOrder.items.length > 0) {
+      if (isCod && newOrder.items && newOrder.items.length > 0) {
         await deductProductStock(newOrder.items);
       }
     } catch (stockErr) {

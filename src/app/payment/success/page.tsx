@@ -72,7 +72,12 @@ function PaymentSuccessContent() {
 
   // Polling fallback to trigger re-reads in case of connection lag
   useEffect(() => {
-    if (order && order.paymentStatus !== "paid" && pollCount < 10) {
+    const rawStatus = (order?.paymentStatus || "").toLowerCase();
+    const isPaid = rawStatus === "paid" || order?.payhereStatusCode === "2";
+    const isFailed = rawStatus === "failed" || order?.payhereStatusCode === "-2";
+    const isCancelled = rawStatus === "cancelled" || order?.payhereStatusCode === "-1";
+
+    if (order && !isPaid && !isFailed && !isCancelled && pollCount < 6) {
       const timer = setTimeout(() => {
         setPollCount((prev) => prev + 1);
       }, 3000);
@@ -80,9 +85,11 @@ function PaymentSuccessContent() {
     }
   }, [order, pollCount]);
 
-  const isPaymentPaid = order?.paymentStatus === "paid" || order?.payhereStatusCode === "2";
-  const isPaymentFailed = order?.paymentStatus === "failed" || order?.payhereStatusCode === "-2";
-  const isPaymentCancelled = order?.paymentStatus === "cancelled" || order?.payhereStatusCode === "-1";
+  const rawStatus = (order?.paymentStatus || "").toLowerCase();
+  const isPaymentPaid = rawStatus === "paid" || order?.payhereStatusCode === "2";
+  const isPaymentFailed = rawStatus === "failed" || order?.payhereStatusCode === "-2";
+  const isPaymentCancelled = rawStatus === "cancelled" || order?.payhereStatusCode === "-1";
+  const isStillVerifying = !isPaymentPaid && !isPaymentFailed && !isPaymentCancelled && pollCount < 6;
 
   return (
     <div className="bg-[#FAFAFA] min-h-screen pt-[80px] sm:pt-[92px] pb-24 text-neutral-950 font-sans">
@@ -92,31 +99,31 @@ function PaymentSuccessContent() {
         <div className="bg-white border border-neutral-200/90 rounded-[28px] p-6 sm:p-10 text-center shadow-xs space-y-7">
 
           {/* STATE 1: LOADING / VERIFYING */}
-          {loading ? (
+          {loading || isStillVerifying ? (
             <div className="py-12 space-y-4">
               <Loader2 className="w-12 h-12 animate-spin text-black mx-auto" />
               <h2 className="text-xl font-bold text-neutral-900">Verifying Payment with PayHere...</h2>
               <p className="text-xs text-neutral-500 max-w-sm mx-auto">
-                Securely connecting to PayHere server to confirm your transaction details.
+                Securely communicating with the payment gateway to confirm bank authorization.
               </p>
             </div>
-          ) : isPaymentFailed || isPaymentCancelled ? (
-            /* STATE 2: FAILED OR CANCELLED */
+          ) : isPaymentFailed || isPaymentCancelled || !isPaymentPaid ? (
+            /* STATE 2: FAILED, CANCELLED, OR UNCOMPLETED OTP */
             <div className="space-y-6">
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-red-50 text-red-600 flex items-center justify-center mx-auto border border-red-200">
                 <AlertCircle className="w-10 h-10 sm:w-12 sm:h-12" />
               </div>
               <div>
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-100 text-red-800 text-xs font-bold uppercase tracking-wider mb-2">
-                  {isPaymentCancelled ? "Payment Cancelled" : "Payment Incomplete"}
+                  {isPaymentCancelled ? "Payment Cancelled" : "Payment Incomplete / Unverified"}
                 </span>
                 <h1 className="text-2xl sm:text-3xl font-black text-neutral-950 tracking-tight">
-                  {isPaymentCancelled ? "Payment was Cancelled" : "Payment Verification Failed"}
+                  {isPaymentCancelled ? "Payment was Cancelled" : "Bank Authorization Not Completed"}
                 </h1>
-                <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto mt-2">
+                <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto mt-2 leading-relaxed">
                   {isPaymentCancelled
-                    ? "You cancelled the payment transaction before it could be finalized."
-                    : "The payment could not be authorized by your card-issuing bank or PayHere."}
+                    ? "You closed or cancelled the transaction before completing payment."
+                    : "The 6-digit SMS OTP was not entered or payment authorization was not finalized by the bank. No money has been charged to your card."}
                 </p>
               </div>
 
@@ -140,7 +147,7 @@ function PaymentSuccessContent() {
               </div>
             </div>
           ) : (
-            /* STATE 3: PAYMENT CONFIRMED OR IN PROGRESS */
+            /* STATE 3: PAYMENT FULLY CONFIRMED */
             <>
               {/* Success Badge Icon */}
               <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto shadow-2xs border border-emerald-200/60">

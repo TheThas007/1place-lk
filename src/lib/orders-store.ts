@@ -131,6 +131,23 @@ export function updateLocalOrderStatus(id: string, status: string): boolean {
   }
 }
 
+// Helper to update arbitrary fields of an order
+export function updateLocalOrder(id: string, updates: Partial<OrderRecord & Record<string, any>>): boolean {
+  try {
+    const orders = getLocalOrders();
+    const idx = orders.findIndex((o) => o.id === id);
+    if (idx !== -1) {
+      orders[idx] = { ...orders[idx], ...updates };
+      fs.writeFileSync(ORDERS_FILE_PATH, JSON.stringify(orders, null, 2), "utf-8");
+      return true;
+    }
+    return false;
+  } catch (err) {
+    console.error("Error updating local order fields:", err);
+    return false;
+  }
+}
+
 // Helper to delete an order
 export function deleteLocalOrder(id: string): boolean {
   try {

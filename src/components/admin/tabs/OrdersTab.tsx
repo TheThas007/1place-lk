@@ -1083,10 +1083,28 @@ function OrderDetailsCard({
         )}
 
         {/* PayHere Online Details */}
-        {order.paymentMethod === "PayHere" && (
-          <div className="p-3 bg-blue-50/80 border border-blue-200 rounded-xl text-xs space-y-1">
-            <span className="font-extrabold text-blue-900 block">PayHere Gateway Transaction</span>
-            <p className="text-blue-700">Transaction ID: {order.transactionId || "Verified Online"}</p>
+        {(order.paymentMethod === "PayHere" || order.paymentMethod.toLowerCase().includes("card") || order.paymentMethod.toLowerCase().includes("payhere")) && (
+          <div className={`p-3 rounded-xl text-xs space-y-1 border ${
+            order.paymentStatus === "Paid"
+              ? "bg-emerald-50/80 border-emerald-200 text-emerald-900"
+              : order.paymentStatus === "Failed" || order.paymentStatus === "Cancelled"
+              ? "bg-red-50/80 border-red-200 text-red-900"
+              : "bg-amber-50/80 border-amber-200 text-amber-900"
+          }`}>
+            <div className="font-extrabold flex items-center justify-between">
+              <span>PayHere Gateway Payment</span>
+              <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-full bg-white/90 border">
+                {order.paymentStatus === "Paid" ? "✅ Verified Paid" : order.paymentStatus === "Pending" ? "⏳ Awaiting Bank OTP" : order.paymentStatus}
+              </span>
+            </div>
+            <p className="text-[11px] opacity-90">
+              Reference: {order.transactionId || order.rawDoc?.payherePaymentId || "Pending Gateway Response"}
+            </p>
+            {order.rawDoc?.payhereStatusCode && (
+              <p className="text-[11px] opacity-80">
+                Gateway Status Code: {order.rawDoc.payhereStatusCode} ({order.rawDoc.payhereStatusMessage || (order.rawDoc.payhereStatusCode === "2" ? "Payment Completed" : order.rawDoc.payhereStatusCode === "0" ? "Pending Authorization" : "Not Authorized / Incomplete")})
+              </p>
+            )}
           </div>
         )}
       </div>

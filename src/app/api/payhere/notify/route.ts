@@ -3,6 +3,7 @@ import crypto from "crypto";
 import { db } from "@/lib/firebase";
 import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { deductProductStock } from "@/lib/stock-deduction";
+import { updateLocalOrder } from "@/lib/orders-store";
 
 export async function POST(req: Request) {
   try {
@@ -133,18 +134,23 @@ export async function POST(req: Request) {
     // -3 = Chargedback payment
     switch (status_code) {
       case "2": {
-        await updateDoc(orderRef, {
-          paymentStatus: "paid",
+        const updateFields = {
+          paymentStatus: "Paid",
           status: orderData.status === "cancelled" ? "cancelled" : "processing",
+          orderStatus: orderData.status === "cancelled" ? "Cancelled" : "Processing",
           payherePaymentId: payment_id,
           paidAmount: rawReceivedAmount,
           currency: payhere_currency,
           paymentMethod: `PayHere (${method || "Online Card"})`,
           payhereStatusCode: "2",
           payhereStatusMessage: status_message || "Payment completed successfully",
+          payhereVerified: true,
           paidAt: nowIso,
           updatedAt: nowIso,
-        });
+        };
+
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
 
         // Deduct stock for ordered items upon successful webhook verification
         try {
@@ -160,57 +166,77 @@ export async function POST(req: Request) {
       }
 
       case "0": {
-        await updateDoc(orderRef, {
-          paymentStatus: "pending",
+        const updateFields = {
+          paymentStatus: "Pending",
           payherePaymentId: payment_id,
           payhereStatusCode: "0",
           payhereStatusMessage: status_message || "Payment is pending authorization",
+          payhereVerified: false,
           updatedAt: nowIso,
-        });
+        };
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
         console.log(`[PayHere Webhook] PENDING: Order ${order_id} marked as pending.`);
         break;
       }
 
       case "-1": {
-        await updateDoc(orderRef, {
-          paymentStatus: "cancelled",
+        const updateFields = {
+          paymentStatus: "Cancelled",
+          status: "cancelled",
+          orderStatus: "Cancelled",
           payhereStatusCode: "-1",
           payhereStatusMessage: status_message || "Payment was cancelled by user",
+          payhereVerified: false,
           updatedAt: nowIso,
-        });
+        };
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
         console.log(`[PayHere Webhook] CANCELLED: Order ${order_id} marked as cancelled.`);
         break;
       }
 
       case "-2": {
-        await updateDoc(orderRef, {
-          paymentStatus: "failed",
+        const updateFields = {
+          paymentStatus: "Failed",
+          status: "cancelled",
+          orderStatus: "Cancelled",
           payhereStatusCode: "-2",
           payhereStatusMessage: status_message || "Payment failed or declined by issuing bank",
+          payhereVerified: false,
           updatedAt: nowIso,
-        });
+        };
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
         console.warn(`[PayHere Webhook] FAILED: Order ${order_id} payment failed.`);
         break;
       }
 
       case "-3": {
-        await updateDoc(orderRef, {
-          paymentStatus: "charged_back",
+        const updateFields = {
+          paymentStatus: "Charged Back",
+          status: "cancelled",
+          orderStatus: "Cancelled",
           payhereStatusCode: "-3",
           payhereStatusMessage: status_message || "Payment charged back",
+          payhereVerified: false,
           updatedAt: nowIso,
-        });
+        };
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
         console.warn(`[PayHere Webhook] CHARGED BACK: Order ${order_id}`);
         break;
       }
 
       default: {
         console.warn(`[PayHere Webhook] Unhandled status code: ${status_code} for order ${order_id}`);
-        await updateDoc(orderRef, {
+        const updateFields = {
           payhereStatusCode: status_code,
           payhereStatusMessage: status_message || `Status: ${status_code}`,
           updatedAt: nowIso,
-        });
+        };
+        await updateDoc(orderRef, updateFields);
+        updateLocalOrder(order_id, updateFields);
         break;
       }
     }

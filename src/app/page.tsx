@@ -148,9 +148,11 @@ export default async function HomePage() {
       <AnnouncementTicker />
 
       {/* 3. New Arrivals */}
-      <ScrollReveal enable3d={true}>
-        <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
-      </ScrollReveal>
+      {newArrivalsSettings?.enabled !== false && (
+        <ScrollReveal enable3d={true}>
+          <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
+        </ScrollReveal>
+      )}
 
       {/* Today's Deal Promotional Banner (Below New Arrivals) */}
       <TodayDealSection settings={todayDealSettings} />

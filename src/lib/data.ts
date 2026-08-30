@@ -121,7 +121,7 @@ export const DEFAULT_NEW_ARRIVALS_SETTINGS: NewArrivalsSettings = {
   mode: "automatic",
   display_count: 8,
   custom_product_ids: [],
-  enabled: true,
+  enabled: false,
   section_title: "New Arrivals",
   section_subtitle: "Explore the latest devices and accessories at Street Mobile.",
 };
