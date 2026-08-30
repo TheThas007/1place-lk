@@ -263,15 +263,15 @@ export default function DepartmentBrandHero({
         <div className="absolute inset-0 pointer-events-none flex items-center justify-center -z-0 overflow-hidden">
           {/* Outer expansive luminous pulse aura */}
           <div
-            className="w-[90%] max-w-[960px] h-[85%] rounded-full blur-3xl opacity-75 transform-gpu scale-115 animate-pulse"
+            className="w-full h-full rounded-none blur-3xl opacity-75 transform-gpu animate-pulse"
             style={{
-              background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.7)} 0%, ${hexToRgba(glowColor, 0.35)} 45%, ${hexToRgba(glowColor, 0.1)} 65%, transparent 80%)`,
+              background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.7)} 0%, ${hexToRgba(glowColor, 0.35)} 45%, ${hexToRgba(glowColor, 0.1)} 70%, transparent 85%)`,
               animationDuration: "3.5s",
             }}
           />
           {/* Core bright intense glow halo */}
           <div
-            className="w-[75%] max-w-[800px] h-[75%] rounded-full blur-2xl opacity-90 transform-gpu scale-100"
+            className="w-[90%] h-[90%] rounded-none blur-2xl opacity-90 transform-gpu"
             style={{
               background: `radial-gradient(ellipse at center, rgba(255,255,255,0.98) 0%, ${hexToRgba(glowColor, 0.85)} 35%, ${hexToRgba(glowColor, 0.3)} 60%, transparent 75%)`,
             }}
@@ -279,19 +279,9 @@ export default function DepartmentBrandHero({
         </div>
       )}
 
-      {/* ── 3. Overlay Centered Banner Artwork (860×270 Standard Crisp Size with Square Shape) ── */}
+      {/* ── 3. Overlay Banner Artwork (Matches Full Background Banner Frame Width) ── */}
       <div
-        className={`relative w-full h-full z-10 overflow-hidden rounded-none flex items-center justify-center mx-auto ${
-          ratio === "1080x1080"
-            ? "max-w-[320px] aspect-square"
-            : ratio === "1920x850"
-            ? "max-w-[1100px] aspect-[1920/850]"
-            : ratio === "1080x1440"
-            ? "max-w-[360px] aspect-[1080/1440]"
-            : ratio === "default"
-            ? "max-w-[1200px] aspect-[1920/600]"
-            : "max-w-[860px] aspect-[860/270]"
-        }`}
+        className="relative w-full h-full max-w-full z-10 overflow-hidden rounded-none flex items-center justify-center mx-auto"
         style={{
           borderRadius: 0,
         }}
@@ -321,7 +311,7 @@ export default function DepartmentBrandHero({
               mixBlendMode: blendMode as any,
               borderRadius: 0,
             }}
-            className="w-full h-full object-contain block transition-transform duration-700 ease-out rounded-none"
+            className="w-full h-full object-contain sm:object-cover block transition-transform duration-700 ease-out rounded-none"
           />
         </picture>
       </div>
