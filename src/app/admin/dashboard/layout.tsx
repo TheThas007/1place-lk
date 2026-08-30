@@ -205,9 +205,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
       {/* ── Left Navigation Sidebar (Dark Mode) ── */}
       <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 w-[270px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 shrink-0 ${
-          mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-        }`}
+        className={`fixed lg:static inset-y-0 left-0 z-50 w-[270px] bg-[#0F172A] border-r border-white/10 flex flex-col transition-transform duration-300 shrink-0 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+          }`}
       >
         {/* 1. Brand Logo Header (Fixed at top) */}
         <div className="h-16 px-5 border-b border-white/10 flex items-center justify-between shrink-0">
@@ -269,16 +268,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 key={item.id}
                 href={item.href}
                 onClick={() => setMobileSidebarOpen(false)}
-                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${
-                  isActive
+                className={`w-full flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-semibold transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/50 ${isActive
                     ? "bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30 ring-1 ring-blue-400/30"
                     : "text-slate-300 hover:text-white hover:bg-white/10"
-                }`}
+                  }`}
               >
                 <item.icon
-                  className={`w-4 h-4 shrink-0 transition-colors ${
-                    isActive ? "text-white" : "text-slate-400"
-                  }`}
+                  className={`w-4 h-4 shrink-0 transition-colors ${isActive ? "text-white" : "text-slate-400"
+                    }`}
                 />
                 <span className="whitespace-nowrap">{item.label}</span>
               </Link>

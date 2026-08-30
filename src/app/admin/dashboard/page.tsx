@@ -1050,7 +1050,7 @@ function DashboardContent() {
                       <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
-                  
+
                   <line x1="0" y1="30" x2="500" y2="30" stroke="#1E293B" strokeWidth="1" />
                   <line x1="0" y1="70" x2="500" y2="70" stroke="#1E293B" strokeWidth="1" />
                   <line x1="0" y1="110" x2="500" y2="110" stroke="#1E293B" strokeWidth="1" />
@@ -1206,11 +1206,10 @@ function DashboardContent() {
                         </td>
                         <td className="py-3">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${
-                              ord.status === "paid" || ord.status === "completed" || idx % 2 === 0
+                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${ord.status === "paid" || ord.status === "completed" || idx % 2 === 0
                                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                            }`}
+                              }`}
                           >
                             {ord.status || (idx % 2 === 0 ? "Paid" : "Processing")}
                           </span>
@@ -1565,9 +1564,8 @@ function DashboardContent() {
                   return (
                     <tr key={c.id || i} className="hover:bg-white/[0.02]">
                       <td className="py-3.5 font-bold text-white flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${
-                          c.isGuest ? "bg-purple-600/20 text-purple-400" : "bg-blue-600/20 text-blue-400"
-                        }`}>
+                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${c.isGuest ? "bg-purple-600/20 text-purple-400" : "bg-blue-600/20 text-blue-400"
+                          }`}>
                           {(c.displayName || c.customerName || "C").charAt(0).toUpperCase()}
                         </div>
                         <span>{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
@@ -1578,11 +1576,10 @@ function DashboardContent() {
                         {customerOrdersCount} {customerOrdersCount === 1 ? "Order" : "Orders"}
                       </td>
                       <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${
-                          c.isGuest
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${c.isGuest
                             ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
                             : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                        }`}>
+                          }`}>
                           {c.isGuest ? "Guest Customer" : "Registered User"}
                         </span>
                       </td>
@@ -1659,11 +1656,10 @@ function DashboardContent() {
                         {p.storage_options?.join(", ") || "Standard"}
                       </td>
                       <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${
-                          p.stock_status === "in_stock"
+                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${p.stock_status === "in_stock"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-red-500/10 text-red-400 border border-red-500/20"
-                        }`}>
+                          }`}>
                           {p.stock_status === "in_stock" ? "In Stock" : "Low Stock"}
                         </span>
                       </td>

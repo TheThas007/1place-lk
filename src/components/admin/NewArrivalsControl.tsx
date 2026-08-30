@@ -188,14 +188,12 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
             <button
               type="button"
               onClick={() => setSettings((prev) => ({ ...prev, enabled: prev.enabled === false }))}
-              className={`w-10 h-5 rounded-full transition-colors relative p-0.5 ${
-                settings.enabled !== false ? "bg-emerald-500" : "bg-white/20"
-              }`}
+              className={`w-10 h-5 rounded-full transition-colors relative p-0.5 ${settings.enabled !== false ? "bg-emerald-500" : "bg-white/20"
+                }`}
             >
               <div
-                className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${
-                  settings.enabled !== false ? "translate-x-5" : "translate-x-0"
-                }`}
+                className={`w-4 h-4 rounded-full bg-slate-950 transition-transform ${settings.enabled !== false ? "translate-x-5" : "translate-x-0"
+                  }`}
               />
             </button>
           </div>
@@ -215,7 +213,7 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
         <div className="space-y-6">
           {/* ── 1. Selection Mode & Display Count Row ── */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            
+
             {/* Mode Selector Card */}
             <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-3">
               <label className="block text-xs font-bold text-white uppercase tracking-wider flex items-center gap-1.5">
@@ -228,11 +226,10 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
                 <button
                   type="button"
                   onClick={() => setSettings((prev) => ({ ...prev, mode: "custom" }))}
-                  className={`p-3.5 rounded-xl border text-left transition-all relative cursor-pointer ${
-                    settings.mode === "custom"
+                  className={`p-3.5 rounded-xl border text-left transition-all relative cursor-pointer ${settings.mode === "custom"
                       ? "bg-blue-500/20 border-blue-400 text-white shadow-lg"
                       : "bg-black/30 border-white/10 text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-black">🎯 Custom Selection</span>
@@ -249,11 +246,10 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
                 <button
                   type="button"
                   onClick={() => setSettings((prev) => ({ ...prev, mode: "automatic" }))}
-                  className={`p-3.5 rounded-xl border text-left transition-all relative cursor-pointer ${
-                    settings.mode === "automatic"
+                  className={`p-3.5 rounded-xl border text-left transition-all relative cursor-pointer ${settings.mode === "automatic"
                       ? "bg-emerald-500/20 border-emerald-400 text-white shadow-lg"
                       : "bg-black/30 border-white/10 text-white/60 hover:text-white hover:bg-white/5"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="text-xs font-black">⚡ Automatic Mode</span>
@@ -293,11 +289,10 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
                       key={count}
                       type="button"
                       onClick={() => setSettings((prev) => ({ ...prev, display_count: count }))}
-                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
-                        isActive
+                      className={`px-3.5 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${isActive
                           ? "bg-amber-400 text-black shadow-md shadow-amber-400/20 scale-105"
                           : "bg-black/40 border border-white/10 text-white/70 hover:text-white hover:border-white/30"
-                      }`}
+                        }`}
                     >
                       {count}
                     </button>
@@ -329,7 +324,7 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
           {/* ── 2. Custom Product Selection Manager (Active when mode === 'custom') ── */}
           {settings.mode === "custom" && (
             <div className="space-y-5 border-t border-white/10 pt-5">
-              
+
               {/* Active Selected Products List */}
               <div>
                 <div className="flex items-center justify-between mb-3">
@@ -373,19 +368,17 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
                       return (
                         <div
                           key={product.id}
-                          className={`p-3 rounded-2xl border transition-all flex items-center gap-3 relative group ${
-                            isOverLimit
+                          className={`p-3 rounded-2xl border transition-all flex items-center gap-3 relative group ${isOverLimit
                               ? "bg-black/30 border-white/5 opacity-60"
                               : "bg-zinc-800/80 border-white/15 hover:border-white/30 shadow-md"
-                          }`}
+                            }`}
                         >
                           {/* Order Badge */}
                           <div
-                            className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 ${
-                              isOverLimit
+                            className={`w-6 h-6 rounded-lg text-[10px] font-black flex items-center justify-center shrink-0 ${isOverLimit
                                 ? "bg-white/10 text-white/40"
                                 : "bg-emerald-500 text-black shadow-xs"
-                            }`}
+                              }`}
                           >
                             #{idx + 1}
                           </div>
@@ -542,11 +535,10 @@ export default function NewArrivalsControl({ products }: NewArrivalsControlProps
                                 ? handleRemoveProduct(product.id)
                                 : handleAddProduct(product.id)
                             }
-                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${
-                              isSelected
+                            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all shrink-0 flex items-center gap-1.5 cursor-pointer ${isSelected
                                 ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 hover:bg-red-500/20 hover:text-red-300 hover:border-red-500/30"
                                 : "bg-blue-600 hover:bg-blue-500 text-white shadow-xs active:scale-95"
-                            }`}
+                              }`}
                           >
                             {isSelected ? (
                               <>
