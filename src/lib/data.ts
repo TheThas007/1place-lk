@@ -964,6 +964,7 @@ export const DEFAULT_PRE_LAUNCH_SCREENS: PreLaunchScreenConfig[] = [
 export const DEFAULT_PRE_LAUNCH_SETTINGS: PreLaunchExperienceSettings = {
   enabled: true,
   rotationIntervalSeconds: 300, // 5 minutes (300s)
+  displayMode: "interval_rotate",
   autoplay: true,
   swipeEnabled: true,
   reviewsEnabled: true,

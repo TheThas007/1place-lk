@@ -79,21 +79,21 @@ export const CountdownScreen = memo(function CountdownScreen({
 
   return (
     <div
-      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#0A0A0A] flex flex-col justify-between items-center px-4 py-4 sm:py-6 md:py-8 select-none overflow-y-auto overflow-x-hidden font-outfit"
+      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-between items-center px-4 sm:px-6 md:px-10 py-5 sm:py-8 select-none overflow-y-auto overflow-x-hidden font-outfit"
       style={{
         backgroundColor: "#FFFFFF",
       }}
     >
-      {/* ── Top Subtle Brand Eyebrow ── */}
+      {/* ── Top Micro-Labels Header (Max Width 1400px) ── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-5xl flex items-center justify-between pt-1 px-2 sm:px-6 shrink-0"
+        className="w-full max-w-[1400px] flex items-center justify-between pt-1 px-2 sm:px-4 shrink-0"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-2 h-2 rounded-full bg-[#ED0712] animate-pulse" />
-          <span className="text-[10px] sm:text-xs font-bold tracking-[0.25em] text-[#71717A] uppercase">
+          <div className="w-2.5 h-2.5 rounded-full bg-[#ED0712] animate-pulse" />
+          <span className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
             {isTestMode ? "PREVIEW TEST MODE" : "OFFICIAL LAUNCH"}
           </span>
         </div>
@@ -106,33 +106,33 @@ export const CountdownScreen = memo(function CountdownScreen({
             setPassword("");
             setIsSecretModalOpen(true);
           }}
-          className="flex items-center gap-1.5 text-[10px] sm:text-xs font-semibold tracking-[0.2em] text-[#A1A1AA] hover:text-[#09090B] uppercase transition-colors cursor-pointer outline-none group"
+          className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer outline-none group"
           title="Sri Lanka"
         >
-          <span className="group-hover:tracking-[0.25em] transition-all">SRI LANKA</span>
+          <span className="group-hover:tracking-[0.3em] transition-all">SRI LANKA</span>
         </button>
       </motion.div>
 
-      {/* ── Center Shell: Persistent Title, Countdown Header & Rotating Showcase ── */}
-      <div className="w-full max-w-5xl flex flex-col items-center justify-center my-auto text-center px-2 py-2">
-        {/* Brand Main Title */}
+      {/* ── Center Container: Bold Branding + Substantial Countdown + Large Showcase (1400px) ── */}
+      <div className="w-full max-w-[1400px] flex flex-col items-center justify-center my-auto text-center px-2 py-4 sm:py-6 space-y-6 sm:space-y-8">
+        {/* ── 1. Large Bold Editorial Heading ── */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.96 }}
+          initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="mb-3 sm:mb-5"
+          className="space-y-2 sm:space-y-3"
         >
           <h1
-            className="font-black tracking-[0.18em] sm:tracking-[0.22em] text-[#09090B] uppercase drop-shadow-sm leading-none"
+            className="font-black tracking-[0.16em] sm:tracking-[0.2em] text-[#090909] uppercase leading-none"
             style={{
-              fontSize: "clamp(1.5rem, 4.5vw, 3.75rem)",
+              fontSize: "clamp(2.25rem, 6vw, 4.75rem)",
             }}
           >
             {title}
           </h1>
 
-          <div className="flex items-center justify-center gap-3 mt-2 sm:mt-2.5">
-            <span className="h-[1px] w-6 sm:w-10 bg-[#E4E4E7]" />
+          <div className="flex items-center justify-center gap-3 pt-1">
+            <span className="h-[1px] w-8 sm:w-14 bg-[#E8E8E8]" />
             <button
               type="button"
               onClick={() => {
@@ -140,33 +140,33 @@ export const CountdownScreen = memo(function CountdownScreen({
                 setPassword("");
                 setIsSecretModalOpen(true);
               }}
-              className="text-[9px] sm:text-xs font-semibold tracking-[0.3em] text-[#71717A] hover:text-[#09090B] uppercase transition-colors cursor-pointer"
+              className="text-[10px] sm:text-xs md:text-sm font-semibold tracking-[0.32em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer"
             >
               {tagline}
             </button>
-            <span className="h-[1px] w-6 sm:w-10 bg-[#E4E4E7]" />
+            <span className="h-[1px] w-8 sm:w-14 bg-[#E8E8E8]" />
           </div>
         </motion.div>
 
-        {/* ── Persistent Countdown Header ── */}
+        {/* ── 2. Large Apple-Style Countdown (Visually Dominant) ── */}
         <motion.div
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-3xl mb-3 sm:mb-5"
+          className="w-full max-w-4xl"
         >
-          <div className="flex items-center justify-center gap-1 sm:gap-2.5 md:gap-4 lg:gap-5">
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8">
             {timeUnits.map((unit, index) => (
               <div key={unit.label} className="flex items-center">
-                {/* Number Box */}
+                {/* Large Number Box */}
                 <div className="flex flex-col items-center">
                   <div
-                    className="relative flex items-center justify-center bg-[#F4F4F5] border border-[#E4E4E7] rounded-xl sm:rounded-2xl shadow-[0_2px_12px_rgba(0,0,0,0.02)] px-2.5 py-2 sm:px-5 sm:py-3.5 md:px-6 md:py-4 min-w-[56px] sm:min-w-[78px] md:min-w-[104px]"
+                    className="relative flex items-center justify-center bg-[#FFFFFF] border border-[#E8E8E8] rounded-2xl sm:rounded-3xl shadow-[0_6px_28px_rgba(0,0,0,0.04)] px-3.5 py-3.5 sm:px-7 sm:py-6 md:px-9 md:py-7 min-w-[68px] sm:min-w-[110px] md:min-w-[145px] lg:min-w-[160px]"
                   >
                     <span
-                      className="font-black tracking-tight text-[#09090B] font-mono leading-none tabular-nums"
+                      className="font-black tracking-tight text-[#090909] font-mono leading-none tabular-nums"
                       style={{
-                        fontSize: "clamp(1.4rem, 4.2vw, 3.5rem)",
+                        fontSize: "clamp(1.75rem, 5.5vw, 4.25rem)",
                       }}
                     >
                       {unit.value}
@@ -174,17 +174,17 @@ export const CountdownScreen = memo(function CountdownScreen({
                   </div>
 
                   {/* Unit Label */}
-                  <span className="mt-1.5 sm:mt-2 text-[8px] sm:text-[10px] md:text-xs font-bold tracking-[0.25em] text-[#71717A] uppercase">
+                  <span className="mt-2 sm:mt-3 text-[9px] sm:text-xs md:text-sm font-bold tracking-[0.25em] sm:tracking-[0.3em] text-[#6B7280] uppercase">
                     {unit.label}
                   </span>
                 </div>
 
-                {/* Colon Divider (except after the last item) */}
+                {/* Red Accent Colon Divider */}
                 {index < timeUnits.length - 1 && (
                   <div
-                    className="flex flex-col items-center justify-center font-black text-[#A1A1AA] pb-4 sm:pb-5 px-0.5 sm:px-1 select-none"
+                    className="flex flex-col items-center justify-center font-black text-[#ED0712] pb-6 sm:pb-8 px-1 sm:px-2 md:px-3 select-none"
                     style={{
-                      fontSize: "clamp(1rem, 2.8vw, 2.2rem)",
+                      fontSize: "clamp(1.25rem, 4vw, 3rem)",
                     }}
                   >
                     <span className="animate-pulse">:</span>
@@ -195,7 +195,7 @@ export const CountdownScreen = memo(function CountdownScreen({
           </div>
         </motion.div>
 
-        {/* ── Dynamic 5-Minute Rotating Content Showcase ── */}
+        {/* ── 3. Large Side-by-Side Showcase (Store Gallery 50% | Google Reviews 50%) ── */}
         <RotatingContentShowcase
           settings={preLaunchSettings}
           reviews={reviews}
@@ -204,14 +204,14 @@ export const CountdownScreen = memo(function CountdownScreen({
         />
       </div>
 
-      {/* ── Bottom Footer Watermark ── */}
+      {/* ── Bottom Watermark (Apple Minimal Hierarchy) ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.4 }}
-        className="w-full text-center pb-2 shrink-0 pointer-events-none"
+        className="w-full text-center pb-2 shrink-0 pointer-events-none mt-4"
       >
-        <p className="text-[9px] sm:text-[10px] tracking-[0.35em] text-[#A1A1AA] font-semibold uppercase">
+        <p className="text-[10px] sm:text-xs tracking-[0.35em] text-[#9CA3AF] font-bold uppercase">
           STREET MOBILE (PVT) LTD • PREPARING FOR LAUNCH
         </p>
       </motion.div>
@@ -219,29 +219,29 @@ export const CountdownScreen = memo(function CountdownScreen({
       {/* ── Secret Password Dialog (Triggered on clicking SRI LANKA) ── */}
       <AnimatePresence>
         {isSecretModalOpen && (
-          <div className="fixed inset-0 z-[99999999] bg-black/60 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="fixed inset-0 z-[99999999] bg-black/50 backdrop-blur-md flex items-center justify-center p-4">
             <motion.div
               initial={{ opacity: 0, scale: 0.95, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 10 }}
               transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-[#09090B] text-white border border-white/15 rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-2xl space-y-5"
+              className="bg-[#FFFFFF] text-[#090909] border border-[#E8E8E8] rounded-3xl p-6 sm:p-8 max-w-sm w-full shadow-[0_20px_60px_rgba(0,0,0,0.15)] space-y-5"
             >
               {/* Modal Header */}
-              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <div className="flex items-center justify-between border-b border-[#E8E8E8] pb-3">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-white/10 flex items-center justify-center text-white">
+                  <div className="w-8 h-8 rounded-xl bg-[#090909] flex items-center justify-center text-white">
                     <Lock className="w-4 h-4" />
                   </div>
                   <div>
-                    <h3 className="text-sm font-extrabold tracking-wide uppercase">Admin Access</h3>
-                    <p className="text-[10px] text-white/50 tracking-wider">PREVIEW WEBSITE</p>
+                    <h3 className="text-sm font-extrabold tracking-wide uppercase text-[#090909]">Admin Access</h3>
+                    <p className="text-[10px] text-[#6B7280] tracking-wider">PREVIEW WEBSITE</p>
                   </div>
                 </div>
                 <button
                   type="button"
                   onClick={() => setIsSecretModalOpen(false)}
-                  className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 text-white/50 hover:text-white flex items-center justify-center transition-all"
+                  className="w-8 h-8 rounded-full bg-[#F4F4F5] hover:bg-[#E8E8E8] text-[#6B7280] hover:text-[#090909] flex items-center justify-center transition-all"
                 >
                   <X className="w-4 h-4" />
                 </button>
@@ -250,14 +250,14 @@ export const CountdownScreen = memo(function CountdownScreen({
               {/* Form */}
               <form onSubmit={handleSecretSubmit} className="space-y-4">
                 {error && (
-                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-xs font-semibold">
+                  <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-[#ED0712] text-xs font-semibold">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     <span>{error}</span>
                   </div>
                 )}
 
                 <div>
-                  <label className="block text-[11px] font-bold text-white/70 mb-2 uppercase tracking-wider">
+                  <label className="block text-[11px] font-bold text-[#6B7280] mb-2 uppercase tracking-wider">
                     Enter Password
                   </label>
                   <div className="relative">
@@ -266,14 +266,14 @@ export const CountdownScreen = memo(function CountdownScreen({
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                       placeholder="••••••••"
-                      className="w-full pl-4 pr-11 py-3 bg-white/5 border border-white/15 rounded-xl text-white font-mono text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all text-center tracking-[0.2em]"
+                      className="w-full pl-4 pr-11 py-3 bg-[#F9FAFB] border border-[#E8E8E8] rounded-xl text-[#090909] font-mono text-sm outline-none focus:border-[#ED0712] focus:ring-1 focus:ring-[#ED0712] transition-all text-center tracking-[0.2em]"
                       required
                       autoFocus
                     />
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors"
+                      className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[#6B7280] hover:text-[#090909] transition-colors"
                     >
                       {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                     </button>
@@ -284,17 +284,17 @@ export const CountdownScreen = memo(function CountdownScreen({
                   <button
                     type="button"
                     onClick={() => setIsSecretModalOpen(false)}
-                    className="flex-1 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-xs font-bold text-white/70 transition-all"
+                    className="flex-1 py-3 bg-[#F4F4F5] hover:bg-[#E8E8E8] border border-[#E8E8E8] rounded-xl text-xs font-bold text-[#6B7280] transition-all"
                   >
                     Cancel
                   </button>
                   <button
                     type="submit"
                     disabled={loading}
-                    className="flex-1 py-3 bg-white hover:bg-neutral-200 text-black font-extrabold text-xs rounded-xl shadow-lg transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
+                    className="flex-1 py-3 bg-[#090909] hover:bg-[#27272A] text-white font-extrabold text-xs rounded-xl shadow-md transition-all active:scale-[0.98] disabled:opacity-50 flex items-center justify-center gap-1.5"
                   >
                     {loading ? (
-                      <div className="w-3.5 h-3.5 border-2 border-black/20 border-t-black rounded-full animate-spin" />
+                      <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
                     ) : (
                       <>
                         <span>Unlock</span>

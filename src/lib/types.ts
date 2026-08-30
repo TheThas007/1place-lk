@@ -1256,6 +1256,7 @@ export interface PreLaunchScreenConfig {
 export interface PreLaunchExperienceSettings {
   enabled: boolean;
   rotationIntervalSeconds: number; // default 300 (5 minutes)
+  displayMode?: "interval_rotate" | "always_visible";
   autoplay: boolean;
   swipeEnabled: boolean;
   reviewsEnabled: boolean;

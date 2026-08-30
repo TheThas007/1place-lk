@@ -23,6 +23,7 @@ import {
   Image as ImageIcon,
   Smartphone,
   Sliders,
+  RefreshCw,
 } from "lucide-react";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
@@ -88,7 +89,6 @@ export default function LaunchControlTab() {
     };
   }, []);
 
-
   // Local form state
   const [enabled, setEnabled] = useState<boolean>(true);
   const [dateStr, setDateStr] = useState<string>("2026-09-01");
@@ -99,6 +99,7 @@ export default function LaunchControlTab() {
 
   // Pre-launch experience configuration
   const [preLaunchEnabled, setPreLaunchEnabled] = useState<boolean>(true);
+  const [displayMode, setDisplayMode] = useState<"interval_rotate" | "always_visible">("interval_rotate");
   const [rotationIntervalSeconds, setRotationIntervalSeconds] = useState<number>(300);
   const [autoplay, setAutoplay] = useState<boolean>(true);
   const [swipeEnabled, setSwipeEnabled] = useState<boolean>(true);
@@ -142,6 +143,7 @@ export default function LaunchControlTab() {
       // Pre-launch settings
       const pl = settings.preLaunchExperience || DEFAULT_PRE_LAUNCH_SETTINGS;
       setPreLaunchEnabled(pl.enabled ?? true);
+      setDisplayMode(pl.displayMode || "interval_rotate");
       setRotationIntervalSeconds(pl.rotationIntervalSeconds ?? 300);
       setAutoplay(pl.autoplay ?? true);
       setSwipeEnabled(pl.swipeEnabled ?? true);
@@ -171,6 +173,7 @@ export default function LaunchControlTab() {
   const compiledPreLaunchSettings: PreLaunchExperienceSettings = useMemo(() => {
     return {
       enabled: preLaunchEnabled,
+      displayMode,
       rotationIntervalSeconds,
       autoplay,
       swipeEnabled,
@@ -182,6 +185,7 @@ export default function LaunchControlTab() {
     };
   }, [
     preLaunchEnabled,
+    displayMode,
     rotationIntervalSeconds,
     autoplay,
     swipeEnabled,
@@ -355,15 +359,15 @@ export default function LaunchControlTab() {
         </div>
       </div>
 
-      {/* ── Section 2: Pre-Launch Experience Controls ── */}
+      {/* ── Section 2: Pre-Launch Experience Controls (5-Minute Gallery & Reviews Rotation) ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
           <div>
             <h3 className="text-lg font-extrabold flex items-center gap-2">
-              <Layers className="w-5 h-5 text-red-400" /> Pre-Launch Dynamic Customer Experience
+              <Layers className="w-5 h-5 text-red-400" /> Store Gallery & Google Reviews Display Timer
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              Rotating showcase below the persistent countdown, featuring customer appreciation, location, real reviews, and shop gallery.
+              Configure how often the Store Gallery and Customer Reviews appear below the countdown.
             </p>
           </div>
 
@@ -381,12 +385,50 @@ export default function LaunchControlTab() {
           </label>
         </div>
 
-        {/* Rotation Interval & Behavior Settings */}
+        {/* Display Mode & Interval Settings */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-2">
-          {/* Rotation Interval */}
+          {/* Display Mode */}
           <div>
             <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Main Slide Rotation Interval
+              Display Mode
+            </label>
+            <div className="flex flex-col gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => setDisplayMode("interval_rotate")}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs text-left flex items-center justify-between transition-all ${
+                  displayMode === "interval_rotate"
+                    ? "bg-red-600 text-white shadow-md shadow-red-600/20"
+                    : "bg-white/5 text-white/60 hover:bg-white/10"
+                }`}
+              >
+                <span>Rotate Every 5 Mins</span>
+                {displayMode === "interval_rotate" && <CheckCircle className="w-4 h-4" />}
+              </button>
+              <button
+                type="button"
+                onClick={() => setDisplayMode("always_visible")}
+                className={`px-4 py-2.5 rounded-xl font-bold text-xs text-left flex items-center justify-between transition-all ${
+                  displayMode === "always_visible"
+                    ? "bg-red-600 text-white shadow-md shadow-red-600/20"
+                    : "bg-white/5 text-white/60 hover:bg-white/10"
+                }`}
+              >
+                <span>Always Visible</span>
+                {displayMode === "always_visible" && <CheckCircle className="w-4 h-4" />}
+              </button>
+            </div>
+            <p className="text-[11px] text-white/40 mt-2">
+              {displayMode === "interval_rotate"
+                ? "Showcase rotates between Hero Thank You view and Gallery/Reviews every interval."
+                : "Gallery and Reviews cards remain permanently visible."}
+            </p>
+          </div>
+
+          {/* Rotation Interval Preset */}
+          <div>
+            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
+              Showcase Display Interval
             </label>
             <select
               value={rotationIntervalSeconds}
@@ -399,177 +441,39 @@ export default function LaunchControlTab() {
                 </option>
               ))}
             </select>
-            <p className="text-[11px] text-white/40 mt-1">
-              Controls when the entire pre-launch slide changes automatically.
+            <p className="text-[11px] text-white/40 mt-2">
+              Time period (e.g. 5 minutes) before Store Gallery & Reviews appear.
             </p>
           </div>
 
-          {/* Autoplay Toggle */}
+          {/* Autoplay & Swipe */}
           <div>
             <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Autoplay Content
+              Autoplay Gallery & Reviews
             </label>
-            <div className="flex items-center gap-3 pt-2">
+            <div className="flex items-center gap-3 pt-1">
               <button
                 type="button"
                 onClick={() => setAutoplay(true)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  autoplay ? "bg-red-600 text-white shadow-md shadow-red-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  autoplay ? "bg-emerald-600 text-white shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
                 }`}
               >
-                ON (Automatic)
+                ON
               </button>
               <button
                 type="button"
                 onClick={() => setAutoplay(false)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  !autoplay ? "bg-red-600 text-white shadow-md shadow-red-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
+                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${
+                  !autoplay ? "bg-red-600 text-white shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
                 }`}
               >
-                OFF (Manual Only)
+                OFF
               </button>
             </div>
-          </div>
-
-          {/* Mobile Swipe Support */}
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Mobile Touch Swipe
-            </label>
-            <div className="flex items-center gap-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setSwipeEnabled(true)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  swipeEnabled ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                Enabled
-              </button>
-              <button
-                type="button"
-                onClick={() => setSwipeEnabled(false)}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  !swipeEnabled ? "bg-blue-600 text-white shadow-md shadow-blue-600/20" : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                Disabled
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* ── Active Screens Selection ── */}
-        <div className="pt-4 border-t border-white/10">
-          <label className="block text-xs font-bold text-white/70 mb-3 uppercase tracking-wider">
-            Enabled Pre-Launch Screens
-          </label>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-            {/* 1. Thank You */}
-            <label
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                thankYouEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Heart className={`w-5 h-5 ${thankYouEnabled ? "text-red-400" : "text-white/30"}`} />
-                <input
-                  type="checkbox"
-                  checked={thankYouEnabled}
-                  onChange={(e) => setThankYouEnabled(e.target.checked)}
-                  className="rounded border-white/20 text-red-600 focus:ring-0"
-                />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold">1. Thank You</h4>
-                <p className="text-[10px] text-white/50 mt-0.5">Customer appreciation message</p>
-              </div>
-            </label>
-
-            {/* 2. We Are Near You */}
-            <label
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                locationEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <MapPin className={`w-5 h-5 ${locationEnabled ? "text-red-400" : "text-white/30"}`} />
-                <input
-                  type="checkbox"
-                  checked={locationEnabled}
-                  onChange={(e) => setLocationEnabled(e.target.checked)}
-                  className="rounded border-white/20 text-red-600 focus:ring-0"
-                />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold">2. Near You</h4>
-                <p className="text-[10px] text-white/50 mt-0.5">Vavuniya address & hours</p>
-              </div>
-            </label>
-
-            {/* 3. Customer Reviews */}
-            <label
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                reviewsEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Star className={`w-5 h-5 ${reviewsEnabled ? "text-amber-400" : "text-white/30"}`} />
-                <input
-                  type="checkbox"
-                  checked={reviewsEnabled}
-                  onChange={(e) => setReviewsEnabled(e.target.checked)}
-                  className="rounded border-white/20 text-red-600 focus:ring-0"
-                />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold">3. Reviews</h4>
-                <p className="text-[10px] text-white/50 mt-0.5">Auto-slider of 5★ ratings</p>
-              </div>
-            </label>
-
-            {/* 4. Shop Gallery */}
-            <label
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                galleryEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <ImageIcon className={`w-5 h-5 ${galleryEnabled ? "text-blue-400" : "text-white/30"}`} />
-                <input
-                  type="checkbox"
-                  checked={galleryEnabled}
-                  onChange={(e) => setGalleryEnabled(e.target.checked)}
-                  className="rounded border-white/20 text-red-600 focus:ring-0"
-                />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold">4. Shop Gallery</h4>
-                <p className="text-[10px] text-white/50 mt-0.5">Store visit & device photos</p>
-              </div>
-            </label>
-
-            {/* 5. Customer Moments */}
-            <label
-              className={`p-4 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between ${
-                momentsEnabled ? "bg-white/10 border-red-500/40 text-white" : "bg-white/5 border-white/5 text-white/40"
-              }`}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <Sparkles className={`w-5 h-5 ${momentsEnabled ? "text-purple-400" : "text-white/30"}`} />
-                <input
-                  type="checkbox"
-                  checked={momentsEnabled}
-                  onChange={(e) => setMomentsEnabled(e.target.checked)}
-                  className="rounded border-white/20 text-red-600 focus:ring-0"
-                />
-              </div>
-              <div>
-                <h4 className="text-xs font-bold">5. Moments</h4>
-                <p className="text-[10px] text-white/50 mt-0.5">Every visit appreciation</p>
-              </div>
-            </label>
+            <p className="text-[11px] text-white/40 mt-2">
+              Photos & reviews slide automatically every 4.5 seconds.
+            </p>
           </div>
         </div>
       </div>
