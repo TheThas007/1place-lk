@@ -16,8 +16,18 @@ export default function AnnouncementBar() {
     async function loadAnnouncement() {
       try {
         const banners = await getOfferBanners("announcement_bar");
-        if (banners.length > 0) {
-          setBanner(banners[0]);
+        const now = Date.now();
+        const active = banners.filter((b) => {
+          if (b.status && b.status !== "active") return false;
+          if (b.startAt && new Date(b.startAt).getTime() > now) return false;
+          if (!b.noExpiry && b.endAt && new Date(b.endAt).getTime() <= now) return false;
+          if (b.countdownEnabled && b.countdownEndAt && new Date(b.countdownEndAt).getTime() <= now) return false;
+          return true;
+        });
+        if (active.length > 0) {
+          setBanner(active[0]);
+        } else {
+          setBanner(null);
         }
       } catch (err) {
         console.error("Failed to load announcement bar:", err);

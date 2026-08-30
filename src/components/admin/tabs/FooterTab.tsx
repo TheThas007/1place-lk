@@ -564,7 +564,7 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
                   <img
                     src={settings.logo_url || "/logo.png"}
                     alt="Street Mobile"
-                    className="w-full h-auto max-h-[64px] object-contain object-left block brightness-0 invert opacity-100"
+                    className="w-full h-auto max-h-[64px] object-contain object-left block opacity-100"
                   />
                 </div>
                 <p className="text-[11px] text-white/60 leading-relaxed max-w-[240px]">

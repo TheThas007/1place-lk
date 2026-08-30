@@ -25,6 +25,7 @@ export default function MobileNav() {
 
   const isHome = pathname === "/";
   const isShop =
+    pathname.startsWith("/products") ||
     pathname.startsWith("/categories") ||
     pathname.startsWith("/category") ||
     pathname.startsWith("/shop-by-brand");
@@ -53,7 +54,7 @@ export default function MobileNav() {
 
         {/* 2. Shop */}
         <Link
-          href="/categories"
+          href="/products"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
             isShop ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   ChevronRight,
+  ArrowLeft,
   Filter,
   SlidersHorizontal,
   Search,
@@ -458,150 +459,183 @@ export default function DepartmentBrandPage({
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
-      {/* ── Top Framed Banner Hero (Top Flush with Clean Spacing) ── */}
+      {/* ── Top Breadcrumbs & Back Navigation ── */}
       <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-3 sm:pt-4">
+        <div className="flex items-center gap-2 text-xs sm:text-sm text-neutral-500 font-medium pb-2 border-b border-neutral-100">
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/");
+              }
+            }}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs transition-all shrink-0 cursor-pointer mr-1 active:scale-95 shadow-2xs"
+            title="Go back to previous page"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            <span>Back</span>
+          </button>
+          <Link href="/" className="hover:text-black transition-colors shrink-0">
+            Home
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+          <Link href="/products" className="hover:text-black transition-colors shrink-0">
+            {department.name}
+          </Link>
+          <ChevronRight className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+          <span className="text-black font-bold">{brand.name}</span>
+        </div>
+      </div>
+
+      {/* ── Top Framed Banner Hero (Full Screen Edge-to-Edge on Mobile) ── */}
+      <div className="w-full max-w-[1440px] px-0 sm:px-6 lg:px-8 mx-auto pt-0 sm:pt-3">
         <DepartmentBrandHero config={config} brand={brand} department={department} />
       </div>
 
       {/* ── Page Main Content Container ── */}
       <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto">
-        {/* ── Horizontal Underline Category Navigation Tabs ── */}
-        <div className="flex items-center justify-start sm:justify-start border-b border-neutral-200 mb-8 overflow-x-auto whitespace-nowrap custom-scrollbar">
-          <div className="flex items-center gap-2 sm:gap-6 px-1">
-            {categoryNavigationTabs.map((tab) => {
-              const isActive = selectedCategory === tab.slug;
-              return (
-                <button
-                  key={tab.slug}
-                  type="button"
-                  onClick={() => handleTabChange(tab.slug)}
-                  className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${isActive
-                      ? "text-black font-extrabold border-b-2 border-[#ED0712] -mb-[1px]"
-                      : "text-neutral-600 hover:text-black border-b-2 border-transparent"
-                    }`}
-                >
-                  <span>{tab.label}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* ── Department-Brand Heading + Search & Filter Toolbar ── */}
-        <div className="mb-6">
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
-            {sectionHeading}
-          </h1>
-          <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-1">
-            {sectionDescription}
-          </p>
-        </div>
-
-        {/* ── Clean Filter/Sort Toolbar Row ── */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-8">
-
-          {/* Left: Search + Storage + Colours + In Stock */}
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-1">
-            {/* Search Input */}
-            <div className="relative w-full sm:w-64">
-              <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
-              <input
-                type="text"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={`Search ${brand.name} ${department.name.toLowerCase()}...`}
-                className="w-full bg-white border border-neutral-200 pl-8 pr-7 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none focus:border-black shadow-2xs"
-              />
-              {searchQuery && (
-                <button
-                  type="button"
-                  onClick={() => setSearchQuery("")}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
-                >
-                  <X className="w-3.5 h-3.5" />
-                </button>
-              )}
+        {/* ── Desktop Category Navigation Tabs, Heading & Filter Toolbar (Hidden on Mobile) ── */}
+        <div className="hidden md:block">
+          {/* ── Horizontal Underline Category Navigation Tabs ── */}
+          <div className="flex items-center justify-start sm:justify-start border-b border-neutral-200 mb-8 overflow-x-auto whitespace-nowrap custom-scrollbar">
+            <div className="flex items-center gap-2 sm:gap-6 px-1">
+              {categoryNavigationTabs.map((tab) => {
+                const isActive = selectedCategory === tab.slug;
+                return (
+                  <button
+                    key={tab.slug}
+                    type="button"
+                    onClick={() => handleTabChange(tab.slug)}
+                    className={`relative py-3.5 px-3 sm:px-4 text-xs sm:text-sm font-semibold transition-all cursor-pointer ${isActive
+                        ? "text-black font-extrabold border-b-2 border-[#ED0712] -mb-[1px]"
+                        : "text-neutral-600 hover:text-black border-b-2 border-transparent"
+                      }`}
+                  >
+                    <span>{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
-
-            {/* Storage Filter */}
-            <div className="relative">
-              <select
-                value={selectedStorage}
-                onChange={(e) => setSelectedStorage(e.target.value)}
-                className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
-              >
-                <option value="all">All Storage</option>
-                <option value="128GB">128GB</option>
-                <option value="256GB">256GB</option>
-                <option value="512GB">512GB</option>
-                <option value="1TB">1TB</option>
-              </select>
-            </div>
-
-            {/* Colours Filter */}
-            <div className="relative">
-              <select
-                value={selectedColour}
-                onChange={(e) => setSelectedColour(e.target.value)}
-                className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
-              >
-                <option value="all">All Colours</option>
-                <option value="titanium">Natural Titanium</option>
-                <option value="black">Black Titanium</option>
-                <option value="white">White Titanium</option>
-                <option value="desert">Desert Titanium</option>
-                <option value="blue">Blue</option>
-                <option value="pink">Pink</option>
-              </select>
-            </div>
-
-            {/* In-Stock Only Checkbox Button */}
-            <button
-              type="button"
-              onClick={() => setInStockOnly(!inStockOnly)}
-              className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${inStockOnly
-                  ? "bg-black text-white border-black"
-                  : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
-                }`}
-            >
-              <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
-                {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
-              </span>
-              <span>In Stock Only</span>
-            </button>
           </div>
 
-          {/* Right: Sort By + Filters Button */}
-          <div className="flex items-center gap-2.5 sm:gap-3">
-            {/* Sort Dropdown */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-                className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+          {/* ── Department-Brand Heading + Search & Filter Toolbar ── */}
+          <div className="mb-6">
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-neutral-900 tracking-tight">
+              {sectionHeading}
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-500 font-medium mt-1">
+              {sectionDescription}
+            </p>
+          </div>
+
+          {/* ── Clean Filter/Sort Toolbar Row ── */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3.5 mb-8">
+
+            {/* Left: Search + Storage + Colours + In Stock */}
+            <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-1">
+              {/* Search Input */}
+              <div className="relative w-full sm:w-64">
+                <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400" />
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder={`Search ${brand.name} ${department.name.toLowerCase()}...`}
+                  className="w-full bg-white border border-neutral-200 pl-8 pr-7 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none focus:border-black shadow-2xs"
+                />
+                {searchQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setSearchQuery("")}
+                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
+
+              {/* Storage Filter */}
+              <div className="relative">
+                <select
+                  value={selectedStorage}
+                  onChange={(e) => setSelectedStorage(e.target.value)}
+                  className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+                >
+                  <option value="all">All Storage</option>
+                  <option value="128GB">128GB</option>
+                  <option value="256GB">256GB</option>
+                  <option value="512GB">512GB</option>
+                  <option value="1TB">1TB</option>
+                </select>
+              </div>
+
+              {/* Colours Filter */}
+              <div className="relative">
+                <select
+                  value={selectedColour}
+                  onChange={(e) => setSelectedColour(e.target.value)}
+                  className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+                >
+                  <option value="all">All Colours</option>
+                  <option value="titanium">Natural Titanium</option>
+                  <option value="black">Black Titanium</option>
+                  <option value="white">White Titanium</option>
+                  <option value="desert">Desert Titanium</option>
+                  <option value="blue">Blue</option>
+                  <option value="pink">Pink</option>
+                </select>
+              </div>
+
+              {/* In-Stock Only Checkbox Button */}
+              <button
+                type="button"
+                onClick={() => setInStockOnly(!inStockOnly)}
+                className={`px-3.5 py-2 rounded-lg text-xs font-semibold border transition-all cursor-pointer shadow-2xs flex items-center gap-1.5 ${inStockOnly
+                    ? "bg-black text-white border-black"
+                    : "bg-white text-neutral-700 border-neutral-200 hover:bg-neutral-50"
+                  }`}
               >
-                <option value="popularity">Sort by: Popularity</option>
-                <option value="newest">Sort by: Newest</option>
-                <option value="price_asc">Price: Low to High</option>
-                <option value="price_desc">Price: High to Low</option>
-                <option value="discount">Highest Discount</option>
-              </select>
+                <span className={`w-3.5 h-3.5 rounded border flex items-center justify-center ${inStockOnly ? "bg-white border-white text-black" : "border-neutral-400"}`}>
+                  {inStockOnly && <Check className="w-3 h-3 stroke-[3]" />}
+                </span>
+                <span>In Stock Only</span>
+              </button>
             </div>
 
-            {/* Filters Button */}
-            <button
-              type="button"
-              onClick={() => setShowFilterDrawer(!showFilterDrawer)}
-              className="px-4 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-800 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
-            >
-              <span>Filters</span>
-              <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-500" />
-            </button>
+            {/* Right: Sort By + Filters Button */}
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              {/* Sort Dropdown */}
+              <div className="relative">
+                <select
+                  value={sortBy}
+                  onChange={(e) => setSortBy(e.target.value)}
+                  className="bg-white border border-neutral-200 px-3.5 py-2 rounded-lg text-xs font-semibold text-neutral-800 outline-none cursor-pointer shadow-2xs hover:bg-neutral-50"
+                >
+                  <option value="popularity">Sort by: Popularity</option>
+                  <option value="newest">Sort by: Newest</option>
+                  <option value="price_asc">Price: Low to High</option>
+                  <option value="price_desc">Price: High to Low</option>
+                  <option value="discount">Highest Discount</option>
+                </select>
+              </div>
+
+              {/* Filters Button */}
+              <button
+                type="button"
+                onClick={() => setShowFilterDrawer(!showFilterDrawer)}
+                className="px-4 py-2 bg-white border border-neutral-200 hover:bg-neutral-50 text-neutral-800 rounded-lg text-xs font-semibold flex items-center gap-2 shadow-2xs transition-colors cursor-pointer"
+              >
+                <span>Filters</span>
+                <SlidersHorizontal className="w-3.5 h-3.5 text-neutral-500" />
+              </button>
+            </div>
           </div>
         </div>
 
         {/* ── 4-Column Product Grid ── */}
-        <div id="products" className="mb-16">
+        <div id="products" className="pt-3 md:pt-0 mb-16">
           {filteredProducts.length > 0 ? (
             <div className="grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4 sm:gap-6">
               {filteredProducts.map((product) => (

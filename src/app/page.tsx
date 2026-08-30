@@ -153,9 +153,7 @@ export default async function HomePage() {
       </ScrollReveal>
 
       {/* Today's Deal Promotional Banner (Below New Arrivals) */}
-      <ScrollReveal enable3d={true}>
-        <TodayDealSection settings={todayDealSettings} />
-      </ScrollReveal>
+      <TodayDealSection settings={todayDealSettings} />
 
       {/* Showcase position: Below New Arrivals */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_new_arrivals" />

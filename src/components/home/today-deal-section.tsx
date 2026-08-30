@@ -5,6 +5,9 @@ import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { TodayDealSettings } from "@/lib/types";
 import { DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
+import { db } from "@/lib/firebase";
+import { doc, onSnapshot } from "firebase/firestore";
+import ScrollReveal from "@/components/ui/ScrollReveal";
 
 interface TodayDealSectionProps {
   settings?: TodayDealSettings | null;
@@ -22,15 +25,50 @@ export default function TodayDealSection({
   className = "",
   isLivePreview = false,
 }: TodayDealSectionProps) {
-  const deal = useMemo(() => {
-    return { ...DEFAULT_TODAY_DEAL_SETTINGS, ...(settings || {}) };
+  const [liveSettings, setLiveSettings] = useState<TodayDealSettings>(() => ({
+    ...DEFAULT_TODAY_DEAL_SETTINGS,
+    ...(settings || {}),
+  }));
+
+  // Sync prop changes
+  useEffect(() => {
+    if (settings) {
+      setLiveSettings((prev) => ({ ...prev, ...settings }));
+    }
   }, [settings]);
+
+  // Real-time Firestore subscription on public page
+  useEffect(() => {
+    if (isLivePreview) return;
+    try {
+      const unsub = onSnapshot(
+        doc(db, "settings", "today_deal"),
+        (snap) => {
+          if (snap.exists()) {
+            setLiveSettings((prev) => ({
+              ...DEFAULT_TODAY_DEAL_SETTINGS,
+              ...prev,
+              ...snap.data(),
+            } as TodayDealSettings));
+          }
+        },
+        (err) => {
+          console.warn("Firestore today_deal live sync:", err);
+        }
+      );
+      return () => unsub();
+    } catch {
+      // Offline fallback
+    }
+  }, [isLivePreview]);
+
+  const deal = liveSettings;
 
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
   const [imgError, setImgError] = useState(false);
 
-  // Live 1-second interval ticker
+  // Live 1-second interval ticker for real-time automatic auto-hide
   useEffect(() => {
     setMounted(true);
     setNow(Date.now());
@@ -54,14 +92,8 @@ export default function TodayDealSection({
       expired = true;
     }
 
-    // If no explicit endTime provided, default to midnight today for continuous live deals
-    if (!endTime) {
-      const midnight = new Date(now);
-      midnight.setHours(23, 59, 59, 999);
-      endTime = midnight.getTime();
-    }
-
-    const diff = Math.max(0, endTime - now);
+    // If countdown timer reached 0 or endsAt has elapsed
+    const diff = Math.max(0, endTime ? endTime - now : 0);
     const d = Math.floor(diff / (1000 * 60 * 60 * 24));
     const h = Math.floor((diff / (1000 * 60 * 60)) % 24);
     const m = Math.floor((diff / (1000 * 60)) % 60);
@@ -78,28 +110,28 @@ export default function TodayDealSection({
     };
   }, [deal.startsAt, deal.endsAt, deal.showDays, now]);
 
-  // 1. If explicitly disabled and not in live preview mode, hide
+  // 1. If explicitly disabled and not in live preview mode, hide completely
   if (deal.enabled === false && !isLivePreview) {
     return null;
   }
 
-  // 2. If scheduled for future and not in live preview mode, hide
+  // 2. If scheduled for future and not in live preview mode, hide completely
   if (isScheduled && !isLivePreview) {
     return null;
   }
 
   // 3. Automatic Auto-Hide when time ends (timer reaches 0 or endsAt passed)
   if (isExpired && !isLivePreview) {
-    // If admin explicitly requested a replacement CTA or deal-ended badge, honor it; otherwise hide by default
+    // If admin explicitly selected replacement-cta or deal-ended or keep-banner, honor it; otherwise hide by default
     if (deal.expiryAction === "deal-ended" || deal.expiryAction === "replacement-cta" || deal.expiryAction === "keep-banner") {
-      // Keep visible only if explicit non-hide action is configured
+      // Keep visible with configured behavior
     } else {
-      // Default & automatic action: Hide completely
+      // Default & automatic action: Hide completely (zero whitespace)
       return null;
     }
   }
 
-  // If explicit hide action is set on expired deal
+  // Explicit hide action
   if (isExpired && !isLivePreview && (deal.expiryAction === "hide" || !deal.expiryAction)) {
     return null;
   }
@@ -165,7 +197,7 @@ export default function TodayDealSection({
       ? "text-right items-end"
       : "text-left items-start";
 
-  return (
+  const content = (
     <section
       id="todays-deal-section"
       aria-label="Today's Deal Promotional Showcase"
@@ -398,4 +430,10 @@ export default function TodayDealSection({
       </div>
     </section>
   );
+
+  if (isLivePreview) {
+    return content;
+  }
+
+  return <ScrollReveal enable3d={true}>{content}</ScrollReveal>;
 }

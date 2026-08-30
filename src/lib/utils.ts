@@ -116,3 +116,34 @@ export function isPhoneProduct(product?: Partial<Product> | null, categoriesList
   return false;
 }
 
+/**
+ * Department prefix: Phones -> "P", Laptop & Tab -> "L", Accessories -> "A"
+ */
+export function getDeptPrefix(deptSlug: string): string {
+  const s = (deptSlug || "").toLowerCase();
+  if (s === "phones" || s.includes("phone")) return "P";
+  if (s === "laptops-tablets" || s.includes("laptop") || s.includes("tab")) return "L";
+  if (s === "accessories" || s.includes("access")) return "A";
+  return "#";
+}
+
+/**
+ * Format order code with department prefix (e.g. P1, L2, A3)
+ */
+export function formatDeptOrderCode(deptSlug: string, order?: number | string): string {
+  if (order === undefined || order === null || order === "") return "";
+  const num = typeof order === "number" ? order : parseInt(String(order).replace(/\D/g, ""), 10);
+  if (isNaN(num)) return String(order);
+  const prefix = getDeptPrefix(deptSlug);
+  return `${prefix}${num}`;
+}
+
+/**
+ * Parses user input (e.g. "P1", "p 2", "3") into pure numeric order
+ */
+export function parseDeptOrderNumber(input: string | number): number {
+  if (typeof input === "number") return input;
+  const cleaned = String(input).replace(/[^\d]/g, "");
+  const val = parseInt(cleaned, 10);
+  return isNaN(val) ? 1 : val;
+}

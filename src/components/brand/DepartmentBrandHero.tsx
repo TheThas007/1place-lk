@@ -3,39 +3,13 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { DepartmentBrandPageConfig, Brand, Department } from "@/lib/types";
+import { BRAND_DEFAULT_CAMPAIGN_BANNERS } from "@/lib/data";
 
 interface DepartmentBrandHeroProps {
   config: DepartmentBrandPageConfig;
   brand: Brand;
   department: Department;
 }
-
-// Curated high-resolution studio campaign banner artwork (16:5 aspect ratio)
-const BRAND_DEFAULT_CAMPAIGN_BANNERS: Record<string, Record<string, string>> = {
-  apple: {
-    phones: "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1600&auto=format&fit=crop",
-    "laptops-tablets": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1600&auto=format&fit=crop",
-    accessories: "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?q=80&w=1600&auto=format&fit=crop",
-  },
-  samsung: {
-    phones: "https://images.unsplash.com/photo-1610945265064-3234eb261763?q=80&w=1600&auto=format&fit=crop",
-    "laptops-tablets": "https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?q=80&w=1600&auto=format&fit=crop",
-    accessories: "https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=1600&auto=format&fit=crop",
-  },
-  xiaomi: {
-    phones: "https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=1600&auto=format&fit=crop",
-    accessories: "https://images.unsplash.com/photo-1546435770-a3e426bf472b?q=80&w=1600&auto=format&fit=crop",
-  },
-  ugreen: {
-    accessories: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=1600&auto=format&fit=crop",
-  },
-  anker: {
-    accessories: "https://images.unsplash.com/photo-1583863788434-e58a36330cf0?q=80&w=1600&auto=format&fit=crop",
-  },
-  jbl: {
-    accessories: "https://images.unsplash.com/photo-1545454675-3531b543be5d?q=80&w=1600&auto=format&fit=crop",
-  },
-};
 
 export default function DepartmentBrandHero({
   config,
@@ -54,10 +28,14 @@ export default function DepartmentBrandHero({
 
   // Fallback priority:
   // 1. Department-specific banner
-  // 2. Default brand banner (if useDefaultBrandBanner enabled)
-  // 3. Realistic default campaign banner
+  // 2. Default brand banner
+  // 3. Brand category fallbacks
   const fallbackCampaignBanner =
-    BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.[deptSlug] || "";
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.[deptSlug] ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.default ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.accessories ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[brandSlug]?.phones ||
+    "";
 
   // 1. Resolve Desktop Banner
   const rawDesktop = config.desktop?.imageUrl || config.desktopBannerUrl || "";
@@ -131,109 +109,46 @@ export default function DepartmentBrandHero({
       ? "0px"
       : "30px";
 
-  const blendMode =
-    config.bannerBlendMode ||
-    (frameBg.toLowerCase() === "#ffffff" || frameBg.toLowerCase() === "#fff"
-      ? "normal"
-      : "multiply");
+  const blendMode = config.bannerBlendMode || "normal";
 
   const bannerContent = (
     <div
-      className="relative w-full overflow-hidden select-none rounded-none border border-neutral-200/80 shadow-2xs flex items-center justify-center p-0 m-0 transition-all"
+      className="relative w-full overflow-hidden select-none rounded-none border-0 sm:border sm:border-neutral-200/80 shadow-none sm:shadow-2xs flex items-center justify-center p-0 m-0 transition-all bg-white aspect-[1440/360] max-h-[360px]"
       style={{
-        backgroundColor: frameBg,
+        backgroundColor: frameBg || "#FFFFFF",
         borderRadius: 0,
-        aspectRatio:
-          ratio === "1080x1080"
-            ? "1 / 1"
-            : ratio === "1920x850"
-            ? "1920 / 850"
-            : ratio === "1080x1440"
-            ? "1080 / 1440"
-            : ratio === "default"
-            ? "1920 / 600"
-            : "860 / 270",
-        maxHeight:
-          ratio === "1080x1080"
-            ? "320px"
-            : ratio === "1080x1440"
-            ? "360px"
-            : ratio === "1920x850"
-            ? "320px"
-            : ratio === "default"
-            ? "300px"
-            : "270px",
+        aspectRatio: "1440 / 360",
+        maxHeight: "360px",
       }}
     >
-      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
-      {isBlurEnabled && resolvedDesktopBanner && (
-        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
-          <img
-            src={resolvedDesktopBanner}
-            alt=""
-            aria-hidden="true"
-            className="w-full h-full object-cover scale-135 opacity-40 transform-gpu"
-            style={{
-              filter: `blur(${blurStrength}) saturate(1.4)`,
-              borderRadius: 0,
-            }}
+      <picture className="w-full h-full block">
+        {resolvedMobileBanner && (
+          <source
+            media="(max-width: 767px)"
+            srcSet={resolvedMobileBanner}
           />
-          <div
-            className="absolute inset-0"
-            style={{
-              backgroundColor: frameBg,
-              opacity: 0.65,
-              borderRadius: 0,
-            }}
+        )}
+        {resolvedTabletBanner && (
+          <source
+            media="(max-width: 1023px)"
+            srcSet={resolvedTabletBanner}
           />
-        </div>
-      )}
-
-      {/* Subtle ambient backdrop mesh */}
-      <div
-        className="absolute inset-0 pointer-events-none opacity-30 -z-0"
-        style={{
-          background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 85%)`,
-          borderRadius: 0,
-        }}
-      />
-
-      {/* ── 2. Overlay Banner Artwork (Matches Full Background Banner Frame Width) ── */}
-      <div
-        className="relative w-full h-full max-w-full z-10 overflow-hidden rounded-none flex items-center justify-center mx-auto"
-        style={{
-          borderRadius: 0,
-        }}
-      >
-        <picture className="w-full h-full block">
-          {resolvedMobileBanner && (
-            <source
-              media="(max-width: 767px)"
-              srcSet={resolvedMobileBanner}
-            />
-          )}
-          {resolvedTabletBanner && (
-            <source
-              media="(max-width: 1023px)"
-              srcSet={resolvedTabletBanner}
-            />
-          )}
-          <img
-            src={resolvedDesktopBanner}
-            alt={altText}
-            aria-hidden={isDecorative ? "true" : undefined}
-            loading="eager"
-            decoding="async"
-            onError={() => setImgError(true)}
-            style={{
-              objectPosition: desktopFocal,
-              mixBlendMode: blendMode as any,
-              borderRadius: 0,
-            }}
-            className="w-full h-full object-contain sm:object-cover block transition-transform duration-700 ease-out rounded-none"
-          />
-        </picture>
-      </div>
+        )}
+        <img
+          src={resolvedDesktopBanner}
+          alt={altText}
+          aria-hidden={isDecorative ? "true" : undefined}
+          loading="eager"
+          decoding="async"
+          width={1440}
+          height={360}
+          onError={() => setImgError(true)}
+          style={{
+            borderRadius: 0,
+          }}
+          className="w-full h-full object-cover rounded-none block"
+        />
+      </picture>
     </div>
   );
 

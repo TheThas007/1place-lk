@@ -1,7 +1,7 @@
 import { db } from "./firebase";
 import { collection, getDocs, doc, setDoc, getDoc, deleteDoc, query, where } from "firebase/firestore";
 import { Brand, Department, DepartmentBrandPageConfig, DepartmentBrandCategoryTab, Product } from "./types";
-import { DEFAULT_BRANDS } from "./data";
+import { DEFAULT_BRANDS, BRAND_DEFAULT_CAMPAIGN_BANNERS } from "./data";
 
 // ── Initial Primary Departments ──
 export const DEFAULT_DEPARTMENTS: Department[] = [
@@ -15,10 +15,13 @@ export function getDefaultBrandDepartments(slug: string, productGroup?: string):
   const s = slug.toLowerCase();
   if (s === "apple") return ["phones", "laptops-tablets", "accessories"];
   if (s === "samsung") return ["phones", "laptops-tablets", "accessories"];
-  if (s === "xiaomi" || s === "redmi") return ["phones", "accessories"];
+  if (s === "xiaomi" || s === "xiomi" || s === "redmi") return ["phones", "accessories"];
+  if (s === "oneplus" || s === "1+") return ["phones", "accessories"];
+  if (s === "cmf" || s === "cmf-by-nothing") return ["phones", "accessories"];
   if (s === "google" || s === "google-pixel") return ["phones", "accessories"];
+  if (s === "honor" || s === "oppo" || s === "vivo" || s === "realme" || s === "nokia" || s === "hmd" || s === "greentel") return ["phones", "accessories"];
   if (s === "macbook" || s === "asus" || s === "msi" || s === "dell" || s === "lenovo") return ["laptops-tablets"];
-  if (["jbl", "sharge", "marshall", "sony", "fitbit", "anker", "bose", "haylou", "soundcore", "ugreen", "baseus", "dji", "wiwu", "lenyes", "oraimo", "hoco", "joyroom"].includes(s)) {
+  if (["jbl", "sharge", "marshall", "sony", "fitbit", "anker", "bose", "haylou", "soundcore", "ugreen", "baseus", "basesus", "dji", "wiwu", "lenyes", "lenyce", "oraimo", "hoco", "joyroom", "aspor", "porodo", "brodo", "bugani", "green-lion", "greenlion", "hollyland", "plokama", "yesido"].includes(s)) {
     return ["accessories"];
   }
   if (productGroup === "laptops") return ["laptops-tablets"];
@@ -173,6 +176,7 @@ export async function saveBrandToDb(brand: Partial<Brand>): Promise<void> {
     featured: Boolean(brand.featured),
     order: orderNum,
     sort_order: orderNum,
+    department_order: brand.department_order || brand.department_orders || {},
     seo_title: brand.seo_title || "",
     seo_description: brand.seo_description || "",
     isDeleted: false,
@@ -224,25 +228,14 @@ export function generateDefaultDepartmentPageConfig(
   // Contextual default headlines
   let productSectionHeading = `${brandName} ${deptName}`;
   let productSectionDescription = `Explore genuine ${brandName} ${deptName.toLowerCase()} models available at Street Mobile.`;
-  let defaultBannerUrl = "";
-
-  if (departmentSlug === "phones" && brand.slug === "apple") {
-    productSectionHeading = "Apple Phones";
-    productSectionDescription = "Explore genuine Apple iPhone models available at Street Mobile.";
-    defaultBannerUrl = "https://images.unsplash.com/photo-1695048133142-1a20484d2569?q=80&w=1600&auto=format&fit=crop";
-  } else if (departmentSlug === "laptops-tablets" && brand.slug === "apple") {
-    productSectionHeading = "Apple MacBook & iPad";
-    productSectionDescription = "Explore Apple laptops and tablets available at Street Mobile.";
-    defaultBannerUrl = "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=1600&auto=format&fit=crop";
-  } else if (departmentSlug === "accessories" && brand.slug === "apple") {
-    productSectionHeading = "Apple Accessories";
-    productSectionDescription = "Explore genuine Apple accessories available at Street Mobile.";
-    defaultBannerUrl = "https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?q=80&w=1600&auto=format&fit=crop";
-  } else if (departmentSlug === "phones" && brand.slug === "samsung") {
-    productSectionHeading = "Samsung Galaxy Phones";
-    productSectionDescription = "Explore genuine Samsung Galaxy smartphones available at Street Mobile.";
-    defaultBannerUrl = "https://images.unsplash.com/photo-1610945265064-3234eb261763?q=80&w=1600&auto=format&fit=crop";
-  }
+  
+  const bSlug = (brand.slug || "").toLowerCase();
+  const defaultBannerUrl =
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[bSlug]?.[departmentSlug] ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[bSlug]?.default ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[bSlug]?.accessories ||
+    BRAND_DEFAULT_CAMPAIGN_BANNERS[bSlug]?.phones ||
+    "";
 
   // Category navigation tabs
   const categoryTabs: DepartmentBrandCategoryTab[] = [

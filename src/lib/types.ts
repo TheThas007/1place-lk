@@ -110,6 +110,8 @@ export interface Brand {
   monochrome?: boolean;
   sort_order?: number;
   order?: number;
+  department_order?: Record<string, number>; // e.g. { "phones": 1, "laptops-tablets": 2, "accessories": 5 }
+  department_orders?: Record<string, number>;
   mobile_sort_order?: number;
   status?: "active" | "inactive" | "deleted";
   isDeleted?: boolean;

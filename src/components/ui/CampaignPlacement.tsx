@@ -30,7 +30,8 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
         (snapshot) => {
           if (!isSubscribed) return;
 
-          // Derive active banner from Firestore
+          const now = Date.now();
+          // Derive active and unexpired banner from Firestore
           const activeDocs = snapshot.docs
             .map((doc) => {
               const data = doc.data();
@@ -41,11 +42,14 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
                 placement: data.placement || "homepage_after_categories",
               } as OfferBanner;
             })
-            .filter(
-              (b) =>
-                (b.status === "active" || !b.status) &&
-                b.placement === placement
-            )
+            .filter((b) => {
+              if (b.status !== "active" && b.status) return false;
+              if (b.placement !== placement) return false;
+              if (b.startAt && new Date(b.startAt).getTime() > now) return false;
+              if (!b.noExpiry && b.endAt && new Date(b.endAt).getTime() <= now) return false;
+              if (b.countdownEnabled && b.countdownEndAt && new Date(b.countdownEndAt).getTime() <= now) return false;
+              return true;
+            })
             .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
           if (activeDocs.length > 0) {
@@ -90,6 +94,12 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
   };
 
   if (!banner || banner.status === "paused" || banner.status === "archived") return null;
+
+  // Real-time automatic expiration check
+  const now = Date.now();
+  if (banner.startAt && new Date(banner.startAt).getTime() > now) return null;
+  if (!banner.noExpiry && banner.endAt && new Date(banner.endAt).getTime() <= now) return null;
+  if (banner.countdownEnabled && banner.countdownEndAt && new Date(banner.countdownEndAt).getTime() <= now) return null;
 
   const destinationUrl = banner.primaryCtaUrl || "/products?category=audio";
   const desktopImg = banner.desktopImage || "/images/campaign-headphone-desktop.jpg";

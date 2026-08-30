@@ -16,6 +16,7 @@ import {
   Minus,
   Plus,
   ArrowRight,
+  ArrowLeft,
   Banknote,
   CreditCard,
   MessageCircle,
@@ -593,16 +594,31 @@ export default function ProductDetailClient({
 
   return (
     <div className="bg-white min-h-screen text-black pb-32 sm:pb-36 w-full max-w-full overflow-x-hidden">
-      {/* ── 1. Top Breadcrumbs ── */}
+      {/* ── 1. Top Breadcrumbs with Functional Back Button ── */}
       <div className="border-b border-[#EAEAEA] bg-white">
-        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-3.5">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-2.5 sm:py-3.5">
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium overflow-x-auto no-scrollbar">
+            <button
+              type="button"
+              onClick={() => {
+                if (typeof window !== "undefined" && window.history.length > 1) {
+                  router.back();
+                } else {
+                  router.push("/products");
+                }
+              }}
+              className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs transition-all shrink-0 cursor-pointer mr-1 active:scale-95 shadow-2xs"
+              title="Go back to previous page"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
+            </button>
             <Link href="/" className="hover:text-black transition-colors shrink-0">
               Home
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <Link
-              href={`/category/${product.category_slug || product.categorySlug || product.category_id || "smartphones"}`}
+              href={`/products?category=${product.category_slug || product.categorySlug || product.category_id || "smartphones"}`}
               className="hover:text-black transition-colors shrink-0"
             >
               {product.category_name || product.categoryName || "Category"}
@@ -611,7 +627,7 @@ export default function ProductDetailClient({
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 <Link
-                  href={`/brand/${product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  href={`/shop-by-brand/phones/${product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
                   className="hover:text-black transition-colors shrink-0 font-semibold"
                 >
                   {product.brand_name || product.brandName || product.brand}
@@ -619,7 +635,7 @@ export default function ProductDetailClient({
               </>
             )}
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-            <span className="text-black font-semibold truncate">{product.name}</span>
+            <span className="text-black font-semibold truncate max-w-[200px] sm:max-w-none">{product.name}</span>
           </div>
         </div>
       </div>
@@ -886,12 +902,16 @@ export default function ProductDetailClient({
                 </div>
               )}
 
-              {/* ── 2. DYNAMIC STORAGE DROPDOWN (FILTERED BY SELECTED COLOR) ── */}
-              {availableVariantsForColor.length > 0 &&
-                (availableVariantsForColor.length > 1 ||
-                  availableVariantsForColor[0]?.storage !== "Standard" ||
-                  (product.storage_options && product.storage_options.length > 0) ||
-                  (product.variant_combos && product.variant_combos.length > 0)) && (
+              {/* ── 2. DYNAMIC STORAGE DROPDOWN (ONLY SHOWN FOR PHONES / LAPTOPS WITH REAL STORAGE VARIANTS) ── */}
+              {isMobileOrLaptop &&
+                availableVariantsForColor.length > 0 &&
+                availableVariantsForColor.some(
+                  (v) =>
+                    v.storage &&
+                    v.storage.trim() !== "" &&
+                    v.storage.trim() !== "Standard" &&
+                    v.storage.trim() !== "N/A"
+                ) && (
                   <div className="mb-6 relative" ref={dropdownContainerRef}>
                     <label
                       id="storage-label"

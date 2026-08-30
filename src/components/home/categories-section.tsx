@@ -106,7 +106,7 @@ function BrandCard({
         title={`${brand.name}`}
         className="group relative flex items-center justify-center p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100/90 shadow-[0_3px_14px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.09)] hover:border-neutral-300 hover:-translate-y-1.5 transition-all duration-300 w-full aspect-[4/3] min-h-[110px] sm:min-h-[140px] md:min-h-[155px]"
       >
-        {/* Centered Genuine Brand Logo */}
+        {/* Centered Genuine Brand Logo or High-Contrast Brand Name */}
         <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
             <img
@@ -117,7 +117,7 @@ function BrandCard({
               onError={() => setImgError(true)}
             />
           ) : (
-            <span className="text-lg sm:text-2xl font-black text-black font-mono tracking-tight select-none">
+            <span className="text-base sm:text-xl font-black text-neutral-900 font-sans tracking-tight select-none uppercase text-center px-1">
               {brand.name}
             </span>
           )}
@@ -154,45 +154,26 @@ export default function CategoriesSection({
         qBrands,
         (snapshot) => {
           if (!snapshot.empty) {
-            const brandMap = new Map<string, Brand>();
-            DEFAULT_BRANDS.forEach((b) => {
-              brandMap.set(b.id, {
-                ...b,
-                assigned_departments: getDefaultBrandDepartments(b.slug, b.product_group),
-              });
-            });
+            const brandsList: Brand[] = [];
             snapshot.docs.forEach((d) => {
               const data = d.data() as Brand;
+              if (data.isDeleted === true || (data as any).status === "deleted") {
+                return;
+              }
               const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
               const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              const nameLower = (data.name || "").toLowerCase().trim();
-
-              // Match by id, data.id, slug, or matching name
-              let existingKey = id;
-              for (const [k, b] of brandMap.entries()) {
-                if (
-                  k === id ||
-                  b.id === id ||
-                  b.id === data.id ||
-                  (b.slug && b.slug.toLowerCase() === slug.toLowerCase()) ||
-                  (b.name && b.name.toLowerCase().trim() === nameLower)
-                ) {
-                  existingKey = k;
-                  break;
-                }
-              }
-
-              const existing = brandMap.get(existingKey);
-              if (existingKey !== id) {
-                brandMap.delete(existingKey);
-              }
+              
+              // Find matching default brand to get preset logo if current logo is empty
+              const defaultBrand = DEFAULT_BRANDS.find(
+                (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === (data.name || "").toLowerCase().trim()
+              );
 
               const assigned_departments =
                 data.assigned_departments && data.assigned_departments.length > 0
                   ? data.assigned_departments
-                  : existing?.assigned_departments || getDefaultBrandDepartments(slug, data.product_group);
+                  : getDefaultBrandDepartments(slug, data.product_group);
 
-              const logo_url =
+              const rawLogo =
                 data.logo_url ||
                 (data as any).logo ||
                 (data as any).image_url ||
@@ -200,17 +181,17 @@ export default function CategoriesSection({
                 (data as any).icon_url ||
                 (data as any).iconUrl ||
                 (data as any).image ||
-                existing?.logo_url ||
+                defaultBrand?.logo_url ||
                 "";
 
-              const orderNum = Number(data.sort_order ?? data.order ?? existing?.sort_order ?? existing?.order ?? 999);
+              const orderNum = Number(data.sort_order ?? data.order ?? defaultBrand?.sort_order ?? 999);
 
-              brandMap.set(id, {
-                ...existing,
+              brandsList.push({
+                ...defaultBrand,
                 ...data,
                 id,
                 slug,
-                logo_url,
+                logo_url: rawLogo,
                 order: orderNum,
                 sort_order: orderNum,
                 assigned_departments,
@@ -218,7 +199,7 @@ export default function CategoriesSection({
                 show_on_homepage: data.show_on_homepage !== false,
               });
             });
-            setLiveBrands(Array.from(brandMap.values()));
+            setLiveBrands(brandsList);
           }
         },
         (err) => console.warn("Firestore brands snapshot warning:", err)
@@ -261,7 +242,17 @@ export default function CategoriesSection({
           b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
         return assigned.includes(activeDeptSlug);
       })
-      .sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
+      .sort((a, b) => {
+        const orderA =
+          a.department_order?.[activeDeptSlug] ??
+          (a as any).department_orders?.[activeDeptSlug] ??
+          Number(a.sort_order ?? a.order ?? 999);
+        const orderB =
+          b.department_order?.[activeDeptSlug] ??
+          (b as any).department_orders?.[activeDeptSlug] ??
+          Number(b.sort_order ?? b.order ?? 999);
+        return orderA - orderB;
+      });
   }, [liveBrands, activeDeptSlug]);
 
   const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 12);

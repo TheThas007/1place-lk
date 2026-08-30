@@ -250,7 +250,22 @@ export default function MegaMenu({
                 >
                   {col.resolvedItems.map((item, itemIdx) => {
                     const isBold = item.bold ?? isFirstCol;
-                    const isExternal = item.href.startsWith("http");
+                    let targetHref = item.href?.trim() || "";
+                    if (!targetHref || targetHref === "#") {
+                      if (item.destinationType === "category" && item.destinationId) {
+                        targetHref = `/products?category=${encodeURIComponent(item.destinationId)}`;
+                      } else if (item.destinationType === "brand" && item.destinationId) {
+                        targetHref = `/products?brand=${encodeURIComponent(item.destinationId)}`;
+                      } else if (item.destinationType === "product" && item.destinationId) {
+                        targetHref = `/products/${encodeURIComponent(item.destinationId)}`;
+                      } else if (item.label) {
+                        const s = item.label.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+                        targetHref = `/products?category=${encodeURIComponent(s)}`;
+                      } else {
+                        targetHref = "/products";
+                      }
+                    }
+                    const isExternal = targetHref.startsWith("http");
 
                     const itemClass = `group relative inline-flex items-center justify-between gap-2.5 py-0.5 transition-all duration-150 rounded-lg outline-none ${
                       isBold
@@ -293,7 +308,7 @@ export default function MegaMenu({
                     return isExternal ? (
                       <a
                         key={item.id || `item-${colIdx}-${itemIdx}`}
-                        href={item.href}
+                        href={targetHref}
                         target={item.openInNewTab ? "_blank" : undefined}
                         rel="noopener noreferrer"
                         onClick={onClose}
@@ -311,7 +326,7 @@ export default function MegaMenu({
                     ) : (
                       <Link
                         key={item.id || `item-${colIdx}-${itemIdx}`}
-                        href={item.href}
+                        href={targetHref}
                         target={item.openInNewTab ? "_blank" : undefined}
                         onClick={onClose}
                         onMouseEnter={hoverEffectHandler}

@@ -1712,10 +1712,10 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {[
-                  { id: "deal-ended", label: 'Show "Deal Ended"', desc: "Displays closed deal status" },
-                  { id: "hide", label: "Hide Complete Section", desc: "Leaves no empty whitespace" },
-                  { id: "replacement-cta", label: "Replace with Another CTA", desc: "Swaps button link & label" },
-                  { id: "keep-banner", label: "Keep Banner Visible", desc: "Hides timer only" },
+                  { id: "hide", label: "Hide Complete Section (Recommended)", desc: "Automatically removes section without leaving any empty whitespace" },
+                  { id: "deal-ended", label: 'Show "Deal Ended"', desc: "Keeps banner visible with closed deal status" },
+                  { id: "replacement-cta", label: "Replace with Another CTA", desc: "Swaps button link & label to browse catalog" },
+                  { id: "keep-banner", label: "Keep Banner Visible", desc: "Hides timer only, banner stays clickable" },
                 ].map((item) => (
                   <button
                     key={item.id}

@@ -230,9 +230,15 @@ export default function ProductsTab({
       } else if (selectedShowcaseFilter === "discounted") {
         matchesShowcase = Boolean(p.old_price && p.old_price > p.price);
       } else if (selectedShowcaseFilter === "low_stock") {
-        matchesShowcase = p.stock_status === "low_stock" || (p.stock_quantity !== undefined && p.stock_quantity > 0 && p.stock_quantity <= 5);
+        const qty = p.variant_combos && p.variant_combos.length > 0
+          ? p.variant_combos.reduce((s, v) => s + (Number(v.stock_quantity) || 0), 0)
+          : Number(p.stock_quantity ?? p.stock_count ?? (p as any).stock ?? 0);
+        matchesShowcase = p.stock_status === "low_stock" || (qty > 0 && qty <= 5);
       } else if (selectedShowcaseFilter === "out_of_stock") {
-        matchesShowcase = p.stock_status === "out_of_stock" || p.stock_quantity === 0;
+        const qty = p.variant_combos && p.variant_combos.length > 0
+          ? p.variant_combos.reduce((s, v) => s + (Number(v.stock_quantity) || 0), 0)
+          : Number(p.stock_quantity ?? p.stock_count ?? (p as any).stock ?? 0);
+        matchesShowcase = p.stock_status === "out_of_stock" || qty === 0;
       }
 
       const query = searchQuery.toLowerCase().trim();
@@ -917,7 +923,9 @@ export default function ProductsTab({
                                 {brandProducts.map((product) => {
                                   const isSelected = selectedProductIds.includes(product.id);
                                   const hasVariants = Boolean(product.has_variants && product.variant_combos?.length);
-                                  const stockQty = product.stock_quantity ?? 0;
+                                  const stockQty = product.variant_combos && product.variant_combos.length > 0
+                                    ? product.variant_combos.reduce((sum, v) => sum + (Number(v.stock_quantity) || 0), 0)
+                                    : Number(product.stock_quantity ?? product.stock_count ?? (product as any).stock ?? 0);
                                   const isEditingStock = editingStockId === product.id;
                                   const isFeatured = Boolean(product.featured);
                                   const isNew = Boolean(product.is_new_arrival);

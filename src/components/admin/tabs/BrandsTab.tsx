@@ -58,6 +58,7 @@ import {
 } from "lucide-react";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 import DepartmentBrandHero from "@/components/brand/DepartmentBrandHero";
+import { getDeptPrefix, formatDeptOrderCode, parseDeptOrderNumber } from "@/lib/utils";
 
 const BRAND_LOGO_PRESETS = [
   { name: "Apple", logo: "https://cdn.simpleicons.org/apple/000000" },
@@ -436,6 +437,8 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         show_on_homepage: formData.show_on_homepage !== false,
         featured: Boolean(formData.featured),
         order: Number(formData.order) || 1,
+        sort_order: Number(formData.order) || 1,
+        department_order: formData.department_order || {},
         seo_title: formData.seo_title || `${formData.name.trim()} Products | Street Mobile`,
         seo_description: formData.seo_description || "",
         updatedAt: new Date().toISOString(),
@@ -500,12 +503,29 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
     }
   };
 
-  const handleUpdateBrandOrder = async (brand: Brand, newOrder: number) => {
+  const handleUpdateBrandOrder = async (brand: Brand, newOrder: number, deptSlug?: string) => {
+    let updatedBrand: Brand;
+    if (deptSlug && deptSlug !== "all") {
+      const newDeptOrder = {
+        ...(brand.department_order || {}),
+        [deptSlug]: newOrder,
+      };
+      updatedBrand = {
+        ...brand,
+        department_order: newDeptOrder,
+      };
+    } else {
+      updatedBrand = {
+        ...brand,
+        order: newOrder,
+        sort_order: newOrder,
+      };
+    }
     setBrands((prev) =>
-      prev.map((b) => (b.id === brand.id ? { ...b, order: newOrder, sort_order: newOrder } : b))
+      prev.map((b) => (b.id === brand.id ? updatedBrand : b))
     );
     try {
-      await saveBrandToDb({ ...brand, order: newOrder, sort_order: newOrder });
+      await saveBrandToDb(updatedBrand);
     } catch (e) {
       console.error("Failed to update brand order:", e);
     }
@@ -527,7 +547,14 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         }
         return true;
       })
-      .sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
+      .sort((a, b) => {
+        if (selectedDeptFilter !== "all") {
+          const orderA = a.department_order?.[selectedDeptFilter] ?? a.sort_order ?? a.order ?? 999;
+          const orderB = b.department_order?.[selectedDeptFilter] ?? b.sort_order ?? b.order ?? 999;
+          return Number(orderA) - Number(orderB);
+        }
+        return Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999);
+      });
   }, [brands, selectedDeptFilter, searchQuery]);
 
   const activeDepartment =
@@ -624,7 +651,11 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
           <table className="w-full text-left text-xs text-white/80">
             <thead className="bg-black/40 text-white/40 uppercase tracking-widest text-[10px] font-bold border-b border-white/10">
               <tr>
-                <th className="py-3 px-3 w-20 text-center">Order #</th>
+                <th className="py-3 px-3 w-28 text-center">
+                  {selectedDeptFilter !== "all"
+                    ? `${departments.find((d) => d.slug === selectedDeptFilter)?.name || selectedDeptFilter} Order #`
+                    : "Order #"}
+                </th>
                 <th className="py-3 px-5">Brand</th>
                 <th className="py-3 px-4">Slug</th>
                 <th className="py-3 px-4">Assigned Departments</th>
@@ -636,22 +667,63 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
             <tbody className="divide-y divide-white/5">
               {filteredBrands.map((brand) => {
                 const depts = brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
+                const currentOrder =
+                  selectedDeptFilter !== "all"
+                    ? (brand.department_order?.[selectedDeptFilter] ?? brand.sort_order ?? brand.order ?? 1)
+                    : (brand.sort_order ?? brand.order ?? 1);
                 return (
                   <tr key={brand.id} className="hover:bg-white/5 transition-colors">
                     <td className="py-3 px-3 text-center">
-                      <input
-                        type="number"
-                        min="1"
-                        value={brand.sort_order ?? brand.order ?? 1}
-                        onChange={(e) => {
-                          const val = parseInt(e.target.value, 10);
-                          if (!isNaN(val) && val >= 1) {
-                            handleUpdateBrandOrder(brand, val);
-                          }
-                        }}
-                        className="w-14 bg-black/50 border border-white/20 hover:border-red-500 focus:border-red-500 px-2 py-1 rounded-xl text-white font-mono font-black text-center text-xs outline-none transition-all shadow-inner"
-                        title="Edit display order (1 = first logo on homepage)"
-                      />
+                      {selectedDeptFilter !== "all" ? (
+                        <div className="flex items-center justify-center gap-1">
+                          <span
+                            className={`px-1.5 py-0.5 rounded font-mono font-black text-[11px] border ${
+                              selectedDeptFilter === "phones"
+                                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                : selectedDeptFilter === "laptops-tablets"
+                                ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            }`}
+                          >
+                            {getDeptPrefix(selectedDeptFilter)}
+                          </span>
+                          <input
+                            type="number"
+                            min="1"
+                            value={currentOrder}
+                            onChange={(e) => {
+                              const val = parseInt(e.target.value, 10);
+                              if (!isNaN(val) && val >= 1) {
+                                handleUpdateBrandOrder(brand, val, selectedDeptFilter);
+                              }
+                            }}
+                            className="w-12 bg-black/50 border border-white/20 hover:border-red-500 focus:border-red-500 px-1.5 py-1 rounded-xl text-white font-mono font-black text-center text-xs outline-none transition-all shadow-inner"
+                            title={`Edit ${formatDeptOrderCode(selectedDeptFilter, currentOrder)} position`}
+                          />
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-center gap-1 flex-wrap">
+                          {depts.map((dSlug) => {
+                            const orderNum = brand.department_order?.[dSlug] ?? brand.sort_order ?? brand.order ?? 1;
+                            const prefix = getDeptPrefix(dSlug);
+                            return (
+                              <span
+                                key={dSlug}
+                                className={`px-1.5 py-0.5 rounded font-mono font-black text-[10px] border ${
+                                  dSlug === "phones"
+                                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                    : dSlug === "laptops-tablets"
+                                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                    : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                }`}
+                                title={`${dSlug}: ${prefix}${orderNum}`}
+                              >
+                                {prefix}{orderNum}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      )}
                     </td>
                     <td className="py-3 px-5">
                       <div className="flex items-center gap-3">
@@ -1001,7 +1073,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
               {modalSubTab === "departments" && (
                 <div className="space-y-4">
                   <p className="text-xs text-white/60">
-                    Select which store departments this brand belongs to. The brand will appear in the Shop by Brand section under every selected department.
+                    Select which store departments this brand belongs to and set its specific display sequence order for each department.
                   </p>
 
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1011,25 +1083,67 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         <div
                           key={dept.slug}
                           onClick={() => handleToggleDepartment(dept.slug)}
-                          className={`p-4 rounded-2xl border transition-all cursor-pointer select-none flex items-start gap-3 ${
+                          className={`p-4 rounded-2xl border transition-all cursor-pointer select-none flex flex-col justify-between ${
                             isAssigned
                               ? "bg-blue-600/10 border-blue-500/40 text-white shadow-lg"
                               : "bg-white/5 border-white/10 text-white/50 hover:border-white/20"
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isAssigned}
-                            onChange={() => {}}
-                            className="accent-blue-600 mt-1 rounded cursor-pointer"
-                          />
-                          <div>
-                            <h4 className="font-extrabold text-sm text-white">{dept.name}</h4>
-                            <p className="text-[11px] text-white/50 mt-1">{dept.description}</p>
-                            <span className="inline-block text-[10px] font-mono text-blue-400 mt-2">
-                              /shop-by-brand/{dept.slug}/{formData.slug || "brand"}
-                            </span>
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={isAssigned}
+                              onChange={() => {}}
+                              className="accent-blue-600 mt-1 rounded cursor-pointer"
+                            />
+                            <div>
+                              <h4 className="font-extrabold text-sm text-white">{dept.name}</h4>
+                              <p className="text-[11px] text-white/50 mt-1">{dept.description}</p>
+                              <span className="inline-block text-[10px] font-mono text-blue-400 mt-2">
+                                /shop-by-brand/{dept.slug}/{formData.slug || "brand"}
+                              </span>
+                            </div>
                           </div>
+
+                          {isAssigned && (
+                            <div
+                              className="mt-3 pt-3 border-t border-white/10 flex items-center justify-between gap-2"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <span className="text-[11px] font-bold text-white/80">Order in {dept.name}:</span>
+                              <div className="flex items-center gap-1">
+                                <span
+                                  className={`px-1.5 py-0.5 rounded font-mono font-black text-[11px] border ${
+                                    dept.slug === "phones"
+                                      ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
+                                      : dept.slug === "laptops-tablets"
+                                      ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
+                                      : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                                  }`}
+                                >
+                                  {getDeptPrefix(dept.slug)}
+                                </span>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  value={formData.department_order?.[dept.slug] ?? formData.order ?? 1}
+                                  onChange={(e) => {
+                                    const val = parseInt(e.target.value, 10) || 1;
+                                    setFormData({
+                                      ...formData,
+                                      department_order: {
+                                        ...(formData.department_order || {}),
+                                        [dept.slug]: val,
+                                      },
+                                    });
+                                    setHasUnsavedChanges(true);
+                                  }}
+                                  className="w-14 bg-black/60 border border-white/20 hover:border-blue-400 focus:border-blue-500 px-2 py-1 rounded-lg text-white font-mono font-bold text-center text-xs outline-none"
+                                  title={`Order position in ${dept.name} (${getDeptPrefix(dept.slug)}${formData.department_order?.[dept.slug] ?? formData.order ?? 1})`}
+                                />
+                              </div>
+                            </div>
+                          )}
                         </div>
                       );
                     })}

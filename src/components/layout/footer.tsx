@@ -3,7 +3,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, useScroll, useTransform, useSpring } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 import { DEFAULT_FOOTER_SETTINGS } from "@/lib/data";
@@ -91,33 +90,6 @@ function HomePageFooter() {
     }
   }, []);
 
-  // Scroll-linked dynamic theme morphing: White -> Jet Black with premium fluid transition
-  const { scrollYProgress } = useScroll({
-    target: footerRef,
-    offset: ["start 96%", "start 38%"],
-  });
-
-  const smoothProgress = useSpring(scrollYProgress, { stiffness: 100, damping: 24, restDelta: 0.001 });
-
-  // Background and color morphing values
-  const bgGrad = useTransform(
-    smoothProgress,
-    [0, 0.5, 1],
-    ["#FFFFFF", "#18181B", "#090909"]
-  );
-  const primaryText = useTransform(smoothProgress, [0, 1], ["#090909", "#FFFFFF"]);
-  const secondaryText = useTransform(smoothProgress, [0, 1], ["#52525B", "rgba(255, 255, 255, 0.65)"]);
-  const borderCol = useTransform(smoothProgress, [0, 1], ["rgba(0, 0, 0, 0.1)", "rgba(255, 255, 255, 0.14)"]);
-  const socialBorderCol = useTransform(smoothProgress, [0, 1], ["rgba(0, 0, 0, 0.14)", "rgba(255, 255, 255, 0.18)"]);
-  const socialIconCol = useTransform(smoothProgress, [0, 1], ["#18181B", "#FFFFFF"]);
-
-  // Smooth logo brightness & invert transition (Black on White -> White on Black)
-  const logoFilter = useTransform(
-    smoothProgress,
-    [0, 0.5, 1],
-    ["brightness(0) invert(0)", "brightness(0.6) invert(0.5)", "brightness(0) invert(1)"]
-  );
-
   if (settings.enabled === false) {
     return null;
   }
@@ -126,122 +98,117 @@ function HomePageFooter() {
   const helpLinks = settings.help_links && settings.help_links.length > 0 ? settings.help_links : DEFAULT_FOOTER_SETTINGS.help_links;
   const policyLinks = settings.policy_links && settings.policy_links.length > 0 ? settings.policy_links : DEFAULT_FOOTER_SETTINGS.policy_links;
 
+  const desktopLogoWidth =
+    settings.logo_size === "small"
+      ? "150px"
+      : settings.logo_size === "medium"
+      ? "175px"
+      : "200px";
+
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Scroll-linked Dynamic Transition Footer ── */}
-      <motion.footer
+      {/* ── Mobile Layout (< 768px): Solid Dark Theme Footer ── */}
+      <footer
         ref={footerRef}
-        style={{ backgroundColor: bgGrad, color: primaryText }}
-        className="md:hidden w-full px-4 pt-8 pb-24 border-t border-neutral-200/80 font-outfit select-none transition-colors duration-200"
+        className="md:hidden w-full bg-[#090909] text-white px-4 pt-8 pb-24 border-t border-white/10 font-outfit select-none"
       >
         <div className="flex flex-col gap-6 max-w-md mx-auto">
           {/* Logo & Description */}
           <div>
-            <Link href="/" className="inline-block mb-3.5">
-              <motion.img
+            <Link href="/" className="inline-block mb-3.5 group">
+              <img
                 src={settings.logo_url || "/logo.png"}
                 alt="Street Mobile"
                 loading="lazy"
-                style={{ filter: logoFilter }}
-                className="w-[140px] max-w-[150px] h-auto object-contain object-left block opacity-100 transition-all duration-300"
+                className="w-[140px] max-w-[150px] h-auto max-h-[50px] object-contain object-left block opacity-100 group-hover:opacity-90 transition-opacity duration-200"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/logo.png";
                 }}
               />
             </Link>
-            <motion.p style={{ color: secondaryText }} className="text-xs leading-relaxed max-w-xs">
+            <p className="text-white/65 text-xs leading-relaxed max-w-xs">
               {settings.description || "Your trusted destination for the latest smartphones and accessories."}
-            </motion.p>
+            </p>
 
             {/* Social Icons */}
             <div className="flex items-center gap-3 mt-4">
               {settings.facebook_enabled !== false && settings.facebook_url && (
-                <motion.a
+                <a
                   href={settings.facebook_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
-                  style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                  className="w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95"
+                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
                 >
                   <FacebookIcon className="w-4 h-4" />
-                </motion.a>
+                </a>
               )}
               {settings.instagram_enabled !== false && settings.instagram_url && (
-                <motion.a
+                <a
                   href={settings.instagram_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
-                  style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                  className="w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95"
+                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
                 >
                   <InstagramIcon className="w-4 h-4" />
-                </motion.a>
+                </a>
               )}
               {settings.tiktok_enabled !== false && settings.tiktok_url && (
-                <motion.a
+                <a
                   href={settings.tiktok_url}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="TikTok"
-                  style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                  className="w-9 h-9 rounded-xl border flex items-center justify-center transition-all duration-200 active:scale-95"
+                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
                 >
                   <TikTokIcon className="w-4 h-4" />
-                </motion.a>
+                </a>
               )}
             </div>
           </div>
 
           {/* 2-Column Links: Shop & Help */}
-          <motion.div style={{ borderColor: borderCol }} className="grid grid-cols-2 gap-4 text-xs pt-4 border-t">
+          <div className="grid grid-cols-2 gap-4 text-xs pt-4 border-t border-white/10">
             {/* Shop Links */}
             <div>
-              <motion.span style={{ color: primaryText }} className="font-bold uppercase text-[10px] tracking-wider block mb-2.5">
+              <span className="font-bold uppercase text-[10px] tracking-wider block mb-2.5 text-white">
                 Shop
-              </motion.span>
+              </span>
               <div className="flex flex-col space-y-2 text-[11px]">
                 {shopLinks.slice(0, 5).map((l) => (
-                  <motion.div key={l.id || l.href}>
-                    <Link href={l.href} className="hover:text-red-500 transition-colors">
-                      <motion.span style={{ color: secondaryText }} className="hover:text-red-500">
-                        {l.label}
-                      </motion.span>
+                  <div key={l.id || l.href}>
+                    <Link href={l.href} className="text-white/65 hover:text-red-500 transition-colors">
+                      {l.label}
                     </Link>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
 
             {/* Help Links */}
             <div>
-              <motion.span style={{ color: primaryText }} className="font-bold uppercase text-[10px] tracking-wider block mb-2.5">
+              <span className="font-bold uppercase text-[10px] tracking-wider block mb-2.5 text-white">
                 Help
-              </motion.span>
+              </span>
               <div className="flex flex-col space-y-2 text-[11px]">
                 {helpLinks.slice(0, 5).map((l) => (
-                  <motion.div key={l.id || l.href}>
-                    <Link href={l.href} className="hover:text-red-500 transition-colors">
-                      <motion.span style={{ color: secondaryText }} className="hover:text-red-500">
-                        {l.label}
-                      </motion.span>
+                  <div key={l.id || l.href}>
+                    <Link href={l.href} className="text-white/65 hover:text-red-500 transition-colors">
+                      {l.label}
                     </Link>
-                  </motion.div>
+                  </div>
                 ))}
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Copyright & Dev Credit */}
-          <motion.div
-            style={{ borderColor: borderCol }}
-            className="pt-4 border-t flex flex-col gap-1.5 text-[10px]"
-          >
-            <motion.p style={{ color: secondaryText }}>
+          <div className="pt-4 border-t border-white/10 flex flex-col gap-1.5 text-[10px] text-white/60">
+            <p>
               {settings.copyright_text || `© ${new Date().getFullYear()} Street Mobile. All rights reserved.`}
-            </motion.p>
-            <motion.p style={{ color: secondaryText }}>
+            </p>
+            <p>
               Designed &amp; Developed by{" "}
               <a
                 href={
@@ -251,19 +218,18 @@ function HomePageFooter() {
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold underline"
+                className="font-bold underline text-white"
               >
                 {settings.developer_credit_text.replace(/Designed & Developed by /gi, "") || "Aevonix"}
               </a>
-            </motion.p>
-          </motion.div>
+            </p>
+          </div>
         </div>
-      </motion.footer>
+      </footer>
 
-      {/* ── Desktop Layout: Premium Scroll-Linked White -> Jet Black Theme Morphing Footer ── */}
-      <motion.footer
-        style={{ backgroundColor: bgGrad, color: primaryText }}
-        className="hidden md:block w-full border-0 rounded-none shadow-none font-outfit select-none relative z-20 pb-16 lg:pb-0 transition-colors duration-300"
+      {/* ── Desktop Layout: Premium Solid Jet Black Footer ── */}
+      <footer
+        className="hidden md:block w-full bg-[#090909] text-white border-t border-white/10 rounded-none shadow-none font-outfit select-none relative z-20 pb-16 lg:pb-0"
         role="contentinfo"
       >
         {/* ── Main Footer Container (max-w: 1320px, 4-Column Layout with Subtle Stagger) ── */}
@@ -276,56 +242,39 @@ function HomePageFooter() {
                 href="/"
                 className="inline-block group focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm select-none"
                 style={{
-                  width:
-                    settings.logo_size === "small"
-                      ? "clamp(220px, 18vw, 270px)"
-                      : settings.logo_size === "medium"
-                      ? "clamp(280px, 24vw, 360px)"
-                      : "clamp(340px, 30vw, 440px)",
+                  width: desktopLogoWidth,
                   height: "auto",
                   display: "block",
                 }}
               >
-                <motion.img
+                <img
                   src={settings.logo_url || "/logo.png"}
                   alt="Street Mobile"
                   loading="lazy"
-                  style={{ filter: logoFilter }}
-                  className="w-full h-auto max-h-[110px] sm:max-h-[130px] object-contain object-left block opacity-100 group-hover:opacity-95 transition-all duration-300"
+                  className="w-full h-auto max-h-[64px] object-contain object-left block opacity-100 group-hover:opacity-90 transition-opacity duration-200"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/logo.png";
                   }}
                 />
               </Link>
-              <motion.p
-                style={{ color: secondaryText }}
-                className="mt-6 text-sm leading-[1.65] font-normal"
-              >
+              <p className="mt-6 text-sm leading-[1.65] font-normal text-white/65">
                 {settings.description || "Genuine mobiles, premium accessories and trusted service—all in one place."}
-              </motion.p>
+              </p>
             </div>
 
             {/* ── Column 2: Shop ── */}
             <div data-reveal-item className="flex flex-col items-start">
-              <motion.h4
-                style={{ color: primaryText }}
-                className="text-xs font-bold uppercase tracking-[0.1em] mb-4"
-              >
+              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
                 Shop
-              </motion.h4>
+              </h4>
               <nav className="flex flex-col space-y-3" aria-label="Shop Navigation">
                 {shopLinks.map((item) => (
                   <Link
                     key={item.id || item.href}
                     href={item.href}
-                    className="group relative text-sm inline-flex items-center transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
+                    className="group relative text-sm inline-flex items-center text-white/65 hover:text-red-500 transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
                   >
-                    <motion.span
-                      style={{ color: secondaryText }}
-                      className="group-hover:text-red-500 transition-colors duration-200"
-                    >
-                      {item.label}
-                    </motion.span>
+                    <span>{item.label}</span>
                   </Link>
                 ))}
               </nav>
@@ -333,25 +282,17 @@ function HomePageFooter() {
 
             {/* ── Column 3: Help ── */}
             <div data-reveal-item className="flex flex-col items-start">
-              <motion.h4
-                style={{ color: primaryText }}
-                className="text-xs font-bold uppercase tracking-[0.1em] mb-4"
-              >
+              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
                 Help
-              </motion.h4>
+              </h4>
               <nav className="flex flex-col space-y-3" aria-label="Help Navigation">
                 {helpLinks.map((item) => (
                   <Link
                     key={item.id || item.href}
                     href={item.href}
-                    className="group relative text-sm inline-flex items-center transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
+                    className="group relative text-sm inline-flex items-center text-white/65 hover:text-red-500 transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
                   >
-                    <motion.span
-                      style={{ color: secondaryText }}
-                      className="group-hover:text-red-500 transition-colors duration-200"
-                    >
-                      {item.label}
-                    </motion.span>
+                    <span>{item.label}</span>
                   </Link>
                 ))}
               </nav>
@@ -359,55 +300,49 @@ function HomePageFooter() {
 
             {/* ── Column 4: Follow Us ── */}
             <div data-reveal-item className="flex flex-col items-start">
-              <motion.h4
-                style={{ color: primaryText }}
-                className="text-xs font-bold uppercase tracking-[0.1em] mb-4"
-              >
+              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
                 Follow Us
-              </motion.h4>
+              </h4>
               
               {/* Social Buttons Row */}
               <div className="flex items-center gap-3">
                 {/* Instagram */}
                 {settings.instagram_enabled !== false && settings.instagram_url && (
-                  <motion.a
+                  <a
                     href={settings.instagram_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Follow Street Mobile on Instagram"
-                    style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                    className="w-10 h-10 rounded-[10px] border flex items-center justify-center transition-all duration-200 hover:border-[#E1306C] hover:text-[#E1306C] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
+                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#E1306C] hover:text-[#E1306C] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
                   >
                     <InstagramIcon className="w-5 h-5" />
-                  </motion.a>
+                  </a>
                 )}
 
                 {/* TikTok */}
                 {settings.tiktok_enabled !== false && settings.tiktok_url && (
-                  <motion.a
+                  <a
                     href={settings.tiktok_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Follow Street Mobile on TikTok"
-                    style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                    className="w-10 h-10 rounded-[10px] border flex items-center justify-center transition-all duration-200 hover:border-[#00F2FE] hover:text-[#00F2FE] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
+                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#00F2FE] hover:text-[#00F2FE] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
                   >
                     <TikTokIcon className="w-5 h-5" />
-                  </motion.a>
+                  </a>
                 )}
 
                 {/* Facebook */}
                 {settings.facebook_enabled !== false && settings.facebook_url && (
-                  <motion.a
+                  <a
                     href={settings.facebook_url}
                     target="_blank"
                     rel="noopener noreferrer"
                     aria-label="Follow Street Mobile on Facebook"
-                    style={{ borderColor: socialBorderCol, color: socialIconCol }}
-                    className="w-10 h-10 rounded-[10px] border flex items-center justify-center transition-all duration-200 hover:border-[#1877F2] hover:text-[#1877F2] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
+                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#1877F2] hover:text-[#1877F2] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
                   >
                     <FacebookIcon className="w-5 h-5" />
-                  </motion.a>
+                  </a>
                 )}
               </div>
             </div>
@@ -416,19 +351,13 @@ function HomePageFooter() {
         </ScrollReveal>
 
         {/* ── Bottom Footer Bar with Divider ── */}
-        <motion.div
-          style={{ borderColor: borderCol }}
-          className="w-full border-t"
-        >
-          <div className="max-w-[1320px] mx-auto px-6 py-7 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-normal">
+        <div className="w-full border-t border-white/10">
+          <div className="max-w-[1320px] mx-auto px-6 py-7 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-normal text-white/60">
             
             {/* Left: Copyright */}
-            <motion.p
-              style={{ color: secondaryText }}
-              className="m-0 text-center md:text-left"
-            >
+            <p className="m-0 text-center md:text-left">
               {settings.copyright_text || `© ${new Date().getFullYear()} Street Mobile. All rights reserved.`}
-            </motion.p>
+            </p>
 
             {/* Centre / Right: Policy Links */}
             <div className="flex items-center flex-wrap justify-center gap-6">
@@ -436,20 +365,15 @@ function HomePageFooter() {
                 <Link
                   key={item.id || item.href}
                   href={item.href}
-                  className="transition-colors duration-200 hover:text-red-500 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
+                  className="text-white/60 transition-colors duration-200 hover:text-red-500 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
                 >
-                  <motion.span style={{ color: secondaryText }} className="hover:text-red-500">
-                    {item.label}
-                  </motion.span>
+                  {item.label}
                 </Link>
               ))}
             </div>
 
             {/* Right: Developer Credit */}
-            <motion.p
-              style={{ color: secondaryText }}
-              className="m-0 text-center md:text-right"
-            >
+            <p className="m-0 text-center md:text-right">
               Designed &amp; Developed by{" "}
               <a
                 href={
@@ -459,15 +383,15 @@ function HomePageFooter() {
                 }
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-medium underline underline-offset-2 transition-all focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
+                className="font-medium underline underline-offset-2 text-white/80 hover:text-white transition-all focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
               >
                 {settings.developer_credit_text.replace(/Designed & Developed by /gi, "") || "Aevonix"}
               </a>
-            </motion.p>
+            </p>
 
           </div>
-        </motion.div>
-      </motion.footer>
+        </div>
+      </footer>
     </>
   );
 }

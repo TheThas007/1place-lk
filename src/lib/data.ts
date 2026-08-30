@@ -34,22 +34,24 @@ export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
       sourceMode: "mixed",
       dynamicSource: "categories",
       sortBy: "manual",
-      maximumItems: 12,
+      maximumItems: 14,
       hideEmptyItems: false,
       width: 4,
       order: 1,
       items: [
         { id: "item-all", enabled: true, label: "Shop All Products", destinationType: "custom", href: "/products", bold: true, featured: true, order: 1 },
         { id: "item-smartphones", enabled: true, label: "Smartphones", destinationType: "category", href: "/products?category=smartphones", bold: true, order: 2 },
-        { id: "item-buds", enabled: true, label: "Buds", destinationType: "category", href: "/products?category=earbuds", bold: true, order: 3 },
-        { id: "item-cable", enabled: true, label: "Cable", destinationType: "category", href: "/products?category=charging-cables", bold: true, order: 4 },
-        { id: "item-display", enabled: true, label: "DISPLAY", destinationType: "category", href: "/products?category=displays", bold: true, order: 5 },
-        { id: "item-gimbal", enabled: true, label: "Gimbal", destinationType: "category", href: "/products?category=gimbals", bold: true, order: 6 },
-        { id: "item-headphone", enabled: true, label: "HEADPHONE", destinationType: "category", href: "/products?category=headphones", bold: true, order: 7 },
-        { id: "item-keyboard", enabled: true, label: "KEYBOARD", destinationType: "category", href: "/products?category=keyboards", bold: true, order: 8 },
-        { id: "item-laptops", enabled: true, label: "Laptops & MacBook", destinationType: "category", href: "/products?category=laptops-tablets", bold: true, order: 9 },
-        { id: "item-tab", enabled: true, label: "TAB", destinationType: "category", href: "/products?category=tablets", bold: true, order: 10 },
-        { id: "item-otg", enabled: true, label: "OTG", destinationType: "category", href: "/products?category=adapters", bold: true, order: 11 },
+        { id: "item-buds", enabled: true, label: "Buds & TWS", destinationType: "category", href: "/products?category=earbuds", bold: true, order: 3 },
+        { id: "item-cable", enabled: true, label: "Charging Cables", destinationType: "category", href: "/products?category=charging-cables", bold: true, order: 4 },
+        { id: "item-chargers", enabled: true, label: "Chargers & Adapters", destinationType: "category", href: "/products?category=chargers-adapters", bold: true, order: 5 },
+        { id: "item-powerbanks", enabled: true, label: "Power Banks", destinationType: "category", href: "/products?category=power-banks", bold: true, order: 6 },
+        { id: "item-laptops", enabled: true, label: "Laptops & MacBook", destinationType: "category", href: "/products?category=laptops-tablets", bold: true, order: 7 },
+        { id: "item-tab", enabled: true, label: "Tablets & iPads", destinationType: "category", href: "/products?category=tablets", bold: true, order: 8 },
+        { id: "item-watches", enabled: true, label: "Smart Watches", destinationType: "category", href: "/products?category=smart-watches", bold: true, order: 9 },
+        { id: "item-headphones", enabled: true, label: "Headphones & Audio", destinationType: "category", href: "/products?category=headphones", bold: true, order: 10 },
+        { id: "item-keyboards", enabled: true, label: "Keyboards & Mouse", destinationType: "category", href: "/products?category=keyboards", bold: true, order: 11 },
+        { id: "item-gimbals", enabled: true, label: "Gimbals & Tripods", destinationType: "category", href: "/products?category=gimbals", bold: true, order: 12 },
+        { id: "item-otg", enabled: true, label: "OTG & Storage", destinationType: "category", href: "/products?category=otg", bold: true, order: 13 },
       ],
     },
     {
@@ -145,6 +147,128 @@ export const siteSettings: SiteSettings = {
   },
 };
 
+// ===== Official Brand Campaign Banners (/images/dwed/) =====
+export const BRAND_DEFAULT_CAMPAIGN_BANNERS: Record<string, Record<string, string>> = {
+  apple: {
+    phones: "/images/dwed/apple-phone.PNG",
+    "laptops-tablets": "/images/dwed/apple-phone.PNG",
+    accessories: "/images/dwed/apple-phone.PNG",
+    default: "/images/dwed/apple-phone.PNG",
+  },
+  samsung: {
+    phones: "/images/dwed/samsung-phone.PNG",
+    "laptops-tablets": "/images/dwed/samsung-phone.PNG",
+    accessories: "/images/dwed/samsung-phone.PNG",
+    default: "/images/dwed/samsung-phone.PNG",
+  },
+  oneplus: {
+    phones: "/images/dwed/1+-phone.PNG",
+    accessories: "/images/dwed/1+-phone.PNG",
+    default: "/images/dwed/1+-phone.PNG",
+  },
+  "1+": {
+    phones: "/images/dwed/1+-phone.PNG",
+    accessories: "/images/dwed/1+-phone.PNG",
+    default: "/images/dwed/1+-phone.PNG",
+  },
+  xiaomi: {
+    phones: "/images/dwed/xiomi.PNG",
+    accessories: "/images/dwed/xiomi.PNG",
+    default: "/images/dwed/xiomi.PNG",
+  },
+  xiomi: {
+    phones: "/images/dwed/xiomi.PNG",
+    accessories: "/images/dwed/xiomi.PNG",
+    default: "/images/dwed/xiomi.PNG",
+  },
+  anker: {
+    accessories: "/images/dwed/anker.PNG",
+    default: "/images/dwed/anker.PNG",
+  },
+  aspor: {
+    accessories: "/images/dwed/aspor.PNG",
+    default: "/images/dwed/aspor.PNG",
+  },
+  baseus: {
+    accessories: "/images/dwed/basesus.PNG",
+    default: "/images/dwed/basesus.PNG",
+  },
+  basesus: {
+    accessories: "/images/dwed/basesus.PNG",
+    default: "/images/dwed/basesus.PNG",
+  },
+  brodo: {
+    accessories: "/images/dwed/brodo.PNG",
+    default: "/images/dwed/brodo.PNG",
+  },
+  bugani: {
+    accessories: "/images/dwed/bugani.PNG",
+    default: "/images/dwed/bugani.PNG",
+  },
+  cmf: {
+    phones: "/images/dwed/cmf.PNG",
+    accessories: "/images/dwed/cmf.PNG",
+    default: "/images/dwed/cmf.PNG",
+  },
+  "cmf-by-nothing": {
+    phones: "/images/dwed/cmf.PNG",
+    accessories: "/images/dwed/cmf.PNG",
+    default: "/images/dwed/cmf.PNG",
+  },
+  dji: {
+    accessories: "/images/dwed/dji.PNG",
+    default: "/images/dwed/dji.PNG",
+  },
+  "green-lion": {
+    accessories: "/images/dwed/greenlion.PNG",
+    default: "/images/dwed/greenlion.PNG",
+  },
+  greenlion: {
+    accessories: "/images/dwed/greenlion.PNG",
+    default: "/images/dwed/greenlion.PNG",
+  },
+  hollyland: {
+    accessories: "/images/dwed/hollyland.PNG",
+    default: "/images/dwed/hollyland.PNG",
+  },
+  jbl: {
+    accessories: "/images/dwed/jbl.PNG",
+    default: "/images/dwed/jbl.PNG",
+  },
+  lenyes: {
+    accessories: "/images/dwed/lenyce.PNG",
+    default: "/images/dwed/lenyce.PNG",
+  },
+  lenyce: {
+    accessories: "/images/dwed/lenyce.PNG",
+    default: "/images/dwed/lenyce.PNG",
+  },
+  plokama: {
+    accessories: "/images/dwed/plokama.PNG",
+    default: "/images/dwed/plokama.PNG",
+  },
+  porodo: {
+    accessories: "/images/dwed/porodo.PNG",
+    default: "/images/dwed/porodo.PNG",
+  },
+  soundcore: {
+    accessories: "/images/dwed/soundcore.PNG",
+    default: "/images/dwed/soundcore.PNG",
+  },
+  ugreen: {
+    accessories: "/images/dwed/ugreen.PNG",
+    default: "/images/dwed/ugreen.PNG",
+  },
+  wiwu: {
+    accessories: "/images/dwed/wiwu.PNG",
+    default: "/images/dwed/wiwu.PNG",
+  },
+  yesido: {
+    accessories: "/images/dwed/yesido.PNG",
+    default: "/images/dwed/yesido.PNG",
+  },
+};
+
 // ===== Brands / Manufacturers =====
 export const DEFAULT_BRANDS: Brand[] = [
   // ── Top Featured / Smartphones ──
@@ -168,27 +292,36 @@ export const DEFAULT_BRANDS: Brand[] = [
   { id: "brand-vivo", name: "Vivo", slug: "vivo", logo_url: "https://cdn.simpleicons.org/vivo/000000", product_group: "smartphones", sort_order: 16, status: "active", show_on_homepage: true },
   { id: "brand-realme", name: "Realme", slug: "realme", logo_url: "https://cdn.simpleicons.org/realme/000000", product_group: "smartphones", sort_order: 17, status: "active", show_on_homepage: true },
   { id: "brand-oneplus", name: "OnePlus", slug: "oneplus", logo_url: "https://cdn.simpleicons.org/oneplus/F5010C", product_group: "smartphones", sort_order: 18, status: "active", show_on_homepage: true },
-  { id: "brand-nokia", name: "Nokia", slug: "nokia", logo_url: "https://cdn.simpleicons.org/nokia/000000", product_group: "smartphones", sort_order: 19, status: "active", show_on_homepage: true },
-  { id: "brand-hmd", name: "HMD", slug: "hmd", logo_url: "https://icon.horse/icon/hmd.com", product_group: "smartphones", sort_order: 20, status: "active", show_on_homepage: true },
-  { id: "brand-greentel", name: "Greentel", slug: "greentel", logo_url: "https://icon.horse/icon/greentel.lk", product_group: "smartphones", sort_order: 21, status: "active", show_on_homepage: true },
+  { id: "brand-cmf", name: "CMF", slug: "cmf", logo_url: "https://icon.horse/icon/nothing.tech", product_group: "smartphones", sort_order: 19, status: "active", show_on_homepage: true },
+  { id: "brand-nokia", name: "Nokia", slug: "nokia", logo_url: "https://cdn.simpleicons.org/nokia/000000", product_group: "smartphones", sort_order: 20, status: "active", show_on_homepage: true },
+  { id: "brand-hmd", name: "HMD", slug: "hmd", logo_url: "https://icon.horse/icon/hmd.com", product_group: "smartphones", sort_order: 21, status: "active", show_on_homepage: true },
+  { id: "brand-greentel", name: "Greentel", slug: "greentel", logo_url: "https://icon.horse/icon/greentel.lk", product_group: "smartphones", sort_order: 22, status: "active", show_on_homepage: true },
 
   // ── Laptops ──
-  { id: "brand-macbook", name: "Apple MacBook", slug: "macbook", logo_url: "https://cdn.simpleicons.org/apple/000000", product_group: "laptops", sort_order: 22, status: "active", show_on_homepage: true },
-  { id: "brand-asus", name: "Asus ROG", slug: "asus", logo_url: "https://cdn.simpleicons.org/asus/000000", product_group: "laptops", sort_order: 23, status: "active", show_on_homepage: true },
-  { id: "brand-msi", name: "MSI Gaming", slug: "msi", logo_url: "https://cdn.simpleicons.org/msi/000000", product_group: "laptops", sort_order: 24, status: "active", show_on_homepage: true },
-  { id: "brand-dell", name: "Dell XPS", slug: "dell", logo_url: "https://cdn.simpleicons.org/dell/000000", product_group: "laptops", sort_order: 25, status: "active", show_on_homepage: true },
-  { id: "brand-lenovo", name: "Lenovo ThinkPad", slug: "lenovo", logo_url: "https://cdn.simpleicons.org/lenovo/000000", product_group: "laptops", sort_order: 26, status: "active", show_on_homepage: true },
+  { id: "brand-macbook", name: "Apple MacBook", slug: "macbook", logo_url: "https://cdn.simpleicons.org/apple/000000", product_group: "laptops", sort_order: 23, status: "active", show_on_homepage: true },
+  { id: "brand-asus", name: "Asus ROG", slug: "asus", logo_url: "https://cdn.simpleicons.org/asus/000000", product_group: "laptops", sort_order: 24, status: "active", show_on_homepage: true },
+  { id: "brand-msi", name: "MSI Gaming", slug: "msi", logo_url: "https://cdn.simpleicons.org/msi/000000", product_group: "laptops", sort_order: 25, status: "active", show_on_homepage: true },
+  { id: "brand-dell", name: "Dell XPS", slug: "dell", logo_url: "https://cdn.simpleicons.org/dell/000000", product_group: "laptops", sort_order: 26, status: "active", show_on_homepage: true },
+  { id: "brand-lenovo", name: "Lenovo ThinkPad", slug: "lenovo", logo_url: "https://cdn.simpleicons.org/lenovo/000000", product_group: "laptops", sort_order: 27, status: "active", show_on_homepage: true },
 
   // ── Accessories & Audio ──
-  { id: "brand-soundcore", name: "Soundcore", slug: "soundcore", logo_url: "https://icon.horse/icon/soundcore.com", product_group: "accessories", sort_order: 27, status: "active", show_on_homepage: true },
-  { id: "brand-ugreen", name: "UGREEN", slug: "ugreen", logo_url: "https://icon.horse/icon/ugreen.com", product_group: "accessories", sort_order: 28, status: "active", show_on_homepage: true },
-  { id: "brand-baseus", name: "Baseus", slug: "baseus", logo_url: "https://icon.horse/icon/baseus.com", product_group: "accessories", sort_order: 29, status: "active", show_on_homepage: true },
-  { id: "brand-dji", name: "DJI", slug: "dji", logo_url: "https://cdn.simpleicons.org/dji/000000", product_group: "accessories", sort_order: 30, status: "active", show_on_homepage: true },
-  { id: "brand-wiwu", name: "Wiwu", slug: "wiwu", logo_url: "https://icon.horse/icon/wiwu.com", product_group: "accessories", sort_order: 31, status: "active", show_on_homepage: true },
-  { id: "brand-lenyes", name: "LENYES", slug: "lenyes", logo_url: "https://icon.horse/icon/lenyes.com", product_group: "accessories", sort_order: 32, status: "active", show_on_homepage: true },
-  { id: "brand-oraimo", name: "Oraimo", slug: "oraimo", logo_url: "https://icon.horse/icon/oraimo.com", product_group: "accessories", sort_order: 33, status: "active", show_on_homepage: true },
-  { id: "brand-hoco", name: "Hoco", slug: "hoco", logo_url: "https://icon.horse/icon/hocotech.com", product_group: "accessories", sort_order: 34, status: "active", show_on_homepage: true },
-  { id: "brand-joyroom", name: "Joyroom", slug: "joyroom", logo_url: "https://icon.horse/icon/joyroom.com", product_group: "accessories", sort_order: 35, status: "active", show_on_homepage: true },
+  { id: "brand-soundcore", name: "Soundcore", slug: "soundcore", logo_url: "https://icon.horse/icon/soundcore.com", product_group: "accessories", sort_order: 28, status: "active", show_on_homepage: true },
+  { id: "brand-ugreen", name: "UGREEN", slug: "ugreen", logo_url: "https://icon.horse/icon/ugreen.com", product_group: "accessories", sort_order: 29, status: "active", show_on_homepage: true },
+  { id: "brand-baseus", name: "Baseus", slug: "baseus", logo_url: "https://icon.horse/icon/baseus.com", product_group: "accessories", sort_order: 30, status: "active", show_on_homepage: true },
+  { id: "brand-dji", name: "DJI", slug: "dji", logo_url: "https://cdn.simpleicons.org/dji/000000", product_group: "accessories", sort_order: 31, status: "active", show_on_homepage: true },
+  { id: "brand-wiwu", name: "Wiwu", slug: "wiwu", logo_url: "https://icon.horse/icon/wiwu.com", product_group: "accessories", sort_order: 32, status: "active", show_on_homepage: true },
+  { id: "brand-lenyes", name: "LENYES", slug: "lenyes", logo_url: "https://icon.horse/icon/lenyes.com", product_group: "accessories", sort_order: 33, status: "active", show_on_homepage: true },
+  { id: "brand-oraimo", name: "Oraimo", slug: "oraimo", logo_url: "https://icon.horse/icon/oraimo.com", product_group: "accessories", sort_order: 34, status: "active", show_on_homepage: true },
+  { id: "brand-hoco", name: "Hoco", slug: "hoco", logo_url: "https://icon.horse/icon/hocotech.com", product_group: "accessories", sort_order: 35, status: "active", show_on_homepage: true },
+  { id: "brand-joyroom", name: "Joyroom", slug: "joyroom", logo_url: "https://icon.horse/icon/joyroom.com", product_group: "accessories", sort_order: 36, status: "active", show_on_homepage: true },
+  { id: "brand-aspor", name: "Aspor", slug: "aspor", logo_url: "https://icon.horse/icon/aspor.com", product_group: "accessories", sort_order: 37, status: "active", show_on_homepage: true },
+  { id: "brand-porodo", name: "Porodo", slug: "porodo", logo_url: "https://icon.horse/icon/porodo.net", product_group: "accessories", sort_order: 38, status: "active", show_on_homepage: true },
+  { id: "brand-brodo", name: "Brodo", slug: "brodo", logo_url: "https://icon.horse/icon/porodo.net", product_group: "accessories", sort_order: 39, status: "active", show_on_homepage: true },
+  { id: "brand-bugani", name: "Bugani", slug: "bugani", logo_url: "https://icon.horse/icon/bugani.com", product_group: "accessories", sort_order: 40, status: "active", show_on_homepage: true },
+  { id: "brand-greenlion", name: "Green Lion", slug: "green-lion", logo_url: "https://icon.horse/icon/greenlion.net", product_group: "accessories", sort_order: 41, status: "active", show_on_homepage: true },
+  { id: "brand-hollyland", name: "Hollyland", slug: "hollyland", logo_url: "https://icon.horse/icon/hollyland.com", product_group: "accessories", sort_order: 42, status: "active", show_on_homepage: true },
+  { id: "brand-plokama", name: "Plokama", slug: "plokama", logo_url: "https://icon.horse/icon/plokama.com", product_group: "accessories", sort_order: 43, status: "active", show_on_homepage: true },
+  { id: "brand-yesido", name: "Yesido", slug: "yesido", logo_url: "https://icon.horse/icon/yesido.com", product_group: "accessories", sort_order: 44, status: "active", show_on_homepage: true },
 ];
 
 // ===== Product Categories (Product Types Only) =====

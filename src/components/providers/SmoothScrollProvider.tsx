@@ -71,7 +71,54 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     return () => mediaQuery.removeEventListener("change", handleChange);
   }, []);
 
-  // 3. Initialize single Lenis instance at application root
+  const isPopStateRef = useRef(false);
+
+  // 3. Persistent Scroll Position Tracking & Popstate detection
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    if ("scrollRestoration" in window.history) {
+      window.history.scrollRestoration = "manual";
+    }
+
+    const saveCurrentScroll = () => {
+      const currentUrl = window.location.pathname + window.location.search;
+      const y = window.scrollY || document.documentElement.scrollTop || document.body.scrollTop || 0;
+      try {
+        sessionStorage.setItem("scrollPos:" + currentUrl, y.toString());
+      } catch {}
+    };
+
+    const handlePopState = () => {
+      isPopStateRef.current = true;
+    };
+
+    const handleLinkClick = (e: MouseEvent) => {
+      const link = (e.target as HTMLElement)?.closest("a");
+      if (link && link.href) {
+        saveCurrentScroll();
+      }
+    };
+
+    let scrollTimeout: ReturnType<typeof setTimeout> | null = null;
+    const handleScroll = () => {
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+      scrollTimeout = setTimeout(saveCurrentScroll, 100);
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    document.addEventListener("click", handleLinkClick, { capture: true });
+
+    return () => {
+      window.removeEventListener("popstate", handlePopState);
+      window.removeEventListener("scroll", handleScroll);
+      document.removeEventListener("click", handleLinkClick, { capture: true });
+      if (scrollTimeout) clearTimeout(scrollTimeout);
+    };
+  }, []);
+
+  // 4. Initialize single Lenis instance at application root
   useEffect(() => {
     // Disable in admin dashboard, login page, or if reduced motion is enabled
     const isAdminRoute = pathname?.startsWith("/admin") || pathname === "/login";
@@ -96,10 +143,6 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     lenisRef.current = instance;
     setLenis(instance);
 
-    if (pathname === "/") {
-      instance.scrollTo(0, { immediate: true });
-    }
-
     // Synchronize Lenis with GSAP ScrollTrigger
     instance.on("scroll", () => {
       ScrollTrigger.update();
@@ -120,7 +163,7 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     };
   }, [pathname, isReducedMotion, motionSettings.enableSmoothScroll]);
 
-  // 4. Smooth Anchor link navigation handling with navbar height offset
+  // 5. Smooth Anchor link navigation handling with navbar height offset
   useEffect(() => {
     const handleAnchorClick = (e: MouseEvent) => {
       const target = (e.target as HTMLElement)?.closest("a");
@@ -159,12 +202,49 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     return () => document.removeEventListener("click", handleAnchorClick);
   }, [pathname]);
 
-  // 5. Scroll to top on route navigation
+  // 6. Route navigation handling (Scroll Restoration on Back, Scroll to Top on New Navigation)
   useEffect(() => {
-    if (lenisRef.current) {
-      lenisRef.current.scrollTo(0, { immediate: true });
-    } else if (typeof window !== "undefined") {
-      window.scrollTo(0, 0);
+    if (typeof window === "undefined") return;
+    const currentUrl = window.location.pathname + window.location.search;
+
+    if (isPopStateRef.current) {
+      // BACK/FORWARD NAVIGATION: Restore saved scroll position
+      isPopStateRef.current = false;
+      let savedY = 0;
+      try {
+        const yStr = sessionStorage.getItem("scrollPos:" + currentUrl);
+        if (yStr) savedY = parseInt(yStr, 10);
+      } catch {}
+
+      if (savedY > 0) {
+        const restoreScroll = () => {
+          if (lenisRef.current) {
+            lenisRef.current.scrollTo(savedY, { immediate: true });
+          } else {
+            window.scrollTo({ top: savedY, behavior: "instant" });
+          }
+        };
+
+        restoreScroll();
+        const t1 = setTimeout(restoreScroll, 40);
+        const t2 = setTimeout(restoreScroll, 120);
+        const t3 = setTimeout(restoreScroll, 260);
+        const t4 = setTimeout(restoreScroll, 480);
+
+        return () => {
+          clearTimeout(t1);
+          clearTimeout(t2);
+          clearTimeout(t3);
+          clearTimeout(t4);
+        };
+      }
+    } else {
+      // NEW FORWARD NAVIGATION: Scroll to top
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(0, { immediate: true });
+      } else {
+        window.scrollTo(0, 0);
+      }
     }
   }, [pathname]);
 

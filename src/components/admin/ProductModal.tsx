@@ -172,8 +172,10 @@ export default function ProductModal({
   // Custom Category & Brand Toggle States
   const [isCustomCategory, setIsCustomCategory] = useState(false);
   const [customCategoryName, setCustomCategoryName] = useState("");
+  const [extraCategories, setExtraCategories] = useState<Category[]>([]);
   const [isCustomBrand, setIsCustomBrand] = useState(false);
   const [customBrandName, setCustomBrandName] = useState("");
+  const [extraBrands, setExtraBrands] = useState<string[]>([]);
 
   // Pricing & Legacy Stock
   const [basePrice, setBasePrice] = useState<number>(0);
@@ -199,34 +201,41 @@ export default function ProductModal({
     positionX: 0,
     positionY: 0,
   });
-  const [specRows, setSpecRows] = useState<{ key: string; value: string }[]>([]);
 
-  // Colours List
+  // Color Variants & Specific Galleries
   const [colorVariants, setColorVariants] = useState<ProductColor[]>([]);
+  const [activeColorTab, setActiveColorTab] = useState<string>("");
   const [selectedColorIndex, setSelectedColorIndex] = useState<number>(0);
   const [newColorName, setNewColorName] = useState("");
   const [newColorHex, setNewColorHex] = useState("#000000");
 
-  // Variant Combinations
+  // Storage Options
+  const [availableStorage, setAvailableStorage] = useState<string[]>(["128GB", "256GB"]);
+  const [customStorageInput, setCustomStorageInput] = useState("");
+
+  // Unified Full-Page Matrix of Variant Combinations
   const [variantCombos, setVariantCombos] = useState<ProductVariantCombo[]>([]);
 
-  // Warranty Options
+  // Multi-Plan Warranty Management
   const [warrantyOptions, setWarrantyOptions] = useState<WarrantyOption[]>([]);
   const [selectedPresetWarranty, setSelectedPresetWarranty] = useState("");
 
-  // Helper function to check if category is phone-related
-  const isPhoneCategory = (catIdOrName: string) => {
-    if (!catIdOrName) return false;
-    const lower = catIdOrName.toLowerCase();
+  // Technical Specifications (Key-Value Rows)
+  const [specRows, setSpecRows] = useState<{ key: string; value: string }[]>([]);
+
+  // Helper: Detect Phone Category
+  const isPhoneCategory = (catNameOrId: string): boolean => {
+    const lower = (catNameOrId || "").toLowerCase();
     return (
+      lower.includes("smartphones") ||
       lower.includes("phone") ||
-      lower.includes("smartphone") ||
+      lower.includes("mobile") ||
       lower.includes("iphone") ||
       lower.includes("samsung") ||
       lower.includes("xiaomi") ||
       lower.includes("redmi") ||
-      lower.includes("oppo") ||
       lower.includes("vivo") ||
+      lower.includes("oppo") ||
       lower.includes("realme") ||
       lower.includes("google") ||
       lower.includes("honor") ||
@@ -234,7 +243,7 @@ export default function ProductModal({
     );
   };
 
-  // Merged Categories List (Default 12 Categories + Props Categories, filtered to exclude Brand names)
+  // Merged Categories List (Default 12 Categories + Props Categories + Extra Created Categories, filtered to exclude Brand names)
   const mergedCategories = React.useMemo(() => {
     const map = new Map<string, Category>();
     DEFAULT_PRODUCT_CATEGORIES.forEach((c) => map.set(c.id, c));
@@ -254,13 +263,78 @@ export default function ProductModal({
         }
       }
     });
+    extraCategories.forEach((c) => {
+      map.set(c.id, c);
+    });
     return Array.from(map.values());
-  }, [categories]);
+  }, [categories, extraCategories]);
 
-  // Dynamic Brand Options (Clean List of Brands)
+  // Dynamic Brand Options (Clean List of Brands + Extra Created Brands)
   const brandOptions = React.useMemo(() => {
-    return Array.from(new Set(DEFAULT_BRANDS));
-  }, []);
+    return Array.from(new Set([...DEFAULT_BRANDS, ...extraBrands]));
+  }, [extraBrands]);
+
+  // Handler: Apply & Auto-Save Custom Category into the dropdown slot immediately
+  const handleApplyCustomCategory = async (nameToAdd?: string) => {
+    const trimmed = (nameToAdd || customCategoryName).trim();
+    if (!trimmed) return;
+    const catSlug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const newCatId = `cat-${catSlug}`;
+    const newCatObj: Category = {
+      id: newCatId,
+      name: trimmed,
+      slug: catSlug,
+      icon: "📱",
+      image_url: "",
+      sort_order: 99,
+      status: "active",
+      show_on_homepage: true,
+      show_in_selector: true,
+      group: "product_categories",
+    };
+
+    setExtraCategories((prev) => [...prev.filter((c) => c.id !== newCatId), newCatObj]);
+    setCategoryId(newCatId);
+    const isPhone = isPhoneCategory(trimmed);
+    setProductType(isPhone ? "phone" : "accessory");
+    setHasColorVariants(isPhone);
+    setHasStorageVariants(isPhone);
+    setIsCustomCategory(false);
+    setCustomCategoryName("");
+    setHasUnsavedChanges(true);
+
+    try {
+      await setDoc(doc(db, "categories", newCatId), newCatObj, { merge: true });
+    } catch (err) {
+      console.warn("Failed to auto-save custom category to Firestore:", err);
+    }
+  };
+
+  // Handler: Apply & Auto-Save Custom Brand into the dropdown slot immediately
+  const handleApplyCustomBrand = async (brandToAdd?: string) => {
+    const trimmed = (brandToAdd || customBrandName).trim();
+    if (!trimmed) return;
+    const bSlug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    setExtraBrands((prev) => Array.from(new Set([...prev, trimmed])));
+    setBrand(trimmed);
+    setIsCustomBrand(false);
+    setCustomBrandName("");
+    setHasUnsavedChanges(true);
+
+    try {
+      await setDoc(doc(db, "brands", `brand-${bSlug}`), {
+        id: `brand-${bSlug}`,
+        name: trimmed,
+        slug: bSlug,
+        logo_url: "",
+        sort_order: 99,
+        status: "active",
+        show_on_homepage: true,
+      }, { merge: true });
+    } catch (err) {
+      console.warn("Failed to auto-save custom brand to Firestore:", err);
+    }
+  };
 
   // Initialize form when opening/editing
   useEffect(() => {
@@ -353,9 +427,9 @@ export default function ProductModal({
 
       setHasStorageVariants(detectedHasStorage);
 
-      // Spec Rows
+      // Spec Rows (Only populate if saved on product; otherwise empty array)
       const rows = Object.entries(initialData.specifications || {}).map(([key, value]) => ({ key, value }));
-      setSpecRows(rows.length > 0 ? rows : [{ key: "Display", value: "" }, { key: "Processor", value: "" }]);
+      setSpecRows(rows);
 
       // Colours
       if (detectedHasColor) {
@@ -453,11 +527,8 @@ export default function ProductModal({
         positionY: 0,
       });
 
-      setSpecRows([
-        { key: "Display", value: '6.7" Super AMOLED 120Hz' },
-        { key: "Processor", value: "Octa-Core Flagship CPU" },
-        { key: "Battery", value: "5000 mAh Fast Charging" },
-      ]);
+      // Spec Rows (Blank by default; only added when admin adds rows)
+      setSpecRows([]);
 
       if (isPhone) {
         setColorVariants([
@@ -723,9 +794,10 @@ export default function ProductModal({
         }
       }
 
-      // Compute Total Stock from active variants or default stock
-      const totalVariantStock = variantCombos.length > 0
-        ? variantCombos.reduce((s, v) => s + (v.stock_quantity || 0), 0)
+      const isAccessory = productType === "accessory";
+      // Compute Total Stock from active variants (for phones) or direct baseStock (for accessories)
+      const totalVariantStock = (!isAccessory && variantCombos.length > 0)
+        ? variantCombos.reduce((s, v) => s + (Number(v.stock_quantity) || 0), 0)
         : baseStock;
       const isOutOfStock = totalVariantStock === 0;
 
@@ -750,30 +822,32 @@ export default function ProductModal({
       const finalImages = Array.from(new Set(allImages.map((u) => u.trim()).filter(Boolean)));
 
       // First active price
-      const primaryPrice = variantCombos[0]?.price || basePrice || 0;
-      const primaryOldPrice = variantCombos[0]?.old_price || baseOldPrice || null;
+      const primaryPrice = (!isAccessory && variantCombos[0]?.price) ? variantCombos[0].price : (basePrice || 0);
+      const primaryOldPrice = (!isAccessory && variantCombos[0]?.old_price) ? variantCombos[0].old_price : (baseOldPrice || null);
 
       // Enrich every variant combo with full variant metadata (color_hex, image_ref, warranty, storage, stock, sku, price)
-      const enrichedVariantCombos: ProductVariantCombo[] = variantCombos.map((v) => {
-        const matchedColor = cleanedColorVariants.find((c) => c.name === v.color_name || c.id === v.color_id);
-        const colorHex = v.color_hex || matchedColor?.hex || (v.color_name ? getColorCSS(v.color_name) : "#000000");
-        const colorImage = matchedColor?.images?.[0] || matchedColor?.cover_image || finalImages[0] || "";
-        return {
-          ...v,
-          id: v.id || `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
-          color_id: v.color_id || matchedColor?.id,
-          color_name: v.color_name || matchedColor?.name || "Standard",
-          color_hex: colorHex,
-          storage: v.storage || "",
-          price: Number(v.price) || primaryPrice,
-          old_price: v.old_price ? Number(v.old_price) : primaryOldPrice,
-          stock_quantity: Number(v.stock_quantity) || 0,
-          available_stock: Math.max(0, (Number(v.stock_quantity) || 0) - (v.reserved_stock || 0)),
-          sku: v.sku || code || slug,
-          image_ref: v.image_ref && finalImages.includes(v.image_ref) ? v.image_ref : colorImage,
-          warranty: v.warranty || warrantyOptions[0]?.title || "1 Month Shop Warranty",
-        };
-      });
+      const enrichedVariantCombos: ProductVariantCombo[] = isAccessory
+        ? []
+        : variantCombos.map((v) => {
+            const matchedColor = cleanedColorVariants.find((c) => c.name === v.color_name || c.id === v.color_id);
+            const colorHex = v.color_hex || matchedColor?.hex || (v.color_name ? getColorCSS(v.color_name) : "#000000");
+            const colorImage = matchedColor?.images?.[0] || matchedColor?.cover_image || finalImages[0] || "";
+            return {
+              ...v,
+              id: v.id || `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+              color_id: v.color_id || matchedColor?.id,
+              color_name: v.color_name || matchedColor?.name || "Standard",
+              color_hex: colorHex,
+              storage: v.storage || "",
+              price: Number(v.price) || primaryPrice,
+              old_price: v.old_price ? Number(v.old_price) : primaryOldPrice,
+              stock_quantity: Number(v.stock_quantity) || 0,
+              available_stock: Math.max(0, (Number(v.stock_quantity) || 0) - (v.reserved_stock || 0)),
+              sku: v.sku || code || slug,
+              image_ref: v.image_ref && finalImages.includes(v.image_ref) ? v.image_ref : colorImage,
+              warranty: v.warranty || warrantyOptions[0]?.title || "1 Month Shop Warranty",
+            };
+          });
 
       const productPayload: Partial<Product> = {
         name: name.trim(),
@@ -801,6 +875,7 @@ export default function ProductModal({
         delivery_info: deliveryInfo.trim(),
         stock_status: isOutOfStock ? "out_of_stock" : totalVariantStock <= 5 ? "low_stock" : "in_stock",
         stock_count: totalVariantStock,
+        stock_quantity: totalVariantStock,
         featured,
         is_new_arrival: isNewArrival,
         images: finalImages,
@@ -817,7 +892,7 @@ export default function ProductModal({
         warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
         brand_warranty: warrantyOptions.find((w) => w.type === "Manufacturer Warranty")?.title || "",
         specifications: specRows.reduce((acc, r) => {
-          if (r.key.trim()) acc[r.key.trim()] = r.value.trim();
+          if (r.key.trim() && r.value.trim()) acc[r.key.trim()] = r.value.trim();
           return acc;
         }, {} as Record<string, string>),
         allow_cod: allowCod,
@@ -897,25 +972,35 @@ export default function ProductModal({
         </div>
       </div>
 
-      {/* ── 7 TAB NAVIGATION HEADER ── */}
+      {/* ── TAB NAVIGATION HEADER ── */}
       <div className="bg-gray-50 border-b border-gray-200 px-6 overflow-x-auto shrink-0 select-none">
-        <div className="flex items-center gap-1 min-w-[750px]">
-          {[
-            { id: 1, label: "1. Basic Info", icon: Tag },
-            { id: 2, label: "2. Media & Colours", icon: Palette },
-            { id: 3, label: "3. Variants & Stock", icon: Sliders },
-            { id: 4, label: "4. Specifications", icon: Cpu },
-            { id: 5, label: "5. Warranty", icon: ShieldCheck },
-            { id: 6, label: "6. Payments & Delivery", icon: Truck },
-            { id: 7, label: "7. SEO & Publishing", icon: Globe },
-          ].map((tab) => {
+        <div className="flex items-center gap-1 min-w-[650px]">
+          {(productType === "phone"
+            ? [
+                { id: 1, label: "1. Basic Info", icon: Tag },
+                { id: 2, label: "2. Media & Colours", icon: Palette },
+                { id: 3, label: "3. Storage & Variants", icon: Sliders },
+                { id: 4, label: "4. Specifications", icon: Cpu },
+                { id: 5, label: "5. Warranty", icon: ShieldCheck },
+                { id: 6, label: "6. Payments & Delivery", icon: Truck },
+                { id: 7, label: "7. SEO & Publishing", icon: Globe },
+              ]
+            : [
+                { id: 1, label: "1. Basic Info & Pricing", icon: Tag },
+                { id: 2, label: "2. Media & Photos", icon: Palette },
+                { id: 4, label: "3. Specifications", icon: Cpu },
+                { id: 5, label: "4. Warranty", icon: ShieldCheck },
+                { id: 6, label: "5. Payments & Delivery", icon: Truck },
+                { id: 7, label: "6. SEO & Publishing", icon: Globe },
+              ]
+          ).map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`py-3 px-4 font-bold text-xs border-b-2 flex items-center gap-2 transition-all whitespace-nowrap ${
+                className={`py-3 px-4 font-bold text-xs border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
                   isActive
                     ? "border-blue-600 text-blue-600 bg-white"
                     : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100/60"
@@ -994,16 +1079,33 @@ export default function ProductModal({
                   </div>
 
                   {isCustomCategory ? (
-                    <input
-                      type="text"
-                      value={customCategoryName}
-                      onChange={(e) => {
-                        setCustomCategoryName(e.target.value);
-                        setHasUnsavedChanges(true);
-                      }}
-                      placeholder="Type custom category (e.g. Smart Glasses)"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={customCategoryName}
+                        onChange={(e) => {
+                          setCustomCategoryName(e.target.value);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyCustomCategory();
+                          }
+                        }}
+                        placeholder="Type custom category (e.g. Smart Glasses)"
+                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCustomCategory()}
+                        disabled={!customCategoryName.trim()}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add & Select
+                      </button>
+                    </div>
                   ) : (
                     <select
                       value={categoryId}
@@ -1048,16 +1150,33 @@ export default function ProductModal({
                   </div>
 
                   {isCustomBrand ? (
-                    <input
-                      type="text"
-                      value={customBrandName}
-                      onChange={(e) => {
-                        setCustomBrandName(e.target.value);
-                        setHasUnsavedChanges(true);
-                      }}
-                      placeholder="Type custom brand name (e.g. Bose, Sony, Marshall)"
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        autoFocus
+                        value={customBrandName}
+                        onChange={(e) => {
+                          setCustomBrandName(e.target.value);
+                          setHasUnsavedChanges(true);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            handleApplyCustomBrand();
+                          }
+                        }}
+                        placeholder="Type custom brand (e.g. Bose, Sony, Marshall)"
+                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleApplyCustomBrand()}
+                        disabled={!customBrandName.trim()}
+                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1"
+                      >
+                        <Plus className="w-3.5 h-3.5" /> Add & Select
+                      </button>
+                    </div>
                   ) : (
                     <select
                       value={brand}
@@ -1175,49 +1294,51 @@ export default function ProductModal({
                       </div>
                     </div>
 
-                    {/* Storage Options Setting */}
-                    <div>
-                      <label className="block font-bold text-gray-700 mb-1.5">Does this product have storage options?</label>
-                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            if (hasStorageVariants && variantCombos.some((v) => Boolean(v.storage))) {
-                              if (
-                                !confirm(
-                                  "Are you sure you want to disable storage options? Existing storage variants will be cleared."
-                                )
-                              ) {
-                                return;
+                    {/* Storage Options Setting (Shown only for Phones) */}
+                    {productType === "phone" && (
+                      <div>
+                        <label className="block font-bold text-gray-700 mb-1.5">Does this product have storage options?</label>
+                        <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
+                          <button
+                            type="button"
+                            onClick={() => {
+                              if (hasStorageVariants && variantCombos.some((v) => Boolean(v.storage))) {
+                                if (
+                                  !confirm(
+                                    "Are you sure you want to disable storage options? Existing storage variants will be cleared."
+                                  )
+                                ) {
+                                  return;
+                                }
                               }
-                            }
-                            setHasStorageVariants(false);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
-                            !hasStorageVariants
-                              ? "bg-slate-800 text-white shadow-xs"
-                              : "text-gray-600 hover:text-gray-900"
-                          }`}
-                        >
-                          No
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setHasStorageVariants(true);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
-                            hasStorageVariants
-                              ? "bg-blue-600 text-white shadow-xs"
-                              : "text-gray-600 hover:text-gray-900"
-                          }`}
-                        >
-                          Yes
-                        </button>
+                              setHasStorageVariants(false);
+                              setHasUnsavedChanges(true);
+                            }}
+                            className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                              !hasStorageVariants
+                                ? "bg-slate-800 text-white shadow-xs"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            No
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setHasStorageVariants(true);
+                              setHasUnsavedChanges(true);
+                            }}
+                            className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                              hasStorageVariants
+                                ? "bg-blue-600 text-white shadow-xs"
+                                : "text-gray-600 hover:text-gray-900"
+                            }`}
+                          >
+                            Yes
+                          </button>
+                        </div>
                       </div>
-                    </div>
+                    )}
                   </div>
                 </div>
 
@@ -2316,45 +2437,63 @@ export default function ProductModal({
                 ))}
               </div>
 
-              <div className="space-y-3 text-xs">
-                {specRows.map((row, idx) => (
-                  <div key={idx} className="flex gap-3 items-center">
-                    <input
-                      type="text"
-                      placeholder="Spec Key (e.g. Display)"
-                      value={row.key}
-                      onChange={(e) => {
-                        const updated = [...specRows];
-                        updated[idx].key = e.target.value;
-                        setSpecRows(updated);
-                      }}
-                      className="w-36 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold"
-                    />
-                    <input
-                      type="text"
-                      placeholder="Spec Value (e.g. 6.7 inch AMOLED)"
-                      value={row.value}
-                      onChange={(e) => {
-                        const updated = [...specRows];
-                        updated[idx].value = e.target.value;
-                        setSpecRows(updated);
-                      }}
-                      className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setSpecRows(specRows.filter((_, i) => i !== idx))}
-                      className="text-red-500 hover:text-red-700 p-1"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  </div>
-                ))}
-              </div>
+              {specRows.length === 0 ? (
+                <div className="p-8 text-center bg-gray-50 border border-dashed border-gray-200 rounded-2xl">
+                  <Cpu className="w-8 h-8 text-gray-400 mx-auto mb-2 opacity-60" />
+                  <p className="text-xs font-bold text-gray-700">No specifications added yet</p>
+                  <p className="text-[11px] text-gray-500 mt-1 max-w-sm mx-auto">
+                    Click any quick preset above (e.g. + Display, + Processor, + RAM) or click &quot;+ Add Specification Row&quot; to add technical specs.
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs">
+                  {specRows.map((row, idx) => (
+                    <div key={idx} className="flex gap-3 items-center">
+                      <input
+                        type="text"
+                        placeholder="Spec Key (e.g. Display)"
+                        value={row.key}
+                        onChange={(e) => {
+                          const updated = [...specRows];
+                          updated[idx].key = e.target.value;
+                          setSpecRows(updated);
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="w-36 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-bold"
+                      />
+                      <input
+                        type="text"
+                        placeholder="Spec Value (e.g. 6.7 inch AMOLED)"
+                        value={row.value}
+                        onChange={(e) => {
+                          const updated = [...specRows];
+                          updated[idx].value = e.target.value;
+                          setSpecRows(updated);
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="flex-1 px-3 py-2 bg-gray-50 border border-gray-200 rounded-xl font-medium"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSpecRows(specRows.filter((_, i) => i !== idx));
+                          setHasUnsavedChanges(true);
+                        }}
+                        className="text-red-500 hover:text-red-700 p-1"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
 
               <button
                 type="button"
-                onClick={() => setSpecRows([...specRows, { key: "", value: "" }])}
+                onClick={() => {
+                  setSpecRows([...specRows, { key: "", value: "" }]);
+                  setHasUnsavedChanges(true);
+                }}
                 className="px-4 py-2 bg-gray-100 hover:bg-gray-200 font-bold text-xs rounded-xl flex items-center gap-1.5"
               >
                 <Plus className="w-4 h-4" /> Add Specification Row
