@@ -9,12 +9,9 @@ import {
   ShieldCheck,
   Images,
   MapPin,
-  Phone,
-  Clock,
-  Store,
 } from "lucide-react";
 import { Review, PreLaunchExperienceSettings } from "@/lib/types";
-import { reviews as defaultReviews, siteSettings } from "@/lib/data";
+import { reviews as defaultReviews } from "@/lib/data";
 
 interface RotatingContentShowcaseProps {
   settings?: PreLaunchExperienceSettings;
@@ -384,7 +381,7 @@ export function RotatingContentShowcase({
                     type="button"
                     onClick={handleNextReview}
                     className="absolute right-2.5 top-1/2 -translate-y-1/2 w-8 h-8 rounded-full bg-white/90 hover:bg-white text-[#090909] shadow-sm flex items-center justify-center transition-all z-10 opacity-80 hover:opacity-100"
-                    title="Next Review"
+                    title="Next Photo"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </button>
@@ -409,79 +406,41 @@ export function RotatingContentShowcase({
         )}
 
         {/* ═══════════════════════════════════════════════════════════════════
-            VIEW 2: BIG BOLD "WE ARE NEAR YOU" (ONLY IF ENABLED)
+            VIEW 2: ONLY BIG BOLD "WE ARE NEAR YOU" TEXT (PURE MINIMALIST)
         ═══════════════════════════════════════════════════════════════════ */}
         {currentView === "near_you" && isLocationEnabled && (
           <motion.div
             key="view-near-you"
-            initial={{ opacity: 0, scale: 0.96, filter: "blur(12px)" }}
-            animate={{ opacity: 1, scale: 1, filter: "blur(0px)" }}
-            exit={{ opacity: 0, scale: 0.96, filter: "blur(12px)" }}
-            transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
-            className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center px-4 py-4 sm:py-6"
+            initial={{ opacity: 0, y: 16, scale: 0.97, filter: "blur(12px)" }}
+            animate={{ opacity: 1, y: 0, scale: 1, filter: "blur(0px)" }}
+            exit={{ opacity: 0, y: -16, scale: 0.97, filter: "blur(12px)" }}
+            transition={{ duration: 0.85, ease: [0.16, 1, 0.3, 1] }}
+            className="w-full max-w-4xl mx-auto flex flex-col items-center justify-center text-center px-4 py-8 sm:py-14"
           >
             {/* Top Micro-badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F4F4F5] border border-[#E8E8E8] text-[#6B7280] text-[11px] sm:text-xs font-extrabold tracking-[0.25em] uppercase mb-4 shadow-sm">
+            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-[#F4F4F5] border border-[#E8E8E8] text-[#6B7280] text-[11px] sm:text-xs font-extrabold tracking-[0.25em] uppercase mb-4 sm:mb-6 shadow-sm">
               <MapPin className="w-3.5 h-3.5 text-[#ED0712]" />
-              <span>VAVUNIYA STORE LOCATION</span>
+              <span>VAVUNIYA • SRI LANKA</span>
             </div>
 
             {/* Big Bold Headline */}
             <h2
-              className="font-black tracking-[0.12em] sm:tracking-[0.16em] text-[#090909] uppercase leading-tight mb-3"
-              style={{ fontSize: "clamp(2rem, 5.5vw, 3.75rem)" }}
+              className="font-black tracking-[0.14em] sm:tracking-[0.18em] text-[#090909] uppercase leading-none mb-4"
+              style={{ fontSize: "clamp(2.5rem, 6.5vw, 5rem)" }}
             >
               WE ARE NEAR YOU
             </h2>
 
-            <p className="text-xs sm:text-sm md:text-base text-[#4B5563] max-w-xl font-medium leading-relaxed mb-6">
-              Your premier destination for 100% genuine Apple, Samsung, and Xiaomi flagship devices with islandwide warranty.
+            <p className="text-xs sm:text-sm md:text-base text-[#6B7280] max-w-lg font-medium tracking-wide leading-relaxed">
+              Always ready to serve you with 100% genuine devices and premium support.
             </p>
 
-            {/* Apple-Style Information Card */}
-            <div className="bg-[#FFFFFF] border border-[#E8E8E8] rounded-3xl p-6 sm:p-8 max-w-2xl w-full text-left shadow-[0_8px_30px_rgba(0,0,0,0.04)] space-y-5">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 rounded-2xl bg-red-50 flex items-center justify-center shrink-0 mt-0.5">
-                  <Store className="w-5 h-5 text-[#ED0712]" />
-                </div>
-                <div className="space-y-1.5 flex-1">
-                  <h4 className="text-xs font-bold text-[#6B7280] uppercase tracking-wider">Store Address</h4>
-                  <p className="text-sm sm:text-base font-extrabold text-[#090909] leading-snug">
-                    {siteSettings.address}
-                  </p>
-                </div>
-              </div>
+            <div className="w-16 h-[1px] bg-[#E8E8E8] my-6 sm:my-8" />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-[#F0F0F0]">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <Phone className="w-4 h-4 text-[#090909]" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#6B7280] font-bold uppercase block">Phone Contact</span>
-                    <span className="text-xs sm:text-sm font-extrabold text-[#090909]">{siteSettings.phone}</span>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gray-100 flex items-center justify-center shrink-0">
-                    <Clock className="w-4 h-4 text-[#090909]" />
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-[#6B7280] font-bold uppercase block">Business Hours</span>
-                    <span className="text-xs sm:text-sm font-extrabold text-[#090909]">
-                      {siteSettings.business_hours.weekdays}
-                    </span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Bottom Subtle Trust Note */}
-            <div className="flex items-center gap-3 mt-6 text-[11px] sm:text-xs font-bold tracking-[0.2em] text-[#6B7280] uppercase">
-              <span>Always Genuine.</span>
+            <div className="flex items-center gap-3 text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
+              <span>Always Genuine</span>
               <span className="w-1.5 h-1.5 rounded-full bg-[#ED0712]" />
-              <span>Always Near You.</span>
+              <span>Always Near You</span>
             </div>
           </motion.div>
         )}
