@@ -986,6 +986,7 @@ export const DEFAULT_LAUNCH_SETTINGS: LaunchSettings = {
   manualReveal: false,
   title: "STREET MOBILE",
   tagline: "VAVUNIYA • SRI LANKA",
+  glowColor: "#C4E2F5",
   allowAdminPreview: true,
   preLaunchExperience: DEFAULT_PRE_LAUNCH_SETTINGS,
   updatedAt: new Date().toISOString(),

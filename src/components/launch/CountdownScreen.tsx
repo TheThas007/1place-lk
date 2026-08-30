@@ -10,6 +10,7 @@ interface CountdownScreenProps {
   countdown: LaunchCountdownState;
   title?: string;
   tagline?: string;
+  glowColor?: string;
   isTestMode?: boolean;
   preLaunchSettings?: PreLaunchExperienceSettings;
   reviews?: Review[];
@@ -17,10 +18,26 @@ interface CountdownScreenProps {
   onSecretUnlock?: () => void;
 }
 
+// Helper to convert any hex color code to rgba
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex) return `rgba(196, 226, 245, ${alpha})`;
+  let c = hex.replace("#", "").trim();
+  if (c.length === 3) {
+    c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+  }
+  const num = parseInt(c, 16);
+  if (isNaN(num)) return `rgba(196, 226, 245, ${alpha})`;
+  const r = (num >> 16) & 255;
+  const g = (num >> 8) & 255;
+  const b = num & 255;
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export const CountdownScreen = memo(function CountdownScreen({
   countdown,
   title = "STREET MOBILE",
   tagline = "VAVUNIYA • SRI LANKA",
+  glowColor = "#C4E2F5",
   isTestMode = false,
   preLaunchSettings,
   reviews,
@@ -79,20 +96,45 @@ export const CountdownScreen = memo(function CountdownScreen({
 
   return (
     <div
-      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-between items-center px-4 sm:px-6 md:px-10 py-5 sm:py-8 select-none overflow-y-auto overflow-x-hidden font-outfit"
+      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-center items-center px-4 sm:px-6 md:px-10 py-5 sm:py-8 select-none overflow-y-auto overflow-x-hidden font-outfit"
       style={{
         backgroundColor: "#FFFFFF",
       }}
     >
-      {/* ── Top Micro-Labels Header (Max Width 1400px) ── */}
+      {/* ── Dynamic Fullscreen Ambient Beat Aura (Spreads across whole screen on each second) ── */}
+      <motion.div
+        key={`fullscreen-glow-${seconds}`}
+        initial={{ opacity: 0.35, scale: 0.8 }}
+        animate={{ opacity: [0.35, 0.9, 0.3], scale: [0.8, 1.35, 1.5] }}
+        transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
+        className="fixed inset-0 pointer-events-none -z-10"
+        style={{
+          background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.75)} 0%, ${hexToRgba(glowColor, 0.35)} 45%, rgba(255,255,255,0) 75%)`,
+        }}
+      />
+      {/* Permanent Soft Backdrop Mesh */}
+      <div
+        className="fixed inset-0 pointer-events-none -z-20"
+        style={{
+          background: `radial-gradient(ellipse 90% 90% at 50% 35%, ${hexToRgba(glowColor, 0.30)} 0%, rgba(255,255,255,0) 80%)`,
+        }}
+      />
+
+      {/* ── Top Micro-Labels Header (Absolute Top for Perfect Center Alignment) ── */}
       <motion.div
         initial={{ opacity: 0, y: -12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
-        className="w-full max-w-[1400px] flex items-center justify-between pt-1 px-2 sm:px-4 shrink-0"
+        className="w-full max-w-[1400px] flex items-center justify-between pt-1 px-4 sm:px-8 absolute top-4 sm:top-7 left-0 right-0 mx-auto z-20 pointer-events-auto"
       >
         <div className="flex items-center gap-2.5">
-          <div className="w-2.5 h-2.5 rounded-full bg-[#ED0712] animate-pulse" />
+          <div
+            className="w-2.5 h-2.5 rounded-full animate-pulse"
+            style={{
+              backgroundColor: glowColor || "#ED0712",
+              boxShadow: `0 0 8px ${hexToRgba(glowColor, 0.8)}`,
+            }}
+          />
           <span className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
             {isTestMode ? "PREVIEW TEST MODE" : "OFFICIAL LAUNCH"}
           </span>
@@ -114,25 +156,63 @@ export const CountdownScreen = memo(function CountdownScreen({
       </motion.div>
 
       {/* ── Center Container: Bold Branding + Substantial Countdown + Large Showcase (1400px) ── */}
-      <div className="w-full max-w-[1400px] flex flex-col items-center justify-center my-auto text-center px-2 py-4 sm:py-6 space-y-6 sm:space-y-8">
-        {/* ── 1. Official Street Mobile Logo ── */}
+      <div className="w-full max-w-[1400px] flex flex-col items-center justify-center my-auto -translate-y-6 sm:-translate-y-12 md:-translate-y-16 text-center px-2 py-4 sm:py-8 space-y-6 sm:space-y-8">
+        {/* ── 1. Official Street Mobile Logo with Beat-Synced Ambient Glow ── */}
         <motion.div
-          initial={{ opacity: 0, scale: 0.97 }}
-          animate={{ opacity: 1, scale: 1 }}
+          initial={{ opacity: 0, scale: 0.96, y: -14 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="flex flex-col items-center justify-center space-y-2 sm:space-y-3"
+          className="relative flex flex-col items-center justify-center space-y-3 sm:space-y-4 mb-2 sm:mb-4"
         >
-          <div className="relative flex items-center justify-center">
+          {/* Ambient Glow Heartbeat Effect synced with countdown seconds */}
+          <motion.div
+            key={`glow-heartbeat-${seconds}-${glowColor}`}
+            initial={{ scale: 0.94, opacity: 0.6 }}
+            animate={{ scale: [1, 1.4, 1], opacity: [0.6, 1, 0.6] }}
+            transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[360px] sm:w-[540px] md:w-[680px] h-[150px] sm:h-[220px] blur-3xl rounded-full pointer-events-none -z-10"
+            style={{
+              background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.95)} 0%, ${hexToRgba(glowColor, 0.65)} 50%, rgba(255,255,255,0) 80%)`,
+              boxShadow: `0 0 90px ${hexToRgba(glowColor, 0.9)}`,
+            }}
+          />
+
+          {/* Inner Core Pulse */}
+          <motion.div
+            key={`glow-core-${seconds}-${glowColor}`}
+            initial={{ scale: 0.9, opacity: 0.55 }}
+            animate={{ scale: [1, 1.25, 1], opacity: [0.55, 1, 0.55] }}
+            transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[260px] sm:w-[380px] md:w-[500px] h-[90px] sm:h-[130px] blur-2xl rounded-full pointer-events-none -z-10"
+            style={{
+              backgroundColor: glowColor,
+              boxShadow: `0 0 50px ${glowColor}`,
+            }}
+          />
+
+          {/* Logo with subtle micro-beat on each second */}
+          <motion.div
+            key={`logo-beat-${seconds}`}
+            animate={{ scale: [1, 1.018, 1] }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
+            className="relative flex items-center justify-center"
+          >
             <img
               src="/logo.png"
               alt={title || "STREET MOBILE"}
-              className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto max-w-[320px] sm:max-w-[420px] md:max-w-[520px] object-contain mx-auto transition-all"
+              style={{
+                filter: `brightness(0) drop-shadow(0 10px 24px ${hexToRgba(glowColor, 0.85)}) drop-shadow(0 2px 8px rgba(0, 0, 0, 0.08))`,
+              }}
+              className="w-[240px] sm:w-[350px] md:w-[470px] lg:w-[540px] h-auto object-contain mx-auto transition-all select-none relative z-10"
               loading="eager"
             />
-          </div>
+          </motion.div>
 
-          <div className="flex items-center justify-center gap-3 pt-1">
-            <span className="h-[1px] w-8 sm:w-14 bg-[#E8E8E8]" />
+          <div className="relative z-10 flex items-center justify-center gap-3 pt-0.5">
+            <span
+              className="h-[1px] w-8 sm:w-16"
+              style={{ backgroundColor: hexToRgba(glowColor, 0.85) }}
+            />
             <button
               type="button"
               onClick={() => {
@@ -140,20 +220,23 @@ export const CountdownScreen = memo(function CountdownScreen({
                 setPassword("");
                 setIsSecretModalOpen(true);
               }}
-              className="text-[10px] sm:text-xs md:text-sm font-semibold tracking-[0.32em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer"
+              className="text-[11px] sm:text-xs md:text-sm font-semibold tracking-[0.32em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer"
             >
               {tagline}
             </button>
-            <span className="h-[1px] w-8 sm:w-14 bg-[#E8E8E8]" />
+            <span
+              className="h-[1px] w-8 sm:w-16"
+              style={{ backgroundColor: hexToRgba(glowColor, 0.85) }}
+            />
           </div>
         </motion.div>
 
-        {/* ── 2. Large Apple-Style Countdown (Visually Dominant) ── */}
+        {/* ── 2. Large Apple-Style Countdown (Visually Dominant & Animated) ── */}
         <motion.div
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.2, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full max-w-4xl"
+          className="w-full max-w-4xl pt-7 sm:pt-12 md:pt-16"
         >
           <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 lg:gap-8">
             {timeUnits.map((unit, index) => (
@@ -161,16 +244,27 @@ export const CountdownScreen = memo(function CountdownScreen({
                 {/* Large Number Box */}
                 <div className="flex flex-col items-center">
                   <div
-                    className="relative flex items-center justify-center bg-[#FFFFFF] border border-[#E8E8E8] rounded-2xl sm:rounded-3xl shadow-[0_6px_28px_rgba(0,0,0,0.04)] px-3.5 py-3.5 sm:px-7 sm:py-6 md:px-9 md:py-7 min-w-[68px] sm:min-w-[110px] md:min-w-[145px] lg:min-w-[160px]"
+                    className="relative flex items-center justify-center bg-[#FFFFFF] rounded-2xl sm:rounded-3xl px-3.5 py-3.5 sm:px-7 sm:py-6 md:px-9 md:py-7 min-w-[68px] sm:min-w-[110px] md:min-w-[145px] lg:min-w-[160px] overflow-hidden transition-all"
+                    style={{
+                      border: `1px solid ${hexToRgba(glowColor, 0.45)}`,
+                      boxShadow: `0 8px 30px ${hexToRgba(glowColor, 0.18)}`,
+                    }}
                   >
-                    <span
-                      className="font-black tracking-tight text-[#090909] font-mono leading-none tabular-nums"
-                      style={{
-                        fontSize: "clamp(1.75rem, 5.5vw, 4.25rem)",
-                      }}
-                    >
-                      {unit.value}
-                    </span>
+                    <AnimatePresence mode="popLayout" initial={false}>
+                      <motion.span
+                        key={unit.value}
+                        initial={{ y: -8, opacity: 0.35, scale: 0.94 }}
+                        animate={{ y: 0, opacity: 1, scale: 1 }}
+                        exit={{ y: 8, opacity: 0, scale: 0.94 }}
+                        transition={{ duration: 0.25, ease: [0.16, 1, 0.3, 1] }}
+                        className="font-black tracking-tight text-[#090909] font-mono leading-none tabular-nums inline-block"
+                        style={{
+                          fontSize: "clamp(1.75rem, 5.5vw, 4.25rem)",
+                        }}
+                      >
+                        {unit.value}
+                      </motion.span>
+                    </AnimatePresence>
                   </div>
 
                   {/* Unit Label */}
@@ -179,15 +273,26 @@ export const CountdownScreen = memo(function CountdownScreen({
                   </span>
                 </div>
 
-                {/* Red Accent Colon Divider */}
+                {/* Accent Colon Divider */}
                 {index < timeUnits.length - 1 && (
                   <div
-                    className="flex flex-col items-center justify-center font-black text-[#ED0712] pb-6 sm:pb-8 px-1 sm:px-2 md:px-3 select-none"
+                    className="flex flex-col items-center justify-center font-black pb-6 sm:pb-8 px-1 sm:px-2 md:px-3 select-none"
                     style={{
                       fontSize: "clamp(1.25rem, 4vw, 3rem)",
+                      color: glowColor || "#ED0712",
                     }}
                   >
-                    <span className="animate-pulse">:</span>
+                    <motion.span
+                      key={`colon-${seconds}`}
+                      animate={{ scale: [1, 1.25, 1], opacity: [0.65, 1, 0.65] }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                      className="inline-block"
+                      style={{
+                        textShadow: `0 0 12px ${hexToRgba(glowColor, 0.8)}`,
+                      }}
+                    >
+                      :
+                    </motion.span>
                   </div>
                 )}
               </div>
@@ -204,12 +309,12 @@ export const CountdownScreen = memo(function CountdownScreen({
         />
       </div>
 
-      {/* ── Bottom Watermark (Apple Minimal Hierarchy) ── */}
+      {/* ── Bottom Watermark (Absolute Bottom for Perfect Center Alignment) ── */}
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 1, delay: 0.4 }}
-        className="w-full text-center pb-2 shrink-0 pointer-events-none mt-4"
+        className="w-full text-center pb-2 pointer-events-none absolute bottom-4 sm:bottom-6 left-0 right-0 mx-auto z-20"
       >
         <p className="text-[10px] sm:text-xs tracking-[0.35em] text-[#9CA3AF] font-bold uppercase">
           STREET MOBILE (PVT) LTD • PREPARING FOR LAUNCH

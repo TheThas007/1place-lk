@@ -169,6 +169,7 @@ export default function LaunchGate({ children }: LaunchGateProps) {
           countdown={countdown}
           title={settings.title || "STREET MOBILE"}
           tagline={settings.tagline || "VAVUNIYA • SRI LANKA"}
+          glowColor={settings.glowColor || "#C4E2F5"}
           isTestMode={Boolean(testCountdownTarget)}
           preLaunchSettings={settings.preLaunchExperience}
           reviews={liveReviews.length > 0 ? liveReviews : undefined}

@@ -1274,6 +1274,7 @@ export interface LaunchSettings {
   manualReveal?: boolean;
   title?: string;
   tagline?: string;
+  glowColor?: string; // e.g. "#C4E2F5" (Ice Sky Blue default)
   allowAdminPreview?: boolean;
   preLaunchExperience?: PreLaunchExperienceSettings;
   updatedAt?: string;

@@ -53,6 +53,17 @@ const ROTATION_INTERVAL_PRESETS = [
   { value: 900, label: "15 Minutes" },
 ];
 
+const GLOW_COLOR_PRESETS = [
+  { value: "#C4E2F5", label: "Ice Sky Blue", hex: "#C4E2F5" },
+  { value: "#0EA5E9", label: "Ocean Cyan", hex: "#0EA5E9" },
+  { value: "#ED0712", label: "Street Red", hex: "#ED0712" },
+  { value: "#10B981", label: "Emerald Mint", hex: "#10B981" },
+  { value: "#F59E0B", label: "Amber Gold", hex: "#F59E0B" },
+  { value: "#8B5CF6", label: "Cyber Purple", hex: "#8B5CF6" },
+  { value: "#EC4899", label: "Neon Pink", hex: "#EC4899" },
+  { value: "#FFFAF3", label: "Ivory Cream", hex: "#FFFAF3" },
+];
+
 export default function LaunchControlTab() {
   const { settings, loading, saveSettings, revealNow, disableCountdown, enableCountdown } =
     useLaunchSettings();
@@ -98,6 +109,7 @@ export default function LaunchControlTab() {
   const [timezone, setTimezone] = useState<string>("Asia/Colombo");
   const [title, setTitle] = useState<string>("STREET MOBILE");
   const [tagline, setTagline] = useState<string>("VAVUNIYA • SRI LANKA");
+  const [glowColor, setGlowColor] = useState<string>("#C4E2F5");
 
   // Pre-launch experience configuration
   const [preLaunchEnabled, setPreLaunchEnabled] = useState<boolean>(true);
@@ -124,6 +136,7 @@ export default function LaunchControlTab() {
       setTimezone(settings.timezone || "Asia/Colombo");
       setTitle(settings.title || "STREET MOBILE");
       setTagline(settings.tagline || "VAVUNIYA • SRI LANKA");
+      setGlowColor(settings.glowColor || "#C4E2F5");
 
       if (settings.launchTimestamp) {
         try {
@@ -209,6 +222,7 @@ export default function LaunchControlTab() {
         timezone,
         title,
         tagline,
+        glowColor,
         manualReveal: false,
         preLaunchExperience: compiledPreLaunchSettings,
       });
@@ -635,6 +649,105 @@ export default function LaunchControlTab() {
             />
           </div>
         </div>
+      </div>
+
+      {/* ── Section 4: Screen Glow & Pulse Effect Color ── */}
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div>
+            <h3 className="text-base font-extrabold flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-sky-400" /> Launch Screen Glow & Beat Effect Color
+            </h3>
+            <p className="text-xs text-white/50 mt-1">
+              Customize the ambient heartbeat glow color pulsing behind the logo and across the full webpage.
+            </p>
+          </div>
+
+          {/* Mini Live Preview Badge */}
+          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-2xl">
+            <span className="text-xs font-bold text-white/60">Live Color:</span>
+            <div className="flex items-center gap-2">
+              <div
+                className="w-5 h-5 rounded-full border border-white/30 shadow-md animate-pulse"
+                style={{
+                  backgroundColor: glowColor,
+                  boxShadow: `0 0 14px ${glowColor}`,
+                }}
+              />
+              <span className="text-xs font-mono font-extrabold text-white uppercase">{glowColor}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Preset Color Swatches */}
+        <div>
+          <label className="block text-xs font-bold text-white/70 mb-3 uppercase tracking-wider">
+            Quick Preset Color Themes
+          </label>
+          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
+            {GLOW_COLOR_PRESETS.map((preset) => {
+              const isSelected = glowColor.toLowerCase() === preset.value.toLowerCase();
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setGlowColor(preset.value)}
+                  className={`p-3 rounded-2xl border transition-all flex flex-col items-center gap-2 group cursor-pointer text-center ${
+                    isSelected
+                      ? "bg-white/15 border-white shadow-lg ring-2 ring-white/50"
+                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
+                  }`}
+                >
+                  <div
+                    className="w-7 h-7 rounded-xl border border-white/20 shadow-sm transition-transform group-hover:scale-110 flex items-center justify-center"
+                    style={{
+                      backgroundColor: preset.hex,
+                      boxShadow: isSelected ? `0 0 16px ${preset.hex}` : "none",
+                    }}
+                  >
+                    {isSelected && <CheckCircle className="w-4 h-4 text-black drop-shadow" />}
+                  </div>
+                  <span className="text-[11px] font-bold text-white leading-tight">
+                    {preset.label}
+                  </span>
+                  <span className="text-[9px] font-mono text-white/50">{preset.hex}</span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Custom Color Input & Hex Code */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2 border-t border-white/10">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-extrabold text-white">Custom Color Picker</h4>
+              <p className="text-[11px] text-white/50">Pick any custom shade from palette</p>
+            </div>
+            <div className="flex items-center gap-3">
+              <input
+                type="color"
+                value={glowColor.startsWith("#") && glowColor.length === 7 ? glowColor : "#C4E2F5"}
+                onChange={(e) => setGlowColor(e.target.value.toUpperCase())}
+                className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0 outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
+            <div>
+              <h4 className="text-xs font-extrabold text-white">Hex Color Code</h4>
+              <p className="text-[11px] text-white/50">Type direct hex (e.g. #C4E2F5)</p>
+            </div>
+            <input
+              type="text"
+              value={glowColor}
+              onChange={(e) => setGlowColor(e.target.value)}
+              placeholder="#C4E2F5"
+              className="w-32 px-3 py-2 bg-white/10 border border-white/15 rounded-xl text-white font-mono text-xs font-bold text-center outline-none focus:border-sky-400 uppercase"
+            />
+          </div>
+        </div>
 
         {/* ── Action Buttons Row ── */}
         <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
@@ -714,6 +827,7 @@ export default function LaunchControlTab() {
               countdown={countdown}
               title={title}
               tagline={tagline}
+              glowColor={glowColor}
               isTestMode={false}
               preLaunchSettings={compiledPreLaunchSettings}
               reviews={liveReviews.length > 0 ? liveReviews : undefined}
