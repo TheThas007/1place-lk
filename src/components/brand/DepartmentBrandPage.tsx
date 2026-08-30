@@ -458,8 +458,8 @@ export default function DepartmentBrandPage({
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
-      {/* ── Top Banner Hero (100% Flush to Navbar, 0 Top Spacing) ── */}
-      <div className="w-full max-w-full p-0 m-0 border-none">
+      {/* ── Top Framed Banner Hero (Top Flush with Clean Spacing) ── */}
+      <div className="max-w-[1440px] px-4 sm:px-6 lg:px-8 mx-auto pt-3 sm:pt-4">
         <DepartmentBrandHero config={config} brand={brand} department={department} />
       </div>
 

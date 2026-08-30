@@ -10,6 +10,22 @@ interface DepartmentBrandHeroProps {
   department: Department;
 }
 
+function hexToRgba(hex: string, alpha: number): string {
+  if (!hex) return `rgba(196, 226, 245, ${alpha})`;
+  let c = hex.replace("#", "").trim();
+  if (c.length === 3) {
+    c = c
+      .split("")
+      .map((x) => x + x)
+      .join("");
+  }
+  if (c.length !== 6) return `rgba(196, 226, 245, ${alpha})`;
+  const r = parseInt(c.substring(0, 2), 16);
+  const g = parseInt(c.substring(2, 4), 16);
+  const b = parseInt(c.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 // Curated high-resolution studio campaign banner artwork (16:5 aspect ratio)
 const BRAND_DEFAULT_CAMPAIGN_BANNERS: Record<string, Record<string, string>> = {
   apple: {
@@ -120,6 +136,8 @@ export default function DepartmentBrandHero({
   const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "860x270";
   const frameBg = config.bannerBackgroundColor || "#F4F5F7";
   const isBlurEnabled = config.bannerBlurEnabled !== false;
+  const isGlowEnabled = config.bannerGlowEnabled !== false;
+  const glowColor = config.bannerGlowColor || "#C4E2F5";
   const blurStrength =
     config.bannerBlurStrength === "ultra"
       ? "70px"
@@ -139,46 +157,127 @@ export default function DepartmentBrandHero({
 
   const bannerContent = (
     <div
-      className="relative w-full overflow-hidden select-none rounded-none border-none p-0 m-0 bg-transparent"
+      className="relative w-full overflow-hidden select-none rounded-none border border-neutral-200/80 shadow-2xs flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
       style={{
+        backgroundColor: frameBg,
         borderRadius: 0,
       }}
     >
-      <picture className="w-full h-auto block">
-        {resolvedMobileBanner && (
-          <source
-            media="(max-width: 767px)"
-            srcSet={resolvedMobileBanner}
+      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
+      {isBlurEnabled && resolvedDesktopBanner && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
+          <img
+            src={resolvedDesktopBanner}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover scale-135 opacity-40 transform-gpu"
+            style={{
+              filter: `blur(${blurStrength}) saturate(1.4)`,
+              borderRadius: 0,
+            }}
           />
-        )}
-        {resolvedTabletBanner && (
-          <source
-            media="(max-width: 1023px)"
-            srcSet={resolvedTabletBanner}
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: frameBg,
+              opacity: 0.65,
+              borderRadius: 0,
+            }}
           />
-        )}
-        <img
-          src={resolvedDesktopBanner}
-          alt={altText}
-          aria-hidden={isDecorative ? "true" : undefined}
-          loading="eager"
-          decoding="async"
-          onError={() => setImgError(true)}
-          style={{
-            objectPosition: desktopFocal,
-            borderRadius: 0,
-          }}
-          className="w-full h-auto object-contain block rounded-none"
-        />
-      </picture>
+        </div>
+      )}
+
+      {/* Subtle ambient backdrop mesh */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-30 -z-0"
+        style={{
+          background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 85%)`,
+          borderRadius: 0,
+        }}
+      />
+
+      {/* ── 2. Overlay Image Background Radiant Glow Effect ── */}
+      {isGlowEnabled && (
+        <div className="absolute inset-0 pointer-events-none flex items-center justify-center -z-0 overflow-hidden">
+          {/* Outer expansive luminous pulse aura */}
+          <div
+            className="w-[90%] max-w-[960px] h-[85%] rounded-full blur-3xl opacity-75 transform-gpu scale-115 animate-pulse"
+            style={{
+              background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.7)} 0%, ${hexToRgba(glowColor, 0.35)} 45%, ${hexToRgba(glowColor, 0.1)} 65%, transparent 80%)`,
+              animationDuration: "3.5s",
+            }}
+          />
+          {/* Core bright intense glow halo */}
+          <div
+            className="w-[75%] max-w-[800px] h-[75%] rounded-full blur-2xl opacity-90 transform-gpu scale-100"
+            style={{
+              background: `radial-gradient(ellipse at center, rgba(255,255,255,0.98) 0%, ${hexToRgba(glowColor, 0.85)} 35%, ${hexToRgba(glowColor, 0.3)} 60%, transparent 75%)`,
+            }}
+          />
+        </div>
+      )}
+
+      {/* ── 3. Overlay Centered Banner Artwork (860×270 Standard Crisp Size with Square Shape) ── */}
+      <div
+        style={{
+          aspectRatio:
+            ratio === "1080x1080"
+              ? "1 / 1"
+              : ratio === "1920x850"
+              ? "1920 / 850"
+              : ratio === "1080x1440"
+              ? "1080 / 1440"
+              : ratio === "default"
+              ? "1920 / 600"
+              : "860 / 270",
+          borderRadius: 0,
+        }}
+        className={`relative w-full z-10 overflow-hidden rounded-none transition-all ${
+          ratio === "1080x1080"
+            ? "max-w-[320px] aspect-square mx-auto"
+            : ratio === "1920x850"
+            ? "max-w-[1100px] aspect-[1920/850] max-h-[320px] mx-auto"
+            : ratio === "1080x1440"
+            ? "max-w-[360px] aspect-[1080/1440] mx-auto"
+            : ratio === "default"
+            ? "max-w-[1200px] aspect-[1920/600] max-h-[300px] mx-auto"
+            : "max-w-[860px] aspect-[860/270] max-h-[270px] mx-auto"
+        }`}
+      >
+        <picture className="w-full h-full block">
+          {resolvedMobileBanner && (
+            <source
+              media="(max-width: 767px)"
+              srcSet={resolvedMobileBanner}
+            />
+          )}
+          {resolvedTabletBanner && (
+            <source
+              media="(max-width: 1023px)"
+              srcSet={resolvedTabletBanner}
+            />
+          )}
+          <img
+            src={resolvedDesktopBanner}
+            alt={altText}
+            aria-hidden={isDecorative ? "true" : undefined}
+            loading="eager"
+            decoding="async"
+            onError={() => setImgError(true)}
+            style={{
+              objectPosition: desktopFocal,
+              mixBlendMode: blendMode as any,
+              borderRadius: 0,
+            }}
+            className="w-full h-full object-contain block transition-transform duration-700 ease-out rounded-none"
+          />
+        </picture>
+      </div>
     </div>
   );
 
   return (
-    <section
-      aria-label={`${brand.name} ${department.name} Banner`}
-      className="relative w-full overflow-hidden p-0 m-0 border-none rounded-none mb-4 sm:mb-6"
-    >
+    <section aria-label={`${brand.name} ${department.name} Banner`} className="relative w-full overflow-hidden p-0 m-0 border-none rounded-none mb-4 sm:mb-6">
       {destinationUrl ? (
         isExternalLink ? (
           <a
