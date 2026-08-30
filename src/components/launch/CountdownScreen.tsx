@@ -115,21 +115,21 @@ export const CountdownScreen = memo(function CountdownScreen({
 
       {/* ── Center Container: Bold Branding + Substantial Countdown + Large Showcase (1400px) ── */}
       <div className="w-full max-w-[1400px] flex flex-col items-center justify-center my-auto text-center px-2 py-4 sm:py-6 space-y-6 sm:space-y-8">
-        {/* ── 1. Large Bold Editorial Heading ── */}
+        {/* ── 1. Official Street Mobile Logo ── */}
         <motion.div
           initial={{ opacity: 0, scale: 0.97 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.9, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
-          className="space-y-2 sm:space-y-3"
+          className="flex flex-col items-center justify-center space-y-2 sm:space-y-3"
         >
-          <h1
-            className="font-black tracking-[0.16em] sm:tracking-[0.2em] text-[#090909] uppercase leading-none"
-            style={{
-              fontSize: "clamp(2.25rem, 6vw, 4.75rem)",
-            }}
-          >
-            {title}
-          </h1>
+          <div className="relative flex items-center justify-center">
+            <img
+              src="/logo.png"
+              alt={title || "STREET MOBILE"}
+              className="h-12 sm:h-16 md:h-20 lg:h-24 w-auto max-w-[320px] sm:max-w-[420px] md:max-w-[520px] object-contain mx-auto transition-all"
+              loading="eager"
+            />
+          </div>
 
           <div className="flex items-center justify-center gap-3 pt-1">
             <span className="h-[1px] w-8 sm:w-14 bg-[#E8E8E8]" />
