@@ -157,12 +157,74 @@ export default function DepartmentBrandHero({
 
   const bannerContent = (
     <div
-      className="relative w-full overflow-hidden select-none rounded-none border border-neutral-200/80 shadow-2xs flex items-center justify-center p-3 sm:p-5 md:p-6 transition-all"
+      className="relative w-full overflow-hidden select-none rounded-none flex items-center justify-center p-0 m-0 transition-all"
       style={{
         backgroundColor: frameBg,
         borderRadius: 0,
+        borderColor: hexToRgba(glowColor, 0.65),
+        borderWidth: "1.5px",
+        borderStyle: "solid",
+        boxShadow: `0 0 25px ${hexToRgba(glowColor, 0.45)}, 0 0 60px ${hexToRgba(glowColor, 0.25)}, inset 0 0 30px ${hexToRgba(glowColor, 0.2)}`,
+        aspectRatio:
+          ratio === "1080x1080"
+            ? "1 / 1"
+            : ratio === "1920x850"
+            ? "1920 / 850"
+            : ratio === "1080x1440"
+            ? "1080 / 1440"
+            : ratio === "default"
+            ? "1920 / 600"
+            : "860 / 270",
+        maxHeight:
+          ratio === "1080x1080"
+            ? "320px"
+            : ratio === "1080x1440"
+            ? "360px"
+            : ratio === "1920x850"
+            ? "320px"
+            : ratio === "default"
+            ? "300px"
+            : "270px",
       }}
     >
+      {/* ── FULL PERIMETER EDGE GLOW BEAMS (All 4 Edges Glowing) ── */}
+      {isGlowEnabled && (
+        <>
+          {/* Top Edge Glow */}
+          <div
+            className="absolute top-0 left-0 right-0 h-[2.5px] z-20 pointer-events-none"
+            style={{
+              background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
+              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
+            }}
+          />
+          {/* Bottom Edge Glow */}
+          <div
+            className="absolute bottom-0 left-0 right-0 h-[2.5px] z-20 pointer-events-none"
+            style={{
+              background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
+              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
+            }}
+          />
+          {/* Left Edge Glow */}
+          <div
+            className="absolute top-0 bottom-0 left-0 w-[2.5px] z-20 pointer-events-none"
+            style={{
+              background: `linear-gradient(180deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
+              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
+            }}
+          />
+          {/* Right Edge Glow */}
+          <div
+            className="absolute top-0 bottom-0 right-0 w-[2.5px] z-20 pointer-events-none"
+            style={{
+              background: `linear-gradient(180deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
+              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
+            }}
+          />
+        </>
+      )}
+
       {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
       {isBlurEnabled && resolvedDesktopBanner && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
@@ -219,30 +281,20 @@ export default function DepartmentBrandHero({
 
       {/* ── 3. Overlay Centered Banner Artwork (860×270 Standard Crisp Size with Square Shape) ── */}
       <div
+        className={`relative w-full h-full z-10 overflow-hidden rounded-none flex items-center justify-center mx-auto ${
+          ratio === "1080x1080"
+            ? "max-w-[320px] aspect-square"
+            : ratio === "1920x850"
+            ? "max-w-[1100px] aspect-[1920/850]"
+            : ratio === "1080x1440"
+            ? "max-w-[360px] aspect-[1080/1440]"
+            : ratio === "default"
+            ? "max-w-[1200px] aspect-[1920/600]"
+            : "max-w-[860px] aspect-[860/270]"
+        }`}
         style={{
-          aspectRatio:
-            ratio === "1080x1080"
-              ? "1 / 1"
-              : ratio === "1920x850"
-              ? "1920 / 850"
-              : ratio === "1080x1440"
-              ? "1080 / 1440"
-              : ratio === "default"
-              ? "1920 / 600"
-              : "860 / 270",
           borderRadius: 0,
         }}
-        className={`relative w-full z-10 overflow-hidden rounded-none transition-all ${
-          ratio === "1080x1080"
-            ? "max-w-[320px] aspect-square mx-auto"
-            : ratio === "1920x850"
-            ? "max-w-[1100px] aspect-[1920/850] max-h-[320px] mx-auto"
-            : ratio === "1080x1440"
-            ? "max-w-[360px] aspect-[1080/1440] mx-auto"
-            : ratio === "default"
-            ? "max-w-[1200px] aspect-[1920/600] max-h-[300px] mx-auto"
-            : "max-w-[860px] aspect-[860/270] max-h-[270px] mx-auto"
-        }`}
       >
         <picture className="w-full h-full block">
           {resolvedMobileBanner && (
