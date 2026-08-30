@@ -10,22 +10,6 @@ interface DepartmentBrandHeroProps {
   department: Department;
 }
 
-function hexToRgba(hex: string, alpha: number): string {
-  if (!hex) return `rgba(196, 226, 245, ${alpha})`;
-  let c = hex.replace("#", "").trim();
-  if (c.length === 3) {
-    c = c
-      .split("")
-      .map((x) => x + x)
-      .join("");
-  }
-  if (c.length !== 6) return `rgba(196, 226, 245, ${alpha})`;
-  const r = parseInt(c.substring(0, 2), 16);
-  const g = parseInt(c.substring(2, 4), 16);
-  const b = parseInt(c.substring(4, 6), 16);
-  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-}
-
 // Curated high-resolution studio campaign banner artwork (16:5 aspect ratio)
 const BRAND_DEFAULT_CAMPAIGN_BANNERS: Record<string, Record<string, string>> = {
   apple: {
@@ -136,8 +120,6 @@ export default function DepartmentBrandHero({
   const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "860x270";
   const frameBg = config.bannerBackgroundColor || "#F4F5F7";
   const isBlurEnabled = config.bannerBlurEnabled !== false;
-  const isGlowEnabled = config.bannerGlowEnabled !== false;
-  const glowColor = config.bannerGlowColor || "#C4E2F5";
   const blurStrength =
     config.bannerBlurStrength === "ultra"
       ? "70px"
@@ -157,14 +139,10 @@ export default function DepartmentBrandHero({
 
   const bannerContent = (
     <div
-      className="relative w-full overflow-hidden select-none rounded-none flex items-center justify-center p-0 m-0 transition-all"
+      className="relative w-full overflow-hidden select-none rounded-none border border-neutral-200/80 shadow-2xs flex items-center justify-center p-0 m-0 transition-all"
       style={{
         backgroundColor: frameBg,
         borderRadius: 0,
-        borderColor: hexToRgba(glowColor, 0.65),
-        borderWidth: "1.5px",
-        borderStyle: "solid",
-        boxShadow: `0 0 25px ${hexToRgba(glowColor, 0.45)}, 0 0 60px ${hexToRgba(glowColor, 0.25)}, inset 0 0 30px ${hexToRgba(glowColor, 0.2)}`,
         aspectRatio:
           ratio === "1080x1080"
             ? "1 / 1"
@@ -187,44 +165,6 @@ export default function DepartmentBrandHero({
             : "270px",
       }}
     >
-      {/* ── FULL PERIMETER EDGE GLOW BEAMS (All 4 Edges Glowing) ── */}
-      {isGlowEnabled && (
-        <>
-          {/* Top Edge Glow */}
-          <div
-            className="absolute top-0 left-0 right-0 h-[2.5px] z-20 pointer-events-none"
-            style={{
-              background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
-              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
-            }}
-          />
-          {/* Bottom Edge Glow */}
-          <div
-            className="absolute bottom-0 left-0 right-0 h-[2.5px] z-20 pointer-events-none"
-            style={{
-              background: `linear-gradient(90deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
-              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
-            }}
-          />
-          {/* Left Edge Glow */}
-          <div
-            className="absolute top-0 bottom-0 left-0 w-[2.5px] z-20 pointer-events-none"
-            style={{
-              background: `linear-gradient(180deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
-              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
-            }}
-          />
-          {/* Right Edge Glow */}
-          <div
-            className="absolute top-0 bottom-0 right-0 w-[2.5px] z-20 pointer-events-none"
-            style={{
-              background: `linear-gradient(180deg, transparent 0%, ${hexToRgba(glowColor, 0.4)} 15%, ${hexToRgba(glowColor, 0.95)} 50%, ${hexToRgba(glowColor, 0.4)} 85%, transparent 100%)`,
-              boxShadow: `0 0 16px 2px ${hexToRgba(glowColor, 0.9)}`,
-            }}
-          />
-        </>
-      )}
-
       {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
       {isBlurEnabled && resolvedDesktopBanner && (
         <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
@@ -258,28 +198,7 @@ export default function DepartmentBrandHero({
         }}
       />
 
-      {/* ── 2. Overlay Image Background Radiant Glow Effect ── */}
-      {isGlowEnabled && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center -z-0 overflow-hidden">
-          {/* Outer expansive luminous pulse aura */}
-          <div
-            className="w-full h-full rounded-none blur-3xl opacity-75 transform-gpu animate-pulse"
-            style={{
-              background: `radial-gradient(ellipse at center, ${hexToRgba(glowColor, 0.7)} 0%, ${hexToRgba(glowColor, 0.35)} 45%, ${hexToRgba(glowColor, 0.1)} 70%, transparent 85%)`,
-              animationDuration: "3.5s",
-            }}
-          />
-          {/* Core bright intense glow halo */}
-          <div
-            className="w-[90%] h-[90%] rounded-none blur-2xl opacity-90 transform-gpu"
-            style={{
-              background: `radial-gradient(ellipse at center, rgba(255,255,255,0.98) 0%, ${hexToRgba(glowColor, 0.85)} 35%, ${hexToRgba(glowColor, 0.3)} 60%, transparent 75%)`,
-            }}
-          />
-        </div>
-      )}
-
-      {/* ── 3. Overlay Banner Artwork (Matches Full Background Banner Frame Width) ── */}
+      {/* ── 2. Overlay Banner Artwork (Matches Full Background Banner Frame Width) ── */}
       <div
         className="relative w-full h-full max-w-full z-10 overflow-hidden rounded-none flex items-center justify-center mx-auto"
         style={{
