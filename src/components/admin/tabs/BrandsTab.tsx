@@ -1207,15 +1207,17 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                             {activePageConfig.bannerSizeRatio || "default"}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
                           {[
-                            { id: "860x270", label: "860 × 270 (Default)", badge: "860×270", desc: "Crisp High-Res Banner Frame" },
-                            { id: "default", label: "Widescreen", badge: "1920×600", desc: "Widescreen Frame" },
-                            { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Banner Frame" },
-                            { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
-                            { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
+                            { id: "1920x500", label: "1920 × 500", badge: "Full Width", desc: "Full-Width HD Hero Banner" },
+                            { id: "auto", label: "Auto Size", badge: "1:1 Upload", desc: "Matches exact uploaded image size" },
+                            { id: "860x270", label: "860 × 270", badge: "860×270", desc: "Compact Card Overlay" },
+                            { id: "default", label: "1920 × 600", badge: "Widescreen", desc: "Widescreen Frame" },
+                            { id: "1920x850", label: "1920 × 850", badge: "Panoramic", desc: "Cinematic Panoramic Frame" },
+                            { id: "1080x1080", label: "1080 × 1080", badge: "Square", desc: "Square Banner Frame" },
+                            { id: "1080x1440", label: "1080 × 1440", badge: "Story", desc: "Tall Story / Vertical Poster" },
                           ].map((preset) => {
-                            const isSelected = (activePageConfig.bannerSizeRatio || "860x270") === preset.id;
+                            const isSelected = (activePageConfig.bannerSizeRatio || "1920x500") === preset.id;
                             return (
                               <button
                                 key={preset.id}
