@@ -119,6 +119,23 @@ export default function DepartmentBrandHero({
 
   const ratio = config.bannerSizeRatio || (config as any).banner_size_ratio || "860x270";
   const frameBg = config.bannerBackgroundColor || "#F4F5F7";
+  const isBlurEnabled = config.bannerBlurEnabled !== false;
+  const blurStrength =
+    config.bannerBlurStrength === "ultra"
+      ? "70px"
+      : config.bannerBlurStrength === "high"
+      ? "45px"
+      : config.bannerBlurStrength === "low"
+      ? "16px"
+      : config.bannerBlurStrength === "none"
+      ? "0px"
+      : "30px";
+
+  const blendMode =
+    config.bannerBlendMode ||
+    (frameBg.toLowerCase() === "#ffffff" || frameBg.toLowerCase() === "#fff"
+      ? "normal"
+      : "multiply");
 
   const bannerContent = (
     <div
@@ -127,15 +144,37 @@ export default function DepartmentBrandHero({
         backgroundColor: frameBg,
       }}
     >
+      {/* ── 1. Ambient Blurred Backdrop Image (Fills Side Whitespace Dynamically) ── */}
+      {isBlurEnabled && resolvedDesktopBanner && (
+        <div className="absolute inset-0 w-full h-full overflow-hidden pointer-events-none -z-0">
+          <img
+            src={resolvedDesktopBanner}
+            alt=""
+            aria-hidden="true"
+            className="w-full h-full object-cover scale-135 opacity-40 transform-gpu"
+            style={{
+              filter: `blur(${blurStrength}) saturate(1.4)`,
+            }}
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundColor: frameBg,
+              opacity: 0.65,
+            }}
+          />
+        </div>
+      )}
+
       {/* Subtle ambient backdrop mesh */}
       <div
-        className="absolute inset-0 pointer-events-none opacity-35"
+        className="absolute inset-0 pointer-events-none opacity-30 -z-0"
         style={{
-          background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 80%)`,
+          background: `radial-gradient(ellipse at 50% 50%, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0) 85%)`,
         }}
       />
 
-      {/* ── Overlay Centered Banner Artwork (860×270 Standard Crisp Size) ── */}
+      {/* ── 2. Overlay Centered Banner Artwork (860×270 Standard Crisp Size) ── */}
       <div
         style={{
           aspectRatio:
@@ -158,7 +197,7 @@ export default function DepartmentBrandHero({
             ? "max-w-[360px] aspect-[1080/1440] mx-auto"
             : ratio === "default"
             ? "max-w-[1200px] aspect-[1920/600] max-h-[300px] mx-auto"
-            : "max-w-[860px] aspect-[860/270] max-h-[270px] mx-auto shadow-2xs"
+            : "max-w-[860px] aspect-[860/270] max-h-[270px] mx-auto"
         }`}
       >
         <picture className="w-full h-full block">
@@ -183,8 +222,9 @@ export default function DepartmentBrandHero({
             onError={() => setImgError(true)}
             style={{
               objectPosition: desktopFocal,
+              mixBlendMode: blendMode as any,
             }}
-            className="w-full h-full object-contain sm:object-cover block transition-transform duration-700 ease-out"
+            className="w-full h-full object-contain block transition-transform duration-700 ease-out"
           />
         </picture>
       </div>

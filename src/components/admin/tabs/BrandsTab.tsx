@@ -1330,6 +1330,100 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         </div>
                       </div>
 
+                      {/* ── BANNER BACKGROUND BLUR & SIDE-FIT BLEND CONTROLS ── */}
+                      <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                        <div className="flex items-center justify-between">
+                          <label className="block text-xs font-bold text-indigo-400 uppercase tracking-wider flex items-center gap-1.5">
+                            <Sparkles className="w-3.5 h-3.5" /> Ambient Background Blur &amp; Side Whitespace Fitting
+                          </label>
+                          <label className="relative inline-flex items-center cursor-pointer">
+                            <input
+                              type="checkbox"
+                              checked={activePageConfig.bannerBlurEnabled !== false}
+                              onChange={(e) =>
+                                handleUpdateActivePageConfig({ bannerBlurEnabled: e.target.checked })
+                              }
+                              className="sr-only peer"
+                            />
+                            <div className="w-9 h-5 bg-white/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-indigo-500"></div>
+                          </label>
+                        </div>
+
+                        {/* Blur Intensity Selector */}
+                        <div className="space-y-1.5">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-white/70 font-semibold">Blur Intensity</span>
+                            <span className="font-mono text-[10px] text-indigo-400 uppercase font-bold">
+                              {activePageConfig.bannerBlurStrength || "medium (30px)"}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-4 gap-2">
+                            {[
+                              { id: "low", label: "Low (16px)" },
+                              { id: "medium", label: "Medium (30px)" },
+                              { id: "high", label: "High (45px)" },
+                              { id: "ultra", label: "Ultra (70px)" },
+                            ].map((b) => {
+                              const isSelected =
+                                (activePageConfig.bannerBlurStrength || "medium") === b.id;
+                              return (
+                                <button
+                                  key={b.id}
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateActivePageConfig({ bannerBlurStrength: b.id as any })
+                                  }
+                                  className={`py-1.5 px-2 rounded-xl text-center text-xs font-bold transition-all cursor-pointer border ${
+                                    isSelected
+                                      ? "bg-indigo-600/40 border-indigo-500 text-white shadow-xs"
+                                      : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5"
+                                  }`}
+                                >
+                                  {b.label}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+
+                        {/* Blend Mode for Seamless Whitespace Elimination */}
+                        <div className="space-y-1.5 pt-2 border-t border-white/10">
+                          <div className="flex items-center justify-between text-xs">
+                            <span className="text-white/70 font-semibold">Side Whitespace Seamless Blend</span>
+                            <span className="font-mono text-[10px] text-indigo-400 uppercase font-bold">
+                              {activePageConfig.bannerBlendMode || "multiply (Seamless)"}
+                            </span>
+                          </div>
+                          <div className="grid grid-cols-3 gap-2">
+                            {[
+                              { id: "multiply", label: "Seamless Blend", desc: "Hides white side borders completely" },
+                              { id: "normal", label: "Normal", desc: "Standard (no blending)" },
+                              { id: "screen", label: "Screen", desc: "For black/dark banners" },
+                            ].map((m) => {
+                              const isSelected =
+                                (activePageConfig.bannerBlendMode || "multiply") === m.id;
+                              return (
+                                <button
+                                  key={m.id}
+                                  type="button"
+                                  onClick={() =>
+                                    handleUpdateActivePageConfig({ bannerBlendMode: m.id as any })
+                                  }
+                                  className={`p-2 rounded-xl text-left transition-all cursor-pointer border flex flex-col justify-between gap-0.5 ${
+                                    isSelected
+                                      ? "bg-indigo-600/40 border-indigo-500 text-white shadow-xs ring-1 ring-indigo-500"
+                                      : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5"
+                                  }`}
+                                >
+                                  <span className="text-[11px] font-bold text-white">{m.label}</span>
+                                  <span className="text-[9px] text-white/50 line-clamp-1">{m.desc}</span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      </div>
+
                       {/* ── 1. DESKTOP BANNER CONTROLS (1600 × 500px, 16:5) ── */}
                       <div className="p-5 bg-white/5 border border-white/10 rounded-2xl space-y-4">
                         <div className="flex items-center justify-between">

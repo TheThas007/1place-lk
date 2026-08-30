@@ -186,6 +186,10 @@ export interface DepartmentBrandPageConfig {
   banner_size_ratio?: string;
   bannerBackgroundColor?: string;
   bannerOverlayEnabled?: boolean;
+  bannerBlurEnabled?: boolean;
+  bannerBlurStrength?: "none" | "low" | "medium" | "high" | "ultra";
+  bannerBlendMode?: "normal" | "multiply" | "screen" | "darken" | "overlay";
+  bannerFitMode?: "contain" | "cover";
 
   desktopFocalPosition?: string;
   tabletFocalPosition?: string;
