@@ -34,6 +34,7 @@ import {
 import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog, ProductImageSettings } from "@/lib/types";
 import { db } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection, setDoc } from "firebase/firestore";
+import { getBrands, getCategories } from "@/lib/firestore-client";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
@@ -252,6 +253,43 @@ export default function ProductModal({
     return "accessory";
   };
 
+  // Load live Firestore categories and brands whenever modal is opened
+  useEffect(() => {
+    if (!isOpen) return;
+
+    let isMounted = true;
+    async function loadLiveTaxonomies() {
+      try {
+        const [liveCats, liveBrands] = await Promise.all([
+          getCategories(),
+          getBrands(),
+        ]);
+
+        if (isMounted) {
+          if (liveCats && liveCats.length > 0) {
+            setExtraCategories((prev) => {
+              const map = new Map<string, Category>();
+              prev.forEach((c) => map.set(c.id, c));
+              liveCats.forEach((c) => map.set(c.id, c));
+              return Array.from(map.values());
+            });
+          }
+          if (liveBrands && liveBrands.length > 0) {
+            const brandNames = liveBrands.map((b) => b.name).filter(Boolean);
+            setExtraBrands((prev) => Array.from(new Set([...prev, ...brandNames])));
+          }
+        }
+      } catch (e) {
+        console.warn("Could not load live categories/brands in ProductModal:", e);
+      }
+    }
+
+    loadLiveTaxonomies();
+    return () => {
+      isMounted = false;
+    };
+  }, [isOpen]);
+
   // Merged Categories List (Default 12 Categories + Props Categories + Extra Created Categories, filtered to exclude Brand names)
   const mergedCategories = React.useMemo(() => {
     const map = new Map<string, Category>();
@@ -304,7 +342,7 @@ export default function ProductModal({
 
     setExtraCategories((prev) => [...prev.filter((c) => c.id !== newCatId), newCatObj]);
     setCategoryId(newCatId);
-    const detected = detectProductType(trimmed);
+    const detected = detectProductType(trimmed, name);
     setProductType(detected);
     if (detected === "laptop" || detected === "phone") {
       setHasColorVariants(true);
@@ -320,6 +358,9 @@ export default function ProductModal({
 
     try {
       await setDoc(doc(db, "categories", newCatId), newCatObj, { merge: true });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("refresh-categories"));
+      }
     } catch (err) {
       console.warn("Failed to auto-save custom category to Firestore:", err);
     }
@@ -330,6 +371,17 @@ export default function ProductModal({
     const trimmed = (brandToAdd || customBrandName).trim();
     if (!trimmed) return;
     const bSlug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const newBrandId = `brand-${bSlug}`;
+    const newBrandObj = {
+      id: newBrandId,
+      name: trimmed,
+      slug: bSlug,
+      logo_url: "",
+      sort_order: 99,
+      status: "active",
+      show_on_homepage: true,
+    };
+
     setExtraBrands((prev) => Array.from(new Set([...prev, trimmed])));
     setBrand(trimmed);
     setIsCustomBrand(false);
@@ -337,15 +389,10 @@ export default function ProductModal({
     setHasUnsavedChanges(true);
 
     try {
-      await setDoc(doc(db, "brands", `brand-${bSlug}`), {
-        id: `brand-${bSlug}`,
-        name: trimmed,
-        slug: bSlug,
-        logo_url: "",
-        sort_order: 99,
-        status: "active",
-        show_on_homepage: true,
-      }, { merge: true });
+      await setDoc(doc(db, "brands", newBrandId), newBrandObj, { merge: true });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("refresh-brands"));
+      }
     } catch (err) {
       console.warn("Failed to auto-save custom brand to Firestore:", err);
     }
@@ -1186,9 +1233,11 @@ export default function ProductModal({
                 </div>
 
                 {/* Category Selector with Custom Toggle */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-gray-700">Category *</label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-gray-700 flex items-center gap-1.5">
+                      <span>Category *</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => {
@@ -1197,14 +1246,15 @@ export default function ProductModal({
                           setCustomCategoryName("");
                         }
                       }}
-                      className="text-[11px] text-blue-600 hover:underline font-bold"
+                      className="text-[11px] font-extrabold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      {isCustomCategory ? "Select from List" : "+ Add Custom Category"}
+                      {isCustomCategory ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      {isCustomCategory ? "Back to List" : "+ Add Custom Category"}
                     </button>
                   </div>
 
                   {isCustomCategory ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 animate-in fade-in-0 duration-150">
                       <input
                         type="text"
                         autoFocus
@@ -1219,16 +1269,16 @@ export default function ProductModal({
                             handleApplyCustomCategory();
                           }
                         }}
-                        placeholder="Type custom category (e.g. Smart Glasses)"
-                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                        placeholder="Type new category (e.g. Smart Glasses, Drones, Camera)"
+                        className="flex-1 px-3.5 py-2.5 bg-blue-50/40 border-2 border-blue-400 rounded-xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                       <button
                         type="button"
                         onClick={() => handleApplyCustomCategory()}
                         disabled={!customCategoryName.trim()}
-                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add & Select
+                        <Check className="w-3.5 h-3.5" /> Save &amp; Select
                       </button>
                     </div>
                   ) : (
@@ -1236,6 +1286,11 @@ export default function ProductModal({
                       value={categoryId}
                       onChange={(e) => {
                         const newCatId = e.target.value;
+                        if (newCatId === "__custom_add__") {
+                          setIsCustomCategory(true);
+                          setCustomCategoryName("");
+                          return;
+                        }
                         setCategoryId(newCatId);
                         const catObj = mergedCategories.find((c) => c.id === newCatId);
                         const catName = catObj?.name || newCatId;
@@ -1251,21 +1306,26 @@ export default function ProductModal({
                         }
                         setHasUnsavedChanges(true);
                       }}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {mergedCategories.map((c) => (
                         <option key={c.id} value={c.id}>
                           {c.name}
                         </option>
                       ))}
+                      <option value="__custom_add__" className="text-blue-600 font-bold bg-blue-50">
+                        ✨ + Create / Add New Custom Category...
+                      </option>
                     </select>
                   )}
                 </div>
 
                 {/* Brand Name Selector with Custom Toggle */}
-                <div>
-                  <div className="flex items-center justify-between mb-1">
-                    <label className="font-bold text-gray-700">Brand Name *</label>
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <label className="font-bold text-gray-700 flex items-center gap-1.5">
+                      <span>Brand Name *</span>
+                    </label>
                     <button
                       type="button"
                       onClick={() => {
@@ -1274,14 +1334,15 @@ export default function ProductModal({
                           setCustomBrandName("");
                         }
                       }}
-                      className="text-[11px] text-blue-600 hover:underline font-bold"
+                      className="text-[11px] font-extrabold text-blue-600 hover:text-blue-700 bg-blue-50 hover:bg-blue-100 px-2.5 py-1 rounded-lg border border-blue-200 transition-all flex items-center gap-1 cursor-pointer"
                     >
-                      {isCustomBrand ? "Select from List" : "+ Add Custom Brand"}
+                      {isCustomBrand ? <X className="w-3 h-3" /> : <Plus className="w-3 h-3" />}
+                      {isCustomBrand ? "Back to List" : "+ Add Custom Brand"}
                     </button>
                   </div>
 
                   {isCustomBrand ? (
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 animate-in fade-in-0 duration-150">
                       <input
                         type="text"
                         autoFocus
@@ -1296,32 +1357,41 @@ export default function ProductModal({
                             handleApplyCustomBrand();
                           }
                         }}
-                        placeholder="Type custom brand (e.g. Bose, Sony, Marshall)"
-                        className="flex-1 px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                        placeholder="Type new brand (e.g. Bose, Marshall, Nothing, GoPro)"
+                        className="flex-1 px-3.5 py-2.5 bg-blue-50/40 border-2 border-blue-400 rounded-xl text-xs font-bold text-gray-900 outline-none focus:ring-2 focus:ring-blue-500/20"
                       />
                       <button
                         type="button"
                         onClick={() => handleApplyCustomBrand()}
                         disabled={!customBrandName.trim()}
-                        className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 flex items-center gap-1"
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-md shrink-0 flex items-center gap-1.5 cursor-pointer"
                       >
-                        <Plus className="w-3.5 h-3.5" /> Add & Select
+                        <Check className="w-3.5 h-3.5" /> Save &amp; Select
                       </button>
                     </div>
                   ) : (
                     <select
                       value={brand}
                       onChange={(e) => {
-                        setBrand(e.target.value);
+                        const newBrand = e.target.value;
+                        if (newBrand === "__custom_add__") {
+                          setIsCustomBrand(true);
+                          setCustomBrandName("");
+                          return;
+                        }
+                        setBrand(newBrand);
                         setHasUnsavedChanges(true);
                       }}
-                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
+                      className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500 cursor-pointer"
                     >
                       {brandOptions.map((b) => (
                         <option key={b} value={b}>
                           {b}
                         </option>
                       ))}
+                      <option value="__custom_add__" className="text-blue-600 font-bold bg-blue-50">
+                        ✨ + Create / Add New Custom Brand...
+                      </option>
                     </select>
                   )}
                 </div>
