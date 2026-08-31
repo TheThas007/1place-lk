@@ -791,16 +791,75 @@ export default function Header() {
                     )}
                   </button>
 
-                  <button
-                    onClick={() => {
-                      setIsMobileMenuOpen(false);
-                      user ? setUserMenuOpen(true) : setAuthOpen(true);
-                    }}
-                    className="flex items-center gap-3 w-full px-4 py-3.5 rounded-xl text-sm font-medium text-white/50 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
-                  >
-                    <User className="w-4 h-4" />
-                    {user ? user.displayName || "Account" : "Sign In / Sign Up"}
-                  </button>
+                  {user ? (
+                    <div className="pt-2 pb-1 space-y-1">
+                      <div className="p-3 bg-white/[0.05] border border-white/[0.08] rounded-2xl mb-2">
+                        <div className="flex items-center gap-3">
+                          <UserAvatar
+                            gender={gender || profile?.gender || "male"}
+                            name={user.displayName || "User"}
+                            photoURL={user.photoURL}
+                            size="md"
+                            showBadge
+                          />
+                          <div className="min-w-0 flex-1">
+                            <p className="text-white text-xs font-bold truncate">{user.displayName || "Customer"}</p>
+                            <p className="text-white/40 text-[10px] truncate font-mono">{user.email}</p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <Link
+                        href="/orders"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Package className="w-4 h-4 text-white/70" />
+                          My Orders &amp; Track
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-white/30" />
+                      </Link>
+
+                      <Link
+                        href="/wishlist"
+                        onClick={() => setIsMobileMenuOpen(false)}
+                        className="flex items-center justify-between px-4 py-3 rounded-xl text-xs font-semibold text-white/80 hover:text-white hover:bg-white/[0.04] transition-all min-h-[44px]"
+                      >
+                        <span className="flex items-center gap-2.5">
+                          <Heart className="w-4 h-4 text-white/70" />
+                          My Wishlist
+                        </span>
+                        <ChevronRight className="w-3.5 h-3.5 text-white/30" />
+                      </Link>
+
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await signOut();
+                          setIsMobileMenuOpen(false);
+                        }}
+                        className="flex items-center gap-2.5 w-full px-4 py-3 text-xs font-bold text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-xl transition-all cursor-pointer min-h-[44px]"
+                      >
+                        <LogOut className="w-4 h-4 text-red-400" />
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => {
+                        setIsMobileMenuOpen(false);
+                        setAuthOpen(true);
+                      }}
+                      className="flex items-center justify-between w-full px-4 py-3.5 rounded-xl text-sm font-semibold text-white bg-white/[0.08] hover:bg-white/15 border border-white/10 transition-all min-h-[44px] shadow-sm cursor-pointer"
+                    >
+                      <span className="flex items-center gap-3">
+                        <User className="w-4 h-4 text-white" />
+                        Sign In / Create Account
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-white/40" />
+                    </button>
+                  )}
                 </div>
               </nav>
 

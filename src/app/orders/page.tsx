@@ -15,7 +15,8 @@ import {
   MapPin,
   CreditCard,
   ShoppingBag,
-  ChevronRight
+  ChevronRight,
+  LogOut,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { collection, query, where, getDocs, doc, getDoc } from "firebase/firestore";
@@ -118,7 +119,7 @@ function getDeliveryEstimate(createdAtStr: string, status: string) {
 }
 
 export default function OrderHistoryPage() {
-  const { user, profile, gender, updateGender } = useAuth();
+  const { user, profile, gender, updateGender, signOut } = useAuth();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [phoneSearch, setPhoneSearch] = useState("");
@@ -281,10 +282,10 @@ export default function OrderHistoryPage() {
           </a>
         </div>
 
-        {/* Logged-In User Profile Card with Avatar & Gender Switcher */}
+        {/* Logged-In User Profile Card with Avatar & Sign Out */}
         {user && (
           <div className="bg-white border border-gray-100 rounded-3xl p-5 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-4 min-w-0">
               <UserAvatar
                 gender={gender || profile?.gender || "male"}
                 name={user.displayName || "User"}
@@ -292,17 +293,31 @@ export default function OrderHistoryPage() {
                 size="xl"
                 showBadge
               />
-              <div>
-                <h3 className="text-base font-extrabold text-gray-900">
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-extrabold text-gray-900 truncate">
                   {user.displayName || "Customer"}
                 </h3>
-                <p className="text-xs text-gray-500 font-mono mt-0.5">{user.email}</p>
+                <p className="text-xs text-gray-500 font-mono mt-0.5 truncate">{user.email}</p>
                 <div className="flex items-center gap-2 mt-1.5">
                   <span className="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-neutral-100 text-neutral-800 border border-neutral-200">
                     {(gender || profile?.gender) === "female" ? "👩 Female Account" : "👨 Male Account"}
                   </span>
                 </div>
               </div>
+            </div>
+
+            <div className="flex items-center gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
+              <button
+                type="button"
+                onClick={async () => {
+                  await signOut();
+                  window.location.href = "/";
+                }}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 text-xs font-bold transition-all border border-red-200/60 cursor-pointer shadow-xs"
+              >
+                <LogOut className="w-4 h-4 text-red-500" />
+                <span>Sign Out</span>
+              </button>
             </div>
           </div>
         )}
