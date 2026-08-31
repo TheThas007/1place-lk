@@ -8,6 +8,12 @@ import {
 } from "@/lib/firestore-brands";
 import { getProducts, getCategories } from "@/lib/firestore-client";
 import DepartmentBrandPage from "@/components/brand/DepartmentBrandPage";
+import {
+  getProductBrand,
+  isPhoneSegment,
+  isLaptopTabletSegment,
+  isAccessorySegment,
+} from "@/lib/catalog-utils";
 
 export const dynamic = "force-dynamic";
 
@@ -114,74 +120,45 @@ export default async function DepartmentBrandRoute({
     notFound();
   }
 
-  // Filter products for this specific department AND brand
-  const allBrandProducts = products.filter((p) => {
-    const bSlug = (
+  // Filter products strictly for this specific brand AND department
+  const targetBrandSlug = brand.slug.toLowerCase();
+  const targetBrandName = brand.name.toLowerCase();
+
+  const brandProducts = products.filter((p) => {
+    const pBrand = getProductBrand(p).toLowerCase();
+    const pBrandSlug = (
       p.brand_slug ||
       p.brandSlug ||
       p.brand ||
       ""
     ).toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const bName = (p.brand_name || p.brandName || p.brand || "").toLowerCase();
-    const targetBrandSlug = brand.slug.toLowerCase();
-    const targetBrandName = brand.name.toLowerCase();
 
     return (
-      bSlug === targetBrandSlug ||
-      bName === targetBrandName ||
-      (p.name || "").toLowerCase().includes(targetBrandName)
+      pBrand === targetBrandName ||
+      pBrandSlug === targetBrandSlug ||
+      pBrandSlug === `brand-${targetBrandSlug}`
     );
   });
 
-  const departmentBrandProducts = allBrandProducts.filter((p) => {
-    const pGroup = (p.productType || "").toLowerCase();
-    const cSlug = (
-      p.category_slug ||
-      p.categorySlug ||
-      p.category_id ||
-      p.category_name ||
-      ""
-    ).toLowerCase();
-
+  const departmentBrandProducts = brandProducts.filter((p) => {
     if (departmentSlug === "phones") {
-      const isPhone =
-        pGroup === "phone" ||
-        cSlug.includes("smartphone") ||
-        cSlug.includes("phone") ||
-        cSlug.includes("iphone") ||
-        cSlug.includes("galaxy") ||
-        cSlug.includes("redmi") ||
-        cSlug.includes("pixel");
-      return isPhone;
+      return isPhoneSegment(p);
     }
-
-    if (departmentSlug === "laptops-tablets") {
-      const isLaptopOrTab =
-        cSlug.includes("laptop") ||
-        cSlug.includes("macbook") ||
-        cSlug.includes("tablet") ||
-        cSlug.includes("ipad") ||
-        cSlug.includes("tab");
-      return isLaptopOrTab;
+    if (
+      departmentSlug === "laptops-tablets" ||
+      departmentSlug === "laptops" ||
+      departmentSlug === "tablets"
+    ) {
+      return isLaptopTabletSegment(p);
     }
-
     if (departmentSlug === "accessories") {
-      const isAccessory =
-        pGroup === "accessory" ||
-        (!cSlug.includes("smartphone") &&
-          !cSlug.includes("phone") &&
-          !cSlug.includes("laptop") &&
-          !cSlug.includes("macbook") &&
-          !cSlug.includes("ipad"));
-      return isAccessory;
+      return isAccessorySegment(p);
     }
-
     return true;
   });
 
-  // If department subset is empty but brand has products, fallback to all brand products
-  const finalProducts =
-    departmentBrandProducts.length > 0 ? departmentBrandProducts : allBrandProducts;
+  // Strict products for this department (never dump unrelated accessories or laptops into phones)
+  const finalProducts = departmentBrandProducts;
 
   const collectionJsonLd = {
     "@context": "https://schema.org",

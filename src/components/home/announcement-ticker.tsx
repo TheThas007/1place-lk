@@ -94,7 +94,7 @@ export default function AnnouncementTicker() {
     <div
       ref={tickerRef}
       data-announcement-ticker
-      className="hidden md:block w-full overflow-hidden border-none m-0 p-0 select-none"
+      className="w-full overflow-hidden border-none m-0 p-0 select-none"
       style={{
         backgroundColor: settings.bg_color || "#000000",
         color: settings.text_color || "#FFFFFF",
@@ -105,16 +105,16 @@ export default function AnnouncementTicker() {
       onTouchStart={() => settings.pause_on_hover && setIsPaused(true)}
       onTouchEnd={() => settings.pause_on_hover && setIsPaused(false)}
     >
-      <div className="h-[48px] md:h-[42px] sm:h-[38px] flex items-center overflow-hidden">
+      <div className="h-[36px] sm:h-[40px] md:h-[44px] flex items-center overflow-hidden">
         {prefersReducedMotion.current ? (
           /* Static horizontally scrollable row for reduced-motion users */
-          <div className="flex items-center gap-0 overflow-x-auto text-[13px] font-semibold px-4 w-full scrollbar-none">
+          <div className="flex items-center gap-0 overflow-x-auto text-[11px] sm:text-[13px] font-semibold px-3 sm:px-4 w-full scrollbar-none">
             {renderMessages(activeMessages)}
           </div>
         ) : (
           /* Seamless infinite marquee */
           <div
-            className="flex items-center gap-0 text-[13px] sm:text-[14px] font-semibold ticker-marquee"
+            className="flex items-center gap-0 text-[11px] sm:text-[13px] md:text-[14px] font-semibold ticker-marquee"
             style={{
               animationDuration: `${duration}s`,
               animationDirection: isRtl ? "normal" : "reverse",

@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
-import { AlertCircle, RefreshCw, Home, ShoppingBag } from "lucide-react";
+import { AlertCircle, RotateCcw, Home } from "lucide-react";
 
 export default function Error({
   error,
@@ -12,39 +12,33 @@ export default function Error({
   reset: () => void;
 }) {
   useEffect(() => {
-    console.error("Unhandled Route Error:", error);
+    console.error("App Error Boundary caught:", error);
   }, [error]);
 
   return (
     <div className="min-h-[70vh] flex items-center justify-center px-4 py-16 bg-black text-white">
-      <div className="max-w-md w-full text-center bg-zinc-950 p-8 rounded-3xl border border-zinc-800 shadow-2xl">
-        <div className="w-16 h-16 rounded-full bg-red-500/10 border border-red-500/20 text-red-400 flex items-center justify-center mx-auto mb-6">
-          <AlertCircle className="w-8 h-8" />
+      <div className="max-w-md w-full text-center bg-zinc-950 p-8 sm:p-10 rounded-3xl border border-zinc-800 shadow-2xl relative overflow-hidden">
+        <div className="w-14 h-14 mx-auto mb-5 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center text-red-400">
+          <AlertCircle className="w-7 h-7" />
         </div>
-
-        <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3">
-          Something went wrong
-        </h1>
-
-        <p className="text-zinc-400 text-sm leading-relaxed mb-8">
-          We experienced a temporary glitch while loading this page. Please try refreshing or return to the homepage.
+        <h2 className="text-xl sm:text-2xl font-bold tracking-tight mb-2">Something went wrong</h2>
+        <p className="text-zinc-400 text-xs sm:text-sm leading-relaxed mb-6">
+          We encountered an issue loading this page. Please try reloading or head back home.
         </p>
-
-        <div className="flex flex-col sm:flex-row gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 justify-center">
           <button
             onClick={() => reset()}
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-white text-black py-3.5 px-5 rounded-2xl font-bold text-sm hover:bg-zinc-200 active:scale-95 transition-all shadow-lg"
+            className="inline-flex items-center justify-center gap-2 bg-white text-black py-3 px-5 rounded-xl font-bold text-xs sm:text-sm hover:bg-zinc-200 active:scale-95 transition-all cursor-pointer shadow-md"
           >
-            <RefreshCw className="w-4 h-4" />
-            Try Again
+            <RotateCcw className="w-4 h-4" />
+            Try again
           </button>
-
           <Link
             href="/"
-            className="flex-1 inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 py-3.5 px-5 rounded-2xl font-bold text-sm active:scale-95 transition-all"
+            className="inline-flex items-center justify-center gap-2 bg-zinc-900 hover:bg-zinc-800 text-white border border-zinc-800 py-3 px-5 rounded-xl font-bold text-xs sm:text-sm active:scale-95 transition-all"
           >
             <Home className="w-4 h-4" />
-            Go to Home
+            Home
           </Link>
         </div>
       </div>

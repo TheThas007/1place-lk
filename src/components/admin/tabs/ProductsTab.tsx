@@ -28,45 +28,19 @@ import {
   Star,
   Rocket,
   Flame,
-  Zap
+  Zap,
+  X,
+  RotateCcw,
 } from "lucide-react";
 import BulkOfferModal from "@/components/admin/BulkOfferModal";
-
-const STANDARD_CATEGORIES = [
-  "Smartphones",
-  "Feature Phones",
-  "Tablets & iPads",
-  "Smart Watches",
-  "Earbuds & TWS",
-  "Headphones",
-  "Speakers",
-  "Chargers & Adapters",
-  "Charging Cables",
-  "Power Banks",
-  "Phone Cases",
-  "Screen Protectors",
-  "Laptops & MacBooks",
-  "Mobile Accessories",
-  "Repair Parts"
-];
-
-const STANDARD_BRANDS = [
-  "Apple",
-  "Samsung",
-  "Redmi",
-  "Xiaomi",
-  "Honor",
-  "Oppo",
-  "Vivo",
-  "Realme",
-  "JBL",
-  "LENYES",
-  "UGREEN",
-  "Anker",
-  "Baseus",
-  "Oraimo",
-  "Other"
-];
+import {
+  getProductCategory,
+  getProductBrand,
+  sanitizeCategoriesList,
+  sanitizeBrandsList,
+  STANDARD_CATEGORIES,
+  STANDARD_BRANDS,
+} from "@/lib/catalog-utils";
 
 export default function ProductsTab({ 
   products, 
@@ -124,88 +98,18 @@ export default function ProductsTab({
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
   const [openBrands, setOpenBrands] = useState<Record<string, boolean>>({});
 
-  // 1. Standardize / Clean product classification helper
-  const getProductCategory = (p: Product): string => {
-    const rawCat = (p.category_name || p.categoryName || (p as any).category || "").trim();
-    // Strip emojis
-    const cleanCat = rawCat.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-    const name = p.name.toLowerCase();
-
-    // If cleanCat matches known brand, infer real category from name
-    const rawCatLower = cleanCat.toLowerCase();
-    const isBrandAsCat = STANDARD_BRANDS.some((b) => b.toLowerCase() === rawCatLower);
-
-    if (isBrandAsCat || !cleanCat || cleanCat === "General") {
-      if (name.includes("iphone") || name.includes("galaxy") || name.includes("phone") || name.includes("5g") || name.includes("redmi note")) return "Smartphones";
-      if (name.includes("headphone") || name.includes("headset")) return "Headphones";
-      if (name.includes("buds") || name.includes("earbuds") || name.includes("tws") || name.includes("airpods")) return "Earbuds & TWS";
-      if (name.includes("speaker") || name.includes("soundbar")) return "Speakers";
-      if (name.includes("adapter") || name.includes("charger") || name.includes("fast charge")) return "Chargers & Adapters";
-      if (name.includes("cable") || name.includes("usb-c") || name.includes("lightning")) return "Charging Cables";
-      if (name.includes("power bank") || name.includes("mah")) return "Power Banks";
-      if (name.includes("watch")) return "Smart Watches";
-      if (name.includes("case") || name.includes("cover")) return "Phone Cases";
-      if (name.includes("screen") || name.includes("glass") || name.includes("protector")) return "Screen Protectors";
-      if (name.includes("macbook") || name.includes("laptop")) return "Laptops & MacBooks";
-    }
-
-    return cleanCat || "Smartphones";
-  };
-
-  const getProductBrand = (p: Product): string => {
-    const rawBrand = (p.brand_name || p.brandName || p.brand || "").trim();
-    // Strip emojis
-    const cleanBrand = rawBrand.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-    const name = p.name.toLowerCase();
-
-    // If cleanBrand is a Category name or empty, infer real manufacturer brand
-    const rawBrandLower = cleanBrand.toLowerCase();
-    const isCatAsBrand = STANDARD_CATEGORIES.some((c) => c.toLowerCase() === rawBrandLower);
-
-    if (isCatAsBrand || !cleanBrand || cleanBrand === "General") {
-      if (name.includes("apple") || name.includes("iphone") || name.includes("macbook") || name.includes("ipad") || name.includes("airpods")) return "Apple";
-      if (name.includes("samsung") || name.includes("galaxy")) return "Samsung";
-      if (name.includes("redmi")) return "Redmi";
-      if (name.includes("xiaomi") || name.includes("mi ")) return "Xiaomi";
-      if (name.includes("honor")) return "Honor";
-      if (name.includes("oppo")) return "Oppo";
-      if (name.includes("vivo")) return "Vivo";
-      if (name.includes("realme")) return "Realme";
-      if (name.includes("jbl")) return "JBL";
-      if (name.includes("lenyes")) return "LENYES";
-      if (name.includes("ugreen")) return "UGREEN";
-      if (name.includes("anker")) return "Anker";
-      if (name.includes("baseus")) return "Baseus";
-      if (name.includes("oraimo")) return "Oraimo";
-    }
-
-    return cleanBrand || "Other";
-  };
-
-  // Dynamic Categories list from presets + live Firestore categories prop + products
+  // Dynamic Categories list from presets + live Firestore categories prop + products (Strictly sanitized, 0% brands)
   const dynamicCategories = useMemo(() => {
-    const set = new Set<string>(STANDARD_CATEGORIES);
-    categories.forEach((c) => {
-      if (c && c.name && c.name.trim()) set.add(c.name.trim());
-    });
-    products.forEach((p) => {
-      const cat = getProductCategory(p);
-      if (cat) set.add(cat);
-    });
-    return Array.from(set).sort();
+    const fromProducts = products.map((p) => getProductCategory(p));
+    const fromFirestore = categories.map((c) => c?.name || "");
+    return sanitizeCategoriesList([...fromFirestore, ...fromProducts]);
   }, [categories, products]);
 
-  // Dynamic Brands list from presets + live Firestore brands prop + products
+  // Dynamic Brands list from presets + live Firestore brands prop + products (Strictly sanitized, 0% categories)
   const dynamicBrands = useMemo(() => {
-    const set = new Set<string>(STANDARD_BRANDS);
-    brands.forEach((b) => {
-      if (b && b.name && b.name.trim()) set.add(b.name.trim());
-    });
-    products.forEach((p) => {
-      const brand = getProductBrand(p);
-      if (brand) set.add(brand);
-    });
-    return Array.from(set).sort();
+    const fromProducts = products.map((p) => getProductBrand(p));
+    const fromFirestore = brands.map((b) => b?.name || "");
+    return sanitizeBrandsList([...fromFirestore, ...fromProducts]);
   }, [brands, products]);
 
   // 2. Filter Products based on Independent Filters
@@ -241,13 +145,38 @@ export default function ProductsTab({
         matchesShowcase = p.stock_status === "out_of_stock" || qty === 0;
       }
 
-      const query = searchQuery.toLowerCase().trim();
-      const matchesSearch =
-        !query ||
-        p.name.toLowerCase().includes(query) ||
-        (p.sku && p.sku.toLowerCase().includes(query)) ||
-        cat.toLowerCase().includes(query) ||
-        brand.toLowerCase().includes(query);
+      // Robust Multi-Keyword Search across all product attributes
+      const queryWords = searchQuery
+        .toLowerCase()
+        .trim()
+        .split(/\s+/)
+        .filter(Boolean);
+
+      if (queryWords.length === 0) {
+        return matchesCat && matchesBrand && matchesShowcase;
+      }
+
+      const productSearchText = [
+        p.name || "",
+        p.code || "",
+        p.slug || "",
+        (p as any).sku || "",
+        brand,
+        cat,
+        p.category_name || "",
+        p.category_id || "",
+        p.brand_name || "",
+        p.brand || "",
+        p.description || "",
+        p.delivery_info || "",
+        ...(p.colors || []),
+        ...(p.storage_options || []),
+        ...(p.variant_combos?.map((v) => `${v.sku || ""} ${v.color_name || ""} ${v.storage || ""}`) || []),
+      ]
+        .join(" ")
+        .toLowerCase();
+
+      const matchesSearch = queryWords.every((word) => productSearchText.includes(word));
 
       return matchesCat && matchesBrand && matchesShowcase && matchesSearch;
     });
@@ -490,6 +419,84 @@ export default function ProductsTab({
     }
   };
 
+  // Single Product Quick Reassign State (Level 1 Category & Level 2 Brand)
+  const [reassignProduct, setReassignProduct] = useState<Product | null>(null);
+  const [targetNewCategory, setTargetNewCategory] = useState<string>("");
+  const [isCustomReassignCategory, setIsCustomReassignCategory] = useState<boolean>(false);
+  const [customReassignCategoryText, setCustomReassignCategoryText] = useState<string>("");
+  const [targetNewBrand, setTargetNewBrand] = useState<string>("");
+  const [isCustomReassignBrand, setIsCustomReassignBrand] = useState<boolean>(false);
+  const [customReassignBrandText, setCustomReassignBrandText] = useState<string>("");
+  const [isReassigning, setIsReassigning] = useState<boolean>(false);
+
+  const handleOpenReassign = (product: Product) => {
+    setReassignProduct(product);
+    const curCat = getProductCategory(product);
+    const curBrand = getProductBrand(product);
+    setTargetNewCategory(curCat);
+    setIsCustomReassignCategory(false);
+    setCustomReassignCategoryText("");
+    setTargetNewBrand(curBrand);
+    setIsCustomReassignBrand(false);
+    setCustomReassignBrandText("");
+  };
+
+  const handleSaveReassign = async () => {
+    if (!reassignProduct) return;
+    const finalCat = isCustomReassignCategory ? customReassignCategoryText.trim() : targetNewCategory.trim();
+    const finalBrand = isCustomReassignBrand ? customReassignBrandText.trim() : targetNewBrand.trim();
+
+    if (!finalCat) {
+      alert("Please select or enter a Category.");
+      return;
+    }
+    if (!finalBrand) {
+      alert("Please select or enter a Brand.");
+      return;
+    }
+
+    try {
+      setIsReassigning(true);
+      const catSlug = finalCat.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+      const brandSlug = finalBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
+
+      const updatePayload: Record<string, any> = {
+        category_name: finalCat,
+        categoryName: finalCat,
+        category: finalCat,
+        category_slug: catSlug,
+        categorySlug: catSlug,
+        categoryId: `cat-${catSlug}`,
+        category_id: `cat-${catSlug}`,
+        brand: finalBrand,
+        brand_name: finalBrand,
+        brandName: finalBrand,
+        brand_id: `brand-${brandSlug}`,
+        brand_slug: brandSlug,
+        brandId: `brand-${brandSlug}`,
+        brandSlug: brandSlug,
+        updated_at: new Date().toISOString(),
+      };
+
+      await updateDoc(doc(db, "products", reassignProduct.id), updatePayload);
+
+      // Optimistic update on current product object
+      Object.assign(reassignProduct, updatePayload);
+
+      // Auto expand the new target accordion
+      setOpenCategories((prev) => ({ ...prev, [finalCat]: true }));
+      setOpenBrands((prev) => ({ ...prev, [`${finalCat}__${finalBrand}`]: true }));
+
+      alert(`Successfully moved "${reassignProduct.name}" to Level 1: [${finalCat}] → Level 2: [${finalBrand}]!`);
+      setReassignProduct(null);
+    } catch (err) {
+      console.error("Failed to reassign category and brand:", err);
+      alert("Failed to move product. Please try again.");
+    } finally {
+      setIsReassigning(false);
+    }
+  };
+
   // 1-Click Catalog Auto-Standardizer across database
   const handleStandardizeCatalogData = async () => {
     if (!confirm("Standardize database? This will assign correct Category (Product Type) & Brand (Manufacturer) to all products.")) return;
@@ -677,11 +684,21 @@ export default function ProductsTab({
             <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
             <input
               type="text"
-              placeholder="Search name, code, category, or brand..."
+              placeholder="Search product name, code (e.g. SM-101), brand, category, or specs..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-10 pr-4 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-medium text-white placeholder-white/40 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full pl-10 pr-10 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs font-medium text-white placeholder-white/40 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 w-5 h-5 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+                title="Clear Search"
+              >
+                <X className="w-3 h-3" />
+              </button>
+            )}
           </div>
 
           {/* Separate Category Filter Dropdown */}
@@ -730,6 +747,25 @@ export default function ProductsTab({
 
         </div>
 
+        {/* Active Search Results Feedback Banner */}
+        {searchQuery.trim() && (
+          <div className="flex items-center justify-between p-2.5 bg-blue-500/10 border border-blue-500/30 rounded-xl text-xs text-blue-300">
+            <span className="flex items-center gap-2">
+              <Search className="w-3.5 h-3.5 text-blue-400" />
+              <span>
+                Showing results for <strong>&ldquo;{searchQuery}&rdquo;</strong> &mdash; <strong>{filteredProducts.length} product(s)</strong> found
+              </span>
+            </span>
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="text-[11px] text-blue-400 hover:text-blue-200 underline font-bold cursor-pointer"
+            >
+              Clear Search
+            </button>
+          </div>
+        )}
+
         {/* Global Multi-Select All Checkbox */}
         <div className="flex items-center justify-between pt-2 border-t border-white/5 text-xs flex-wrap gap-2">
           <button
@@ -772,16 +808,40 @@ export default function ProductsTab({
             LEVEL 3: PRODUCTS TABLE (Featured ⭐, New Arrival 🚀, Stock, Price, SKU)
       ════════════════════════════════════════════════════════════════════ */}
       {categoryKeys.length === 0 ? (
-        <div className="bg-slate-900/40 border border-dashed border-white/10 rounded-2xl p-12 text-center text-white/40 space-y-2">
-          <Package className="w-10 h-10 mx-auto text-white/20" />
-          <p className="font-bold text-white text-sm">No products found matching filters</p>
-          <p className="text-xs">Try resetting or changing your category, brand, or showcase filter.</p>
+        <div className="bg-slate-900/40 border border-dashed border-white/10 rounded-2xl p-12 text-center text-white/40 space-y-3">
+          <Package className="w-12 h-12 mx-auto text-white/20" />
+          <div>
+            <p className="font-bold text-white text-sm">
+              {searchQuery ? `No products found matching "${searchQuery}"` : "No products found matching filters"}
+            </p>
+            <p className="text-xs text-white/50 mt-1">
+              {searchQuery
+                ? "Check spelling, try partial name, product code (e.g. SM-101), or clear filters."
+                : "Try resetting or changing your category, brand, or showcase filter."}
+            </p>
+          </div>
+          {(searchQuery || selectedCategoryFilter !== "all" || selectedBrandFilter !== "all" || selectedShowcaseFilter !== "all") && (
+            <button
+              type="button"
+              onClick={() => {
+                setSearchQuery("");
+                setSelectedCategoryFilter("all");
+                setSelectedBrandFilter("all");
+                setSelectedShowcaseFilter("all");
+              }}
+              className="px-4 py-2 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-xl text-xs font-bold transition-all cursor-pointer inline-flex items-center gap-1.5"
+            >
+              <RotateCcw className="w-3.5 h-3.5" />
+              <span>Reset Search &amp; Filters</span>
+            </button>
+          )}
         </div>
       ) : (
         categoryKeys.map((catKey) => {
           const brandMap = nestedHierarchy[catKey];
           const brandKeys = Object.keys(brandMap).sort();
-          const isCategoryOpen = openCategories[catKey] ?? true;
+          // Auto-expand all matching categories if search is active
+          const isCategoryOpen = searchQuery.trim().length > 0 ? true : (openCategories[catKey] ?? true);
           const totalCategoryProducts = brandKeys.reduce((acc, b) => acc + brandMap[b].length, 0);
 
           return (
@@ -840,7 +900,8 @@ export default function ProductsTab({
                   {brandKeys.map((brandKey) => {
                     const brandProducts = brandMap[brandKey];
                     const brandAccordionId = `${catKey}_${brandKey}`;
-                    const isBrandOpen = openBrands[brandAccordionId] ?? true;
+                    // Auto-expand all matching brands if search is active
+                    const isBrandOpen = searchQuery.trim().length > 0 ? true : (openBrands[brandAccordionId] ?? true);
 
                     return (
                       <div
@@ -966,7 +1027,7 @@ export default function ProductsTab({
                                             <p className="font-bold text-white leading-tight">
                                               {product.name}
                                             </p>
-                                            <div className="flex items-center gap-2 text-[10px] text-white/40">
+                                            <div className="flex items-center gap-2 text-[10px] text-white/40 flex-wrap">
                                               <span>SKU: {product.sku || product.code || "N/A"}</span>
                                               {hasVariants && (
                                                 <span className="px-1.5 py-0.2 bg-blue-500/20 text-blue-300 rounded font-semibold">
@@ -974,6 +1035,16 @@ export default function ProductsTab({
                                                 </span>
                                               )}
                                             </div>
+                                            {/* 🔄 Fast Change Category & Brand Button */}
+                                            <button
+                                              type="button"
+                                              onClick={() => handleOpenReassign(product)}
+                                              className="inline-flex items-center gap-1 text-[10px] text-purple-300 hover:text-purple-100 bg-purple-500/15 hover:bg-purple-500/30 px-2 py-0.5 rounded-md border border-purple-500/30 transition-colors cursor-pointer font-bold mt-1"
+                                              title="Click to manually change Level 1 Category or Level 2 Brand"
+                                            >
+                                              <FolderTree className="w-3 h-3 text-purple-400" />
+                                              <span>📁 {getProductCategory(product)} &rarr; 🏷️ {getProductBrand(product)}</span>
+                                            </button>
                                           </div>
                                         </div>
                                       </td>
@@ -1093,6 +1164,13 @@ export default function ProductsTab({
                                       <td className="py-3 px-4 text-right">
                                         <div className="flex items-center justify-end gap-1.5">
                                           <button
+                                            onClick={() => handleOpenReassign(product)}
+                                            className="p-1.5 rounded-lg bg-purple-500/10 hover:bg-purple-500/20 text-purple-300 transition-colors cursor-pointer"
+                                            title="Change Category & Brand (Move Product)"
+                                          >
+                                            <FolderTree className="w-3.5 h-3.5" />
+                                          </button>
+                                          <button
                                             onClick={() => onEdit(product)}
                                             className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/70 hover:text-white transition-colors cursor-pointer"
                                             title="Edit Product"
@@ -1199,8 +1277,9 @@ export default function ProductsTab({
               <span>Apply Offer</span>
             </button>
 
-            {/* Bulk Category Change */}
+            {/* Bulk Category Change (Level 1) */}
             <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold text-white/50">📁 Cat:</span>
               {isCustomBulkCategory ? (
                 <div className="flex items-center gap-1">
                   <input
@@ -1208,7 +1287,7 @@ export default function ProductsTab({
                     placeholder="New category..."
                     value={customBulkCategoryText}
                     onChange={(e) => setCustomBulkCategoryText(e.target.value)}
-                    className="px-2.5 py-1.5 bg-zinc-950 border border-blue-500/60 rounded-xl text-xs font-bold text-blue-400 focus:outline-none w-32"
+                    className="px-2.5 py-1.5 bg-zinc-950 border border-blue-500/60 rounded-xl text-xs font-bold text-blue-400 focus:outline-none w-28"
                     autoFocus
                   />
                   <button
@@ -1230,9 +1309,9 @@ export default function ProductsTab({
                       setBulkCategory(e.target.value);
                     }
                   }}
-                  className="px-2.5 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-white focus:outline-none max-w-[150px]"
+                  className="px-2.5 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-white focus:outline-none max-w-[130px]"
                 >
-                  <option value="">Category</option>
+                  <option value="">Select Category</option>
                   {dynamicCategories.map((c) => (
                     <option key={c} value={c}>📁 {c}</option>
                   ))}
@@ -1244,6 +1323,59 @@ export default function ProductsTab({
                 onClick={handleApplyBulkCategory}
                 disabled={(!bulkCategory && !customBulkCategoryText.trim()) || isUpdatingBulk}
                 className="px-2.5 py-1.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-colors"
+                title="Change Level 1 Category for selected products"
+              >
+                Set
+              </button>
+            </div>
+
+            {/* Bulk Brand Change (Level 2) */}
+            <div className="flex items-center gap-1">
+              <span className="text-[10px] font-bold text-white/50">🏷️ Brand:</span>
+              {isCustomBulkBrand ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    placeholder="New brand..."
+                    value={customBulkBrandText}
+                    onChange={(e) => setCustomBulkBrandText(e.target.value)}
+                    className="px-2.5 py-1.5 bg-zinc-950 border border-amber-500/60 rounded-xl text-xs font-bold text-amber-300 focus:outline-none w-28"
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsCustomBulkBrand(false)}
+                    className="px-1.5 py-1.5 bg-zinc-800 text-zinc-400 hover:text-white rounded-xl text-[10px]"
+                  >
+                    List
+                  </button>
+                </div>
+              ) : (
+                <select
+                  value={bulkBrand}
+                  onChange={(e) => {
+                    if (e.target.value === "__custom__") {
+                      setIsCustomBulkBrand(true);
+                      setBulkBrand("");
+                    } else {
+                      setBulkBrand(e.target.value);
+                    }
+                  }}
+                  className="px-2.5 py-1.5 bg-zinc-950 border border-white/20 rounded-xl text-xs font-bold text-amber-300 focus:outline-none max-w-[130px]"
+                >
+                  <option value="">Select Brand</option>
+                  {dynamicBrands.map((b) => (
+                    <option key={b} value={b}>🏷️ {b}</option>
+                  ))}
+                  <option value="__custom__" className="text-amber-400 font-black">+ Custom...</option>
+                </select>
+              )}
+              <button
+                type="button"
+                onClick={handleApplyBulkBrand}
+                disabled={(!bulkBrand && !customBulkBrandText.trim()) || isUpdatingBulk}
+                className="px-2.5 py-1.5 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-white rounded-xl text-xs font-black shadow-md cursor-pointer transition-colors"
+                title="Change Level 2 Brand for selected products"
               >
                 Set
               </button>
@@ -1277,6 +1409,156 @@ export default function ProductsTab({
         initialBrand={offerModalBrand}
         initialSelectedIds={offerModalSelectedIds}
       />
+
+      {/* ════════════════════════════════════════════════════════════════════
+         7. QUICK REASSIGN CATEGORY (LEVEL 1) & BRAND (LEVEL 2) MODAL
+      ════════════════════════════════════════════════════════════════════ */}
+      {reassignProduct && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-in fade-in">
+          <div className="bg-slate-900 border border-white/15 rounded-3xl p-6 w-full max-w-lg shadow-2xl space-y-5 text-white">
+            {/* Header */}
+            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
+                  <FolderTree className="w-5 h-5" />
+                </div>
+                <div>
+                  <h3 className="text-base font-black text-white">Change Category &amp; Brand</h3>
+                  <p className="text-xs text-white/50">Move product across Level 1 Category &amp; Level 2 Brand</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReassignProduct(null)}
+                className="w-8 h-8 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Target Product Summary */}
+            <div className="flex items-center gap-3.5 p-3 rounded-2xl bg-white/5 border border-white/10">
+              {reassignProduct.images && reassignProduct.images[0] ? (
+                <img
+                  src={reassignProduct.images[0]}
+                  alt=""
+                  className="w-12 h-12 object-contain rounded-xl bg-black/40 p-1 border border-white/10 shrink-0"
+                />
+              ) : (
+                <div className="w-12 h-12 rounded-xl bg-slate-800 flex items-center justify-center text-white/40 shrink-0">
+                  <Package className="w-6 h-6" />
+                </div>
+              )}
+              <div className="min-w-0 flex-1">
+                <h4 className="font-bold text-sm text-white truncate">{reassignProduct.name}</h4>
+                <div className="flex items-center gap-2 mt-1 text-[11px] text-white/50 flex-wrap">
+                  <span>Current: <strong>📁 {getProductCategory(reassignProduct)}</strong></span>
+                  <span>&rarr;</span>
+                  <span><strong>🏷️ {getProductBrand(reassignProduct)}</strong></span>
+                </div>
+              </div>
+            </div>
+
+            {/* Form Inputs */}
+            <div className="space-y-4 text-xs">
+              {/* 1. Level 1: Category */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-white/80">1. Level 1 Category (Product Type)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomReassignCategory(!isCustomReassignCategory);
+                      if (!isCustomReassignCategory) setCustomReassignCategoryText("");
+                    }}
+                    className="text-[11px] text-blue-400 hover:underline font-bold cursor-pointer"
+                  >
+                    {isCustomReassignCategory ? "Select from List" : "+ New Custom Category"}
+                  </button>
+                </div>
+
+                {isCustomReassignCategory ? (
+                  <input
+                    type="text"
+                    autoFocus
+                    placeholder="Type custom category name (e.g. Smart Projector)"
+                    value={customReassignCategoryText}
+                    onChange={(e) => setCustomReassignCategoryText(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-black/60 border border-blue-500/50 rounded-xl text-white font-semibold outline-none focus:border-blue-400"
+                  />
+                ) : (
+                  <select
+                    value={targetNewCategory}
+                    onChange={(e) => setTargetNewCategory(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-xl text-white font-bold outline-none focus:border-blue-500 cursor-pointer"
+                  >
+                    {dynamicCategories.map((c) => (
+                      <option key={c} value={c}>📁 {c}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* 2. Level 2: Brand */}
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="font-bold text-white/80">2. Level 2 Brand (Manufacturer)</label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setIsCustomReassignBrand(!isCustomReassignBrand);
+                      if (!isCustomReassignBrand) setCustomReassignBrandText("");
+                    }}
+                    className="text-[11px] text-amber-400 hover:underline font-bold cursor-pointer"
+                  >
+                    {isCustomReassignBrand ? "Select from List" : "+ New Custom Brand"}
+                  </button>
+                </div>
+
+                {isCustomReassignBrand ? (
+                  <input
+                    type="text"
+                    placeholder="Type custom brand name (e.g. Bose, Sony, Marshall)"
+                    value={customReassignBrandText}
+                    onChange={(e) => setCustomReassignBrandText(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-black/60 border border-amber-500/50 rounded-xl text-white font-semibold outline-none focus:border-amber-400"
+                  />
+                ) : (
+                  <select
+                    value={targetNewBrand}
+                    onChange={(e) => setTargetNewBrand(e.target.value)}
+                    className="w-full px-4 py-2.5 bg-black/60 border border-white/15 rounded-xl text-amber-300 font-bold outline-none focus:border-amber-500 cursor-pointer"
+                  >
+                    {dynamicBrands.map((b) => (
+                      <option key={b} value={b}>🏷️ {b}</option>
+                    ))}
+                  </select>
+                )}
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/10">
+              <button
+                type="button"
+                onClick={() => setReassignProduct(null)}
+                className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white/70 hover:text-white text-xs font-bold transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleSaveReassign}
+                disabled={isReassigning || (!targetNewCategory && !customReassignCategoryText.trim()) || (!targetNewBrand && !customReassignBrandText.trim())}
+                className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-500 hover:to-purple-500 disabled:opacity-50 text-white text-xs font-black shadow-lg shadow-purple-600/30 flex items-center gap-2 transition-all cursor-pointer"
+              >
+                <CheckCircle2 className="w-4 h-4" />
+                <span>{isReassigning ? "Moving..." : "Save & Move Product"}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
     </div>
   );

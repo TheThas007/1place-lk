@@ -571,13 +571,13 @@ export default function GalleryTab({
                       <div className="flex items-center gap-2">
                         <input
                           type="color"
-                          value={animSettings.edgeFadeColor || "#FAFAFA"}
+                          value={animSettings.edgeFadeColor || "#F2F2F2"}
                           onChange={(e) => setAnimSettings((prev) => ({ ...prev, edgeFadeColor: e.target.value }))}
                           className="w-8 h-8 rounded border border-white/20 bg-transparent cursor-pointer"
                         />
                         <input
                           type="text"
-                          value={animSettings.edgeFadeColor || "#FAFAFA"}
+                          value={animSettings.edgeFadeColor || "#F2F2F2"}
                           onChange={(e) => setAnimSettings((prev) => ({ ...prev, edgeFadeColor: e.target.value }))}
                           className="w-full px-2.5 py-1 bg-white/5 border border-white/10 rounded-lg text-xs font-mono text-white outline-none"
                         />

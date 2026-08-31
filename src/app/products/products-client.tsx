@@ -11,10 +11,15 @@ import {
   List,
   ChevronLeft,
   ChevronRight,
+  Sparkles,
+  Search,
+  Tag,
+  ArrowRight,
 } from "lucide-react";
 import { Product, Category, Brand } from "@/lib/types";
 import ProductCard from "@/components/products/ProductCard";
 import ShopFilterSidebar, { detectProductBrand } from "@/components/products/ShopFilterSidebar";
+import { executeIntelligentSearch, SearchEngineResults } from "@/lib/search/search-engine";
 
 interface ProductsClientProps {
   initialProducts: Product[];
@@ -244,159 +249,148 @@ export default function ProductsClient({
     router.push(pathname, { scroll: false });
   };
 
+  /* ── 4. Intelligent Search Engine Execution ── */
+  const searchEngineResults: SearchEngineResults | null = useMemo(() => {
+    if (!searchQuery.trim()) return null;
+    return executeIntelligentSearch(searchQuery, initialProducts, categories, brands);
+  }, [searchQuery, initialProducts, categories, brands]);
+
   /* ── Filtered and Sorted Products ── */
   const filteredProducts = useMemo(() => {
-    return initialProducts
-      .filter((p) => {
-        // 1. Primary Tab Filter
-        if (activePrimaryTab && activePrimaryTab !== "all") {
-          const tabObj = PRIMARY_CATEGORY_TABS.find((t) => t.id === activePrimaryTab);
-          if (tabObj && tabObj.filterKeywords) {
-            const pName = (p.name || "").toLowerCase();
-            const pCat = (p.category_name || p.categoryName || "").toLowerCase();
-            const pGroup = (p.productType || "").toLowerCase();
+    // If search is active, use ranked candidate products from search engine
+    const baseProducts = searchEngineResults ? searchEngineResults.products : initialProducts;
 
-            const matchesTab = tabObj.filterKeywords.some(
-              (kw) => pName.includes(kw) || pCat.includes(kw) || pGroup.includes(kw)
-            );
-            if (!matchesTab) return false;
-          }
-        }
-
-        // 2. Sidebar / URL Query Categories
-        if (selectedCategories.length > 0) {
-          const cName = (p.category_name || p.categoryName || "").toLowerCase().trim();
-          const cId = (p.category_id || "").toLowerCase().trim();
-          const cSlug = (p.category_slug || "").toLowerCase().trim();
-          const pName = (p.name || "").toLowerCase().trim();
-          const pType = (p.productType || "").toLowerCase().trim();
-
-          const matchesCategory = selectedCategories.some((sel) => {
-            const s = sel.toLowerCase().trim();
-            if (!s || s === "all") return true;
-
-            // Direct equality or substring containment
-            if (cName === s || cId === s || cSlug === s) return true;
-            if (cName.includes(s) || (s.length >= 3 && s.includes(cName))) return true;
-            if (cId.includes(s) || (s.length >= 3 && s.includes(cId))) return true;
-            if (cSlug.includes(s) || (s.length >= 3 && s.includes(cSlug))) return true;
-
-            // Normalization of common clean keys (remove "cat-", dashes, spaces)
-            const cleanS = s.replace(/^cat-/, "").replace(/[^a-z0-9]/g, "");
-            const cleanCName = cName.replace(/[^a-z0-9]/g, "");
-            const cleanCId = cId.replace(/^cat-/, "").replace(/[^a-z0-9]/g, "");
-            const cleanCSlug = cSlug.replace(/[^a-z0-9]/g, "");
-            if (cleanCName && cleanS && (cleanCName.includes(cleanS) || cleanS.includes(cleanCName))) return true;
-            if (cleanCId && cleanS && (cleanCId.includes(cleanS) || cleanS.includes(cleanCId))) return true;
-            if (cleanCSlug && cleanS && (cleanCSlug.includes(cleanS) || cleanS.includes(cleanCSlug))) return true;
-
-            // Semantic mappings:
-            // 1. Smartphones / Phones
-            if (s === "smartphones" || s === "phones" || s === "phone" || s === "mobile" || s === "cat-smartphones" || s === "feature-phone") {
-              return cName.includes("phone") || cName.includes("smartphone") || cSlug.includes("phone") || pType === "phone";
-            }
-            // 2. Buds / Earbuds / TWS / Audio / Ear Phone
-            if (s === "earbuds" || s === "buds" || s === "earbud" || s === "tws" || s === "cat-earbuds" || s === "earbuds-tws" || s === "ear-phone" || s === "earphones") {
-              return cName.includes("bud") || cName.includes("ear") || cName.includes("headphone") || pName.includes("earbuds") || pName.includes("airpods") || pName.includes("buds") || pName.includes("earphone");
-            }
-            // 3. Cables / Charging Cables
-            if (s === "charging-cables" || s === "cable" || s === "cables" || s === "cat-cables" || s === "cable-organizer") {
-              return cName.includes("cable") || cSlug.includes("cable") || pName.includes("cable");
-            }
-            // 4. Chargers / Adapters / Power
-            if (s === "chargers-adapters" || s === "charger" || s === "chargers" || s === "adapter" || s === "adapters" || s === "cat-charger" || s === "cat-adapter" || s === "wifi-adapter") {
-              return cName.includes("charger") || cName.includes("adapter") || cSlug.includes("charger") || cSlug.includes("adapter") || pName.includes("adapter") || pName.includes("charger") || pName.includes("power adapter");
-            }
-            // 5. Power Banks / Battery
-            if (s === "power-banks" || s === "power-bank" || s === "powerbank" || s === "powerbanks" || s === "battery" || s === "cat-powerbanks" || s === "cat-battery") {
-              return cName.includes("power") || cName.includes("battery") || pName.includes("power bank") || pName.includes("powerbank") || pName.includes("battery");
-            }
-            // 6. Laptops & Tablets / MacBook / iPad / Tab
-            if (s === "laptops-tablets" || s === "laptops" || s === "laptop" || s === "tablets" || s === "tablet" || s === "tab" || s === "ipad" || s === "lap & mac" || s === "cat-laptops" || s === "cat-tab" || s === "cat-ipad") {
-              return cName.includes("laptop") || cName.includes("macbook") || cName.includes("tab") || cName.includes("ipad") || pName.includes("macbook") || pName.includes("tab") || pName.includes("ipad") || pName.includes("laptop");
-            }
-            // 7. Smart Watches / Fitband / Straps
-            if (s === "smart-watches" || s === "smart-watch" || s === "watches" || s === "watch" || s === "cat-watches" || s === "smart-fitband" || s === "straps" || s === "wearables") {
-              return cName.includes("watch") || cName.includes("fitband") || cName.includes("strap") || pName.includes("watch") || pName.includes("band");
-            }
-            // 8. Cases & Covers / Screen Protectors / Displays
-            if (s === "phone-cases" || s === "cases" || s === "case" || s === "covers" || s === "displays" || s === "display" || s === "screen-protectors" || s === "cat-cases" || s === "cat-screen-protectors") {
-              return cName.includes("case") || cName.includes("cover") || cName.includes("display") || cName.includes("screen") || pName.includes("case") || pName.includes("tempered") || pName.includes("guard");
-            }
-            // 9. Headphones / Headsets
-            if (s === "headphones" || s === "headphone" || s === "cat-headphones" || s === "neckband") {
-              return cName.includes("headphone") || cName.includes("neckband") || pName.includes("headphone") || pName.includes("headset") || pName.includes("neckband");
-            }
-            // 10. Keyboards & Mouse
-            if (s === "keyboards" || s === "keyboard" || s === "mouse" || s === "cat-keyboard" || s === "cat-mouse") {
-              return cName.includes("keyboard") || cName.includes("mouse") || pName.includes("keyboard") || pName.includes("mouse");
-            }
-            // 11. Gimbals / Tripods / Stands / Selfie Sticks / Lights
-            if (s === "gimbals" || s === "gimbal" || s === "tripod" || s === "stand" || s === "lights" || s === "selife-stick" || s === "cat--gimbal" || s === "cat-tripod" || s === "cat-stand" || s === "cat-lights") {
-              return cName.includes("gimbal") || cName.includes("tripod") || cName.includes("stand") || cName.includes("light") || cName.includes("stick") || pName.includes("gimbal") || pName.includes("tripod") || pName.includes("stick") || pName.includes("light");
-            }
-            // 12. OTG & Storage Devices / Finder / Pencil / Bag
-            if (s === "otg" || s === "storage-devices" || s === "bag" || s === "bags" || s === "smart-pencil" || s === "smart-finder" || s === "itag" || s === "cat-otg" || s === "cat-s" || s === "cat-bag" || s === "cat-bags" || s === "cat-smart-pencil" || s === "cat-smart-finder" || s === "cat-itag") {
-              return cName.includes("otg") || cName.includes("storage") || cName.includes("bag") || cName.includes("pencil") || cName.includes("finder") || cName.includes("itag") || pName.includes("otg") || pName.includes("pencil") || pName.includes("finder") || pName.includes("bag") || pName.includes("drive");
-            }
-
-            return false;
-          });
-          if (!matchesCategory) return false;
-        }
-
-        // 3. Brand
-        if (selectedBrands.length > 0) {
-          const brand = detectProductBrand(p);
-          if (!selectedBrands.includes(brand)) return false;
-        }
-
-        // 4. In Stock Only
-        if (inStockOnly || selectedAvailability.includes("in_stock")) {
-          if (p.stock_status === "out_of_stock" || (typeof p.stock_count === "number" && p.stock_count <= 0)) {
-            return false;
-          }
-        }
-
-        // 5. Price Filter
-        const effPrice = getEffectivePrice(p);
-        if (minPrice && effPrice < Number(minPrice)) return false;
-        if (maxPrice && effPrice > Number(maxPrice)) return false;
-
-        // 6. Search Query
-        if (searchQuery.trim()) {
-          const q = searchQuery.toLowerCase();
+    const filtered = baseProducts.filter((p) => {
+      // 1. Primary Tab Filter
+      if (activePrimaryTab && activePrimaryTab !== "all") {
+        const tabObj = PRIMARY_CATEGORY_TABS.find((t) => t.id === activePrimaryTab);
+        if (tabObj && tabObj.filterKeywords) {
           const pName = (p.name || "").toLowerCase();
-          const pBrand = (p.brand_name || p.brand || "").toLowerCase();
-          const pCat = (p.category_name || "").toLowerCase();
-          const pDesc = (p.description || "").toLowerCase();
+          const pCat = (p.category_name || p.categoryName || "").toLowerCase();
+          const pGroup = (p.productType || "").toLowerCase();
 
-          const matchesSearch =
-            pName.includes(q) || pBrand.includes(q) || pCat.includes(q) || pDesc.includes(q);
-          if (!matchesSearch) return false;
+          const matchesTab = tabObj.filterKeywords.some(
+            (kw) => pName.includes(kw) || pCat.includes(kw) || pGroup.includes(kw)
+          );
+          if (!matchesTab) return false;
         }
+      }
 
-        return true;
-      })
-      .sort((a, b) => {
-        const pa = getEffectivePrice(a);
-        const pb = getEffectivePrice(b);
+      // 2. Sidebar / URL Query Categories
+      if (selectedCategories.length > 0) {
+        const cName = (p.category_name || p.categoryName || "").toLowerCase().trim();
+        const cId = (p.category_id || "").toLowerCase().trim();
+        const cSlug = (p.category_slug || "").toLowerCase().trim();
+        const pName = (p.name || "").toLowerCase().trim();
+        const pType = (p.productType || "").toLowerCase().trim();
 
-        if (sortKey === "price_asc" || sortKey === "price-asc") return pa - pb;
-        if (sortKey === "price_desc" || sortKey === "price-desc") return pb - pa;
-        if (sortKey === "newest") {
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+        const matchesCategory = selectedCategories.some((sel) => {
+          const s = sel.toLowerCase().trim();
+          if (!s || s === "all") return true;
+
+          // Direct equality or substring containment
+          if (cName === s || cId === s || cSlug === s) return true;
+          if (cName.includes(s) || (s.length >= 3 && s.includes(cName))) return true;
+          if (cId.includes(s) || (s.length >= 3 && s.includes(cId))) return true;
+          if (cSlug.includes(s) || (s.length >= 3 && s.includes(cSlug))) return true;
+
+          // Normalization of common clean keys (remove "cat-", dashes, spaces)
+          const cleanS = s.replace(/^cat-/, "").replace(/[^a-z0-9]/g, "");
+          const cleanCName = cName.replace(/[^a-z0-9]/g, "");
+          const cleanCId = cId.replace(/^cat-/, "").replace(/[^a-z0-9]/g, "");
+          const cleanCSlug = cSlug.replace(/[^a-z0-9]/g, "");
+          if (cleanCName && cleanS && (cleanCName.includes(cleanS) || cleanS.includes(cleanCName))) return true;
+          if (cleanCId && cleanS && (cleanCId.includes(cleanS) || cleanS.includes(cleanCId))) return true;
+          if (cleanCSlug && cleanS && (cleanCSlug.includes(cleanS) || cleanS.includes(cleanCSlug))) return true;
+
+          // Semantic mappings:
+          if (s === "smartphones" || s === "phones" || s === "phone" || s === "mobile" || s === "cat-smartphones" || s === "feature-phone") {
+            return cName.includes("phone") || cName.includes("smartphone") || cSlug.includes("phone") || pType === "phone";
+          }
+          if (s === "earbuds" || s === "buds" || s === "earbud" || s === "tws" || s === "cat-earbuds" || s === "earbuds-tws" || s === "ear-phone" || s === "earphones") {
+            return cName.includes("bud") || cName.includes("ear") || cName.includes("headphone") || pName.includes("earbuds") || pName.includes("airpods") || pName.includes("buds") || pName.includes("earphone");
+          }
+          if (s === "charging-cables" || s === "cable" || s === "cables" || s === "cat-cables" || s === "cable-organizer") {
+            return cName.includes("cable") || cSlug.includes("cable") || pName.includes("cable");
+          }
+          if (s === "chargers-adapters" || s === "charger" || s === "chargers" || s === "adapter" || s === "adapters" || s === "cat-charger" || s === "cat-adapter" || s === "wifi-adapter") {
+            return cName.includes("charger") || cName.includes("adapter") || cSlug.includes("charger") || cSlug.includes("adapter") || pName.includes("adapter") || pName.includes("charger") || pName.includes("power adapter");
+          }
+          if (s === "power-banks" || s === "power-bank" || s === "powerbank" || s === "powerbanks" || s === "battery" || s === "cat-powerbanks" || s === "cat-battery") {
+            return cName.includes("power") || cName.includes("battery") || pName.includes("power bank") || pName.includes("powerbank") || pName.includes("battery");
+          }
+          if (s === "laptops-tablets" || s === "laptops" || s === "laptop" || s === "tablets" || s === "tablet" || s === "tab" || s === "ipad" || s === "lap & mac" || s === "cat-laptops" || s === "cat-tab" || s === "cat-ipad") {
+            return cName.includes("laptop") || cName.includes("macbook") || cName.includes("tab") || cName.includes("ipad") || pName.includes("macbook") || pName.includes("tab") || pName.includes("ipad") || pName.includes("laptop");
+          }
+          if (s === "smart-watches" || s === "smart-watch" || s === "watches" || s === "watch" || s === "cat-watches" || s === "smart-fitband" || s === "straps" || s === "wearables") {
+            return cName.includes("watch") || cName.includes("fitband") || cName.includes("strap") || pName.includes("watch") || pName.includes("band");
+          }
+          if (s === "phone-cases" || s === "cases" || s === "case" || s === "covers" || s === "displays" || s === "display" || s === "screen-protectors" || s === "cat-cases" || s === "cat-screen-protectors") {
+            return cName.includes("case") || cName.includes("cover") || cName.includes("display") || cName.includes("screen") || pName.includes("case") || pName.includes("tempered") || pName.includes("guard");
+          }
+          if (s === "headphones" || s === "headphone" || s === "cat-headphones" || s === "neckband") {
+            return cName.includes("headphone") || cName.includes("neckband") || pName.includes("headphone") || pName.includes("headset") || pName.includes("neckband");
+          }
+          if (s === "keyboards" || s === "keyboard" || s === "mouse" || s === "cat-keyboard" || s === "cat-mouse") {
+            return cName.includes("keyboard") || cName.includes("mouse") || pName.includes("keyboard") || pName.includes("mouse");
+          }
+          if (s === "gimbals" || s === "gimbal" || s === "tripod" || s === "stand" || s === "lights" || s === "selife-stick" || s === "cat--gimbal" || s === "cat-tripod" || s === "cat-stand" || s === "cat-lights") {
+            return cName.includes("gimbal") || cName.includes("tripod") || cName.includes("stand") || cName.includes("light") || cName.includes("stick") || pName.includes("gimbal") || pName.includes("tripod") || pName.includes("stick") || pName.includes("light");
+          }
+          if (s === "otg" || s === "storage-devices" || s === "bag" || s === "bags" || s === "smart-pencil" || s === "smart-finder" || s === "itag" || s === "cat-otg" || s === "cat-s" || s === "cat-bag" || s === "cat-bags" || s === "cat-smart-pencil" || s === "cat-smart-finder" || s === "cat-itag") {
+            return cName.includes("otg") || cName.includes("storage") || cName.includes("bag") || cName.includes("pencil") || cName.includes("finder") || cName.includes("itag") || pName.includes("otg") || pName.includes("pencil") || pName.includes("finder") || pName.includes("bag") || pName.includes("drive");
+          }
+
+          return false;
+        });
+        if (!matchesCategory) return false;
+      }
+
+      // 3. Brand
+      if (selectedBrands.length > 0) {
+        const brand = detectProductBrand(p);
+        if (!selectedBrands.includes(brand)) return false;
+      }
+
+      // 4. In Stock Only
+      if (inStockOnly || selectedAvailability.includes("in_stock")) {
+        if (p.stock_status === "out_of_stock" || (typeof p.stock_count === "number" && p.stock_count <= 0)) {
+          return false;
         }
-        if (sortKey === "discount" || sortKey === "biggest-discount") {
-          const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
-          const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
-          return discB - discA;
-        }
-        // Default: Featured
-        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
-      });
+      }
+
+      // 5. Price Filter
+      const effPrice = getEffectivePrice(p);
+      if (minPrice && effPrice < Number(minPrice)) return false;
+      if (maxPrice && effPrice > Number(maxPrice)) return false;
+
+      return true;
+    });
+
+    // If search is active and sort is featured/default, preserve search engine ranking!
+    if (searchEngineResults && (sortKey === "featured" || !sortKey)) {
+      return filtered;
+    }
+
+    return filtered.sort((a, b) => {
+      const pa = getEffectivePrice(a);
+      const pb = getEffectivePrice(b);
+
+      if (sortKey === "price_asc" || sortKey === "price-asc") return pa - pb;
+      if (sortKey === "price_desc" || sortKey === "price-desc") return pb - pa;
+      if (sortKey === "newest") {
+        return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+      }
+      if (sortKey === "discount" || sortKey === "biggest-discount") {
+        const discA = a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
+        const discB = b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
+        return discB - discA;
+      }
+      return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+    });
   }, [
     initialProducts,
+    searchEngineResults,
     activePrimaryTab,
     selectedCategories,
     selectedBrands,
@@ -404,7 +398,6 @@ export default function ProductsClient({
     selectedAvailability,
     minPrice,
     maxPrice,
-    searchQuery,
     sortKey,
   ]);
 

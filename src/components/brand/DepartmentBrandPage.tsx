@@ -23,6 +23,7 @@ import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { resolveProductSwatches } from "@/lib/color-utils";
 import { usePurchaseGuard } from "@/lib/use-purchase-guard";
+import { getProductCategory } from "@/lib/catalog-utils";
 
 interface DepartmentBrandPageProps {
   config: DepartmentBrandPageConfig;
@@ -46,9 +47,11 @@ function BrandProductCard({ product }: { product: Product }) {
     (typeof product.stock_count === "number" && product.stock_count <= 0);
 
   const hasDiscount =
-    product.old_price &&
+    Boolean(product.old_price) &&
     typeof product.old_price === "number" &&
-    product.old_price > product.price;
+    typeof product.price === "number" &&
+    product.old_price > product.price &&
+    Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
   const discountPercent = hasDiscount
     ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
@@ -288,76 +291,34 @@ export default function DepartmentBrandPage({
     setSelectedCategory(selectedCategoryParam);
   }, [selectedCategoryParam]);
 
-  // Compute all available categories from products
+  // Compute all available categories from products in this department
   const availableCategories = useMemo(() => {
     const map = new Map<string, { slug: string; name: string; count: number }>();
     products.forEach((p) => {
-      const cSlug = (
-        p.category_slug ||
-        p.categorySlug ||
-        p.category_id ||
-        p.category_name ||
-        ""
-      )
-        .toLowerCase()
-        .replace(/[^a-z0-9]+/g, "-");
-      const cName = p.category_name || p.categoryName || cSlug.replace(/-/g, " ");
+      const cName = getProductCategory(p);
+      const cSlug = cName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
       if (cSlug) {
         const existing = map.get(cSlug);
         if (existing) existing.count += 1;
         else map.set(cSlug, { slug: cSlug, name: cName, count: 1 });
       }
     });
-    return Array.from(map.values());
+    return Array.from(map.values()).filter((c) => c.count > 0);
   }, [products]);
 
-  // Underline category tabs matching reference
+  // Underline category tabs matching department products
   const categoryNavigationTabs = useMemo(() => {
     const deptLabel = department.name || "Products";
-    const tabs = [{ slug: "all", label: `All ${deptLabel}`, count: products.length }];
+    const tabs: { slug: string; label: string; count: number }[] = [
+      { slug: "all", label: `All ${brand.name} ${deptLabel}`, count: products.length },
+    ];
 
-    if (brand.slug.toLowerCase() === "apple" && department.slug === "phones") {
-      const applePhoneTabs = [
-        { slug: "iphone-16", label: "iPhone 16" },
-        { slug: "iphone-15", label: "iPhone 15" },
-        { slug: "iphone-14", label: "iPhone 14" },
-        { slug: "refurbished", label: "Refurbished" },
-        { slug: "accessories", label: "Accessories" },
-      ];
-      applePhoneTabs.forEach((item) => {
-        const cat = availableCategories.find(
-          (c) => c.slug.includes(item.slug) || item.slug.includes(c.slug)
-        );
-        tabs.push({
-          slug: item.slug,
-          label: item.label,
-          count: cat ? cat.count : 0,
-        });
-      });
-      return tabs;
-    }
-
-    if (brand.slug.toLowerCase() === "dell") {
-      const dellTabs = [
-        { slug: "xps", label: "XPS" },
-        { slug: "inspiron", label: "Inspiron" },
-        { slug: "latitude", label: "Latitude" },
-        { slug: "gaming", label: "Gaming" },
-        { slug: "accessories", label: "Accessories" },
-      ];
-      dellTabs.forEach((item) => {
-        tabs.push({ slug: item.slug, label: item.label, count: 0 });
-      });
-      return tabs;
-    }
-
-    // Dynamic tabs for any other brand
     availableCategories.forEach((c) => {
       tabs.push({ slug: c.slug, label: c.name, count: c.count });
     });
 
     return tabs;
-  }, [brand.slug, department.slug, department.name, products.length, availableCategories]);
+  }, [brand.name, department.name, products.length, availableCategories]);
 
   // Handle Tab Change with URL sync
   const handleTabChange = (catSlug: string) => {
@@ -383,20 +344,14 @@ export default function DepartmentBrandPage({
       .filter((p) => {
         // Category filter
         if (selectedCategory && selectedCategory !== "all") {
-          const cSlug = (
-            p.category_slug ||
-            p.categorySlug ||
-            p.category_id ||
-            p.category_name ||
-            ""
-          )
-            .toLowerCase()
-            .replace(/[^a-z0-9]+/g, "-");
+          const pCat = getProductCategory(p).toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          const targetCat = selectedCategory.toLowerCase().replace(/[^a-z0-9]+/g, "-");
           const pName = (p.name || "").toLowerCase();
 
           const matchesCategory =
-            cSlug.includes(selectedCategory.toLowerCase()) ||
-            selectedCategory.toLowerCase().includes(cSlug) ||
+            pCat === targetCat ||
+            pCat.includes(targetCat) ||
+            targetCat.includes(pCat) ||
             pName.includes(selectedCategory.toLowerCase().replace(/-/g, " "));
 
           if (!matchesCategory) return false;

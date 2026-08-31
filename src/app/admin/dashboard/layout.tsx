@@ -46,7 +46,7 @@ import ProductModal from "@/components/admin/ProductModal";
 
 const SIDEBAR_ITEMS = [
   { id: "overview", label: "Overview", icon: LayoutDashboard, href: "/admin/dashboard" },
-  { id: "launch", label: "Launch Control", icon: Rocket, href: "/admin/dashboard?tab=launch" },
+  { id: "launch", label: "Launch Experience", icon: Rocket, href: "/admin/dashboard?tab=launch" },
   { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
   { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
   { id: "mega-menu", label: "Category Mega Menu", icon: FolderTree, href: "/admin/dashboard?tab=mega-menu" },

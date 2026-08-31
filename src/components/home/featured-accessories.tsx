@@ -59,9 +59,11 @@ export default async function FeaturedAccessories() {
         <div className="flex gap-2.5 overflow-x-auto scrollbar-none snap-x pb-1 -mx-3 px-3 sm:-mx-4 sm:px-4">
           {featuredAccessories.map((product) => {
             const hasDiscount =
-              product.old_price &&
+              Boolean(product.old_price) &&
               typeof product.old_price === "number" &&
-              product.old_price > product.price;
+              typeof product.price === "number" &&
+              product.old_price > product.price &&
+              Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
             const discountPercent = hasDiscount
               ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)

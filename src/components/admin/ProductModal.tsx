@@ -165,7 +165,7 @@ export default function ProductModal({
   const [status, setStatus] = useState<"active" | "draft">("active");
 
   // Feature Flags
-  const [productType, setProductType] = useState<"phone" | "accessory">("phone");
+  const [productType, setProductType] = useState<"phone" | "laptop" | "accessory">("phone");
   const [hasColorVariants, setHasColorVariants] = useState<boolean>(true);
   const [hasStorageVariants, setHasStorageVariants] = useState<boolean>(true);
 
@@ -223,24 +223,33 @@ export default function ProductModal({
   // Technical Specifications (Key-Value Rows)
   const [specRows, setSpecRows] = useState<{ key: string; value: string }[]>([]);
 
-  // Helper: Detect Phone Category
-  const isPhoneCategory = (catNameOrId: string): boolean => {
-    const lower = (catNameOrId || "").toLowerCase();
-    return (
+  // Helper: Detect Product Type from Category or Product Name
+  const detectProductType = (catNameOrId: string = "", prodName: string = ""): "phone" | "laptop" | "accessory" => {
+    const lower = `${catNameOrId} ${prodName}`.toLowerCase();
+    if (
+      lower.includes("laptop") ||
+      lower.includes("macbook") ||
+      lower.includes("tablet") ||
+      lower.includes("ipad") ||
+      lower.includes("notebook") ||
+      lower.includes("thinkpad") ||
+      lower.includes("zenbook") ||
+      lower.includes("galaxy tab") ||
+      lower.includes("xiaomi pad")
+    ) {
+      return "laptop";
+    }
+    if (
       lower.includes("smartphones") ||
+      lower.includes("feature phone") ||
       lower.includes("phone") ||
-      lower.includes("mobile") ||
       lower.includes("iphone") ||
-      lower.includes("samsung") ||
-      lower.includes("xiaomi") ||
-      lower.includes("redmi") ||
-      lower.includes("vivo") ||
-      lower.includes("oppo") ||
-      lower.includes("realme") ||
-      lower.includes("google") ||
-      lower.includes("honor") ||
-      lower.includes("oneplus")
-    );
+      lower.includes("mobile") ||
+      lower.includes("handset")
+    ) {
+      return "phone";
+    }
+    return "accessory";
   };
 
   // Merged Categories List (Default 12 Categories + Props Categories + Extra Created Categories, filtered to exclude Brand names)
@@ -295,10 +304,16 @@ export default function ProductModal({
 
     setExtraCategories((prev) => [...prev.filter((c) => c.id !== newCatId), newCatObj]);
     setCategoryId(newCatId);
-    const isPhone = isPhoneCategory(trimmed);
-    setProductType(isPhone ? "phone" : "accessory");
-    setHasColorVariants(isPhone);
-    setHasStorageVariants(isPhone);
+    const detected = detectProductType(trimmed);
+    setProductType(detected);
+    if (detected === "laptop" || detected === "phone") {
+      setHasColorVariants(true);
+      setHasStorageVariants(true);
+    } else {
+      setHasColorVariants(true);
+      const isStorageDevice = /storage|pen drive|flash drive|sd card|hard disk|ssd|memory card/i.test(trimmed);
+      setHasStorageVariants(isStorageDevice);
+    }
     setIsCustomCategory(false);
     setCustomCategoryName("");
     setHasUnsavedChanges(true);
@@ -348,45 +363,73 @@ export default function ProductModal({
       const rawCatId = initialData?.category_id || (initialData as any)?.categoryId || "";
       const rawCatName = (initialData?.category_name || (initialData as any)?.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
 
-      const matchedCategory = mergedCategories.find((c) => {
-        const cClean = c.name.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-        return (
+      const matchedCategory = mergedCategories.find(
+        (c) =>
           c.id === rawCatId ||
-          c.slug === rawCatId ||
-          c.slug === initialData?.category_slug ||
-          cClean.toLowerCase() === rawCatName.toLowerCase()
-        );
-      });
-
-      const initCatId = matchedCategory ? matchedCategory.id : (mergedCategories[0]?.id || "cat-smartphones");
-      setCategoryId(initCatId);
-      setBrand(
-        initialData?.brand_name ||
-        initialData?.brandName ||
-        initialData?.brand ||
-        initialData?.compatible_brands?.[0] ||
-        "Apple"
+          c.name.toLowerCase() === rawCatName.toLowerCase() ||
+          c.slug.toLowerCase() === rawCatName.toLowerCase().replace(/[^a-z0-9]+/g, "-")
       );
+
+      const resolvedCatId = matchedCategory ? matchedCategory.id : (rawCatId || mergedCategories[0]?.id || "");
+      setCategoryId(resolvedCatId);
+
+      // Initialize Brand
+      const rawBrand = (initialData.brand || initialData.brand_name || "").trim();
+      const matchedBrand = brandOptions.find((b) => b.toLowerCase() === rawBrand.toLowerCase());
+      if (matchedBrand) {
+        setBrand(matchedBrand);
+        setIsCustomBrand(false);
+      } else if (rawBrand) {
+        setExtraBrands((prev) => Array.from(new Set([...prev, rawBrand])));
+        setBrand(rawBrand);
+        setIsCustomBrand(false);
+      } else {
+        setBrand("Apple");
+      }
+
+      setShortDesc((initialData as any).short_description || (initialData as any).shortDesc || "");
       setDescription(initialData.description || "");
-      setShortDesc(initialData.delivery_info || "");
-      setFeatured(!!initialData.featured);
+      setDeliveryInfo(initialData.delivery_info || "1-3 Business Days Islandwide Courier Delivery");
+      setFeatured(Boolean(initialData.featured));
       setIsNewArrival(Boolean(initialData.is_new_arrival));
-      setStatus("active");
-      setBasePrice(initialData.price || 0);
-      setBaseOldPrice(initialData.old_price || null);
-      setBaseStock(initialData.stock_count ?? ((initialData as any).stock_quantity ?? 10));
-      if (initialData.old_price && initialData.price && initialData.old_price > initialData.price) {
-        setDiscountPercent(Math.round(((initialData.old_price - initialData.price) / initialData.old_price) * 100));
+      setStatus(initialData.status === "draft" ? "draft" : "active");
+
+      // Prices & Base Stock
+      const primaryP = Number(initialData.price) || 0;
+      setBasePrice(primaryP);
+      const primaryOldP = initialData.old_price ? Number(initialData.old_price) : null;
+      setBaseOldPrice(primaryOldP);
+
+      if (primaryOldP && primaryOldP > primaryP) {
+        setDiscountPercent(Math.round(((primaryOldP - primaryP) / primaryOldP) * 100));
       } else {
         setDiscountPercent(0);
       }
+
+      setBaseStock(
+        initialData.stock_quantity ??
+        initialData.stock_count ??
+        (initialData as any).stock ??
+        (initialData.stock_status === "out_of_stock" ? 0 : 10)
+      );
+
+      // Payment Options
       setAllowCod(initialData.allow_cod !== false);
       setAllowCard(initialData.allow_card !== false);
       setAllowWhatsapp(initialData.allow_whatsapp !== false);
-      setDeliveryInfo(initialData.delivery_info || "1-3 Business Days Islandwide Courier Delivery");
-      setMetaTitle((initialData as any).meta_title || (initialData as any).metaTitle || "");
-      setMetaDescription((initialData as any).meta_description || (initialData as any).metaDescription || "");
-      setGeneralImages(initialData.images || []);
+
+      // SEO
+      setMetaTitle(initialData.meta_title || initialData.metaTitle || "");
+      setMetaDescription(initialData.meta_description || initialData.metaDescription || "");
+
+      // General Images
+      const gImgs = (initialData.images && initialData.images.length > 0)
+        ? initialData.images
+        : (initialData.image_url || initialData.image || initialData.cover_image)
+        ? [initialData.image_url || initialData.image || initialData.cover_image || ""]
+        : [];
+      setGeneralImages(gImgs.length > 0 ? gImgs : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800"]);
+
       setImageSettings(
         initialData.imageSettings ||
         initialData.productImageSettings || {
@@ -399,12 +442,9 @@ export default function ProductModal({
 
       // Feature Flags detection
       const catNameOrId = initialData.category_name || initialData.category_id || "";
-      const isPhoneCat = isPhoneCategory(catNameOrId);
-      const detectedType: "phone" | "accessory" = initialData.productType
+      const detectedType: "phone" | "laptop" | "accessory" = initialData.productType
         ? initialData.productType
-        : isPhoneCat
-        ? "phone"
-        : "accessory";
+        : detectProductType(catNameOrId, initialData.name || "");
 
       setProductType(detectedType);
 
@@ -422,7 +462,7 @@ export default function ProductModal({
         : Boolean(
             initialData.variant_combos &&
             initialData.variant_combos.length > 0 &&
-            initialData.variant_combos.some(v => Boolean(v.storage && v.storage.trim() !== ""))
+            initialData.variant_combos.some(v => Boolean((v.storage && v.storage.trim() !== "") || (v.ram && v.ram.trim() !== "")))
           );
 
       setHasStorageVariants(detectedHasStorage);
@@ -499,11 +539,11 @@ export default function ProductModal({
       setSlug("");
       const defaultCatId = categories[0]?.id || "";
       const defaultCatName = categories[0]?.name || "Smartphones";
-      const isPhone = isPhoneCategory(defaultCatName);
+      const detected = detectProductType(defaultCatName);
 
-      setProductType(isPhone ? "phone" : "accessory");
-      setHasColorVariants(isPhone);
-      setHasStorageVariants(isPhone);
+      setProductType(detected);
+      setHasColorVariants(true);
+      setHasStorageVariants(detected === "laptop" || detected === "phone");
 
       setCategoryId(defaultCatId);
       setBrand("Apple");
@@ -530,7 +570,7 @@ export default function ProductModal({
       // Spec Rows (Blank by default; only added when admin adds rows)
       setSpecRows([]);
 
-      if (isPhone) {
+      if (detected === "phone") {
         setColorVariants([
           {
             id: "col-1",
@@ -566,9 +606,54 @@ export default function ProductModal({
             status: "active",
           },
         ]);
+      } else if (detected === "laptop") {
+        setColorVariants([
+          {
+            id: "col-1",
+            name: "Space Gray",
+            hex: "#535150",
+            images: ["https://images.unsplash.com/photo-1517336714731-489689fd1ca8?q=80&w=800"],
+            is_default: true,
+            active: true,
+          },
+          {
+            id: "col-2",
+            name: "Silver",
+            hex: "#E3E4E5",
+            images: ["https://images.unsplash.com/photo-1541807084-5c52b6b3adef?q=80&w=800"],
+            is_default: false,
+            active: true,
+          },
+        ]);
+
+        setVariantCombos([
+          {
+            id: "v-1",
+            color_name: "Space Gray",
+            ram: "16GB RAM",
+            storage: "512GB SSD",
+            sku: "SM-16-512-GRY",
+            price: 345000,
+            old_price: 375000,
+            stock_quantity: 5,
+            reserved_stock: 0,
+            available_stock: 5,
+            low_stock_threshold: 2,
+            status: "active",
+          },
+        ]);
       } else {
-        // Non-phone / Accessory default: NO colors and NO variant matrix
-        setColorVariants([]);
+        // Accessory default
+        setColorVariants([
+          {
+            id: "col-1",
+            name: "Black",
+            hex: "#000000",
+            images: ["https://images.unsplash.com/photo-1590658268037-6bf12165a8df?q=80&w=800"],
+            is_default: true,
+            active: true,
+          },
+        ]);
         setVariantCombos([]);
       }
 
@@ -639,16 +724,20 @@ export default function ProductModal({
     const defaultCol = colorVariants[0]?.name || (hasColorVariants ? "Standard Black" : "Option 1");
     const defaultHex = colorVariants[0]?.hex || "#000000";
     const defaultColId = colorVariants[0]?.id || "col-1";
+    const defaultStorage = hasStorageVariants ? (productType === "laptop" ? "512GB SSD" : productType === "phone" ? "128GB" : "128GB") : "";
+    const defaultRam = hasStorageVariants ? (productType === "laptop" ? "16GB RAM" : productType === "phone" ? "8GB" : "") : "";
+    const defaultPrice = basePrice || (productType === "laptop" ? 250000 : productType === "phone" ? 150000 : 8000);
+
     const newVariant: ProductVariantCombo = {
       id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
       color_id: defaultColId,
       color_name: defaultCol,
       color_hex: defaultHex,
-      ram: hasStorageVariants ? "8GB" : "",
-      storage: hasStorageVariants ? "128GB" : "",
-      sim_type: hasStorageVariants ? "Physical SIM + eSIM" : "Standard",
-      sku: code ? `${code}-${defaultCol.slice(0, 3).toUpperCase()}${hasStorageVariants ? "-128" : ""}` : `SM-${Date.now()}`,
-      price: basePrice || 0,
+      ram: defaultRam,
+      storage: defaultStorage,
+      sim_type: productType === "phone" ? "Physical SIM + eSIM" : "Standard",
+      sku: code ? `${code}-${defaultCol.slice(0, 3).toUpperCase()}${defaultStorage ? `-${defaultStorage.replace(/[^a-zA-Z0-9]/g, "")}` : ""}` : `SM-${Date.now()}`,
+      price: defaultPrice,
       old_price: baseOldPrice || null,
       stock_quantity: 10,
       reserved_stock: 0,
@@ -656,6 +745,7 @@ export default function ProductModal({
       low_stock_threshold: 3,
       status: "active",
       warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
+      image_ref: colorVariants[0]?.images?.[0] || generalImages[0] || "",
     };
     setVariantCombos([...variantCombos, newVariant]);
     setHasUnsavedChanges(true);
@@ -670,52 +760,71 @@ export default function ProductModal({
       return;
     }
 
-    const storagePresets = hasStorageVariants ? ["128GB", "256GB", "512GB"] : [""];
+    let storagePresets: string[] = [];
+    let defaultRam = "";
+
+    if (hasStorageVariants) {
+      if (productType === "laptop") {
+        storagePresets = ["256GB SSD", "512GB SSD", "1TB SSD"];
+        defaultRam = "16GB RAM";
+      } else if (productType === "phone") {
+        storagePresets = ["128GB", "256GB", "512GB"];
+        defaultRam = "8GB";
+      } else {
+        storagePresets = ["64GB", "128GB", "256GB", "512GB"];
+        defaultRam = "";
+      }
+    } else {
+      storagePresets = [""];
+    }
+
     const newCombos: ProductVariantCombo[] = [];
+    const defaultPrice = basePrice || (productType === "laptop" ? 250000 : productType === "phone" ? 150000 : 8000);
 
     if (hasColorVariants) {
       activeColors.forEach((col) => {
         storagePresets.forEach((st) => {
-          const skuStr = `${brand.slice(0, 3).toUpperCase()}-${col.name.slice(0, 3).toUpperCase()}${st ? `-${st}` : ""}`;
+          const skuStr = `${brand.slice(0, 3).toUpperCase()}-${col.name.slice(0, 3).toUpperCase()}${st ? `-${st.replace(/[^a-zA-Z0-9]/g, "")}` : ""}`;
           newCombos.push({
             id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
             color_id: col.id,
             color_name: col.name,
             color_hex: col.hex || getColorCSS(col.name),
-            ram: st ? "8GB" : "",
+            ram: defaultRam,
             storage: st,
-            sim_type: "Physical SIM + eSIM",
+            sim_type: productType === "phone" ? "Physical SIM + eSIM" : "Standard",
             sku: skuStr,
-            price: basePrice || 150000,
+            price: defaultPrice,
             old_price: baseOldPrice,
             stock_quantity: 10,
             reserved_stock: 0,
             available_stock: 10,
             low_stock_threshold: 3,
             status: "active",
-            image_ref: col.images?.[0] || col.cover_image,
+            image_ref: col.images?.[0] || col.cover_image || generalImages[0] || "",
             warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
           });
         });
       });
     } else if (hasStorageVariants) {
       storagePresets.forEach((st) => {
-        const skuStr = `${brand.slice(0, 3).toUpperCase()}-${st}`;
+        const skuStr = `${brand.slice(0, 3).toUpperCase()}-${st.replace(/[^a-zA-Z0-9]/g, "")}`;
         newCombos.push({
           id: `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
           color_name: "Standard",
           color_hex: "#000000",
-          ram: "8GB",
+          ram: defaultRam,
           storage: st,
-          sim_type: "Standard",
+          sim_type: productType === "phone" ? "Standard" : "",
           sku: skuStr,
-          price: basePrice || 150000,
+          price: defaultPrice,
           old_price: baseOldPrice,
           stock_quantity: 10,
           reserved_stock: 0,
           available_stock: 10,
           low_stock_threshold: 3,
           status: "active",
+          image_ref: generalImages[0] || "",
           warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
         });
       });
@@ -794,9 +903,9 @@ export default function ProductModal({
         }
       }
 
-      const isAccessory = productType === "accessory";
-      // Compute Total Stock from active variants (for phones) or direct baseStock (for accessories)
-      const totalVariantStock = (!isAccessory && variantCombos.length > 0)
+      const hasAnyVariants = (hasColorVariants || hasStorageVariants) && variantCombos.length > 0;
+      // Compute Total Stock from active variants or direct baseStock
+      const totalVariantStock = hasAnyVariants
         ? variantCombos.reduce((s, v) => s + (Number(v.stock_quantity) || 0), 0)
         : baseStock;
       const isOutOfStock = totalVariantStock === 0;
@@ -822,25 +931,37 @@ export default function ProductModal({
       const finalImages = Array.from(new Set(allImages.map((u) => u.trim()).filter(Boolean)));
 
       // First active price
-      const primaryPrice = (!isAccessory && variantCombos[0]?.price) ? variantCombos[0].price : (basePrice || 0);
-      const primaryOldPrice = (!isAccessory && variantCombos[0]?.old_price) ? variantCombos[0].old_price : (baseOldPrice || null);
+      let primaryPrice = (hasAnyVariants && variantCombos[0]?.price) ? Number(variantCombos[0].price) : (basePrice || 0);
+      let primaryOldPrice = (hasAnyVariants && variantCombos[0]?.old_price) ? Number(variantCombos[0].old_price) : (baseOldPrice || null);
+
+      // CRITICAL: If no discount is active (old_price <= price), clear old_price so original price is displayed cleanly without any discount badge!
+      if (primaryOldPrice !== null && primaryOldPrice <= primaryPrice) {
+        primaryOldPrice = null;
+      }
 
       // Enrich every variant combo with full variant metadata (color_hex, image_ref, warranty, storage, stock, sku, price)
-      const enrichedVariantCombos: ProductVariantCombo[] = isAccessory
+      const enrichedVariantCombos: ProductVariantCombo[] = !hasAnyVariants
         ? []
         : variantCombos.map((v) => {
             const matchedColor = cleanedColorVariants.find((c) => c.name === v.color_name || c.id === v.color_id);
             const colorHex = v.color_hex || matchedColor?.hex || (v.color_name ? getColorCSS(v.color_name) : "#000000");
             const colorImage = matchedColor?.images?.[0] || matchedColor?.cover_image || finalImages[0] || "";
+            const vPrice = Number(v.price) || primaryPrice;
+            let rawVOld = v.old_price !== undefined && v.old_price !== null ? Number(v.old_price) : primaryOldPrice;
+            if (rawVOld !== null && rawVOld <= vPrice) {
+              rawVOld = null;
+            }
             return {
               ...v,
               id: v.id || `v-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
               color_id: v.color_id || matchedColor?.id,
-              color_name: v.color_name || matchedColor?.name || "Standard",
+              color_name: v.color_name || matchedColor?.name || (hasColorVariants ? "Standard" : ""),
               color_hex: colorHex,
               storage: v.storage || "",
-              price: Number(v.price) || primaryPrice,
-              old_price: v.old_price ? Number(v.old_price) : primaryOldPrice,
+              ram: v.ram || "",
+              sim_type: v.sim_type || "",
+              price: vPrice,
+              old_price: rawVOld,
               stock_quantity: Number(v.stock_quantity) || 0,
               available_stock: Math.max(0, (Number(v.stock_quantity) || 0) - (v.reserved_stock || 0)),
               sku: v.sku || code || slug,
@@ -854,6 +975,10 @@ export default function ProductModal({
         slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
         code: code.trim(),
         
+        productType: productType,
+        hasColorVariants: hasColorVariants,
+        hasStorageVariants: hasStorageVariants,
+
         category_id: finalCategoryId,
         category_name: finalCategoryName,
         category_slug: finalCategorySlug,
@@ -1114,10 +1239,16 @@ export default function ProductModal({
                         setCategoryId(newCatId);
                         const catObj = mergedCategories.find((c) => c.id === newCatId);
                         const catName = catObj?.name || newCatId;
-                        const isPhone = isPhoneCategory(catName);
-                        setProductType(isPhone ? "phone" : "accessory");
-                        setHasColorVariants(isPhone);
-                        setHasStorageVariants(isPhone);
+                        const detected = detectProductType(catName, name);
+                        setProductType(detected);
+                        if (detected === "laptop" || detected === "phone") {
+                          setHasColorVariants(true);
+                          setHasStorageVariants(true);
+                        } else {
+                          setHasColorVariants(true);
+                          const isStorageDevice = /storage|pen drive|flash drive|sd card|hard disk|ssd|memory card/i.test(catName);
+                          setHasStorageVariants(isStorageDevice);
+                        }
                         setHasUnsavedChanges(true);
                       }}
                       className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-semibold text-gray-900 outline-none focus:border-blue-500"
@@ -1201,19 +1332,19 @@ export default function ProductModal({
                     <div>
                       <h4 className="font-extrabold text-xs text-gray-900 flex items-center gap-2">
                         <Sliders className="w-4 h-4 text-blue-600" />
-                        Product Type & Variant Configurations
+                        Product Type &amp; Variant Configurations
                       </h4>
                       <p className="text-[11px] text-gray-500 mt-0.5">
-                        Choose whether this product requires color options or storage variant combinations.
+                        Select device type and configure whether this product requires color options or storage / capacity variants.
                       </p>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1 text-xs">
-                    {/* Product Type Setting */}
+                    {/* 1. Product Type Setting (Phone / Laptop / Accessory) */}
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1.5">Product Type</label>
-                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
+                      <label className="block font-bold text-gray-700 mb-1.5">1. Product Type</label>
+                      <div className="grid grid-cols-3 p-1 bg-white border border-gray-200 rounded-xl w-full gap-1">
                         <button
                           type="button"
                           onClick={() => {
@@ -1222,26 +1353,42 @@ export default function ProductModal({
                             setHasStorageVariants(true);
                             setHasUnsavedChanges(true);
                           }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer ${
                             productType === "phone"
                               ? "bg-blue-600 text-white shadow-xs"
-                              : "text-gray-600 hover:text-gray-900"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                           }`}
                         >
-                          📱 Smartphone
+                          📱 Phone
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setProductType("laptop");
+                            setHasColorVariants(true);
+                            setHasStorageVariants(true);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer ${
+                            productType === "laptop"
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                          }`}
+                        >
+                          💻 Laptop
                         </button>
                         <button
                           type="button"
                           onClick={() => {
                             setProductType("accessory");
-                            setHasColorVariants(false);
+                            setHasColorVariants(true);
                             setHasStorageVariants(false);
                             setHasUnsavedChanges(true);
                           }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                          className={`py-1.5 px-2 rounded-lg text-[11px] font-black transition-all text-center cursor-pointer ${
                             productType === "accessory"
                               ? "bg-blue-600 text-white shadow-xs"
-                              : "text-gray-600 hover:text-gray-900"
+                              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                           }`}
                         >
                           🎧 Accessory
@@ -1249,9 +1396,11 @@ export default function ProductModal({
                       </div>
                     </div>
 
-                    {/* Color Options Setting */}
+                    {/* 2. Color Options Setting (Universal for Phone, Laptop & Accessory) */}
                     <div>
-                      <label className="block font-bold text-gray-700 mb-1.5">Does this product have color options?</label>
+                      <label className="block font-bold text-gray-700 mb-1.5">
+                        2. Multiple Color Options?
+                      </label>
                       <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
                         <button
                           type="button"
@@ -1269,7 +1418,7 @@ export default function ProductModal({
                             setColorVariants([]);
                             setHasUnsavedChanges(true);
                           }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             !hasColorVariants
                               ? "bg-slate-800 text-white shadow-xs"
                               : "text-gray-600 hover:text-gray-900"
@@ -1283,7 +1432,7 @@ export default function ProductModal({
                             setHasColorVariants(true);
                             setHasUnsavedChanges(true);
                           }}
-                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
+                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
                             hasColorVariants
                               ? "bg-blue-600 text-white shadow-xs"
                               : "text-gray-600 hover:text-gray-900"
@@ -1294,51 +1443,55 @@ export default function ProductModal({
                       </div>
                     </div>
 
-                    {/* Storage Options Setting (Shown only for Phones) */}
-                    {productType === "phone" && (
-                      <div>
-                        <label className="block font-bold text-gray-700 mb-1.5">Does this product have storage options?</label>
-                        <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
-                          <button
-                            type="button"
-                            onClick={() => {
-                              if (hasStorageVariants && variantCombos.some((v) => Boolean(v.storage))) {
-                                if (
-                                  !confirm(
-                                    "Are you sure you want to disable storage options? Existing storage variants will be cleared."
-                                  )
-                                ) {
-                                  return;
-                                }
+                    {/* 3. Storage Options Setting (Universal for Phone, Laptop & Accessory) */}
+                    <div>
+                      <label className="block font-bold text-gray-700 mb-1.5 truncate">
+                        {productType === "laptop"
+                          ? "3. RAM & SSD Storage Options?"
+                          : productType === "phone"
+                          ? "3. Storage & RAM Options?"
+                          : "3. Storage / Capacity Options?"}
+                      </label>
+                      <div className="inline-flex p-1 bg-white border border-gray-200 rounded-xl w-full">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (hasStorageVariants && variantCombos.some((v) => Boolean(v.storage || v.ram))) {
+                              if (
+                                !confirm(
+                                  "Are you sure you want to disable storage/capacity options? Variant rows will be updated."
+                                )
+                              ) {
+                                return;
                               }
-                              setHasStorageVariants(false);
-                              setHasUnsavedChanges(true);
-                            }}
-                            className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
-                              !hasStorageVariants
-                                ? "bg-slate-800 text-white shadow-xs"
-                                : "text-gray-600 hover:text-gray-900"
-                            }`}
-                          >
-                            No
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              setHasStorageVariants(true);
-                              setHasUnsavedChanges(true);
-                            }}
-                            className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all ${
-                              hasStorageVariants
-                                ? "bg-blue-600 text-white shadow-xs"
-                                : "text-gray-600 hover:text-gray-900"
-                            }`}
-                          >
-                            Yes
-                          </button>
-                        </div>
+                            }
+                            setHasStorageVariants(false);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            !hasStorageVariants
+                              ? "bg-slate-800 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          No
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setHasStorageVariants(true);
+                            setHasUnsavedChanges(true);
+                          }}
+                          className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                            hasStorageVariants
+                              ? "bg-blue-600 text-white shadow-xs"
+                              : "text-gray-600 hover:text-gray-900"
+                          }`}
+                        >
+                          Yes
+                        </button>
                       </div>
-                    )}
+                    </div>
                   </div>
                 </div>
 
@@ -2061,73 +2214,33 @@ export default function ProductModal({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                    {/* Stock Counter & Step Buttons */}
-                    <div className="md:col-span-7 bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-4">
-                      <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
-                        Current Available Units in Stock *
-                      </label>
-                      <div className="flex items-center gap-3">
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(Math.max(0, baseStock - 1));
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-11 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-black text-lg flex items-center justify-center transition-all border border-slate-600 cursor-pointer"
-                        >
-                          -
-                        </button>
-                        <div className="flex-1 relative">
-                          <input
-                            type="number"
-                            min={0}
-                            value={baseStock}
-                            onChange={(e) => {
-                              setBaseStock(Math.max(0, parseInt(e.target.value) || 0));
-                              setHasUnsavedChanges(true);
-                            }}
-                            className="w-full text-center py-3 bg-slate-900 border border-slate-600 rounded-xl font-mono text-2xl font-black text-emerald-400 outline-none focus:border-blue-500"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(baseStock + 1);
-                            setHasUnsavedChanges(true);
-                          }}
-                          className="w-11 h-11 rounded-xl bg-slate-700 hover:bg-slate-600 active:scale-95 text-white font-black text-lg flex items-center justify-center transition-all border border-slate-600 cursor-pointer"
-                        >
-                          +
-                        </button>
+                    {/* Stock Counter - Direct Manual Input */}
+                    <div className="md:col-span-7 bg-slate-800/80 border border-slate-700 rounded-2xl p-5 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <label className="block text-xs font-bold text-slate-300 uppercase tracking-wider">
+                          Current Available Units in Stock *
+                        </label>
+                        <span className="text-[11px] text-slate-400 font-medium">Type manual stock quantity</span>
                       </div>
-
-                      {/* Quick Adjust Buttons */}
-                      <div className="flex items-center gap-2 pt-1 flex-wrap">
-                        <span className="text-[11px] font-bold text-slate-400">Quick adjust:</span>
-                        {[5, 10, 25, 50, 100].map((qty) => (
-                          <button
-                            key={qty}
-                            type="button"
-                            onClick={() => {
-                              setBaseStock((prev) => prev + qty);
-                              setHasUnsavedChanges(true);
-                            }}
-                            className="px-2.5 py-1 bg-slate-700/80 hover:bg-slate-600 text-slate-200 text-xs font-mono font-bold rounded-lg border border-slate-600/60 transition-colors cursor-pointer"
-                          >
-                            +{qty}
-                          </button>
-                        ))}
-                        <button
-                          type="button"
-                          onClick={() => {
-                            setBaseStock(0);
+                      <div className="relative">
+                        <input
+                          type="number"
+                          min={0}
+                          value={baseStock}
+                          onChange={(e) => {
+                            setBaseStock(Math.max(0, parseInt(e.target.value) || 0));
                             setHasUnsavedChanges(true);
                           }}
-                          className="px-2.5 py-1 bg-red-900/40 hover:bg-red-800/60 text-red-300 text-xs font-bold rounded-lg border border-red-700/50 transition-colors ml-auto cursor-pointer"
-                        >
-                          Set 0 (Out of Stock)
-                        </button>
+                          placeholder="e.g. 10"
+                          className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl font-mono text-2xl font-black text-emerald-400 outline-none focus:border-blue-500 transition-colors"
+                        />
+                        <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-bold text-slate-400 uppercase tracking-wider">
+                          Units
+                        </span>
                       </div>
+                      <p className="text-[11px] text-slate-400">
+                        Type the exact number of units directly. Enter <code className="text-amber-300 font-bold">0</code> to mark product as Out of Stock.
+                      </p>
                     </div>
 
                     {/* Summary Info */}
@@ -2201,10 +2314,10 @@ export default function ProductModal({
                     <thead>
                       <tr className="bg-gray-50 border-b border-gray-200 text-[11px] font-bold text-gray-500 uppercase tracking-wider">
                         {hasColorVariants && <th className="px-3 py-3">Colour / Option</th>}
-                        {!hasColorVariants && !hasStorageVariants && <th className="px-3 py-3">Variant Option</th>}
-                        {hasStorageVariants && <th className="px-3 py-3">RAM</th>}
-                        {hasStorageVariants && <th className="px-3 py-3">Storage</th>}
-                        {hasStorageVariants && <th className="px-3 py-3">SIM / Variant</th>}
+                        {!hasColorVariants && <th className="px-3 py-3">Variant Option</th>}
+                        {hasStorageVariants && <th className="px-3 py-3">{productType === "laptop" ? "RAM" : "RAM / Specs"}</th>}
+                        {hasStorageVariants && <th className="px-3 py-3">{productType === "laptop" ? "SSD Storage" : productType === "phone" ? "Storage" : "Capacity"}</th>}
+                        {hasStorageVariants && productType === "phone" && <th className="px-3 py-3">SIM / Region</th>}
                         <th className="px-3 py-3">SKU</th>
                         <th className="px-3 py-3">Offer Price (LKR)</th>
                         <th className="px-3 py-3">Old Price (LKR)</th>
@@ -2233,6 +2346,7 @@ export default function ProductModal({
                                       if (matchedCol) {
                                         updated[vIdx].color_id = matchedCol.id;
                                         updated[vIdx].color_hex = matchedCol.hex;
+                                        updated[vIdx].image_ref = matchedCol.images?.[0] || matchedCol.cover_image || "";
                                       }
                                       setVariantCombos(updated);
                                       setHasUnsavedChanges(true);
@@ -2260,7 +2374,7 @@ export default function ProductModal({
                                   />
                                 )}
                               </td>
-                            ) : !hasStorageVariants ? (
+                            ) : (
                               <td className="px-3 py-3 font-bold text-gray-900">
                                 <input
                                   type="text"
@@ -2271,11 +2385,11 @@ export default function ProductModal({
                                     setVariantCombos(updated);
                                     setHasUnsavedChanges(true);
                                   }}
-                                  placeholder="e.g. 1 Meter / 20W"
+                                  placeholder={productType === "laptop" ? "e.g. 14-inch" : productType === "phone" ? "e.g. Global Version" : "e.g. 1 Meter / 20W"}
                                   className="w-28 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                 />
                               </td>
-                            ) : null}
+                            )}
 
                             {hasStorageVariants && (
                               <td className="px-3 py-3">
@@ -2287,7 +2401,8 @@ export default function ProductModal({
                                     updated[vIdx].ram = e.target.value;
                                     setVariantCombos(updated);
                                   }}
-                                  className="w-16 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                  placeholder={productType === "laptop" ? "16GB" : "8GB"}
+                                  className="w-20 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                 />
                               </td>
                             )}
@@ -2302,12 +2417,13 @@ export default function ProductModal({
                                     updated[vIdx].storage = e.target.value;
                                     setVariantCombos(updated);
                                   }}
-                                  className="w-20 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
+                                  placeholder={productType === "laptop" ? "512GB SSD" : productType === "phone" ? "128GB" : "128GB"}
+                                  className="w-24 px-2 py-1 bg-gray-50 border border-gray-200 rounded-lg text-xs font-bold"
                                 />
                               </td>
                             )}
 
-                            {hasStorageVariants && (
+                            {hasStorageVariants && productType === "phone" && (
                               <td className="px-3 py-3">
                                 <input
                                   type="text"

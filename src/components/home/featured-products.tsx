@@ -68,9 +68,9 @@ export default function FeaturedProducts({
     return null;
   }
 
-  let featuredProducts = allProducts.filter((p) => p.featured).slice(0, 4);
+  let featuredProducts = allProducts.filter((p) => p.featured).slice(0, 10);
   if (featuredProducts.length === 0) {
-    featuredProducts = allProducts.slice(0, 4);
+    featuredProducts = allProducts.slice(0, 10);
   }
 
   if (featuredProducts.length === 0) {
@@ -79,25 +79,28 @@ export default function FeaturedProducts({
 
   return (
     <>
-      {/* ── Mobile Layout (< 768px): Strict 2-Column Product Grid ── */}
-      <div className="md:hidden w-full bg-white px-3 sm:px-4 py-3 select-none">
-        {/* Mobile Header: Title & View All */}
-        <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-[19px] font-black text-neutral-900 tracking-tight">
+      {/* ── Mobile Layout (< 768px): Horizontal Swipe / Slide Rail ── */}
+      <div className="md:hidden w-full bg-white pt-4 pb-3 select-none overflow-hidden">
+        {/* Mobile Header */}
+        <div className="flex items-center justify-between px-4 mb-3">
+          <h2 className="text-[20px] sm:text-[22px] font-black text-neutral-900 tracking-tight">
             Featured Products
           </h2>
           <Link
             href="/products?featured=true"
-            className="text-xs font-bold text-neutral-900 hover:underline"
+            className="text-xs font-bold text-neutral-900 hover:underline shrink-0"
           >
             View all
           </Link>
         </div>
 
-        {/* 2-Column Product Grid */}
-        <div className="grid grid-cols-2 gap-2.5">
+        {/* Horizontal Slide Rail */}
+        <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory px-4 pb-2">
           {featuredProducts.map((product) => (
-            <div key={`mob-fp-${product.id}`} className="h-full">
+            <div
+              key={`mob-fp-${product.id}`}
+              className="w-[46vw] min-w-[155px] max-w-[200px] shrink-0 snap-start h-full"
+            >
               <ProductCard product={product} />
             </div>
           ))}
@@ -133,7 +136,7 @@ export default function FeaturedProducts({
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
-              {featuredProducts.map((product) => (
+              {featuredProducts.slice(0, 4).map((product) => (
                 <div key={product.id} data-reveal-item className="h-full">
                   <ProductCard product={product} />
                 </div>

@@ -1,11 +1,10 @@
 "use client";
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect } from "react";
 import {
   motion,
   useInView,
   useReducedMotion,
-  useScroll,
   useTransform,
   useMotionValue,
   useSpring,
@@ -13,6 +12,12 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Truck, ShieldCheck, Wrench, CreditCard, X, ArrowRight, Tag, RotateCcw } from "lucide-react";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 /* ─── Data ─── */
 const features = [
@@ -213,7 +218,9 @@ function FeatureCard({
   );
 }
 
-/* ─── Mobile Scroll-Driven Horizontal Track (Encapsulated to guarantee target hydration) ─── */
+
+
+/* ─── Mobile Scroll-Driven Horizontal Track (GSAP ScrollTrigger Pinned, Zero Gap) ─── */
 function MobileScrollDrivenTrack({
   onCardClick,
 }: {
@@ -221,141 +228,112 @@ function MobileScrollDrivenTrack({
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const trackRef = useRef<HTMLDivElement>(null);
-  const [maxTranslate, setMaxTranslate] = useState(0);
-  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
-    setIsMounted(true);
+    const container = containerRef.current;
+    const track = trackRef.current;
+    if (!container || !track) return;
+
+    const ctx = gsap.context(() => {
+      const getScrollDist = () => Math.max(150, track.scrollWidth - window.innerWidth + 32);
+
+      gsap.to(track, {
+        x: () => -getScrollDist(),
+        ease: "none",
+        scrollTrigger: {
+          trigger: container,
+          start: "top top+=66",
+          end: () => `+=${getScrollDist()}`,
+          pin: true,
+          pinSpacing: true,
+          scrub: 0.8,
+          invalidateOnRefresh: true,
+        },
+      });
+    }, container);
+
+    return () => ctx.revert();
   }, []);
-
-  const dragStartPos = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const isDraggingRef = useRef(false);
-
-  const { scrollYProgress } = useScroll({
-    target: isMounted ? containerRef : undefined,
-    offset: ["start start", "end end"],
-  });
-
-  const x = useTransform(scrollYProgress, [0, 1], [0, -maxTranslate]);
-
-  const updateTranslationDistance = useCallback(() => {
-    if (trackRef.current) {
-      const scrollW = trackRef.current.scrollWidth;
-      const clientW = trackRef.current.parentElement?.clientWidth || window.innerWidth;
-      const dist = Math.max(0, scrollW - clientW + 24);
-      setMaxTranslate(dist);
-    }
-  }, []);
-
-  useEffect(() => {
-    updateTranslationDistance();
-    const handleResize = () => updateTranslationDistance();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  }, [updateTranslationDistance]);
-
-  const handlePointerDown = (e: React.PointerEvent) => {
-    dragStartPos.current = { x: e.clientX, y: e.clientY };
-    isDraggingRef.current = false;
-  };
-
-  const handlePointerMove = (e: React.PointerEvent) => {
-    const dx = Math.abs(e.clientX - dragStartPos.current.x);
-    const dy = Math.abs(e.clientY - dragStartPos.current.y);
-    if (dx > 8 || dy > 8) {
-      isDraggingRef.current = true;
-    }
-  };
 
   return (
     <div
       ref={containerRef}
-      className="md:hidden relative h-[200vh] w-full bg-white select-none"
+      className="md:hidden w-full bg-white pt-5 pb-5 select-none overflow-hidden"
       aria-label="Why Choose Street Mobile"
     >
-      <div className="sticky top-[var(--navbar-height,66px)] h-[calc(100dvh-var(--navbar-height,66px))] max-h-[780px] w-full flex flex-col justify-center overflow-hidden py-3">
-        {/* Section Header */}
-        <div className="text-center mb-5 px-4 shrink-0">
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
-            <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
-            Why Choose Us
-          </div>
-          <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1.5">
-            Why Choose Street Mobile
-          </h2>
-          <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
-            Premium quality, professional service, and total peace of mind — every time.
-          </p>
+      {/* Section Header */}
+      <div className="text-center mb-4 px-4 shrink-0">
+        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
+          <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
+          Why Choose Us
         </div>
+        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1">
+          Why Choose Street Mobile
+        </h2>
+        <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
+          Premium quality, professional service, and total peace of mind — every time.
+        </p>
+      </div>
 
-        {/* Horizontal Scroll-driven Track */}
-        <div className="w-full overflow-hidden">
-          <motion.div
-            ref={trackRef}
-            style={{ x }}
-            className="flex items-stretch gap-3.5 sm:gap-4 px-4 py-2 will-change-transform touch-pan-y"
-          >
-            {features.map((feature) => (
-              <div
-                key={`mob-feat-${feature.number}`}
-                className="w-[80vw] sm:w-[82vw] max-w-[330px] shrink-0"
-                onPointerDown={handlePointerDown}
-                onPointerMove={handlePointerMove}
-              >
-                <div className="silver-glow-wrapper h-full">
-                  <div
-                    role="button"
-                    tabIndex={0}
-                    onClick={() => {
-                      if (!isDraggingRef.current) onCardClick(feature);
-                    }}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        onCardClick(feature);
-                      }
-                    }}
-                    className="silver-glow-inner group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 sm:p-7 cursor-pointer overflow-hidden
-                      bg-white
-                      active:scale-[0.98]
-                      transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+      {/* Horizontal Scroll-driven Track */}
+      <div className="w-full overflow-hidden">
+        <div
+          ref={trackRef}
+          className="flex items-stretch gap-3.5 sm:gap-4 px-4 py-1 will-change-transform touch-pan-y"
+        >
+          {features.map((feature) => (
+            <div
+              key={`mob-feat-${feature.number}`}
+              className="w-[78vw] sm:w-[80vw] max-w-[310px] shrink-0"
+            >
+              <div className="silver-glow-wrapper h-full">
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => onCardClick(feature)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      onCardClick(feature);
+                    }
+                  }}
+                  className="silver-glow-inner group relative w-full h-full min-h-[270px] flex flex-col items-center text-center p-5 sm:p-6 cursor-pointer overflow-hidden
+                    bg-white
+                    active:scale-[0.98]
+                    transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+                >
+                  {/* Number Indicator */}
+                  <span
+                    className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
+                    aria-hidden="true"
                   >
-                    {/* Number Indicator */}
-                    <span
-                      className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
-                      aria-hidden="true"
-                    >
-                      {feature.number}
-                    </span>
+                    {feature.number}
+                  </span>
 
-                    {/* Icon Container */}
-                    <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                      <feature.icon className="w-5 h-5 text-gray-900" />
-                    </div>
+                  {/* Icon Container */}
+                  <div className="w-[50px] h-[50px] rounded-full flex items-center justify-center mb-3 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                    <feature.icon className="w-5 h-5 text-gray-900" />
+                  </div>
 
-                    {/* Divider */}
-                    <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
+                  <div className="w-7 h-[1px] bg-gray-200 mb-3 rounded-full" />
 
-                    {/* Title */}
-                    <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
-                      {feature.title}
-                    </h3>
+                  {/* Title */}
+                  <h3 className="font-semibold text-[16px] mb-1 text-gray-900 tracking-tight leading-tight">
+                    {feature.title}
+                  </h3>
 
-                    {/* Description */}
-                    <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
-                      {feature.description}
-                    </p>
+                  <p className="text-[13px] text-gray-600 leading-[1.5] font-normal max-w-[240px] mx-auto mb-3">
+                    {feature.description}
+                  </p>
 
-                    {/* CTA Link */}
-                    <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                      <span>Learn more</span>
-                      <ArrowRight className="w-3.5 h-3.5" />
-                    </div>
+                  <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
+                    <span>Learn more</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
                   </div>
                 </div>
               </div>
-            ))}
-          </motion.div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -395,122 +373,56 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
         </div>
       )}
 
-      {/* ── Mobile Why Choose Street Mobile Section (< 768px) ── */}
+      {/* ── Mobile Why Choose Street Mobile Section (< 768px): Scroll-Driven Horizontal Slide ── */}
       {mode !== "strip_only" && (
-        <>
-          {prefersReducedMotion ? (
-            /* Reduced Motion Fallback: Swipeable Horizontal Carousel without Pinning */
-            <section
-              aria-label="Why Choose Street Mobile"
-              className="md:hidden w-full bg-white py-8 px-4 select-none"
+        <MobileScrollDrivenTrack onCardClick={setSelectedFeature} />
+      )}
+
+      {/* ── Desktop Why Choose Section ── */}
+      {mode !== "strip_only" && (
+        <section
+          ref={sectionRef}
+          aria-label="Why Choose Street Mobile"
+          className="hidden md:block relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
+        >
+          <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* Section Header */}
+            <motion.div
+              variants={sectionTitleVar}
+              initial="hidden"
+              animate={isInView ? "show" : "hidden"}
+              className="text-center mb-10 sm:mb-12"
             >
-              <div className="text-center mb-6">
-                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
-                  <span className="w-1.5 h-1.5 rounded-full bg-neutral-900" />
-                  Why Choose Us
-                </div>
-                <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1.5">
-                  Why Choose Street Mobile
-                </h2>
-                <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
-                  Premium quality, professional service, and total peace of mind — every time.
-                </p>
+              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-900 tracking-wide uppercase mb-3.5 shadow-2xs">
+                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+                Why Choose Us
               </div>
+              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight leading-tight mb-3">
+                Why Choose Street Mobile
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
+                Premium quality, professional service, and total peace of mind — every time.
+              </p>
+            </motion.div>
 
-              <div className="flex gap-3.5 overflow-x-auto scrollbar-none snap-x snap-mandatory pb-2 -mx-4 px-4">
-                {features.map((feature) => (
-                  <div
-                    key={`mob-feat-rm-${feature.number}`}
-                    className="w-[80vw] max-w-[320px] shrink-0 snap-start"
-                  >
-                    <div
-                      role="button"
-                      tabIndex={0}
-                      onClick={() => setSelectedFeature(feature)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          setSelectedFeature(feature);
-                        }
-                      }}
-                      className="group relative w-full h-full min-h-[290px] flex flex-col items-center text-center p-6 rounded-[22px] cursor-pointer overflow-hidden
-                        bg-white
-                        border border-black/[0.15]
-                        shadow-[0_2px_12px_rgba(0,0,0,0.03)]
-                        active:scale-[0.98]
-                        transition-all duration-300"
-                    >
-                      <span className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest">
-                        {feature.number}
-                      </span>
-                      <div className="w-[56px] h-[56px] rounded-full flex items-center justify-center mb-4 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                        <feature.icon className="w-5 h-5 text-gray-900" />
-                      </div>
-                      <div className="w-7 h-[1px] bg-gray-200 mb-3.5 rounded-full" />
-                      <h3 className="font-semibold text-[17px] mb-1.5 text-gray-900 tracking-tight leading-tight">
-                        {feature.title}
-                      </h3>
-                      <p className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[240px] mx-auto mb-4">
-                        {feature.description}
-                      </p>
-                      <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                        <span>Learn more</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </section>
-          ) : (
-            <MobileScrollDrivenTrack onCardClick={setSelectedFeature} />
-          )}
-
-          {/* ── Desktop Why Choose Section (Unchanged) ── */}
-          <section
-            ref={sectionRef}
-            aria-label="Why Choose Street Mobile"
-            className="hidden md:block relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
-          >
-            <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-              {/* Section Header */}
-              <motion.div
-                variants={sectionTitleVar}
-                initial="hidden"
-                animate={isInView ? "show" : "hidden"}
-                className="text-center mb-10 sm:mb-12"
-              >
-                <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-900 tracking-wide uppercase mb-3.5 shadow-2xs">
-                  <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                  Why Choose Us
-                </div>
-                <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight leading-tight mb-3">
-                  Why Choose Street Mobile
-                </h2>
-                <p className="text-gray-600 text-sm sm:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
-                  Premium quality, professional service, and total peace of mind — every time.
-                </p>
-              </motion.div>
-
-              {/* 4 Cards Grid */}
-              <motion.div
-                variants={containerVar}
-                initial="hidden"
-                animate={isInView ? "show" : "hidden"}
-                className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 auto-rows-fr"
-              >
-                {features.map((feature) => (
-                  <FeatureCard
-                    key={feature.number}
-                    feature={feature}
-                    onClick={setSelectedFeature}
-                    prefersReducedMotion={prefersReducedMotion}
-                  />
-                ))}
-              </motion.div>
-            </div>
-          </section>
-        </>
+            {/* 4 Cards Grid */}
+            <motion.div
+              variants={containerVar}
+              initial="hidden"
+              animate={isInView ? "show" : "hidden"}
+              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 auto-rows-fr"
+            >
+              {features.map((feature) => (
+                <FeatureCard
+                  key={feature.number}
+                  feature={feature}
+                  onClick={setSelectedFeature}
+                  prefersReducedMotion={prefersReducedMotion}
+                />
+              ))}
+            </motion.div>
+          </div>
+        </section>
       )}
 
       {/* ── Feature Detail Modal ── */}

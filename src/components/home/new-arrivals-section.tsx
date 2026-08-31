@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { ArrowRight, ShoppingBag, Eye, Heart, Check, Star } from "lucide-react";
+import { ShoppingBag, Eye, Heart, Check, Star } from "lucide-react";
 import { Product, NewArrivalsSettings } from "@/lib/types";
 import { getProducts } from "@/lib/firestore-client";
 import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
@@ -143,17 +143,11 @@ export default function NewArrivalsSection({
         className="md:hidden w-full bg-white pt-5 sm:pt-6 pb-4 select-none overflow-hidden"
         aria-label="New Arrivals"
       >
-        {/* 1. Section Header: 16px horizontal padding, 22-24px heading, red View All */}
+        {/* 1. Section Header */}
         <div className="flex items-center justify-between px-4 mb-3.5 sm:mb-4">
           <h2 className="text-[22px] sm:text-2xl font-black text-neutral-900 tracking-tight leading-none">
             {settings.section_title || "New Arrivals"}
           </h2>
-          <Link
-            href="/products?new=true"
-            className="text-xs sm:text-sm font-bold text-[#ED0712] hover:underline shrink-0"
-          >
-            View all
-          </Link>
         </div>
 
         {/* 2. Mobile Product Rail: 2.15 cards peek (45vw, min 150px, max 190px), snap-x */}
@@ -161,9 +155,11 @@ export default function NewArrivalsSection({
           {newArrivalProducts.length > 0
             ? newArrivalProducts.map((product) => {
                 const hasDiscount =
-                  product.old_price &&
+                  Boolean(product.old_price) &&
                   typeof product.old_price === "number" &&
-                  product.old_price > product.price;
+                  typeof product.price === "number" &&
+                  product.old_price > product.price &&
+                  Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
                 const discountPercent = hasDiscount
                   ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
@@ -257,23 +253,13 @@ export default function NewArrivalsSection({
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         
         {/* Section Header */}
-        <div data-reveal-item className="flex flex-col sm:flex-row items-start sm:items-end justify-between gap-4 mb-8">
-          <div>
-            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#090909] tracking-tight">
-              {settings.section_title || "New Arrivals"}
-            </h2>
-            <p className="text-neutral-500 text-sm sm:text-base mt-1 font-medium">
-              {settings.section_subtitle || "Explore the latest devices and accessories at Street Mobile."}
-            </p>
-          </div>
-
-          <Link
-            href="/products?new=true"
-            className="group inline-flex items-center gap-2 text-sm font-bold text-black hover:text-neutral-600 transition-colors"
-          >
-            <span>View All New Arrivals</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-1" />
-          </Link>
+        <div data-reveal-item className="mb-8">
+          <h2 className="text-2xl sm:text-3xl lg:text-4xl font-black text-[#090909] tracking-tight">
+            {settings.section_title || "New Arrivals"}
+          </h2>
+          <p className="text-neutral-500 text-sm sm:text-base mt-1 font-medium">
+            {settings.section_subtitle || "Explore the latest devices and accessories at Street Mobile."}
+          </p>
         </div>
 
         {/* Product Cards Grid */}
@@ -284,9 +270,11 @@ export default function NewArrivalsSection({
             const isLowStock = product.stock_status === "low_stock";
 
             const hasDiscount =
-              product.old_price &&
+              Boolean(product.old_price) &&
               typeof product.old_price === "number" &&
-              product.old_price > product.price;
+              typeof product.price === "number" &&
+              product.old_price > product.price &&
+              Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
             const discountPercent = hasDiscount
               ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)

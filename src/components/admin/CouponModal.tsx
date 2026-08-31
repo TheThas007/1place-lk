@@ -24,7 +24,7 @@ export default function CouponModal({
     title: "",
     description: "",
     discountType: "percentage",
-    discountValue: 10,
+    discountValue: 0,
     minSpend: 0,
     maxDiscount: 0,
     status: "active",
@@ -46,7 +46,7 @@ export default function CouponModal({
         title: coupon.title || "",
         description: coupon.description || "",
         discountType: coupon.discountType || "percentage",
-        discountValue: coupon.discountValue ?? 10,
+        discountValue: coupon.discountValue ?? 0,
         minSpend: coupon.minSpend ?? 0,
         maxDiscount: coupon.maxDiscount ?? 0,
         status: coupon.status || "active",
@@ -62,7 +62,7 @@ export default function CouponModal({
         title: "",
         description: "",
         discountType: "percentage",
-        discountValue: 10,
+        discountValue: 0,
         minSpend: 0,
         maxDiscount: 0,
         status: "active",
@@ -256,10 +256,11 @@ export default function CouponModal({
                 <div className="relative">
                   <input
                     type="number"
-                    min="1"
+                    min="0"
                     max={formData.discountType === "percentage" ? 100 : 100000}
-                    value={formData.discountValue ?? 10}
-                    onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) })}
+                    value={formData.discountValue === 0 ? "" : formData.discountValue}
+                    onChange={(e) => setFormData({ ...formData, discountValue: Number(e.target.value) || 0 })}
+                    placeholder="0"
                     className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/15 text-white font-mono font-bold text-sm focus:outline-none focus:border-blue-500 transition-colors"
                   />
                   <span className="absolute right-3.5 top-2.5 text-xs text-white/40 font-bold">

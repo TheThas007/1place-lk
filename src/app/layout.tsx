@@ -15,6 +15,7 @@ import AnnouncementBar from "@/components/ui/AnnouncementBar";
 import CampaignPopup from "@/components/ui/CampaignPopup";
 import GenderPromptModal from "@/components/auth/GenderPromptModal";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
+import DisableNumberScroll from "@/components/providers/DisableNumberScroll";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
 import LaunchGate from "@/components/launch/LaunchGate";
 import Script from "next/script";
@@ -230,6 +231,7 @@ export default function RootLayout({
         />
       </head>
       <body className="min-h-full flex flex-col font-sans bg-black text-white">
+        <DisableNumberScroll />
         <Script src="https://www.payhere.lk/lib/payhere.js" strategy="afterInteractive" />
         <AuthProvider>
           <CartProvider>

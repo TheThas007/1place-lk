@@ -495,7 +495,7 @@ export default function GallerySection({
     <>
       {/* ── Mobile Layout (< 768px): Continuous Auto-Scroll + Touch/Finger Swipe Gallery ── */}
       <section
-        className="md:hidden w-full bg-[#FAFAFA] py-6 select-none overflow-hidden border-y border-neutral-200/80"
+        className="md:hidden w-full bg-[#F2F2F2] py-6 select-none overflow-hidden border-y border-neutral-200/80"
         aria-label="Life at Street Mobile Mobile Gallery"
       >
         {/* Mobile Header Row */}
@@ -607,7 +607,7 @@ export default function GallerySection({
           id="gallery-section"
           stagger={0.06}
           yOffset={20}
-          className="relative py-12 sm:py-16 lg:py-[72px] bg-[#FAFAFA] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
+          className="relative py-12 sm:py-16 lg:py-[72px] bg-[#F2F2F2] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
         >
       {/* ── Content Container (1320px Max-Width, Width: calc(100% - 48px)) ── */}
       <div className="relative max-w-[1320px] w-[calc(100%-48px)] mx-auto">
@@ -672,14 +672,14 @@ export default function GallerySection({
             <div
               style={{
                 width: `${settings.edgeFadeWidth}px`,
-                background: `linear-gradient(to right, ${settings.edgeFadeColor || "#FAFAFA"}, transparent)`,
+                background: `linear-gradient(to right, ${settings.edgeFadeColor || "#F2F2F2"}, transparent)`,
               }}
               className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none"
             />
             <div
               style={{
                 width: `${settings.edgeFadeWidth}px`,
-                background: `linear-gradient(to left, ${settings.edgeFadeColor || "#FAFAFA"}, transparent)`,
+                background: `linear-gradient(to left, ${settings.edgeFadeColor || "#F2F2F2"}, transparent)`,
               }}
               className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none"
             />

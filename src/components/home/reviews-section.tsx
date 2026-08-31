@@ -693,7 +693,7 @@ export default function ReviewsSection({
             return (
               <div
                 key={`mob-rev-${rev.id || idx}-${idx}`}
-                className="w-[84vw] sm:w-[86vw] max-w-[340px] shrink-0 flex"
+                className="w-[78vw] sm:w-[82vw] max-w-[300px] shrink-0 flex"
               >
                 <a
                   href={cardTargetUrl}
@@ -701,25 +701,25 @@ export default function ReviewsSection({
                   rel="noopener noreferrer"
                   onClick={handleMobileCardClick}
                   aria-label={`Google review by ${rev.author_name}`}
-                  className="w-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-5 flex flex-col justify-between shadow-xs transition-all duration-200 select-none block"
+                  className="w-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-all duration-200 select-none block"
                 >
                   {/* Top Badges & Stars */}
                   <div>
-                    <div className="flex items-center justify-between gap-2 mb-3 pointer-events-none">
+                    <div className="flex items-center justify-between gap-2 mb-2.5 pointer-events-none">
                       <div className="flex items-center gap-0.5">
                         {[...Array(safeRating)].map((_, i) => (
-                          <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
+                          <Star key={i} className="w-3 h-3 fill-neutral-900 text-neutral-900" />
                         ))}
                       </div>
 
                       <div className="flex items-center gap-1">
                         {rev.featured && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
+                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
                             <Sparkles className="w-2.5 h-2.5 text-white" />
                             <span>Featured</span>
                           </span>
                         )}
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
                           <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
                           <span>Verified</span>
                         </span>
@@ -727,18 +727,18 @@ export default function ReviewsSection({
                     </div>
 
                     {/* Review Text */}
-                    <div className="relative mb-2 pointer-events-none">
-                      <Quote className="w-3 h-3 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
-                      <p className="text-neutral-700 text-xs sm:text-sm leading-relaxed font-normal inline">
+                    <div className="relative mb-1 pointer-events-none">
+                      <Quote className="w-2.5 h-2.5 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
+                      <p className="text-neutral-700 text-xs leading-snug font-normal line-clamp-3 inline">
                         {rev.text}
                       </p>
                     </div>
                   </div>
 
                   {/* Reviewer Profile */}
-                  <div className="pt-3.5 mt-3 border-t border-neutral-200/80 flex items-center justify-between gap-2.5 pointer-events-none">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <div className="w-8 h-8 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-xs">
+                  <div className="pt-2.5 mt-2.5 border-t border-neutral-200/80 flex items-center justify-between gap-2 pointer-events-none">
+                    <div className="flex items-center gap-2 min-w-0">
+                      <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-[10px]">
                         {rev.author_photo ? (
                           <img
                             src={rev.author_photo}
@@ -752,7 +752,7 @@ export default function ReviewsSection({
                       </div>
                       <div className="min-w-0">
                         <div className="flex items-center gap-1">
-                          <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate m-0">
+                          <h4 className="font-bold text-xs text-neutral-900 truncate m-0">
                             {rev.author_name}
                           </h4>
                           <GoogleIcon className="w-3 h-3 shrink-0" />
@@ -763,7 +763,7 @@ export default function ReviewsSection({
                       </div>
                     </div>
 
-                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400 shrink-0" />
+                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-amber-600 transition-colors shrink-0" />
                   </div>
                 </a>
               </div>

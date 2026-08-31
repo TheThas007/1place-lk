@@ -138,14 +138,11 @@ export default async function HomePage() {
       {/* 1. Premium hero banner slider */}
       <HeroSection />
 
-      {/* Trust / Service Feature Strip (On mobile, placed right below hero) */}
-      <TrustIndicators mode="strip_only" />
+      {/* 2. Announcement Ticker (Running text bar right below hero) */}
+      <AnnouncementTicker />
 
       {/* Showcase position: Below Hero */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_hero" />
-
-      {/* 2. Announcement Ticker */}
-      <AnnouncementTicker />
 
       {/* 3. New Arrivals */}
       {newArrivalsSettings?.enabled !== false && (
@@ -198,10 +195,12 @@ export default async function HomePage() {
       {/* Showcase position: Below Featured Accessories */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_featured_accessories" />
 
-      {/* 8. Shop by Category (Carousel Slider) */}
-      <ScrollReveal enable3d={true}>
-        <ShopByCategoryCarousel categories={categories} />
-      </ScrollReveal>
+      {/* 8. Shop by Category (Carousel Slider - Desktop only) */}
+      <div className="hidden md:block">
+        <ScrollReveal enable3d={true}>
+          <ShopByCategoryCarousel categories={categories} />
+        </ScrollReveal>
+      </div>
 
       {/* Showcase position: Below Shop by Category */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />

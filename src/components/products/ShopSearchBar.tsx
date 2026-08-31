@@ -2,47 +2,29 @@
 
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Search, X, ShoppingBag, ArrowRight, Sparkles } from "lucide-react";
-import { Product } from "@/lib/types";
+import { Search, X, ShoppingBag, ArrowRight, Sparkles, Tag, Package, CornerDownLeft } from "lucide-react";
+import { Product, Category, Brand } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
+import { executeIntelligentSearch, SearchEngineResults } from "@/lib/search/search-engine";
+import { addRecentSearch, recordProductSearchClick } from "@/lib/search/search-history";
 
 interface ShopSearchBarProps {
   searchQuery: string;
   onSearchChange: (query: string) => void;
   onSearchSubmit: (query: string) => void;
   products: Product[];
+  categories?: Category[];
+  brands?: Brand[];
   className?: string;
-}
-
-/* ─────────────────────────────────────────────────────────────
-   TYPO-TOLERANT & TOKEN-BASED MATCHING
-───────────────────────────────────────────────────────────── */
-function isTokenMatch(token: string, text: string): boolean {
-  if (text.includes(token)) return true;
-  // If token is >= 4 chars, allow 1 edit distance or prefix match
-  if (token.length >= 4) {
-    const words = text.split(/[\s\-_\/]+/);
-    for (const word of words) {
-      if (word.startsWith(token) || token.startsWith(word)) return true;
-      if (Math.abs(word.length - token.length) <= 1) {
-        let diff = 0;
-        const maxLen = Math.max(word.length, token.length);
-        for (let i = 0; i < maxLen; i++) {
-          if (word[i] !== token[i]) diff++;
-          if (diff > 1) break;
-        }
-        if (diff <= 1) return true;
-      }
-    }
-  }
-  return false;
 }
 
 export default function ShopSearchBar({
   searchQuery,
   onSearchChange,
   onSearchSubmit,
-  products,
+  products = [],
+  categories = [],
+  brands = [],
   className = "",
 }: ShopSearchBarProps) {
   const router = useRouter();
@@ -68,32 +50,16 @@ export default function ShopSearchBar({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Compute suggestions based on input value
-  const suggestions = useMemo(() => {
-    const q = inputValue.trim().toLowerCase().replace(/\s+/g, " ");
-    if (!q || q.length < 1) return [];
+  // Compute intelligent search results based on input value
+  const searchResults: SearchEngineResults | null = useMemo(() => {
+    const q = inputValue.trim();
+    if (!q || q.length < 1) return null;
+    return executeIntelligentSearch(q, products, categories, brands);
+  }, [inputValue, products, categories, brands]);
 
-    const tokens = q.split(" ").filter(Boolean);
-
-    const matches = products.filter((product) => {
-      const name = (product.name || "").toLowerCase();
-      const brand = (product.brand_name || product.brandName || product.brand || "").toLowerCase();
-      const cat = (product.category_name || product.categoryName || "").toLowerCase();
-      const code = (product.code || "").toLowerCase();
-      const tags = (product.tags || []).join(" ").toLowerCase();
-      const specs = Object.values(product.specifications || {}).join(" ").toLowerCase();
-      const desc = (product.description || "").toLowerCase();
-
-      const searchableBlob = `${name} ${brand} ${cat} ${code} ${tags} ${specs} ${desc}`;
-
-      // Every token must match somewhere
-      return tokens.every((token) => isTokenMatch(token, searchableBlob));
-    });
-
-    return matches;
-  }, [inputValue, products]);
-
-  const topSuggestions = useMemo(() => suggestions.slice(0, 6), [suggestions]);
+  const topProducts = useMemo(() => {
+    return searchResults ? searchResults.products.slice(0, 5) : [];
+  }, [searchResults]);
 
   // Handle typing
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -117,8 +83,20 @@ export default function ShopSearchBar({
   // Submit search query
   const handleSubmit = (val?: string) => {
     const queryToSubmit = val !== undefined ? val : inputValue;
+    const clean = queryToSubmit.trim();
+    if (clean) addRecentSearch(clean);
     setIsOpen(false);
-    onSearchSubmit(queryToSubmit.trim());
+    onSearchSubmit(clean);
+  };
+
+  // Click product
+  const handleProductClick = (product: Product) => {
+    if (inputValue.trim()) {
+      recordProductSearchClick(inputValue, product.id || product.slug);
+      addRecentSearch(inputValue);
+    }
+    setIsOpen(false);
+    router.push(`/products/${product.slug}`);
   };
 
   // Keyboard navigation
@@ -132,20 +110,19 @@ export default function ShopSearchBar({
       e.preventDefault();
       setSelectedIndex((prev) => {
         const next = prev + 1;
-        return next >= topSuggestions.length ? -1 : next;
+        return next >= topProducts.length ? -1 : next;
       });
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setSelectedIndex((prev) => {
         const next = prev - 1;
-        return next < -1 ? topSuggestions.length - 1 : next;
+        return next < -1 ? topProducts.length - 1 : next;
       });
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (selectedIndex >= 0 && selectedIndex < topSuggestions.length) {
-        const selected = topSuggestions[selectedIndex];
-        setIsOpen(false);
-        router.push(`/products/${selected.slug}`);
+      if (selectedIndex >= 0 && selectedIndex < topProducts.length) {
+        const selected = topProducts[selectedIndex];
+        handleProductClick(selected);
       } else {
         handleSubmit();
       }
@@ -179,7 +156,7 @@ export default function ShopSearchBar({
           <button
             type="button"
             onClick={handleClear}
-            className="absolute right-3.5 sm:right-4 p-1.5 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-200/70 transition-colors"
+            className="absolute right-3.5 sm:right-4 p-1.5 rounded-full text-neutral-400 hover:text-black hover:bg-neutral-200/70 transition-colors cursor-pointer"
             aria-label="Clear search"
           >
             <X className="w-4 h-4" />
@@ -188,22 +165,39 @@ export default function ShopSearchBar({
       </div>
 
       {/* ── Instant Suggestions Popup Dropdown ── */}
-      {isOpen && inputValue.trim().length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-neutral-200/90 shadow-2xl overflow-hidden z-50 divide-y divide-neutral-100 animate-in fade-in-0 zoom-in-95 duration-150">
+      {isOpen && inputValue.trim().length > 0 && searchResults && (
+        <div className="absolute top-full left-0 right-0 mt-2 bg-white rounded-2xl border border-neutral-200/90 shadow-2xl overflow-hidden z-50 divide-y divide-neutral-100 animate-in fade-in-0 zoom-in-95 duration-150 font-outfit">
           
-          {/* Header */}
+          {/* Header with Did You Mean */}
           <div className="px-4 py-2.5 bg-neutral-50/80 flex items-center justify-between text-xs text-neutral-500 font-semibold">
             <span className="flex items-center gap-1.5">
               <Sparkles className="w-3.5 h-3.5 text-neutral-700" />
-              {topSuggestions.length > 0 ? `Suggestions (${suggestions.length} matching)` : "Search Results"}
+              {searchResults.totalMatches > 0 ? `Matches (${searchResults.totalMatches} products)` : "Search Results"}
             </span>
             <span className="text-[11px] text-neutral-400 font-normal">Press Enter to search</span>
           </div>
 
+          {/* Typo Correction Banner if any */}
+          {searchResults.didYouMean && (
+            <div className="px-4 py-2 bg-amber-50 border-b border-amber-100 flex items-center justify-between text-xs text-amber-900">
+              <div className="flex items-center gap-1.5 truncate">
+                <Sparkles className="w-3.5 h-3.5 text-amber-600 shrink-0" />
+                <span>Did you mean:</span>
+                <button
+                  type="button"
+                  onClick={() => handleSubmit(searchResults.didYouMean!)}
+                  className="font-bold text-black underline hover:text-amber-700 cursor-pointer truncate"
+                >
+                  {searchResults.didYouMean}
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Suggestions List */}
-          {topSuggestions.length > 0 ? (
+          {topProducts.length > 0 ? (
             <div className="py-1 max-h-[380px] overflow-y-auto">
-              {topSuggestions.map((product, idx) => {
+              {topProducts.map((product, idx) => {
                 const isSelected = selectedIndex === idx;
                 const isOutOfStock = product.stock_status === "out_of_stock";
                 const isLowStock = product.stock_status === "low_stock";
@@ -211,16 +205,16 @@ export default function ShopSearchBar({
                   product.sale_price && product.sale_price > 0 && product.sale_price < product.price
                     ? product.sale_price
                     : product.price;
-                const hasDiscount = product.old_price && product.old_price > product.price;
+                const hasDiscount =
+                  product.old_price &&
+                  product.old_price > product.price &&
+                  Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
                 return (
                   <button
-                    key={product.id}
+                    key={product.id || product.slug}
                     type="button"
-                    onClick={() => {
-                      setIsOpen(false);
-                      router.push(`/products/${product.slug}`);
-                    }}
+                    onClick={() => handleProductClick(product)}
                     onMouseEnter={() => setSelectedIndex(idx)}
                     className={`w-full px-4 py-2.5 flex items-center justify-between text-left transition-colors cursor-pointer ${
                       isSelected ? "bg-neutral-100" : "hover:bg-neutral-50"
@@ -296,9 +290,9 @@ export default function ShopSearchBar({
             <button
               type="button"
               onClick={() => handleSubmit()}
-              className="w-full py-2 px-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors flex items-center justify-center gap-1.5 shadow-2xs"
+              className="w-full py-2 px-3 rounded-xl bg-black text-white text-xs font-bold hover:bg-neutral-800 transition-colors flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer"
             >
-              <span>View All Results for &ldquo;{inputValue.trim()}&rdquo; ({suggestions.length})</span>
+              <span>View All Results for &ldquo;{inputValue.trim()}&rdquo; ({searchResults.totalMatches})</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -308,3 +302,4 @@ export default function ShopSearchBar({
     </div>
   );
 }
+

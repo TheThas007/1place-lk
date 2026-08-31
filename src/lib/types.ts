@@ -48,7 +48,7 @@ export interface Product {
   color_variants?: ProductColor[];
   variant_combos?: ProductVariantCombo[];
   warranty_options?: WarrantyOption[];
-  productType?: "phone" | "accessory";
+  productType?: "phone" | "laptop" | "accessory";
   hasColorVariants?: boolean;
   hasStorageVariants?: boolean;
   is_new_arrival?: boolean;
@@ -1022,6 +1022,7 @@ export interface AssistantProductSummary {
   colors?: string[];
   storage_options?: string[];
   specifications?: Record<string, string>;
+  keySpecs?: string[];
   brand_name?: string;
   warranty?: string;
   stock_status?: string;

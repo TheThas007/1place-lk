@@ -255,7 +255,7 @@ export default function CategoriesSection({
       });
   }, [liveBrands, activeDeptSlug]);
 
-  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 12);
+  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 6);
   const desktopVisibleBrands = isDesktopExpanded ? visibleBrands : visibleBrands.slice(0, 12);
 
   return (
@@ -306,7 +306,7 @@ export default function CategoriesSection({
             })}
         </div>
 
-        {/* 3. Mobile Brand Grid (3 Columns, Equal Squares) */}
+        {/* 3. Mobile Brand Grid (3 Columns, Equal Squares, 6 Logos by Default) */}
         <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
           {visibleBrands.length > 0 ? (
             mobileVisibleBrands.map((brand) => (
@@ -323,8 +323,8 @@ export default function CategoriesSection({
           )}
         </div>
 
-        {/* 4. Show More / Show Less Button (If more than 12 active brands exist) */}
-        {visibleBrands.length > 12 && (
+        {/* 4. Show More / Show Less Button (If more than 6 active brands exist) */}
+        {visibleBrands.length > 6 && (
           <div className="mt-3">
             <button
               type="button"
@@ -344,7 +344,7 @@ export default function CategoriesSection({
               <span>
                 {isMobileExpanded
                   ? "Show Less"
-                  : `Show More Brands (+${visibleBrands.length - 12})`}
+                  : `Show More Brands (+${visibleBrands.length - 6})`}
               </span>
               {isMobileExpanded ? (
                 <ChevronUp className="w-4 h-4 text-neutral-600" />

@@ -340,7 +340,7 @@ export default function CampaignPopupControl() {
       {/* Admin Test Preview Modal */}
       {showPreviewModal && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
-          <div className={`relative w-full max-w-md border rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-7 ${
+          <div className={`relative w-full max-w-lg md:max-w-xl border rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-7 ${
             settings.colorTheme === "clean_white"
               ? "bg-white text-black border-neutral-200"
               : settings.colorTheme === "gold_glow"
@@ -351,14 +351,15 @@ export default function CampaignPopupControl() {
           }`}>
             <button
               onClick={() => setShowPreviewModal(false)}
-              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/40 text-white flex items-center justify-center border border-white/20"
+              className="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/70 text-white flex items-center justify-center border border-white/20 hover:bg-black transition-all cursor-pointer"
             >
               <X className="w-4 h-4" />
             </button>
 
             {settings.imageUrl && (
-              <div className="w-full h-40 rounded-2xl overflow-hidden mb-4 bg-black border border-white/10">
-                <img src={settings.imageUrl} alt="Preview" className="w-full h-full object-cover" />
+              <div className="w-full aspect-[16/9] sm:aspect-[2/1] max-h-[260px] rounded-2xl overflow-hidden mb-4 bg-black border border-white/10 relative">
+                <img src={settings.imageUrl} alt="Preview" className="w-full h-full object-cover object-top" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
               </div>
             )}
 
@@ -377,17 +378,17 @@ export default function CampaignPopupControl() {
               {settings.headline} <span className={isLight ? "text-amber-600" : "text-amber-400"}>{settings.highlightText}</span>
             </h3>
 
-            <p className="text-xs opacity-75 mt-2">{settings.description}</p>
+            <p className="text-xs opacity-75 mt-2 leading-relaxed">{settings.description}</p>
 
             {settings.couponCode && (
-              <div className="mt-4 p-2.5 rounded-xl bg-white/10 border border-white/20 text-xs font-mono font-bold text-amber-400 text-center">
+              <div className="mt-4 p-3 rounded-xl bg-white/10 border border-white/20 text-xs font-mono font-bold text-amber-400 text-center">
                 COUPON CODE: {settings.couponCode}
               </div>
             )}
 
             <button
               onClick={() => setShowPreviewModal(false)}
-              className={`w-full mt-4 py-3 rounded-xl font-bold text-xs ${isLight ? "bg-black text-white" : "bg-white text-black"}`}
+              className={`w-full mt-4 py-3 rounded-xl font-black text-xs cursor-pointer ${isLight ? "bg-black text-white hover:bg-neutral-800" : "bg-white text-black hover:bg-amber-400"}`}
             >
               {settings.buttonText || "Shop Now"} →
             </button>

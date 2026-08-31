@@ -1080,7 +1080,7 @@ export const DEFAULT_GALLERY_ANIMATION_SETTINGS: GalleryAnimationSettings = {
   mobileAutoplayEnabled: true,
   edgeFadeEnabled: false,
   edgeFadeWidth: 60,
-  edgeFadeColor: "#FAFAFA",
+  edgeFadeColor: "#F2F2F2",
 };
 
 // ══════════════════════════════════════════════════════════════════════════

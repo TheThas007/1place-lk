@@ -8,6 +8,13 @@ import { doc, onSnapshot } from "firebase/firestore";
 import { DEFAULT_FOOTER_SETTINGS } from "@/lib/data";
 import { FooterSettings } from "@/lib/types";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
+
+if (typeof window !== "undefined") {
+  gsap.registerPlugin(ScrollTrigger);
+}
 
 /* ─── SVG Platform Icons ─── */
 function InstagramIcon({ className = "w-5 h-5" }: { className?: string }) {
@@ -68,7 +75,25 @@ export default function Footer() {
 
 function HomePageFooter() {
   const [settings, setSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
-  const footerRef = useRef<HTMLElement>(null);
+  const desktopFooterRef = useRef<HTMLElement>(null);
+  const mobileFooterRef = useRef<HTMLElement>(null);
+  const { isReducedMotion } = useSmoothScroll();
+
+  // Interactive Cursor Position Tracking for ambient spotlight effect
+  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, opacity: 0 });
+
+  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    setCursorPos({
+      x: e.clientX - rect.left,
+      y: e.clientY - rect.top,
+      opacity: 1,
+    });
+  };
+
+  const handleMouseLeave = () => {
+    setCursorPos((prev) => ({ ...prev, opacity: 0 }));
+  };
 
   useEffect(() => {
     try {
@@ -90,6 +115,54 @@ function HomePageFooter() {
     }
   }, []);
 
+  // ── Scroll Reveal from Outside Screen via GSAP ScrollTrigger ──
+  useEffect(() => {
+    if (isReducedMotion) return;
+
+    const ctx = gsap.context(() => {
+      // Desktop Footer Scroll Gliding Reveal
+      if (desktopFooterRef.current) {
+        gsap.fromTo(
+          desktopFooterRef.current,
+          { y: 80, scale: 0.95, opacity: 0.6 },
+          {
+            y: 0,
+            scale: 1,
+            opacity: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: desktopFooterRef.current,
+              start: "top 98%",
+              end: "top 70%",
+              scrub: 0.8,
+            },
+          }
+        );
+      }
+
+      // Mobile Footer Scroll Gliding Reveal
+      if (mobileFooterRef.current) {
+        gsap.fromTo(
+          mobileFooterRef.current,
+          { y: 50, opacity: 0.7 },
+          {
+            y: 0,
+            opacity: 1,
+            ease: "power2.out",
+            scrollTrigger: {
+              trigger: mobileFooterRef.current,
+              start: "top 98%",
+              end: "top 75%",
+              scrub: 0.8,
+            },
+          }
+        );
+      }
+    });
+
+    return () => ctx.revert();
+  }, [isReducedMotion]);
+
   if (settings.enabled === false) {
     return null;
   }
@@ -106,13 +179,16 @@ function HomePageFooter() {
       : "200px";
 
   return (
-    <>
-      {/* ── Mobile Layout (< 768px): Solid Dark Theme Footer ── */}
+    <div className="w-full relative overflow-hidden bg-transparent">
+      {/* ── Mobile Layout (< 768px): Solid Dark Theme Footer with Scroll Gliding Reveal ── */}
       <footer
-        ref={footerRef}
-        className="md:hidden w-full bg-[#090909] text-white px-4 pt-8 pb-24 border-t border-white/10 font-outfit select-none"
+        ref={mobileFooterRef}
+        className="md:hidden w-full bg-[#090909] text-white px-4 pt-8 pb-24 border-t border-white/10 font-outfit select-none relative overflow-hidden will-change-transform"
       >
-        <div className="flex flex-col gap-6 max-w-md mx-auto">
+        {/* Top subtle highlight line */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+
+        <div className="flex flex-col gap-6 max-w-md mx-auto relative z-10">
           {/* Logo & Description */}
           <div>
             <Link href="/" className="inline-block mb-3.5 group">
@@ -220,20 +296,38 @@ function HomePageFooter() {
                 rel="noopener noreferrer"
                 className="font-bold underline text-white"
               >
-                {settings.developer_credit_text.replace(/Designed & Developed by /gi, "") || "Aevonix"}
+                {(settings.developer_credit_text || "Designed & Developed by Aevonix").replace(/Designed & Developed by /gi, "") || "Aevonix"}
               </a>
             </p>
           </div>
         </div>
       </footer>
 
-      {/* ── Desktop Layout: Premium Solid Jet Black Footer ── */}
+      {/* ── Desktop Layout: Premium Solid Jet Black Footer with Smooth Inward Gliding Reveal & Cursor Spotlight ── */}
       <footer
-        className="hidden md:block w-full bg-[#090909] text-white border-t border-white/10 rounded-none shadow-none font-outfit select-none relative z-20 pb-16 lg:pb-0"
+        ref={desktopFooterRef}
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+        className="hidden md:block w-full bg-[#090909] text-white border-t border-white/10 rounded-none shadow-none font-outfit select-none relative z-20 pb-16 lg:pb-0 overflow-hidden will-change-transform"
         role="contentinfo"
       >
+        {/* Subtle Top Edge Gradient Highlight */}
+        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
+
+        {/* Interactive Cursor Spotlight Glow */}
+        <div
+          className="pointer-events-none absolute inset-0 transition-opacity duration-300 -z-0"
+          style={{
+            opacity: cursorPos.opacity,
+            background: `radial-gradient(650px circle at ${cursorPos.x}px ${cursorPos.y}px, rgba(255,255,255,0.065), transparent 70%)`,
+          }}
+        />
+
+        {/* Ambient Top Glow */}
+        <div className="pointer-events-none absolute -top-36 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-white/[0.018] rounded-full blur-3xl -z-0" />
+
         {/* ── Main Footer Container (max-w: 1320px, 4-Column Layout with Subtle Stagger) ── */}
-        <ScrollReveal yOffset={14} stagger={0.06} className="max-w-[1320px] mx-auto px-6 pt-16 pb-12">
+        <ScrollReveal yOffset={14} stagger={0.06} className="max-w-[1320px] mx-auto px-6 pt-16 pb-12 relative z-10">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-14 items-start">
             
             {/* ── Column 1: Brand ── */}
@@ -351,7 +445,7 @@ function HomePageFooter() {
         </ScrollReveal>
 
         {/* ── Bottom Footer Bar with Divider ── */}
-        <div className="w-full border-t border-white/10">
+        <div className="w-full border-t border-white/10 relative z-10">
           <div className="max-w-[1320px] mx-auto px-6 py-7 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-normal text-white/60">
             
             {/* Left: Copyright */}
@@ -385,13 +479,14 @@ function HomePageFooter() {
                 rel="noopener noreferrer"
                 className="font-medium underline underline-offset-2 text-white/80 hover:text-white transition-all focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
               >
-                {settings.developer_credit_text.replace(/Designed & Developed by /gi, "") || "Aevonix"}
+                {(settings.developer_credit_text || "Designed & Developed by Aevonix").replace(/Designed & Developed by /gi, "") || "Aevonix"}
               </a>
             </p>
 
           </div>
         </div>
       </footer>
-    </>
+    </div>
   );
 }
+

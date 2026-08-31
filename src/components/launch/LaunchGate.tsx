@@ -9,6 +9,7 @@ import { db } from "@/lib/firebase";
 import { Review } from "@/lib/types";
 import CountdownScreen from "./CountdownScreen";
 import LaunchReveal from "./LaunchReveal";
+import { VirtualAssistantLaunch } from "./VirtualAssistantLaunch";
 
 interface LaunchGateProps {
   children: ReactNode;
@@ -57,6 +58,15 @@ export default function LaunchGate({ children }: LaunchGateProps) {
   const [isRevealing, setIsRevealing] = useState<boolean>(false);
   const [hasManuallyRevealed, setHasManuallyRevealed] = useState<boolean>(false);
 
+  // Check if launch was already experienced in this browser
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const experienced = localStorage.getItem("sm_launch_experienced") === "true";
+      if (experienced && settings?.enabled === false) {
+        setHasManuallyRevealed(true);
+      }
+    }
+  }, [settings?.enabled]);
 
   // Exclude admin routes from launch lock
   const isBypassedRoute = useMemo(() => {
@@ -96,12 +106,13 @@ export default function LaunchGate({ children }: LaunchGateProps) {
     onZero: handleCountdownZero,
   });
 
-  // Listen for admin test launch event
+  // Listen for admin test launch event (defaults to 50s)
   useEffect(() => {
     const handleTestLaunch = (e: any) => {
-      const seconds = e?.detail?.seconds || 10;
+      const seconds = e?.detail?.seconds || 50;
       setTestCountdownTarget(Date.now() + seconds * 1000);
       setIsRevealing(false);
+      setHasManuallyRevealed(false);
     };
 
     window.addEventListener("street-mobile-test-launch" as any, handleTestLaunch);
@@ -140,6 +151,9 @@ export default function LaunchGate({ children }: LaunchGateProps) {
     setIsRevealing(false);
     setHasManuallyRevealed(true);
     setTestCountdownTarget(null);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sm_launch_experienced", "true");
+    }
   }, []);
 
   // If on admin or unblocked route, render children directly
@@ -163,8 +177,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
 
   return (
     <>
-      {/* ── 1. Full-Screen White Launch Countdown ── */}
-      {isLaunchActive && !isRevealing && (
+      {/* ── 1. Above 50 Seconds: Full-Screen White Launch Countdown ── */}
+      {isLaunchActive && countdown.totalSeconds > 50 && !isRevealing && (
         <CountdownScreen
           countdown={countdown}
           title={settings.title || "STREET MOBILE"}
@@ -181,17 +195,19 @@ export default function LaunchGate({ children }: LaunchGateProps) {
         />
       )}
 
-      {/* ── 2. 7-Phase Cinematic Reveal Animation ── */}
-      {isRevealing && (
-        <LaunchReveal
-          onComplete={handleRevealComplete}
+      {/* ── 2. Final 50 Seconds: Virtual AI Assistant Launch Experience (40s Speaking + 10s Countdown) ── */}
+      {isLaunchActive && countdown.totalSeconds <= 50 && !hasManuallyRevealed && (
+        <VirtualAssistantLaunch
+          totalRemainingSeconds={countdown.totalSeconds}
           title={settings.title || "STREET MOBILE"}
           tagline={settings.tagline || "VAVUNIYA • SRI LANKA"}
+          glowColor={settings.glowColor || "#C4E2F5"}
+          onLaunchComplete={handleRevealComplete}
         />
       )}
 
-      {/* ── 3. Normal Website Content (Only rendered when launch passed or bypassed) ── */}
-      {(!isLaunchActive || isRevealing || hasManuallyRevealed) && children}
+      {/* ── 3. Normal Website Content (Rendered when launch passed, revealed, or bypassed) ── */}
+      {(!isLaunchActive || hasManuallyRevealed) && children}
     </>
   );
 }

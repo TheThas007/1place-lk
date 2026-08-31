@@ -181,62 +181,62 @@ export default function CampaignPopup() {
           if (e.target === e.currentTarget) handleClose();
         }}
       >
-        {/* Compact, Perfectly Proportioned Mobile Card Modal */}
+        {/* Perfectly Proportioned Responsive Modal for Mobile & Desktop */}
         <motion.div
           initial={{ opacity: 0, scale: 0.92, y: 15 }}
           animate={{ opacity: 1, scale: 1, y: 0 }}
           exit={{ opacity: 0, scale: 0.92, y: 15 }}
           transition={{ type: "spring", damping: 26, stiffness: 320 }}
-          className={`relative w-full max-w-[325px] sm:max-w-md border rounded-2xl sm:rounded-3xl overflow-hidden p-3.5 sm:p-5 font-outfit max-h-[86vh] flex flex-col ${
+          className={`relative w-full max-w-[360px] sm:max-w-lg md:max-w-xl lg:max-w-2xl border rounded-2xl sm:rounded-3xl overflow-hidden p-4 sm:p-6 md:p-7 font-outfit max-h-[92vh] flex flex-col shadow-2xl ${
             themeStyles[popup.colorTheme || "luxury_dark"]
           }`}
         >
-          {/* Compact Close Button */}
+          {/* Close Button */}
           <button
             type="button"
             onClick={handleClose}
             aria-label="Close popup"
-            className="absolute top-2.5 right-2.5 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/60 hover:bg-black/90 text-white/80 hover:text-white border border-white/20 flex items-center justify-center backdrop-blur-md transition-all active:scale-90"
+            className="absolute top-3 right-3 z-20 w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-black/70 hover:bg-black text-white/80 hover:text-white border border-white/20 flex items-center justify-center backdrop-blur-md transition-all active:scale-90 cursor-pointer shadow-md"
           >
-            <X className="w-4 h-4" />
+            <X className="w-4 h-4 sm:w-4.5 sm:h-4.5" />
           </button>
 
-          {/* Compact Graphic Image with 16:8 sleek aspect ratio */}
+          {/* Banner Graphic Image Container - Responsive 16:9 / 2:1 aspect ratio with object-top so headers & faces are never cropped */}
           {popup.imageUrl && (
-            <div className="w-full h-24 sm:h-36 rounded-xl overflow-hidden mb-3 bg-neutral-900 border border-white/10 relative shrink-0 shadow-inner">
+            <div className="w-full aspect-[16/9] sm:aspect-[2/1] max-h-[220px] sm:max-h-[280px] md:max-h-[320px] rounded-xl sm:rounded-2xl overflow-hidden mb-3.5 sm:mb-4 bg-neutral-900 border border-white/10 relative shrink-0 shadow-md">
               <img
                 src={popup.imageUrl}
                 alt={popup.headline || "Promotional Campaign"}
-                className="w-full h-full object-cover object-center"
+                className="w-full h-full object-cover object-top"
               />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
             </div>
           )}
 
           {/* Content Area */}
           <div className="flex flex-col flex-1 overflow-y-auto pr-0.5">
             {/* Badges */}
-            <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+            <div className="flex items-center gap-2 mb-2 flex-wrap">
               {popup.badgeText && (
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider ${
+                  className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] sm:text-[11px] font-black uppercase tracking-wider ${
                     isLight ? "bg-black text-white" : "bg-amber-400 text-black"
                   }`}
                 >
-                  <Sparkles className="w-2.5 h-2.5" />
+                  <Sparkles className="w-3 h-3" />
                   {popup.badgeText}
                 </span>
               )}
 
               {popup.discountText && (
-                <span className="px-2 py-0.5 rounded-full bg-red-600 text-white text-[9px] font-black uppercase tracking-wider">
+                <span className="px-2.5 py-1 rounded-full bg-red-600 text-white text-[10px] sm:text-[11px] font-black uppercase tracking-wider shadow-xs">
                   {popup.discountText}
                 </span>
               )}
             </div>
 
             {/* Headline */}
-            <h3 className={`text-sm sm:text-base font-black tracking-tight leading-tight ${isLight ? "text-black" : "text-white"}`}>
+            <h3 className={`text-base sm:text-lg md:text-xl font-black tracking-tight leading-snug ${isLight ? "text-black" : "text-white"}`}>
               {popup.headline}{" "}
               {popup.highlightText && (
                 <span className={isLight ? "text-amber-600" : "text-amber-400"}>
@@ -245,55 +245,55 @@ export default function CampaignPopup() {
               )}
             </h3>
 
-            {/* Compact Description */}
+            {/* Description */}
             {popup.description && (
-              <p className={`text-[11px] sm:text-xs mt-1 leading-snug line-clamp-2 ${isLight ? "text-neutral-600" : "text-neutral-300"}`}>
+              <p className={`text-xs sm:text-sm mt-1.5 leading-relaxed ${isLight ? "text-neutral-600" : "text-neutral-300"}`}>
                 {popup.description}
               </p>
             )}
 
-            {/* Compact Coupon Code 1-Click Copy Box */}
+            {/* Coupon Code 1-Click Copy Box */}
             {popup.couponCode && (
-              <div className="mt-2.5">
+              <div className="mt-3.5">
                 <button
                   type="button"
                   onClick={() => handleCopyCoupon(popup.couponCode!)}
-                  className={`w-full flex items-center justify-between py-1.5 px-2.5 rounded-lg border text-[11px] font-mono font-bold transition-all ${
+                  className={`w-full flex items-center justify-between py-2 sm:py-2.5 px-3 sm:px-4 rounded-xl border text-xs sm:text-sm font-mono font-bold transition-all cursor-pointer ${
                     isLight
                       ? "bg-neutral-100 border-neutral-300 text-black hover:bg-neutral-200"
                       : "bg-white/10 border-white/20 text-amber-300 hover:bg-white/15"
                   }`}
                 >
-                  <div className="flex items-center gap-1.5 truncate">
-                    <Tag className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                    <span className="text-[10px] text-neutral-400 font-sans uppercase">Code:</span>
-                    <span className="font-black uppercase tracking-wider text-white truncate">{popup.couponCode}</span>
+                  <div className="flex items-center gap-2 truncate">
+                    <Tag className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="text-[11px] text-neutral-400 font-sans uppercase font-semibold">Code:</span>
+                    <span className="font-black uppercase tracking-wider text-white truncate text-xs sm:text-sm">{popup.couponCode}</span>
                   </div>
                   {copied ? (
-                    <span className="text-emerald-400 text-[10px] font-sans font-bold flex items-center gap-1 shrink-0 ml-1">
-                      <Check className="w-3 h-3" /> Copied
+                    <span className="text-emerald-400 text-xs font-sans font-bold flex items-center gap-1 shrink-0 ml-1.5">
+                      <Check className="w-3.5 h-3.5" /> Copied
                     </span>
                   ) : (
-                    <span className="text-[9px] text-white/60 font-sans shrink-0 ml-1">Tap to copy</span>
+                    <span className="text-[10px] sm:text-xs text-white/60 font-sans shrink-0 ml-1.5 hover:text-white">Tap to copy</span>
                   )}
                 </button>
               </div>
             )}
 
-            {/* Compact CTA Button */}
+            {/* CTA Button */}
             {popup.buttonText && (
-              <div className="mt-2.5">
+              <div className="mt-3.5">
                 <Link
                   href={popup.buttonUrl || "/products"}
                   onClick={handleClose}
-                  className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg font-bold text-xs transition-all shadow-md active:scale-95 ${
+                  className={`w-full flex items-center justify-center gap-2 py-3 px-5 rounded-xl font-black text-xs sm:text-sm transition-all shadow-lg active:scale-95 cursor-pointer ${
                     isLight
                       ? "bg-black text-white hover:bg-neutral-800"
-                      : "bg-white text-black hover:bg-amber-400"
+                      : "bg-white text-black hover:bg-amber-400 hover:text-black"
                   }`}
                 >
                   <span>{popup.buttonText}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
               </div>
             )}

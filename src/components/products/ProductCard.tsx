@@ -32,9 +32,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
 
   // Calculate discount percentage safely
   const hasDiscount =
-    product.old_price &&
+    Boolean(product.old_price) &&
     typeof product.old_price === "number" &&
-    product.old_price > product.price;
+    typeof product.price === "number" &&
+    product.old_price > product.price &&
+    Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
 
   const discountPercent = hasDiscount
     ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)

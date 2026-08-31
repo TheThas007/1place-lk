@@ -16,12 +16,21 @@ import {
 } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { siteSettings } from "@/lib/data";
+import { detectWritingStyle, getBaseLanguage, WritingStyle } from "@/lib/assistant/language-detector";
+import {
+  parseUserQuery,
+  scoreProductForUsage,
+  toProductSummary,
+  generateProductComparison,
+  extractBudget,
+} from "@/lib/assistant/assistant-rag";
 
 interface ChatRequestBody {
   message: string;
   language?: AssistantLanguage;
   sessionId: string;
   history?: { sender: string; text: string }[];
+  currentProductSlug?: string;
   action?: string;
   payload?: any;
 }
@@ -29,11 +38,19 @@ interface ChatRequestBody {
 export async function POST(req: Request) {
   try {
     const body: ChatRequestBody = await req.json();
-    const { message = "", language = "en", sessionId, action, payload } = body;
+    const {
+      message = "",
+      language = "en",
+      sessionId,
+      history = [],
+      currentProductSlug,
+      action,
+      payload,
+    } = body;
 
-    const lang: AssistantLanguage = language === "ta" || language === "si" ? language : "en";
     const cleanMsg = (message || "").trim();
-    const lowerMsg = cleanMsg.toLowerCase();
+    const style: WritingStyle = detectWritingStyle(cleanMsg, language);
+    const baseLang: AssistantLanguage = getBaseLanguage(style);
 
     // 1. Fetch live products from Firestore for 100% accurate, live catalog knowledge
     let allProducts: Product[] = [];
@@ -44,26 +61,32 @@ export async function POST(req: Request) {
       console.warn("Error fetching products for assistant:", e);
     }
 
-    // ── Intent 1: Explicit Action Triggered ──
+    // 2. Identify currently viewed product if user is on product page
+    let currentProduct: Product | null = null;
+    if (currentProductSlug) {
+      currentProduct =
+        allProducts.find((p) => p.slug === currentProductSlug || p.id === currentProductSlug) || null;
+    }
+
+    // ── Action Trigger Handlers ──
     if (action) {
-      const responseMsg = await handleActionTrigger(action, payload, lang, allProducts);
+      const responseMsg = await handleActionTrigger(action, payload, style, allProducts, currentProduct);
       return NextResponse.json({ message: responseMsg });
     }
 
-    // ── Intent 2: Order Tracking with Verification ──
+    // ── Order Tracking Intent (with privacy phone check) ──
     const orderMatch = cleanMsg.match(/(?:SM-|\b)([A-Za-z0-9]{6,20})/i);
     const phoneMatch = cleanMsg.match(/(?:0|\+?94)?7[0-9]{8}/);
 
     if (
-      lowerMsg.includes("track") ||
-      lowerMsg.includes("order status") ||
-      lowerMsg.includes("where is my order") ||
+      cleanMsg.toLowerCase().includes("track") ||
+      cleanMsg.toLowerCase().includes("order status") ||
+      cleanMsg.toLowerCase().includes("where is my order") ||
       cleanMsg.includes("ஒர்டர்") ||
       cleanMsg.includes("ඇණවුම")
     ) {
       if (orderMatch) {
         const potentialId = orderMatch[1].toUpperCase();
-
         let foundOrder: any = null;
         try {
           const orderSnap = await getDoc(doc(db, "orders", potentialId));
@@ -94,9 +117,11 @@ export async function POST(req: Request) {
             (orderPhone.includes(customerInputPhone.slice(-7)) || customerInputPhone.includes(orderPhone.slice(-7)))
           ) {
             const replyText =
-              lang === "ta"
+              style === "ta"
                 ? `உங்கள் Order #${foundOrder.id.slice(0, 8).toUpperCase()} விவரங்கள் உறுதிப்படுத்தப்பட்டன:`
-                : lang === "si"
+                : style === "thanglish"
+                ? `Unga Order #${foundOrder.id.slice(0, 8).toUpperCase()} details verify aagiduchu:`
+                : style === "si" || style === "singlish"
                 ? `ඔබගේ Order #${foundOrder.id.slice(0, 8).toUpperCase()} විස්තර තහවුරු විය:`
                 : `Verified details for Order #${foundOrder.id.slice(0, 8).toUpperCase()}:`;
 
@@ -105,7 +130,7 @@ export async function POST(req: Request) {
               sender: "assistant",
               text: replyText,
               timestamp: new Date().toISOString(),
-              language: lang,
+              language: baseLang,
               type: "order_status",
               orderData: {
                 id: foundOrder.id,
@@ -126,277 +151,360 @@ export async function POST(req: Request) {
             return NextResponse.json({ message: resMsg });
           } else {
             const verifyPrompt =
-              lang === "ta"
+              style === "ta"
                 ? `பாதுகாப்பு காரணங்களுக்காக, தயவுசெய்து உங்கள் Order-ல் வழங்கிய 10-இலக்க Mobile Number-ஐ உள்ளிடவும் (e.g. 077 123 4567).`
-                : lang === "si"
+                : style === "thanglish"
+                ? `Security reason-kaga, unga order-oda 10-digit mobile number-a type pannunga (e.g. 077 123 4567).`
+                : style === "si" || style === "singlish"
                 ? `ආරක්ෂක හේතූන් මත, කරුණාකර ඔබගේ දුරකථන අංකය ඇතුළත් කරන්න (e.g. 077 123 4567).`
-                : `For your privacy and security, please provide the mobile number associated with Order #${potentialId.slice(0, 8)} to view details.`;
+                : `For your security, please provide the 10-digit phone number associated with Order #${potentialId.slice(0, 8)}.`;
 
             const resMsg: AssistantMessage = {
               id: `msg-${Date.now()}`,
               sender: "assistant",
               text: verifyPrompt,
               timestamp: new Date().toISOString(),
-              language: lang,
+              language: baseLang,
               type: "text",
             };
             return NextResponse.json({ message: resMsg });
           }
         }
       }
-
-      const askOrderMsg =
-        lang === "ta"
-          ? "உங்கள் Order Number (e.g. SM-123456) மற்றும் தொடர்பு இலக்கத்தை உள்ளிடவும்."
-          : lang === "si"
-          ? "කරුණාකර ඔබගේ Order අංකය (e.g. SM-123456) සහ දුරකථන අංකය ඇතුළත් කරන්න."
-          : "Please enter your Order Number (e.g. SM-123456) and your phone number to track your order.";
-
-      return NextResponse.json({
-        message: {
-          id: `msg-${Date.now()}`,
-          sender: "assistant",
-          text: askOrderMsg,
-          timestamp: new Date().toISOString(),
-          language: lang,
-          type: "text",
-        },
-      });
     }
 
-    // ── Intent 3: Head-to-Head Product Comparison (e.g. "iPhone 15 vs S24", "Compare X and Y") ──
-    const isCompareQuery =
-      lowerMsg.includes(" vs ") ||
-      lowerMsg.includes(" vs. ") ||
-      lowerMsg.includes("compare") ||
-      lowerMsg.includes("better") ||
-      lowerMsg.includes("difference") ||
-      cleanMsg.includes("ஒப்பீடு") ||
-      cleanMsg.includes("எது நல்லது") ||
-      cleanMsg.includes("சங்கட") ||
-      cleanMsg.includes("සංසන්දනය");
+    // ── Parse User Query Intent & Entities ──
+    const parsedIntent = parseUserQuery(cleanMsg, style, {
+      currentProduct,
+    });
 
-    if (isCompareQuery) {
-      const matchedProducts = findMatchingProducts(cleanMsg, allProducts, 3);
-      if (matchedProducts.length >= 2) {
-        const p1 = matchedProducts[0];
-        const p2 = matchedProducts[1];
-
-        const compAnalysis = generateComparisonAnalysis(p1, p2, lang);
-
+    // ── Intent 1: Head-to-Head Product Comparison (e.g. "iPhone 16 vs S25", "iPhone or Samsung ethu best") ──
+    if (parsedIntent.intent === "compare_products") {
+      const candidates = findComparisonCandidates(cleanMsg, allProducts);
+      if (candidates.length >= 2) {
+        const comp = generateProductComparison(candidates[0], candidates[1], style);
         const resMsg: AssistantMessage = {
           id: `msg-${Date.now()}`,
           sender: "assistant",
-          text: compAnalysis,
+          text: comp.text,
           timestamp: new Date().toISOString(),
-          language: lang,
+          language: baseLang,
           type: "comparison",
-          comparisonProducts: matchedProducts.map(toProductSummary),
+          comparisonProducts: comp.products,
+          products: comp.products,
         };
         return NextResponse.json({ message: resMsg });
       }
     }
 
-    // ── Intent 4: Budget-Based Smart Phone Recommendation ──
-    const parsedBudget = extractBudgetFromText(lowerMsg);
-    if (parsedBudget) {
-      const budgetRecommendations = getBudgetRecommendations(parsedBudget, allProducts, lang);
-      if (budgetRecommendations) {
-        return NextResponse.json({ message: budgetRecommendations });
-      }
+    // ── Intent 2: Broad Request without Budget/Usage (Clarification Follow-Up) ──
+    if (parsedIntent.needsClarification) {
+      const clarifyText =
+        style === "thanglish"
+          ? `Sure 👍 Ungaluku best phone suggest panren!
+
+1. Unga **Budget range** evlo? (e.g. *50k, 100k, 1.5 lakh*)
+2. Enna main usage-kaga vaanga poreenga?
+   • 🎮 Gaming
+   • 📸 Camera & Reels
+   • 🔋 Battery Life
+   • 📱 Daily Normal Use`
+          : style === "ta"
+          ? `நிச்சயமாக 👍 உங்களுக்கு ஏற்ற சிறந்த போனை பரிந்துரைக்கிறேன்!
+
+1. உங்கள் **பட்ஜெட் (Budget)** எவ்வளவு? (e.g. *50,000, 100,000, 1.5 லட்சம்*)
+2. எதற்காக முதன்மையாக வாங்கப் போகிறீர்கள்?
+   • 🎮 Gaming
+   • 📸 Camera & Photography
+   • 🔋 Battery Life
+   • 📱 Daily Use`
+          : style === "si" || style === "singlish"
+          ? `හොඳම phone එකක් තෝරාගැනීමට මම උදවු කරන්නම්!
+1. ඔබගේ **Budget එක** කීයද? (e.g. *100,000*)
+2. ප්‍රධාන අවශ්‍යතාවය කුමක්ද? (Gaming / Camera / Battery / Daily use)`
+          : `I'd love to find the best phone for you!
+
+1. What is your approximate **budget**? (e.g. *100k, 150k, 250k LKR*)
+2. What is your primary priority?
+   • 🎮 Gaming & Performance
+   • 📸 Camera & Content Creation
+   • 🔋 Battery Endurance
+   • 📱 Daily All-Round Use`;
+
+      const resMsg: AssistantMessage = {
+        id: `msg-${Date.now()}`,
+        sender: "assistant",
+        text: clarifyText,
+        timestamp: new Date().toISOString(),
+        language: baseLang,
+        type: "quick_actions",
+        actions: [
+          { label: "💰 Under 100k", action: "budget_100k" },
+          { label: "💰 Under 150k", action: "budget_150k" },
+          { label: "🎮 Gaming Phone", action: "find_gaming" },
+          { label: "📸 Best Camera Phone", action: "find_camera" },
+        ],
+      };
+      return NextResponse.json({ message: resMsg });
     }
 
-    // ── Intent 5: Specific Specification or Colors Inquiry ──
-    const isColorOrSpecInquiry =
-      lowerMsg.includes("color") ||
-      lowerMsg.includes("colour") ||
-      lowerMsg.includes("spec") ||
-      lowerMsg.includes("ram") ||
-      lowerMsg.includes("storage") ||
-      lowerMsg.includes("battery") ||
-      lowerMsg.includes("camera") ||
-      cleanMsg.includes("வண்ணம்") ||
-      cleanMsg.includes("நிறம்") ||
-      cleanMsg.includes("விவரம்");
+    // ── Intent 3: Budget-Based or Priority-Based Recommendation ──
+    if (parsedIntent.intent === "budget_recommend" || parsedIntent.budget || parsedIntent.usagePriority) {
+      const budgetMax = parsedIntent.budget?.max;
+      const budgetMin = parsedIntent.budget?.min || 0;
+      const usage = parsedIntent.usagePriority || "daily_use";
 
-    if (isColorOrSpecInquiry) {
-      const matchedProducts = findMatchingProducts(cleanMsg, allProducts, 1);
-      if (matchedProducts.length > 0) {
-        const p = matchedProducts[0];
-        const specDetails = generateSpecDetailsText(p, lowerMsg, lang);
+      // Filter products by category and budget
+      const candidates = allProducts.filter((p) => {
+        const price = p.sale_price && p.sale_price > 0 ? p.sale_price : p.price;
+        if (budgetMax && (price > budgetMax * 1.15 || price < budgetMin)) return false;
+        if (parsedIntent.brandPreference) {
+          const b = (p.brand_name || p.brand || "").toLowerCase();
+          if (!b.includes(parsedIntent.brandPreference.toLowerCase())) return false;
+        }
+        return true;
+      });
+
+      // Score candidates
+      const scored = candidates
+        .map((p) => ({ product: p, score: scoreProductForUsage(p, usage, budgetMax) }))
+        .sort((a, b) => b.score - a.score);
+
+      if (scored.length > 0) {
+        const topPick = scored[0].product;
+        const topPickPrice = topPick.sale_price && topPick.sale_price > 0 ? topPick.sale_price : topPick.price;
+        const alternatives = scored.slice(1, 4).map((s) => s.product);
+
+        const specsSnippet = Object.entries(topPick.specifications || {})
+          .slice(0, 3)
+          .map(([k, v]) => `• **${k}**: ${v}`)
+          .join("\n");
+
+        let responseText = "";
+        const budgetFormatted = budgetMax ? formatPrice(budgetMax) : "உங்கள் தேவைக்கு";
+
+        if (style === "thanglish") {
+          responseText = `🎯 **${budgetFormatted}-kulla Streetla-vin Top Recommendation:**
+
+🥇 **${topPick.name}**
+💰 **Price**: ${formatPrice(topPickPrice)}${topPick.old_price ? ` (Old Price: ~~${formatPrice(topPick.old_price)}~~)` : ""}
+• **Stock**: ${topPick.stock_status === "in_stock" ? "✅ In Stock" : "⚠️ Limited Stock"}
+• **Warranty**: ${topPick.warranty || "1 Year Company Warranty"}
+${specsSnippet ? `\n🔍 **Key Features:**\n${specsSnippet}\n` : ""}
+⭐ **Why I Recommend It:**
+• ${usage === "gaming" ? "Gaming-ku strong processor & smooth display" : usage === "camera" ? "Sharp photos & high quality video recording" : "Super battery life & smooth daily performance"}
+• Installment: Koko / Mintpay moolam maatham **${formatPrice(Math.round(topPickPrice / 3))}** (3 installments)
+
+${alternatives.length > 0 ? `🥈 **Other Great Alternatives:**\n${alternatives.map((a) => `• **${a.name}** — ${formatPrice(a.sale_price || a.price)}`).join("\n")}\n\nIthula ethavathu details paka virumbureengala?` : ""}`;
+        } else if (style === "ta") {
+          responseText = `🎯 **${budgetFormatted}-க்குள் Streetla-வின் முதன்மை பரிந்துரை:**
+
+🥇 **${topPick.name}**
+💰 **விலை**: ${formatPrice(topPickPrice)}${topPick.old_price ? ` (முந்தைய விலை: ~~${formatPrice(topPick.old_price)}~~)` : ""}
+• **Stock**: ${topPick.stock_status === "in_stock" ? "✅ In Stock" : "⚠️ Limited Stock"}
+• **Warranty**: ${topPick.warranty || "1 வருட உத்தியோகபூர்வ Warranty"}
+${specsSnippet ? `\n🔍 **சிறப்பம்சங்கள்:**\n${specsSnippet}\n` : ""}
+⭐ **பரிந்துரைக்கான காரணம்:**
+• ${usage === "gaming" ? "Gaming-க்கு சக்திவாய்ந்த Processor மற்றும் அதிக Refresh Rate" : usage === "camera" ? "தெளிவான Camera மற்றும் சிறந்த Video தரம்" : "நீண்ட நேர Battery மற்றும் சீரான அன்றாட பயன்பாடு"}
+• **Installment**: Koko / Mintpay மூலம் மாதம் **${formatPrice(Math.round(topPickPrice / 3))}** (3 தவணைகள்)
+
+${alternatives.length > 0 ? `🥈 **மாற்று சிறந்த தெரிவுகள்:**\n${alternatives.map((a) => `• **${a.name}** — ${formatPrice(a.sale_price || a.price)}`).join("\n")}` : ""}`;
+        } else if (style === "si" || style === "singlish") {
+          responseText = `🎯 **ඔබගේ Budget (${budgetFormatted}) සඳහා හොඳම නිර්දේශය:**
+
+🥇 **${topPick.name}**
+💰 **මිල**: ${formatPrice(topPickPrice)}
+• **තොග තත්ත්වය**: ${topPick.stock_status === "in_stock" ? "✅ තොග ඇත" : "⚠️ සීමිත තොග"}
+• **වගකීම**: ${topPick.warranty || "වසරක වගකීම"}
+${specsSnippet ? `\n${specsSnippet}\n` : ""}
+${alternatives.length > 0 ? `🥈 **වෙනත් හොඳම විකල්ප:**\n${alternatives.map((a) => `• **${a.name}** — ${formatPrice(a.sale_price || a.price)}`).join("\n")}` : ""}`;
+        } else {
+          responseText = `🎯 **Top Recommendation within ${budgetFormatted}:**
+
+🥇 **${topPick.name}**
+💰 **Price**: ${formatPrice(topPickPrice)}${topPick.old_price ? ` (Was: ~~${formatPrice(topPick.old_price)}~~)` : ""}
+• **Stock**: ${topPick.stock_status === "in_stock" ? "✅ In Stock in Vavuniya" : "⚠️ Limited Stock"}
+• **Warranty**: ${topPick.warranty || "1-Year Genuine Company Warranty"}
+${specsSnippet ? `\n🔍 **Key Specs:**\n${specsSnippet}\n` : ""}
+⭐ **Why it stands out:**
+• ${usage === "gaming" ? "Flagship-tier processor, high touch-sampling rate, and great cooling" : usage === "camera" ? "Superior sensor stabilization, crisp low-light photos, and 4K video" : "Exceptional battery life, durable build, and long software support"}
+• **Installments**: Pay 3x **${formatPrice(Math.round(topPickPrice / 3))} / month** interest-free with Koko or Mintpay
+
+${alternatives.length > 0 ? `🥈 **Great Alternatives in this Range:**\n${alternatives.map((a) => `• **${a.name}** — ${formatPrice(a.sale_price || a.price)}`).join("\n")}` : ""}`;
+        }
+
+        const productCards = [topPick, ...alternatives].slice(0, 4).map(toProductSummary);
 
         const resMsg: AssistantMessage = {
           id: `msg-${Date.now()}`,
           sender: "assistant",
-          text: specDetails,
+          text: responseText,
           timestamp: new Date().toISOString(),
-          language: lang,
+          language: baseLang,
           type: "product_list",
-          products: [toProductSummary(p)],
+          products: productCards,
         };
         return NextResponse.json({ message: resMsg });
       }
     }
 
-    // ── Intent 6: Product Discovery & Price/Stock Inquiry ──
+    // ── Intent 4: Accessories & Compatibility (e.g. "I bought iPhone, need charger", "tempered glass for S24") ──
+    if (parsedIntent.intent === "accessory_recommend" || cleanMsg.includes("charger") || cleanMsg.includes("case") || cleanMsg.includes("tempered")) {
+      const targetDevice = currentProduct?.name || parsedIntent.brandPreference || "your device";
+      const accessories = allProducts.filter((p) => {
+        const cat = (p.category_name || "").toLowerCase();
+        const pType = (p.productType || "").toLowerCase();
+        const name = (p.name || "").toLowerCase();
+        return (
+          cat.includes("charger") ||
+          cat.includes("adapter") ||
+          cat.includes("cable") ||
+          cat.includes("case") ||
+          cat.includes("protector") ||
+          cat.includes("audio") ||
+          cat.includes("earbud") ||
+          pType === "accessory" ||
+          name.includes("charger") ||
+          name.includes("adapter") ||
+          name.includes("airpod")
+        );
+      });
+
+      const matchedAccessories = accessories.slice(0, 4);
+
+      if (matchedAccessories.length > 0) {
+        const accText =
+          style === "thanglish"
+            ? `🔌 **${targetDevice}-kaga Street Mobile-la available-a irukkura compatible accessories:**
+
+• **Fast Chargers & Adapters**: Apple 20W USB-C, Anker Fast Chargers, Baseus GaN Adapters.
+• **Protection**: Premium Shockproof Cases & 9H Tempered Glass.
+• **Audio & Power**: Original AirPods, TWS Earbuds & High-Capacity Power Banks.
+
+Keezha irukkura products-a neenga direct-a view panni cart-la add pannikalam 👇`
+            : style === "ta"
+            ? `🔌 **${targetDevice}-க்கு ஏற்ற 100% Genuine Accessories:**
+
+• **Fast Chargers**: Apple 20W Power Adapter, Anker மற்றும் Baseus Fast Chargers.
+• **Protection**: Shockproof Cases மற்றும் 9H Tempered Glass.
+• **Audio & Power**: AirPods, TWS Earbuds மற்றும் Power Banks.`
+            : style === "si" || style === "singlish"
+            ? `🔌 **${targetDevice} සඳහා ගැලපෙන Original Accessories:**
+• Fast Chargers, Cases, Tempered Glass සහ Earbuds පහතින් තෝරාගත හැක 👇`
+            : `🔌 **Compatible Genuine Accessories for ${targetDevice}:**
+
+• **Fast Chargers**: Apple 20W USB-C Power Adapter, Anker 20W/30W Fast Chargers, Baseus GaN Adapters.
+• **Protection**: Premium Drop-Tested Shockproof Cases & Full-Cover 9H Tempered Glass.
+• **Power & Audio**: Magnetic Wireless Power Banks & True Wireless Earbuds.
+
+You can inspect or add them directly to your cart below 👇`;
+
+        const resMsg: AssistantMessage = {
+          id: `msg-${Date.now()}`,
+          sender: "assistant",
+          text: accText,
+          timestamp: new Date().toISOString(),
+          language: baseLang,
+          type: "product_list",
+          products: matchedAccessories.map(toProductSummary),
+        };
+        return NextResponse.json({ message: resMsg });
+      }
+    }
+
+    // ── Intent 5: Specific Product Spec/Price Lookup ──
     const searchMatches = findMatchingProducts(cleanMsg, allProducts, 4);
     if (searchMatches.length > 0) {
       const p = searchMatches[0];
+      const effPrice = p.sale_price && p.sale_price > 0 ? p.sale_price : p.price;
       const stockText =
         p.stock_status === "in_stock"
           ? "✅ In Stock in Vavuniya Showroom"
           : p.stock_status === "low_stock"
           ? "⚠️ Limited Stock Available"
-          : "📦 Pre-Order / Available on Request";
+          : "📦 Available on Request / Pre-Order";
 
-      const installment = Math.round(p.price / 3);
+      const installment = Math.round(effPrice / 3);
 
       const introText =
-        lang === "ta"
-          ? `📱 **${p.name}**\n\n• **விலை**: ${formatPrice(p.price)}${p.old_price ? ` (முந்தைய விலை: ~~${formatPrice(p.old_price)}~~)` : ""}\n• **Stock**: ${stockText}\n• **Installment**: Koko / Mintpay மூலம் மாதம் **${formatPrice(installment)}** (3 தவணைகளில்)\n• **Warranty**: ${p.warranty || "1 Year Genuine Company Warranty"}\n• **வண்ணங்கள்**: ${(p.colors || []).join(", ") || "Original Official Colors"}`
-          : lang === "si"
-          ? `📱 **${p.name}**\n\n• **මිල**: ${formatPrice(p.price)}\n• **තොග තත්ත්වය**: ${stockText}\n• **වාරික ගෙවීම්**: Koko / Mintpay මගින් මසකට **${formatPrice(installment)}** බැගින්\n• **වගකීම**: ${p.warranty || "වසරක නිල වගකීම"}`
-          : `📱 **${p.name}**\n\n• **Price**: ${formatPrice(p.price)}${p.old_price ? ` (Was: ~~${formatPrice(p.old_price)}~~)` : ""}\n• **Stock Status**: ${stockText}\n• **Installments**: Pay 3x **${formatPrice(installment)} / month** interest-free with Koko or Mintpay\n• **Warranty**: ${p.warranty || "1-Year Official Company Warranty"}\n• **Available Colors**: ${(p.colors || []).join(", ") || "Standard Genuine Finishes"}`;
+        style === "thanglish"
+          ? `📱 **${p.name}**
+
+• **Price**: ${formatPrice(effPrice)}${p.old_price ? ` (Old: ~~${formatPrice(p.old_price)}~~)` : ""}
+• **Stock**: ${stockText}
+• **Installment**: Koko / Mintpay moolam maatham **${formatPrice(installment)}** (3 interest-free installments)
+• **Warranty**: ${p.warranty || "1 Year Company Warranty"}
+• **Available Colors**: ${(p.colors || []).join(", ") || "Original Finishes"}
+
+Itha direct-a cart-la add panna or view panna keezha ulla card-a use pannalam 👇`
+          : style === "ta"
+          ? `📱 **${p.name}**
+
+• **விலை**: ${formatPrice(effPrice)}${p.old_price ? ` (முந்தைய விலை: ~~${formatPrice(p.old_price)}~~)` : ""}
+• **Stock**: ${stockText}
+• **Installment**: Koko / Mintpay மூலம் மாதம் **${formatPrice(installment)}** (3 தவணைகளில்)
+• **Warranty**: ${p.warranty || "1 வருட Genuine Company Warranty"}
+• **வண்ணங்கள்**: ${(p.colors || []).join(", ") || "Original Colors"}`
+          : style === "si" || style === "singlish"
+          ? `📱 **${p.name}**
+
+• **මිල**: ${formatPrice(effPrice)}
+• **තොග තත්ත්වය**: ${stockText}
+• **වාරික ගෙවීම්**: මසකට **${formatPrice(installment)}** බැගින් (Koko / Mintpay)`
+          : `📱 **${p.name}**
+
+• **Price**: ${formatPrice(effPrice)}${p.old_price ? ` (Was: ~~${formatPrice(p.old_price)}~~)` : ""}
+• **Stock Status**: ${stockText}
+• **Installments**: Pay 3x **${formatPrice(installment)} / month** interest-free via Koko / Mintpay
+• **Warranty**: ${p.warranty || "1-Year Official Company Warranty"}
+• **Available Colors**: ${(p.colors || []).join(", ") || "Standard Genuine Finishes"}`;
 
       const resMsg: AssistantMessage = {
         id: `msg-${Date.now()}`,
         sender: "assistant",
         text: introText,
         timestamp: new Date().toISOString(),
-        language: lang,
+        language: baseLang,
         type: "product_list",
         products: searchMatches.map(toProductSummary),
       };
       return NextResponse.json({ message: resMsg });
     }
 
-    // ── Intent 7: Repairs & Warranty ──
-    if (
-      lowerMsg.includes("repair") ||
-      lowerMsg.includes("screen") ||
-      lowerMsg.includes("battery replacement") ||
-      lowerMsg.includes("display change") ||
-      lowerMsg.includes("warranty") ||
-      cleanMsg.includes("மாற்ற") ||
-      cleanMsg.includes("ரிப்பேர்") ||
-      cleanMsg.includes("டிஸ்பிளே") ||
-      cleanMsg.includes("அலுත්වැඩියා")
-    ) {
-      const repairText =
-        lang === "ta"
-          ? `🔧 **Street Mobile Repair & Service Lab (வவுனியா):**\n\n• **Express Screen & Battery Replacement**: 100% Genuine Grade-A பாகங்களுடன் 1–2 மணித்தியாலங்களில் மாற்றித் தரப்படும்.\n• **Services**: Display Change, Battery Health Fix, Water Damage Recovery, Motherboard Repair, Face ID / Touch ID Repair.\n• **Warranty**: அனைத்து புதிய சாதனங்களுக்கும் 1-வருட Genuine Company Warranty மற்றும் Repair சேவைகளுக்கும் Service Warranty உண்டு.`
-          : lang === "si"
-          ? `🔧 **Street Mobile Repair & Warranty (වවුනියාව):**\n\n• **Screen & Battery Replacement**: 100% මුල් අමතර කොටස් සහිතව පැය 1-2කින් සිදුකෙරේ.\n• **Warranty**: සියලුම නව දුරකථන සඳහා වසරක නිල වගකීම හිමිවේ.`
-          : `🔧 **Street Mobile Repair & Service Lab (Vavuniya):**\n\n• **Express Screen & Battery Replacement**: Completed within 1–2 hours using 100% genuine Grade-A original parts.\n• **Expert Services**: OLED/AMOLED Display Glass Replacement, Battery Health Restore, Water Damage Revival, Motherboard & IC Repair.\n• **Warranty**: 1-Year official hardware & software warranty on all smartphones + Dedicated Repair Service Warranty.`;
-
-      const resMsg: AssistantMessage = {
-        id: `msg-${Date.now()}`,
-        sender: "assistant",
-        text: repairText,
-        timestamp: new Date().toISOString(),
-        language: lang,
-        type: "repairs",
-        actions: [
-          { label: "📞 Call Technician", action: "call_store", payload: siteSettings.phone },
-          { label: "💬 WhatsApp Support", action: "open_whatsapp" },
-        ],
-      };
-      return NextResponse.json({ message: resMsg });
-    }
-
-    // ── Intent 8: Store Location & Contact Details ──
-    if (
-      lowerMsg.includes("location") ||
-      lowerMsg.includes("address") ||
-      lowerMsg.includes("phone") ||
-      lowerMsg.includes("contact") ||
-      lowerMsg.includes("where") ||
-      lowerMsg.includes("open") ||
-      cleanMsg.includes("முகவரி") ||
-      cleanMsg.includes("இடம்") ||
-      cleanMsg.includes("நேரம்") ||
-      cleanMsg.includes("ලිපිනය")
-    ) {
-      const storeText =
-        lang === "ta"
-          ? `📍 **Street Mobile Showroom & Repair Lab:**\n\n• **முகவரி**: 163, கந்தசுவாமி கோவில் வீதி, றம்பைக்குளம், வவுனியா.\n• **தொலைபேசி**: 077 414 1118 / 024 222 8118\n• **வேலை நேரம்**: திங்கள் – சனி (9:00 AM – 8:00 PM), ஞாயிறு (10:00 AM – 6:00 PM)\n• **Delivery**: இலங்கை முழுவதும் 1–3 நாட்களில் Express Courier Delivery!`
-          : lang === "si"
-          ? `📍 **Street Mobile Showroom & Lab (වවුනියාව):**\n\n• **ලිපිනය**: 163, කන්දසාමි කෝවිල් පාර, රම්බයිකුලම්, වවුනියාව.\n• **දුරකථන**: 077 414 1118 / 024 222 8118\n• **වේලාව**: සඳුදා - සෙනසුරාදා: 9:00 AM - 8:00 PM`
-          : `📍 **STREET MOBILE Showroom & Repair Lab:**\n\n• **Address**: 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka.\n• **Hotline**: 077 414 1118 / 024 222 8118\n• **Opening Hours**: Mon – Sat: 9:00 AM – 8:00 PM | Sun: 10:00 AM – 6:00 PM\n• **Delivery**: 1–3 Days Island-Wide Express Courier Delivery with Live Tracking.`;
-
-      const resMsg: AssistantMessage = {
-        id: `msg-${Date.now()}`,
-        sender: "assistant",
-        text: storeText,
-        timestamp: new Date().toISOString(),
-        language: lang,
-        type: "contact_info",
-        actions: [
-          { label: "📞 Call Store", action: "call_store" },
-          { label: "🗺️ Get Directions", action: "open_maps", payload: siteSettings.google_maps_link },
-          { label: "💬 Chat on WhatsApp", action: "open_whatsapp" },
-        ],
-      };
-      return NextResponse.json({ message: resMsg });
-    }
-
-    // ── Intent 9: Talk to Human Specialist ──
-    if (
-      lowerMsg.includes("human") ||
-      lowerMsg.includes("agent") ||
-      lowerMsg.includes("staff") ||
-      lowerMsg.includes("person") ||
-      cleanMsg.includes("மனிதர்") ||
-      cleanMsg.includes("நேரடி உதவி") ||
-      cleanMsg.includes("සහයකයා")
-    ) {
-      const handoffText =
-        lang === "ta"
-          ? `எங்கள் வவுனியா showroom நிபுணர்களுடன் தொடர்பு கொள்ள கீழ்வரும் வழிகளில் ஒன்றை தெரிவு செய்யலாம்:`
-          : lang === "si"
-          ? `අපගේ කාර්ය මණ්ඩලය සමඟ සම්බන්ධ වීමට පහත ක්‍රමයක් තෝරන්න:`
-          : `You can connect directly with our human specialists in Vavuniya through any of the following channels:`;
-
-      const resMsg: AssistantMessage = {
-        id: `msg-${Date.now()}`,
-        sender: "assistant",
-        text: handoffText,
-        timestamp: new Date().toISOString(),
-        language: lang,
-        type: "human_handoff",
-        actions: [
-          { label: "💬 WhatsApp Chat", action: "open_whatsapp" },
-          { label: "📞 Call Hotline", action: "call_store" },
-        ],
-      };
-      return NextResponse.json({ message: resMsg });
-    }
-
-    // ── Default Conversational Fallback ──
+    // ── Default Friendly Welcome / Fallback ──
     const fallbackText =
-      lang === "ta"
-        ? `வணக்கம்! நான் Streetla 👋 Street Mobile-ன் AI Shopping Assistant.
+      style === "thanglish"
+        ? `Vanakkam! Naan **Streetla** 👋 Street Mobile-oda Smart AI Shopping Assistant.
+
+Ungaluku epdi help panna mudiyum?
+• 💰 **Budget Recommendations**: "100k budget kulla best phone enna?"
+• 🎮 **Gaming & Camera**: "Gaming-ku suitable phone sollunga"
+• ⚖️ **Comparison**: "iPhone 16 vs Galaxy S25 ethu best?"
+• 🔌 **Accessories**: "iPhone-kaga fast charger venum"
+
+Keezha irukkura buttons-a click pannalam or unga questions-a type pannunga!`
+        : style === "ta"
+        ? `வணக்கம்! நான் **Streetla** 👋 Street Mobile-ன் Smart AI Shopping Assistant.
 
 நான் உங்களுக்கு உதவ முடியும்:
-1. 💰 **Budget Recommendations**: "100k-க்குள் சிறந்த Phone எது?"
-2. ⚖️ **Product Comparison**: "iPhone 15 vs Samsung S24"
-3. 🎨 **Specs & Colors**: "iPhone 15-ல் உள்ள நிறங்கள் என்ன?"
-4. 📦 **Stock & Installments**: "Koko தவணை முறை மற்றும் விலை விவரங்கள்"
-5. 🔧 **Repair & Warranty**: "Screen change & Company warranty விவரங்கள்"
+• 💰 **பட்ஜெட் பரிந்துரை**: "100k-க்குள் சிறந்த Phone எது?"
+• 🎮 **கேமிங் & கேமரா**: "Gaming-க்கு ஏற்ற சிறந்த போன் சொல்லுங்கள்"
+• ⚖️ **ஒப்பீடு**: "iPhone 16 vs Galaxy S25 எது சிறந்தது?"
+• 🔌 **பாகங்கள்**: "Fast Charger & Accessories விவரங்கள்"
 
 கீழ்வரும் button-களில் ஒன்றைத் தேர்வு செய்யலாம் அல்லது உங்கள் கேள்வியைத் தட்டச்சு செய்யவும்:`
-        : lang === "si"
-        ? `ආයුබෝවන්! මම Streetla 👋 Street Mobile හි AI සහයකයා. දුරකථන සංසන්දනය, මිල ගණන්, වාරික ගෙවීම් සහ අලුත්වැඩියා විස්තර සඳහා මගෙන් විමසන්න.`
-        : `Hi! I’m **Streetla**, your personal AI Shopping Assistant at **Street Mobile**.
+        : style === "si" || style === "singlish"
+        ? `ආයුබෝවන්! මම **Streetla** 👋 Street Mobile AI සහයකයා.
+දුරකථන නිර්දේශ, මිල ගණන්, සංසන්දනය සහ Accessories පිළිබඳව මගෙන් විමසන්න.`
+        : `Hi! I’m **Streetla** 👋 your personal AI Shopping Assistant at **Street Mobile**.
 
-I can help you with:
-• 💰 **Budget Recommendations**: "Best phone under 100,000 LKR"
-• ⚖️ **Head-to-Head Comparisons**: "iPhone 15 vs Galaxy S24"
-• 🎨 **Specs & Colors**: "What colors & storage for iPhone 13?"
-• 📦 **Stock & Pricing**: "Is S24 Ultra in stock?" + 3x Koko installments
-• 🔧 **Repairs & Warranty**: Screen & battery replacements in Vavuniya
+How can I help you today?
+• 💰 **Budget Advice**: "Best phone under 100,000 LKR"
+• 🎮 **Gaming & Camera**: "Recommend a top gaming phone"
+• ⚖️ **Head-to-Head Comparison**: "iPhone 16 vs Galaxy S25"
+• 🔌 **Accessories**: "What charger is best for iPhone 16 Pro?"
 
-How can I assist your tech shopping today?`;
+Pick a quick option below or type your question!`;
 
     return NextResponse.json({
       message: {
@@ -404,12 +512,14 @@ How can I assist your tech shopping today?`;
         sender: "assistant",
         text: fallbackText,
         timestamp: new Date().toISOString(),
-        language: lang,
+        language: baseLang,
         type: "quick_actions",
         actions: [
-          { label: "🔍 Find Phone by Budget", action: "start_find_phone" },
+          { label: "📱 Find a Phone", action: "start_find_phone" },
+          { label: "💰 Budget Phones", action: "budget_100k" },
+          { label: "🎮 Gaming Phones", action: "find_gaming" },
+          { label: "📸 Best Camera Phones", action: "find_camera" },
           { label: "⚖️ Compare Flagships", action: "compare_flagships" },
-          { label: "📍 Store & Repairs", action: "store_info" },
           { label: "💬 WhatsApp Support", action: "open_whatsapp" },
         ],
       },
@@ -431,352 +541,168 @@ How can I assist your tech shopping today?`;
   }
 }
 
-// ── Smart Budget Extractor ──
-function extractBudgetFromText(text: string): { min?: number; max?: number } | null {
-  // e.g. "under 50k", "50000", "1 lakh", "1.5 lakh", "100k", "between 50k and 100k"
-  const rangeMatch = text.match(/(?:between|from)?\s*(\d+(?:\.\d+)?)\s*(k|lakh|lakhs)?\s*(?:to|and|-)\s*(\d+(?:\.\d+)?)\s*(k|lakh|lakhs)?/i);
-  if (rangeMatch) {
-    let minVal = parseFloat(rangeMatch[1]);
-    const minUnit = rangeMatch[2]?.toLowerCase();
-    if (minUnit === "k") minVal *= 1000;
-    else if (minUnit === "lakh" || minUnit === "lakhs") minVal *= 100000;
-
-    let maxVal = parseFloat(rangeMatch[3]);
-    const maxUnit = rangeMatch[4]?.toLowerCase();
-    if (maxUnit === "k") maxVal *= 1000;
-    else if (maxUnit === "lakh" || maxUnit === "lakhs") maxVal *= 100000;
-
-    return { min: minVal, max: maxVal };
-  }
-
-  const singleMatch = text.match(/(?:under|below|around|budget|within|kulla|less than|upto|up to)?\s*(\d+(?:\.\d+)?)\s*(k|lakh|lakhs|thousand)?/i);
-  if (singleMatch && (text.includes("budget") || text.includes("under") || text.includes("below") || text.includes("kulla") || text.includes("phone") || text.includes("k") || text.includes("lakh"))) {
-    let num = parseFloat(singleMatch[1]);
-    const unit = singleMatch[2]?.toLowerCase();
-
-    if (unit === "k") num *= 1000;
-    else if (unit === "lakh" || unit === "lakhs") num *= 100000;
-    else if (unit === "thousand") num *= 1000;
-    else if (num < 1000 && num >= 10) num *= 1000; // e.g. "budget 50" -> 50000
-
-    return { max: num };
-  }
-
-  return null;
-}
-
-// ── Smart Budget Recommendation Generator ──
-function getBudgetRecommendations(
-  budget: { min?: number; max?: number },
-  products: Product[],
-  lang: AssistantLanguage
-): AssistantMessage | null {
-  const min = budget.min || 0;
-  const max = budget.max || 10000000;
-
-  const inBudget = products
-    .filter((p) => (p.category_name?.toLowerCase().includes("phone") || p.brand_name) && p.price >= min && p.price <= max)
-    .sort((a, b) => b.price - a.price);
-
-  if (inBudget.length === 0) return null;
-
-  const topPick = inBudget[0];
-  const alternatives = inBudget.slice(1, 4);
-
-  const topSpecs = Object.entries(topPick.specifications || {})
-    .slice(0, 3)
-    .map(([k, v]) => `• **${k}**: ${v}`)
-    .join("\n");
-
-  const text =
-    lang === "ta"
-      ? `🎯 **உங்கள் Budget (${formatPrice(max)}-க்குள்) Streetla-வின் முதன்மை பரிந்துரை:**
-
-🏆 **${topPick.name}** — **${formatPrice(topPick.price)}**
-${topSpecs || "• 100% Original Genuine Device with 1 Year Warranty"}
-• **Installment**: மாதம் **${formatPrice(Math.round(topPick.price / 3))}** (Koko / Mintpay 3 தவணைகள்)
-
-${alternatives.length > 0 ? `✨ இந்த budget-ல் உள்ள மற்ற சிறந்த தெரிவுகள்:` : ""}`
-      : lang === "si"
-      ? `🎯 **ඔබගේ Budget (${formatPrice(max)}) සඳහා Streetla හි ප්‍රමුඛ තේරීම:**\n\n🏆 **${topPick.name}** (${formatPrice(topPick.price)})\n${topSpecs}\n\nතවත් විකල්ප:`
-      : `🎯 **Top Recommendation for Your Budget (${formatPrice(max)}):**
-
-🏆 **${topPick.name}** — **${formatPrice(topPick.price)}**
-${topSpecs || "• 100% Genuine Original Device with Official Warranty"}
-• **Installments**: Pay 3x **${formatPrice(Math.round(topPick.price / 3))} / month** interest-free with Koko/Mintpay
-
-${alternatives.length > 0 ? `✨ Other top value-for-money contenders in your range:` : ""}`;
-
-  return {
-    id: `msg-${Date.now()}`,
-    sender: "assistant",
-    text,
-    timestamp: new Date().toISOString(),
-    language: lang,
-    type: "product_list",
-    products: inBudget.slice(0, 4).map(toProductSummary),
-  };
-}
-
-// ── Head-to-Head Comparison Generator ──
-function generateComparisonAnalysis(p1: Product, p2: Product, lang: AssistantLanguage): string {
-  const p1Specs = p1.specifications || {};
-  const p2Specs = p2.specifications || {};
-
-  const p1Display = p1Specs["Display"] || p1Specs["Screen"] || "Premium High-Refresh Display";
-  const p2Display = p2Specs["Display"] || p2Specs["Screen"] || "Premium High-Refresh Display";
-
-  const p1Camera = p1Specs["Camera"] || p1Specs["Main Camera"] || "Pro-Grade High-Res Camera";
-  const p2Camera = p2Specs["Camera"] || p2Specs["Main Camera"] || "Pro-Grade High-Res Camera";
-
-  const p1Chip = p1Specs["Chipset"] || p1Specs["Processor"] || p1Specs["Chip"] || "High Performance Processor";
-  const p2Chip = p2Specs["Chipset"] || p2Specs["Processor"] || p2Specs["Chip"] || "High Performance Processor";
-
-  const priceDiff = Math.abs(p1.price - p2.price);
-  const cheaper = p1.price < p2.price ? p1 : p2;
-  const pricier = p1.price >= p2.price ? p1 : p2;
-
-  if (lang === "ta") {
-    return `⚖️ **${p1.name} vs ${p2.name} — நேரடி ஒப்பீடு:**
-
-📸 **Camera**:
-• **${p1.name}**: ${p1Camera}
-• **${p2.name}**: ${p2Camera}
-
-⚡ **Processor & Speed**:
-• **${p1.name}**: ${p1Chip}
-• **${p2.name}**: ${p2Chip}
-
-📱 **Display**:
-• **${p1.name}**: ${p1Display}
-• **${p2.name}**: ${p2Display}
-
-💰 **விலை விவரம்**:
-• **${p1.name}**: ${formatPrice(p1.price)} (Installment: ${formatPrice(Math.round(p1.price / 3))}/mo)
-• **${p2.name}**: ${formatPrice(p2.price)} (Installment: ${formatPrice(Math.round(p2.price / 3))}/mo)
-
-🏆 **Streetla-வின் முடிவு (Verdict)**:
-${priceDiff > 0 ? `• சிறந்த Value-for-Money வேண்டுமானால் **${cheaper.name}** சிறந்த தெரிவு (${formatPrice(priceDiff)} குறைவு).\n• உச்சகட்ட Performance & Camera அம்சங்களை விரும்பினால் **${pricier.name}**-ஐ தேர்ந்தெடுக்கலாம்!` : `இரண்டுமே மிகச் சிறந்த தெரிவுகள். உங்கள் பயன்பாட்டிற்கு ஏற்ப தேர்ந்தெடுக்கலாம்!`}`;
-  }
-
-  return `⚖️ **${p1.name} vs ${p2.name} — Detailed Head-to-Head Comparison:**
-
-📸 **Camera System**:
-• **${p1.name}**: ${p1Camera}
-• **${p2.name}**: ${p2Camera}
-
-⚡ **Performance & Chip**:
-• **${p1.name}**: ${p1Chip}
-• **${p2.name}**: ${p2Chip}
-
-📱 **Display Experience**:
-• **${p1.name}**: ${p1Display}
-• **${p2.name}**: ${p2Display}
-
-💰 **Price & Easy Installments**:
-• **${p1.name}**: ${formatPrice(p1.price)} (3x ${formatPrice(Math.round(p1.price / 3))}/mo)
-• **${p2.name}**: ${formatPrice(p2.price)} (3x ${formatPrice(Math.round(p2.price / 3))}/mo)
-
-🏆 **Streetla's Buying Advice**:
-${priceDiff > 0 ? `• If you want the maximum value per rupee, choose **${cheaper.name}** (Saves you ${formatPrice(priceDiff)}).\n• If you need top-tier flagship cameras and maximum longevity, go for **${pricier.name}**!` : `Both are stellar devices in their class with 100% genuine warranty.`}`;
-}
-
-// ── Specific Spec / Color Details Generator ──
-function generateSpecDetailsText(p: Product, queryText: string, lang: AssistantLanguage): string {
-  const specs = p.specifications || {};
-  const colorsList = (p.colors || []).join(", ") || "Standard Genuine Finishes";
-  const storageList = (p.storage_options || []).join(", ") || "Standard Base Storage";
-
-  const allSpecLines = Object.entries(specs)
-    .map(([k, v]) => `• **${k}**: ${v}`)
-    .join("\n");
-
-  if (lang === "ta") {
-    return `📱 **${p.name} — முழு விபரங்கள்:**
-
-🎨 **கிடைக்கும் நிறங்கள் (Colors)**:
-${colorsList}
-
-💾 **Storage தெரிவுகள்**:
-${storageList}
-
-⚙️ **Technical Specifications**:
-${allSpecLines || "• 100% Authentic Original TRCSL Approved Device"}
-
-💰 **விலை**: ${formatPrice(p.price)} (மாதம் ${formatPrice(Math.round(p.price / 3))} x 3 தவணைகள்)
-🛡️ **Warranty**: ${p.warranty || "1 Year Company Warranty"}`;
-  }
-
-  return `📱 **${p.name} — Specifications & Variants:**
-
-🎨 **Available Colors**:
-${colorsList}
-
-💾 **Storage Options**:
-${storageList}
-
-⚙️ **Key Specifications**:
-${allSpecLines || "• 100% Genuine TRCSL Approved Hardware"}
-
-💰 **Price**: ${formatPrice(p.price)} (Pay 3x ${formatPrice(Math.round(p.price / 3))} / mo with Koko)
-🛡️ **Warranty**: ${p.warranty || "1-Year Official Company Warranty"}`;
-}
-
 // ── Action Trigger Helper ──
 async function handleActionTrigger(
   action: string,
   payload: any,
-  lang: AssistantLanguage,
-  products: Product[]
+  style: WritingStyle,
+  allProducts: Product[],
+  currentProduct: Product | null
 ): Promise<AssistantMessage> {
-  if (action === "start_find_phone") {
+  const baseLang = getBaseLanguage(style);
+
+  if (action === "budget_100k" || action === "budget_150k") {
+    const max = action === "budget_100k" ? 100000 : 150000;
+    const candidates = allProducts
+      .filter((p) => {
+        const price = p.sale_price || p.price;
+        return price <= max && (p.category_name?.toLowerCase().includes("phone") || p.brand_name);
+      })
+      .sort((a, b) => (b.sale_price || b.price) - (a.sale_price || a.price))
+      .slice(0, 4);
+
     const text =
-      lang === "ta"
-        ? "உங்கள் Budget அல்லது விரும்பிய Brand-ஐ தெரிவு செய்யவும்:"
-        : "Let's find the best device for you! Choose your budget or favorite brand:";
+      style === "thanglish"
+        ? `🎯 **${formatPrice(max)}-kulla Top Rated Phones:**`
+        : style === "ta"
+        ? `🎯 **${formatPrice(max)}-க்குள் சிறந்த Phones:**`
+        : `🎯 **Top Rated Smartphones under ${formatPrice(max)}:**`;
 
     return {
       id: `msg-${Date.now()}`,
       sender: "assistant",
       text,
       timestamp: new Date().toISOString(),
-      language: lang,
-      type: "text",
-      actions: [
-        { label: "Under 100K", action: "filter_budget", payload: { max: 100000 } },
-        { label: "100K – 250K", action: "filter_budget", payload: { min: 100000, max: 250000 } },
-        { label: "250K+ Flagships", action: "filter_budget", payload: { min: 250000 } },
-        { label: "Apple iPhones", action: "filter_brand", payload: "Apple" },
-        { label: "Samsung Galaxy", action: "filter_brand", payload: "Samsung" },
-      ],
+      language: baseLang,
+      type: "product_list",
+      products: candidates.map(toProductSummary),
+    };
+  }
+
+  if (action === "find_gaming" || action === "find_camera") {
+    const usage = action === "find_gaming" ? "gaming" : "camera";
+    const candidates = allProducts
+      .map((p) => ({ product: p, score: scoreProductForUsage(p, usage) }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 4)
+      .map((s) => s.product);
+
+    const text =
+      style === "thanglish"
+        ? `🎮 **Top ${usage === "gaming" ? "Gaming" : "Camera"} Phones in Stock:**`
+        : style === "ta"
+        ? `📸 **சிறந்த ${usage === "gaming" ? "Gaming" : "Camera"} போன்கள்:**`
+        : `🏆 **Top ${usage === "gaming" ? "Gaming Performance" : "Pro Camera"} Phones:**`;
+
+    return {
+      id: `msg-${Date.now()}`,
+      sender: "assistant",
+      text,
+      timestamp: new Date().toISOString(),
+      language: baseLang,
+      type: "product_list",
+      products: candidates.map(toProductSummary),
     };
   }
 
   if (action === "compare_flagships") {
-    const iphones = products.filter((p) => p.name.toLowerCase().includes("iphone 15"));
-    const samsungs = products.filter((p) => p.name.toLowerCase().includes("s24"));
-
-    if (iphones.length > 0 && samsungs.length > 0) {
-      const p1 = iphones[0];
-      const p2 = samsungs[0];
+    const p1 = allProducts.find((p) => p.name.toLowerCase().includes("iphone 16") || p.name.toLowerCase().includes("iphone 15"));
+    const p2 = allProducts.find((p) => p.name.toLowerCase().includes("s25") || p.name.toLowerCase().includes("s24"));
+    if (p1 && p2) {
+      const comp = generateProductComparison(p1, p2, style);
       return {
         id: `msg-${Date.now()}`,
         sender: "assistant",
-        text: generateComparisonAnalysis(p1, p2, lang),
+        text: comp.text,
         timestamp: new Date().toISOString(),
-        language: lang,
+        language: baseLang,
         type: "comparison",
-        comparisonProducts: [toProductSummary(p1), toProductSummary(p2)],
+        comparisonProducts: comp.products,
+        products: comp.products,
       };
     }
   }
 
-  if (action === "filter_budget" || action === "filter_brand") {
-    let filtered = [...products];
-    if (action === "filter_budget" && payload) {
-      if (payload.min) filtered = filtered.filter((p) => p.price >= payload.min);
-      if (payload.max) filtered = filtered.filter((p) => p.price <= payload.max);
-    } else if (action === "filter_brand" && typeof payload === "string") {
-      filtered = filtered.filter(
-        (p) =>
-          p.name.toLowerCase().includes(payload.toLowerCase()) ||
-          p.brand_name?.toLowerCase().includes(payload.toLowerCase())
-      );
-    }
-
-    const items = filtered.slice(0, 4);
-    const text =
-      lang === "ta"
-        ? `Street Mobile-ல் உள்ள பரிந்துரைக்கப்பட்ட சாதனங்கள்:`
-        : `Here are our top recommended genuine devices matching your criteria:`;
-
-    return {
-      id: `msg-${Date.now()}`,
-      sender: "assistant",
-      text: items.length > 0 ? text : "No exact models found in this range.",
-      timestamp: new Date().toISOString(),
-      language: lang,
-      type: "product_list",
-      products: items.map(toProductSummary),
-    };
-  }
-
-  if (action === "store_info") {
-    return {
-      id: `msg-${Date.now()}`,
-      sender: "assistant",
-      text: `📍 **STREET MOBILE Showroom & Repair Lab:**\n\n• **Address**: 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya.\n• **Hotline**: 077 414 1118 / 024 222 8118\n• **Hours**: Mon – Sat: 9:00 AM – 8:00 PM\n• **Island-wide Delivery**: 1–3 Business Days.`,
-      timestamp: new Date().toISOString(),
-      language: lang,
-      type: "contact_info",
-      actions: [
-        { label: "📞 Call Store", action: "call_store" },
-        { label: "🗺️ Get Directions", action: "open_maps", payload: siteSettings.google_maps_link },
-        { label: "💬 Chat on WhatsApp", action: "open_whatsapp" },
-      ],
-    };
-  }
-
+  // Fallback text
   return {
     id: `msg-${Date.now()}`,
     sender: "assistant",
-    text: "How else can I assist your tech shopping today?",
+    text: "How else can I assist your shopping today?",
     timestamp: new Date().toISOString(),
-    language: lang,
+    language: baseLang,
     type: "text",
   };
 }
 
-// ── Search & Filter Helpers ──
-function findMatchingProducts(queryText: string, products: Product[], max = 3): Product[] {
-  const q = queryText.toLowerCase();
+// ── Comparison Candidates Finder ──
+function findComparisonCandidates(text: string, products: Product[]): Product[] {
+  const clean = text.toLowerCase();
+  const matched: Product[] = [];
 
-  return products
-    .filter((p) => {
-      const name = p.name.toLowerCase();
-      const desc = (p.description || "").toLowerCase();
-      const cat = (p.category_name || "").toLowerCase();
-      const brand = (p.brand_name || "").toLowerCase();
+  // Try finding iPhone and Samsung if mentioned
+  if (clean.includes("iphone") && clean.includes("samsung")) {
+    const iphone = products.find((p) => p.name.toLowerCase().includes("iphone"));
+    const samsung = products.find((p) => p.name.toLowerCase().includes("samsung") || p.name.toLowerCase().includes("galaxy"));
+    if (iphone && samsung) {
+      matched.push(iphone, samsung);
+      return matched;
+    }
+  }
 
-      // Check specific models
-      if (q.includes("iphone 15") && name.includes("iphone 15")) return true;
-      if (q.includes("iphone 14") && name.includes("iphone 14")) return true;
-      if (q.includes("iphone 13") && name.includes("iphone 13")) return true;
-      if (q.includes("s24") && (name.includes("s24") || name.includes("galaxy s24"))) return true;
-      if (q.includes("s23") && (name.includes("s23") || name.includes("galaxy s23"))) return true;
-      if (q.includes("redmi") && (name.includes("redmi") || name.includes("note"))) return true;
-      if (q.includes("pixel") && name.includes("pixel")) return true;
-      if (q.includes("airpods") && (name.includes("airpods") || cat.includes("audio"))) return true;
-      if (q.includes("watch") && (name.includes("watch") || cat.includes("watch"))) return true;
+  // General matching for "X vs Y"
+  const parts = clean.split(/\bvs\.?\b|\bcompare\b|\bor\b/i);
+  if (parts.length >= 2) {
+    for (const part of parts) {
+      const term = part.trim();
+      if (term.length >= 3) {
+        const found = products.find((p) => p.name.toLowerCase().includes(term) || (p.tags || []).some((t) => t.toLowerCase().includes(term)));
+        if (found && !matched.some((m) => m.id === found.id)) {
+          matched.push(found);
+        }
+      }
+    }
+  }
 
-      return (
-        name.includes(q) ||
-        desc.includes(q) ||
-        cat.includes(q) ||
-        brand.includes(q) ||
-        q.split(" ").some((w) => w.length > 3 && name.includes(w))
-      );
-    })
-    .slice(0, max);
+  if (matched.length >= 2) return matched.slice(0, 2);
+
+  // Fallback: search products in text
+  for (const p of products) {
+    const name = p.name.toLowerCase();
+    if (clean.includes(name) || (name.length > 8 && clean.includes(name.slice(0, 10)))) {
+      if (!matched.some((m) => m.id === p.id)) {
+        matched.push(p);
+      }
+    }
+  }
+
+  return matched.slice(0, 2);
 }
 
-function toProductSummary(p: Product): AssistantProductSummary {
-  return {
-    id: p.id,
-    name: p.name,
-    slug: p.slug,
-    price: p.price,
-    old_price: p.old_price,
-    image: p.images?.[0] || "/placeholder.png",
-    storage: p.storage_options?.[0] || "",
-    color: p.colors?.[0] || "",
-    colors: p.colors || [],
-    storage_options: p.storage_options || [],
-    specifications: p.specifications || {},
-    brand_name: p.brand_name,
-    warranty: p.warranty || "1 Year Genuine Company Warranty",
-    stock_status: p.stock_status || "in_stock",
-    category_name: p.category_name,
-    installment_price: `Rs. ${Math.round(p.price / 3).toLocaleString()} / mo (x3)`,
-  };
+// ── General Matching Helper ──
+function findMatchingProducts(text: string, products: Product[], max = 4): Product[] {
+  const clean = text.toLowerCase();
+  const tokens = clean.split(/\s+/).filter((t) => t.length >= 2);
+
+  const scored = products.map((p) => {
+    let score = 0;
+    const name = (p.name || "").toLowerCase();
+    const brand = (p.brand_name || p.brand || "").toLowerCase();
+    const cat = (p.category_name || "").toLowerCase();
+    const tags = (p.tags || []).join(" ").toLowerCase();
+
+    for (const t of tokens) {
+      if (name.includes(t)) score += 10;
+      if (brand.includes(t)) score += 8;
+      if (cat.includes(t)) score += 6;
+      if (tags.includes(t)) score += 5;
+    }
+
+    return { product: p, score };
+  });
+
+  return scored
+    .filter((s) => s.score >= 10)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, max)
+    .map((s) => s.product);
 }

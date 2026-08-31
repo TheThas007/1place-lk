@@ -1,142 +1,318 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Search, X, TrendingUp, ChevronRight, ArrowRight, Package, Tag } from "lucide-react";
+import {
+  Search,
+  X,
+  TrendingUp,
+  Clock,
+  ChevronRight,
+  ArrowRight,
+  Package,
+  Tag,
+  Sparkles,
+  ShoppingBag,
+  Trash2,
+  CornerDownLeft,
+  Flame,
+  Check,
+} from "lucide-react";
 import { Product, Category, Brand } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
 import { getProducts, getCategories, getBrands } from "@/lib/firestore-client";
+import {
+  executeIntelligentSearch,
+  SearchEngineResults,
+  normalizeText,
+} from "@/lib/search/search-engine";
+import {
+  getRecentSearches,
+  addRecentSearch,
+  removeRecentSearch,
+  clearAllRecentSearches,
+  recordProductSearchClick,
+  TRENDING_SEARCHES,
+} from "@/lib/search/search-history";
 
-const POPULAR_SEARCHES = ["iPhone 16", "Samsung", "Earbuds", "Fast Charger", "JBL Speaker", "Screen Protector"];
+// ── In-memory data cache to prevent duplicate Firestore reads ──
+let cachedProducts: Product[] | null = null;
+let cachedCategories: Category[] | null = null;
+let cachedBrands: Brand[] | null = null;
+
+/** Helper to highlight matching substrings in text */
+function HighlightedText({ text, highlight }: { text: string; highlight: string }) {
+  if (!highlight.trim()) return <span>{text}</span>;
+
+  const cleanText = text;
+  const cleanHighlight = highlight.trim().toLowerCase();
+  const index = cleanText.toLowerCase().indexOf(cleanHighlight);
+
+  if (index === -1) {
+    // Check word-by-word highlight
+    const words = cleanHighlight.split(" ").filter(Boolean);
+    const regex = new RegExp(`(${words.map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|")})`, "gi");
+    const parts = cleanText.split(regex);
+
+    return (
+      <span>
+        {parts.map((part, i) =>
+          words.some((w) => w.toLowerCase() === part.toLowerCase()) ? (
+            <span key={i} className="text-amber-400 font-black bg-amber-400/10 px-0.5 rounded">
+              {part}
+            </span>
+          ) : (
+            <span key={i}>{part}</span>
+          )
+        )}
+      </span>
+    );
+  }
+
+  const before = cleanText.slice(0, index);
+  const match = cleanText.slice(index, index + cleanHighlight.length);
+  const after = cleanText.slice(index + cleanHighlight.length);
+
+  return (
+    <span>
+      {before}
+      <span className="text-amber-400 font-black bg-amber-400/10 px-0.5 rounded">{match}</span>
+      {after}
+    </span>
+  );
+}
 
 export default function SearchOverlay() {
+  const router = useRouter();
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
-  
+  const [debouncedQuery, setDebouncedQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Datasets
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [brands, setBrands] = useState<Brand[]>([]);
 
-  const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
-  const [filteredCategories, setFilteredCategories] = useState<Category[]>([]);
-  const [filteredBrands, setFilteredBrands] = useState<Brand[]>([]);
+  // History & Suggestions
+  const [recentSearches, setRecentSearches] = useState<string[]>([]);
+  const [searchResults, setSearchResults] = useState<SearchEngineResults | null>(null);
+
+  // Keyboard navigation active index
+  const [activeItemIndex, setActiveItemIndex] = useState<number>(-1);
 
   const inputRef = useRef<HTMLInputElement>(null);
+  const overlayRef = useRef<HTMLDivElement>(null);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // 1. Global Keyboard Listeners (⌘K, Escape) & Event Trigger
   useEffect(() => {
-    const handleOpenSearch = () => setIsOpen(true);
+    const handleOpenSearch = () => {
+      setIsOpen(true);
+    };
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         setIsOpen((prev) => !prev);
       }
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false);
+      }
     };
+
     window.addEventListener("open-search-overlay", handleOpenSearch);
     window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       window.removeEventListener("open-search-overlay", handleOpenSearch);
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, []);
+  }, [isOpen]);
 
+  // 2. Fetch or load cached data when modal opens
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = "hidden";
-      setTimeout(() => inputRef.current?.focus(), 150);
-      
-      if (products.length === 0) {
+      setRecentSearches(getRecentSearches());
+      setTimeout(() => inputRef.current?.focus(), 100);
+
+      if (cachedProducts && cachedCategories && cachedBrands) {
+        setProducts(cachedProducts);
+        setCategories(cachedCategories);
+        setBrands(cachedBrands);
+      } else {
+        setIsLoading(true);
         Promise.all([getProducts(), getCategories(), getBrands()])
           .then(([pList, cList, bList]) => {
+            cachedProducts = pList;
+            cachedCategories = cList;
+            cachedBrands = bList;
             setProducts(pList);
             setCategories(cList);
             setBrands(bList);
           })
-          .catch((err) => console.error("Failed to fetch search datasets:", err));
+          .catch((err) => console.error("Search data load error:", err))
+          .finally(() => setIsLoading(false));
       }
     } else {
       document.body.style.overflow = "";
       setQuery("");
+      setDebouncedQuery("");
+      setActiveItemIndex(-1);
+      setSearchResults(null);
     }
-  }, [isOpen, products.length]);
+  }, [isOpen]);
 
-  // ── Search Aliases: map common shorthand to full terms ──
-  const SEARCH_ALIASES: Record<string, string[]> = {
-    "ip": ["iphone"],
-    "iph": ["iphone"],
-    "iphne": ["iphone"],
-    "ipone": ["iphone"],
-    "sam": ["samsung"],
-    "samsg": ["samsung"],
-    "samsng": ["samsung"],
-    "samsun": ["samsung"],
-    "earbud": ["earbuds", "tws"],
-    "ear bud": ["earbuds", "tws"],
-    "airpod": ["airpods"],
-    "macbk": ["macbook"],
-    "lap": ["laptop"],
-    "charg": ["charger", "chargers"],
-    "spkr": ["speaker"],
-    "headph": ["headphone", "headphones"],
-  };
-
-  // Simple fuzzy: checks if all chars of the query appear in-order within the target
-  function fuzzyMatch(target: string, query: string): boolean {
-    if (target.includes(query)) return true;
-    let qi = 0;
-    for (let i = 0; i < target.length && qi < query.length; i++) {
-      if (target[i] === query[qi]) qi++;
-    }
-    // Only count as fuzzy match if ≥70% of query chars matched (prevents too-loose matches)
-    return qi >= Math.ceil(query.length * 0.7) && query.length >= 3;
-  }
-
-  function matchesSearch(text: string, q: string, aliases: string[]): boolean {
-    const t = text.toLowerCase();
-    if (t.includes(q)) return true;
-    for (const alias of aliases) {
-      if (t.includes(alias)) return true;
-    }
-    return fuzzyMatch(t, q);
-  }
-
+  // 3. Debounce search query input (150ms for snappy instant feel)
   useEffect(() => {
-    if (!query.trim()) {
-      setFilteredProducts([]);
-      setFilteredCategories([]);
-      setFilteredBrands([]);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    debounceTimerRef.current = setTimeout(() => {
+      setDebouncedQuery(query);
+    }, 120);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [query]);
+
+  // 4. Run Intelligent Search Engine on debounced query
+  useEffect(() => {
+    if (!debouncedQuery.trim()) {
+      setSearchResults(null);
+      setActiveItemIndex(-1);
       return;
     }
-    const q = query.toLowerCase().trim();
-    const aliases = SEARCH_ALIASES[q] || [];
 
-    // 1. Filter Products – typo-tolerant
-    const matchedProducts = products.filter(
-      (p) =>
-        matchesSearch(p.name, q, aliases) ||
-        (p.code && matchesSearch(p.code, q, aliases)) ||
-        (p.brand_name && matchesSearch(p.brand_name, q, aliases)) ||
-        (p.category_name && matchesSearch(p.category_name, q, aliases)) ||
-        (p.tags && p.tags.some((tag) => matchesSearch(tag, q, aliases)))
+    const results = executeIntelligentSearch(
+      debouncedQuery,
+      products,
+      categories,
+      brands
     );
-    setFilteredProducts(matchedProducts.slice(0, 5));
+    setSearchResults(results);
+    setActiveItemIndex(-1);
+  }, [debouncedQuery, products, categories, brands]);
 
-    // 2. Filter Categories – typo-tolerant
-    const matchedCategories = categories.filter((c) =>
-      matchesSearch(c.name, q, aliases) || matchesSearch(c.slug, q, aliases)
-    );
-    setFilteredCategories(matchedCategories.slice(0, 3));
+  // Flatten all navigable items for seamless keyboard Up/Down navigation
+  const navigableItems = useMemo(() => {
+    if (!searchResults || !debouncedQuery.trim()) return [];
 
-    // 3. Filter Brands – typo-tolerant
-    const matchedBrands = brands.filter((b) =>
-      matchesSearch(b.name, q, aliases) || matchesSearch(b.slug, q, aliases)
-    );
-    setFilteredBrands(matchedBrands.slice(0, 3));
-  }, [query, products, categories, brands]);
+    const items: Array<{
+      type: "suggestion" | "category" | "brand" | "product";
+      id: string;
+      label: string;
+      data: any;
+    }> = [];
+
+    // Suggestions
+    searchResults.suggestions.forEach((s) => {
+      items.push({ type: "suggestion", id: `sug-${s}`, label: s, data: s });
+    });
+
+    // Categories
+    searchResults.categories.forEach((c) => {
+      items.push({ type: "category", id: `cat-${c.category.slug}`, label: c.category.name, data: c.category });
+    });
+
+    // Brands
+    searchResults.brands.forEach((b) => {
+      items.push({ type: "brand", id: `brand-${b.brand.slug}`, label: b.brand.name, data: b.brand });
+    });
+
+    // Top Products (up to 6 for keyboard nav)
+    searchResults.products.slice(0, 6).forEach((p) => {
+      items.push({ type: "product", id: `prod-${p.id || p.slug}`, label: p.name, data: p });
+    });
+
+    return items;
+  }, [searchResults, debouncedQuery]);
+
+  // Handlers
+  const handleClose = useCallback(() => {
+    setIsOpen(false);
+  }, []);
+
+  const handleSelectQuery = (searchTerm: string) => {
+    addRecentSearch(searchTerm);
+    handleClose();
+    router.push(`/products?search=${encodeURIComponent(searchTerm.trim())}`);
+  };
+
+  const handleSelectProduct = (product: Product) => {
+    if (query.trim()) {
+      recordProductSearchClick(query, product.id || product.slug);
+      addRecentSearch(query);
+    }
+    handleClose();
+    router.push(`/products/${product.slug}`);
+  };
+
+  const handleSelectCategory = (category: Category) => {
+    if (query.trim()) addRecentSearch(query);
+    handleClose();
+    router.push(`/products?category=${encodeURIComponent(category.slug || category.id)}`);
+  };
+
+  const handleSelectBrand = (brand: Brand) => {
+    if (query.trim()) addRecentSearch(query);
+    handleClose();
+    router.push(`/products?brand=${encodeURIComponent(brand.slug || brand.name)}`);
+  };
+
+  const handleDeleteRecent = (e: React.MouseEvent, term: string) => {
+    e.stopPropagation();
+    const updated = removeRecentSearch(term);
+    setRecentSearches(updated);
+  };
+
+  const handleClearAllRecents = () => {
+    clearAllRecentSearches();
+    setRecentSearches([]);
+  };
+
+  // Keyboard navigation handler
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      if (navigableItems.length > 0) {
+        setActiveItemIndex((prev) => (prev + 1 >= navigableItems.length ? 0 : prev + 1));
+      }
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      if (navigableItems.length > 0) {
+        setActiveItemIndex((prev) => (prev - 1 < 0 ? navigableItems.length - 1 : prev - 1));
+      }
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeItemIndex >= 0 && activeItemIndex < navigableItems.length) {
+        const item = navigableItems[activeItemIndex];
+        if (item.type === "suggestion") handleSelectQuery(item.data);
+        else if (item.type === "category") handleSelectCategory(item.data);
+        else if (item.type === "brand") handleSelectBrand(item.data);
+        else if (item.type === "product") handleSelectProduct(item.data);
+      } else if (query.trim()) {
+        if (searchResults && searchResults.products.length === 1) {
+          handleSelectProduct(searchResults.products[0]);
+        } else {
+          handleSelectQuery(query);
+        }
+      }
+    }
+  };
 
   if (!isOpen) return null;
 
-  const hasAnyResults = filteredProducts.length > 0 || filteredCategories.length > 0 || filteredBrands.length > 0;
+  const hasSearchContent = Boolean(debouncedQuery.trim() && searchResults);
+  const hasAnyMatches =
+    searchResults &&
+    (searchResults.products.length > 0 ||
+      searchResults.categories.length > 0 ||
+      searchResults.brands.length > 0 ||
+      searchResults.suggestions.length > 0);
 
   return (
     <AnimatePresence>
@@ -144,25 +320,31 @@ export default function SearchOverlay() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="fixed inset-0 z-[110] bg-black/95 backdrop-blur-2xl flex flex-col text-white select-none w-full h-full overflow-hidden"
+        className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-2xl flex flex-col text-white select-none w-full h-full overflow-hidden font-outfit"
+        ref={overlayRef}
       >
-        {/* Top Search Input Bar */}
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-3 border-b border-white/10 flex items-center gap-2.5 sm:gap-3">
-          <div className="relative flex-1 flex items-center bg-white/10 border border-white/15 rounded-2xl px-3.5 sm:px-4 py-2.5 sm:py-3 focus-within:border-white/40 transition-colors min-w-0">
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-white/50 shrink-0 mr-2.5 sm:mr-3" />
+        {/* ── Top Header Search Bar ── */}
+        <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-white/10 flex items-center gap-2 sm:gap-3 shrink-0">
+          <div className="relative flex-1 flex items-center bg-white/10 border border-white/20 hover:border-white/35 focus-within:border-amber-400/80 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3.5 transition-all shadow-inner min-w-0">
+            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mr-2.5 sm:mr-3" />
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search smartphones, accessories, brands..."
+              placeholder="Search iPhone, Samsung, chargers, earbuds, brands..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="w-full bg-transparent text-white text-sm sm:text-base placeholder-white/40 focus:outline-none font-medium truncate"
+              onKeyDown={handleKeyDown}
+              className="w-full bg-transparent text-white text-sm sm:text-base md:text-lg placeholder-white/40 focus:outline-none font-medium truncate tracking-tight"
             />
             {query && (
               <button
-                onClick={() => setQuery("")}
-                className="p-1 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0 ml-1"
-                aria-label="Clear search query"
+                type="button"
+                onClick={() => {
+                  setQuery("");
+                  inputRef.current?.focus();
+                }}
+                className="p-1 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0 ml-1.5 cursor-pointer"
+                aria-label="Clear search input"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -170,183 +352,409 @@ export default function SearchOverlay() {
           </div>
 
           <button
-            onClick={() => setIsOpen(false)}
-            className="px-3.5 sm:px-4 py-2.5 sm:py-3 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-semibold transition-all shrink-0 cursor-pointer"
+            type="button"
+            onClick={handleClose}
+            className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-bold text-white/90 hover:text-white transition-all shrink-0 cursor-pointer active:scale-95"
           >
             Cancel
           </button>
         </div>
 
-        {/* Content Area */}
-        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">
-          {query.trim() === "" ? (
-            <div className="space-y-6 py-2">
-              {/* Quick Category Navigation */}
+        {/* ── Main Scrollable Body ── */}
+        <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 overflow-y-auto custom-scrollbar">
+          
+          {/* ─────────────────────────────────────────────────────────────
+             STATE 1: EMPTY QUERY (Recent Searches & Trending)
+          ───────────────────────────────────────────────────────────── */}
+          {!hasSearchContent && (
+            <div className="space-y-6 sm:space-y-8 animate-in fade-in-0 duration-200 font-sans">
+              
+              {/* Recent Searches */}
+              {recentSearches.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                      Recent Searches
+                    </h3>
+                    <button
+                      type="button"
+                      onClick={handleClearAllRecents}
+                      className="text-[11px] text-neutral-400 hover:text-red-400 font-medium transition-colors cursor-pointer"
+                    >
+                      Clear History
+                    </button>
+                  </div>
+
+                  <div className="flex flex-wrap gap-2">
+                    {recentSearches.map((term) => (
+                      <div
+                        key={term}
+                        onClick={() => handleSelectQuery(term)}
+                        className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all cursor-pointer"
+                      >
+                        <span className="truncate max-w-[200px]">{term}</span>
+                        <button
+                          type="button"
+                          onClick={(e) => handleDeleteRecent(e, term)}
+                          className="text-neutral-400 hover:text-white p-0.5 rounded-full hover:bg-white/20 transition-colors ml-0.5 cursor-pointer"
+                          aria-label={`Remove ${term}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Trending & Popular Searches */}
               <div>
-                <h3 className="text-[11px] font-bold uppercase tracking-wider text-white/50 mb-3 flex items-center gap-2">
-                  <Package className="w-3.5 h-3.5 text-blue-400" />
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
+                  Popular & Trending Searches
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {TRENDING_SEARCHES.map((term) => (
+                    <button
+                      key={term}
+                      type="button"
+                      onClick={() => handleSelectQuery(term)}
+                      className="px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/25 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all cursor-pointer active:scale-95"
+                    >
+                      {term}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Browse Key Categories */}
+              <div>
+                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
                   Browse Categories
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
                   {[
-                    { label: "Smartphones", href: "/products?category=smartphones" },
-                    { label: "Smart Watches", href: "/products?category=smart-watches" },
-                    { label: "Laptops & MacBooks", href: "/products?category=laptops" },
-                    { label: "Earbuds & Audio", href: "/products?category=earbuds" },
-                    { label: "Fast Chargers", href: "/products?category=chargers-adapters" },
-                    { label: "All Products", href: "/products" },
+                    { label: "Smartphones", slug: "smartphones" },
+                    { label: "Smart Watches", slug: "smart-watches" },
+                    { label: "Laptops & MacBooks", slug: "laptops" },
+                    { label: "Earbuds & Audio", slug: "earbuds" },
+                    { label: "Fast Chargers", slug: "chargers-adapters" },
+                    { label: "Power Banks", slug: "power-banks" },
+                    { label: "Cases & Covers", slug: "phone-cases" },
+                    { label: "All Products", slug: "" },
                   ].map((cat) => (
                     <Link
                       key={cat.label}
-                      href={cat.href}
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-between p-3 sm:p-3.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs sm:text-sm font-medium transition-all group min-w-0"
+                      href={cat.slug ? `/products?category=${cat.slug}` : "/products"}
+                      onClick={handleClose}
+                      className="flex items-center justify-between px-3.5 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all group"
                     >
                       <span className="truncate">{cat.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-white/40 group-hover:translate-x-1 transition-transform shrink-0" />
+                      <ChevronRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
                     </Link>
                   ))}
                 </div>
               </div>
             </div>
-          ) : (
+          )}
+
+          {/* ─────────────────────────────────────────────────────────────
+             STATE 2: SEARCH RESULTS & AUTOCOMPLETE DROPDOWN
+          ───────────────────────────────────────────────────────────── */}
+          {hasSearchContent && searchResults && (
             <div className="space-y-6">
-              {filteredProducts.length === 0 && filteredCategories.length === 0 && filteredBrands.length === 0 ? (
-                <div className="py-12 text-center space-y-3">
-                  <Package className="w-10 h-10 text-white/20 mx-auto" />
-                  <p className="text-white/60 text-sm">No results found for &ldquo;{query}&rdquo;</p>
-                  <Link
-                    href="/products"
-                    onClick={() => setIsOpen(false)}
-                    className="inline-block px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 text-xs font-bold text-white transition-all"
+              
+              {/* 1. Typo Correction ("Did You Mean?") Alert Banner */}
+              {searchResults.didYouMean && (
+                <div className="flex items-center justify-between p-3 sm:p-4 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs sm:text-sm">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Sparkles className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span>Did you mean:</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setQuery(searchResults.didYouMean!);
+                        inputRef.current?.focus();
+                      }}
+                      className="font-black text-white underline underline-offset-4 decoration-amber-400 hover:text-amber-300 transition-colors cursor-pointer text-sm sm:text-base"
+                    >
+                      {searchResults.didYouMean}
+                    </button>
+                    <span className="text-white/60 text-[11px]">(Showing results for both)</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleSelectQuery(searchResults.didYouMean!)}
+                    className="hidden sm:inline-flex items-center gap-1 text-xs font-bold text-amber-300 hover:text-white px-3 py-1 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 transition-all shrink-0 cursor-pointer"
                   >
-                    Browse All Store Products →
-                  </Link>
+                    Search &ldquo;{searchResults.didYouMean}&rdquo; →
+                  </button>
                 </div>
-              ) : (
-                <>
-                  {/* Products */}
-                  {filteredProducts.length > 0 && (
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60">
-                          Products ({filteredProducts.length})
+              )}
+
+              {/* No Results Fallback */}
+              {!hasAnyMatches && (
+                <div className="py-12 text-center space-y-4">
+                  <div className="w-16 h-16 rounded-full bg-white/5 border border-white/10 flex items-center justify-center mx-auto text-2xl">
+                    🔍
+                  </div>
+                  <h3 className="text-lg font-bold text-white">No exact matches found for &ldquo;{query}&rdquo;</h3>
+                  <p className="text-xs sm:text-sm text-white/60 max-w-md mx-auto">
+                    Try checking for spelling errors, using simpler keywords, or browsing our full product catalog.
+                  </p>
+                  <div className="pt-2">
+                    <Link
+                      href="/products"
+                      onClick={handleClose}
+                      className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white text-black font-extrabold text-xs hover:bg-amber-400 transition-all cursor-pointer"
+                    >
+                      Browse All Store Products <ArrowRight className="w-4 h-4" />
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {/* Multi-Section Content Grid */}
+              {hasAnyMatches && (
+                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                  
+                  {/* Left Column: Suggestions, Categories & Brands (5 cols on Desktop) */}
+                  <div className="lg:col-span-5 space-y-5">
+                    
+                    {/* Search Suggestions */}
+                    {searchResults.suggestions.length > 0 && (
+                      <div>
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                          Keyword Suggestions
                         </h4>
-                        <Link
-                          href={`/products?search=${encodeURIComponent(query)}`}
-                          onClick={() => setIsOpen(false)}
-                          className="text-xs text-blue-400 hover:underline flex items-center gap-1 font-bold"
-                        >
-                          View All <ArrowRight className="w-3.5 h-3.5" />
-                        </Link>
+                        <div className="space-y-1">
+                          {searchResults.suggestions.map((sug) => {
+                            const itemIdx = navigableItems.findIndex((item) => item.id === `sug-${sug}`);
+                            const isActive = activeItemIndex === itemIdx;
+
+                            return (
+                              <button
+                                key={sug}
+                                type="button"
+                                onClick={() => handleSelectQuery(sug)}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs sm:text-sm font-normal transition-all cursor-pointer group ${
+                                  isActive
+                                    ? "bg-white/15 text-white"
+                                    : "hover:bg-white/10 text-neutral-300 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2.5 truncate">
+                                  <Search className="w-3.5 h-3.5 text-neutral-400 group-hover:text-white shrink-0" />
+                                  <span className="truncate">
+                                    <HighlightedText text={sug} highlight={query} />
+                                  </span>
+                                </div>
+                                <CornerDownLeft className="w-3 h-3 text-neutral-500 group-hover:text-white shrink-0" />
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
+                    )}
 
-                      <div className="space-y-2.5">
-                        {filteredProducts.map((product) => {
-                          const cleanCatName = (product.category_name || product.categoryName || "").replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim();
-                          const cleanBrand = (product.brand_name || product.brandName || product.brand || "").trim();
+                    {/* Matching Categories */}
+                    {searchResults.categories.length > 0 && (
+                      <div>
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                          Categories
+                        </h4>
+                        <div className="space-y-1">
+                          {searchResults.categories.map(({ category, count }) => {
+                            const itemIdx = navigableItems.findIndex(
+                              (item) => item.id === `cat-${category.slug}`
+                            );
+                            const isActive = activeItemIndex === itemIdx;
 
-                          return (
-                            <Link
-                              key={product.id}
-                              href={`/products/${product.slug || product.id}`}
-                              onClick={() => setIsOpen(false)}
-                              className="flex items-center gap-4 p-3 sm:p-3.5 rounded-2xl bg-white/5 hover:bg-white/15 border border-white/10 transition-all group"
-                            >
-                              <div className="w-14 h-14 rounded-xl bg-white shrink-0 overflow-hidden border border-white/10 p-1 flex items-center justify-center">
-                                {product.images?.[0] ? (
+                            return (
+                              <button
+                                key={category.id || category.slug}
+                                type="button"
+                                onClick={() => handleSelectCategory(category)}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs sm:text-sm font-normal transition-all cursor-pointer group ${
+                                  isActive
+                                    ? "bg-white/15 text-white"
+                                    : "hover:bg-white/10 text-neutral-300 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="truncate font-medium">
+                                    <HighlightedText text={category.name} highlight={query} />
+                                  </span>
+                                </div>
+                                {count > 0 && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-neutral-400 shrink-0">
+                                    {count} {count === 1 ? "item" : "items"}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Matching Brands */}
+                    {searchResults.brands.length > 0 && (
+                      <div>
+                        <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400 mb-2">
+                          Brands
+                        </h4>
+                        <div className="space-y-1">
+                          {searchResults.brands.map(({ brand, count }) => {
+                            const itemIdx = navigableItems.findIndex(
+                              (item) => item.id === `brand-${brand.slug}`
+                            );
+                            const isActive = activeItemIndex === itemIdx;
+
+                            return (
+                              <button
+                                key={brand.id || brand.slug}
+                                type="button"
+                                onClick={() => handleSelectBrand(brand)}
+                                className={`w-full flex items-center justify-between p-2.5 rounded-xl text-left text-xs sm:text-sm font-normal transition-all cursor-pointer group ${
+                                  isActive
+                                    ? "bg-white/15 text-white"
+                                    : "hover:bg-white/10 text-neutral-300 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center gap-2 truncate">
+                                  <span className="truncate font-medium">
+                                    <HighlightedText text={brand.name} highlight={query} />
+                                  </span>
+                                </div>
+                                {count > 0 && (
+                                  <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/10 text-neutral-400 shrink-0">
+                                    {count} {count === 1 ? "product" : "products"}
+                                  </span>
+                                )}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Right Column: Matching Products (7 cols on Desktop) */}
+                  <div className="lg:col-span-7 space-y-3">
+                    <div className="flex items-center justify-between mb-1">
+                      <h4 className="text-[11px] font-semibold uppercase tracking-wider text-neutral-400">
+                        Products ({searchResults.totalMatches})
+                      </h4>
+                      <button
+                        type="button"
+                        onClick={() => handleSelectQuery(query)}
+                        className="text-xs text-amber-400 hover:text-amber-300 font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                      >
+                        View All Results <ArrowRight className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {searchResults.products.slice(0, 6).map((product) => {
+                        const itemIdx = navigableItems.findIndex(
+                          (item) => item.id === `prod-${product.id || product.slug}`
+                        );
+                        const isActive = activeItemIndex === itemIdx;
+                        const isOutOfStock = product.stock_status === "out_of_stock";
+                        const effectivePrice =
+                          product.sale_price && product.sale_price > 0 && product.sale_price < product.price
+                            ? product.sale_price
+                            : product.price;
+                        const hasDiscount =
+                          product.old_price &&
+                          product.old_price > product.price &&
+                          Math.round(((product.old_price - product.price) / product.old_price) * 100) > 0;
+
+                        return (
+                          <div
+                            key={product.id || product.slug}
+                            onClick={() => handleSelectProduct(product)}
+                            className={`flex items-center justify-between p-2.5 sm:p-3 rounded-2xl border transition-all cursor-pointer group ${
+                              isActive
+                                ? "bg-white/20 border-amber-400 shadow-lg scale-[1.01]"
+                                : "bg-white/5 hover:bg-white/10 border-white/10 hover:border-white/25"
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0 pr-3">
+                              {/* Product Thumbnail */}
+                              <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-xl bg-neutral-900 border border-white/10 p-1 shrink-0 flex items-center justify-center overflow-hidden relative">
+                                {product.images && product.images.length > 0 ? (
                                   <img
                                     src={product.images[0]}
                                     alt={product.name}
-                                    className="w-full h-full object-contain group-hover:scale-105 transition-transform"
+                                    className="w-full h-full object-contain"
+                                    loading="lazy"
                                   />
                                 ) : (
-                                  <Package className="w-6 h-6 text-gray-400" />
+                                  <ShoppingBag className="w-5 h-5 text-white/30" />
                                 )}
                               </div>
 
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-xs sm:text-sm font-bold text-white group-hover:text-blue-300 transition-colors truncate">
-                                  {product.name}
-                                </h4>
-                                <div className="flex items-center gap-2 text-[11px] text-white/50 mt-1 font-medium">
-                                  {cleanCatName && <span>{cleanCatName}</span>}
-                                  {cleanBrand && cleanBrand !== "Other" && <span>• {cleanBrand}</span>}
-                                  {product.code && <span className="font-mono text-white/40">• {product.code}</span>}
+                              {/* Product Info */}
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2 mb-0.5 flex-wrap">
+                                  {product.brand_name && (
+                                    <span className="text-[10px] font-black uppercase tracking-wider text-amber-400">
+                                      {product.brand_name}
+                                    </span>
+                                  )}
+                                  {product.category_name && (
+                                    <span className="text-[10px] text-white/40 font-semibold truncate max-w-[120px]">
+                                      • {product.category_name}
+                                    </span>
+                                  )}
+                                </div>
+
+                                <h5 className="text-xs sm:text-sm font-bold text-white group-hover:text-amber-300 transition-colors truncate">
+                                  <HighlightedText text={product.name} highlight={query} />
+                                </h5>
+
+                                <div className="flex items-center gap-2 mt-1 flex-wrap">
+                                  <span className="text-xs sm:text-sm font-black text-white">
+                                    {formatPrice(effectivePrice)}
+                                  </span>
+                                  {hasDiscount && (
+                                    <span className="text-[10px] sm:text-xs text-white/40 line-through">
+                                      {formatPrice(product.old_price!)}
+                                    </span>
+                                  )}
+                                  {isOutOfStock ? (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-neutral-800 text-neutral-400 font-bold">
+                                      Out of Stock
+                                    </span>
+                                  ) : (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 font-bold">
+                                      In Stock
+                                    </span>
+                                  )}
                                 </div>
                               </div>
+                            </div>
 
-                              <div className="text-right shrink-0">
-                                <span className="text-xs sm:text-sm font-black text-white">{formatPrice(product.price)}</span>
-                                {product.stock_status === "out_of_stock" && (
-                                  <span className="block text-[10px] text-amber-400 font-bold">Pre-Order</span>
-                                )}
-                              </div>
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Categories & Brands when no product match or as supplement */}
-                  {(filteredCategories.length > 0 || filteredBrands.length > 0) && (
-                    <div className="space-y-3">
-                      {filteredCategories.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60 mb-3 flex items-center gap-2">
-                            <Tag className="w-3.5 h-3.5 text-blue-400" />
-                            Categories
-                          </h4>
-                          <div className="space-y-2">
-                            {filteredCategories.map((cat) => (
-                              <Link
-                                key={cat.id}
-                                href={`/products?category=${cat.slug}`}
-                                onClick={() => setIsOpen(false)}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-medium transition-all group"
-                              >
-                                <span>{cat.name}</span>
-                                <ChevronRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 transition-transform" />
-                              </Link>
-                            ))}
+                            <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-white group-hover:translate-x-1 transition-transform shrink-0" />
                           </div>
-                        </div>
-                      )}
-                      {filteredBrands.length > 0 && (
-                        <div>
-                          <h4 className="text-xs font-extrabold uppercase tracking-wider text-white/60 mb-3 flex items-center gap-2">
-                            <Tag className="w-3.5 h-3.5 text-emerald-400" />
-                            Brands
-                          </h4>
-                          <div className="space-y-2">
-                            {filteredBrands.map((brand) => (
-                              <Link
-                                key={brand.id}
-                                href={`/products?brand=${brand.slug}`}
-                                onClick={() => setIsOpen(false)}
-                                className="flex items-center justify-between p-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-medium transition-all group"
-                              >
-                                <span>{brand.name}</span>
-                                <ChevronRight className="w-4 h-4 text-white/40 group-hover:translate-x-1 transition-transform" />
-                              </Link>
-                            ))}
-                          </div>
-                        </div>
-                      )}
+                        );
+                      })}
                     </div>
-                  )}
 
-                  {/* Always show View All link */}
-                  <Link
-                    href={`/products?search=${encodeURIComponent(query)}`}
-                    onClick={() => setIsOpen(false)}
-                    className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-xs font-bold text-white transition-all"
-                  >
-                    View all results for &ldquo;{query}&rdquo;
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </>
+                    {/* View All CTA Footer Bar */}
+                    <div className="pt-2">
+                      <button
+                        type="button"
+                        onClick={() => handleSelectQuery(query)}
+                        className="w-full py-3 px-4 rounded-xl bg-white text-black hover:bg-amber-400 hover:text-black font-black text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-xl active:scale-95 cursor-pointer"
+                      >
+                        <span>View All {searchResults.totalMatches} Products for &ldquo;{query}&rdquo;</span>
+                        <ArrowRight className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
               )}
             </div>
           )}

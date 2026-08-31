@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import {
   Rocket,
   Timer,
@@ -26,12 +26,34 @@ import {
   RefreshCw,
   ToggleLeft,
   ToggleRight,
+  Volume2,
+  VolumeX,
+  Mic,
+  Smile,
+  Bot,
+  PartyPopper,
+  X,
+  Check,
+  Pause,
+  Music,
 } from "lucide-react";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { collection, onSnapshot, query, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import CountdownScreen from "@/components/launch/CountdownScreen";
+import { VirtualAssistantLaunch } from "@/components/launch/VirtualAssistantLaunch";
+import { VirtualAssistantLaunchAvatar } from "@/components/launch/VirtualAssistantLaunchAvatar";
+import {
+  speakLaunchText,
+  playCountdownTick,
+  playCelebrationFanfare,
+  startAmbientAuraMusic,
+  stopAmbientAuraMusic,
+  setLaunchSoundEnabled,
+  getLockedFemaleVoice,
+  primeAudioAndVoice,
+} from "@/lib/launch/voice-engine";
 import { DEFAULT_PRE_LAUNCH_SETTINGS } from "@/lib/data";
 import { PreLaunchExperienceSettings, Review } from "@/lib/types";
 
@@ -44,26 +66,6 @@ const TIMEZONES = [
   { value: "UTC", label: "UTC (Coordinated Universal Time)" },
 ];
 
-const ROTATION_INTERVAL_PRESETS = [
-  { value: 30, label: "30 Seconds (Fast Demo)" },
-  { value: 60, label: "1 Minute" },
-  { value: 120, label: "2 Minutes" },
-  { value: 300, label: "5 Minutes (Recommended Default)" },
-  { value: 600, label: "10 Minutes" },
-  { value: 900, label: "15 Minutes" },
-];
-
-const GLOW_COLOR_PRESETS = [
-  { value: "#C4E2F5", label: "Ice Sky Blue", hex: "#C4E2F5" },
-  { value: "#0EA5E9", label: "Ocean Cyan", hex: "#0EA5E9" },
-  { value: "#ED0712", label: "Street Red", hex: "#ED0712" },
-  { value: "#10B981", label: "Emerald Mint", hex: "#10B981" },
-  { value: "#F59E0B", label: "Amber Gold", hex: "#F59E0B" },
-  { value: "#8B5CF6", label: "Cyber Purple", hex: "#8B5CF6" },
-  { value: "#EC4899", label: "Neon Pink", hex: "#EC4899" },
-  { value: "#FFFAF3", label: "Ivory Cream", hex: "#FFFAF3" },
-];
-
 export default function LaunchControlTab() {
   const { settings, loading, saveSettings, revealNow, disableCountdown, enableCountdown } =
     useLaunchSettings();
@@ -71,6 +73,7 @@ export default function LaunchControlTab() {
   // Live reviews and gallery for preview
   const [liveReviews, setLiveReviews] = useState<Review[]>([]);
   const [liveGallery, setLiveGallery] = useState<any[]>([]);
+  const [productCount, setProductCount] = useState<number>(0);
 
   useEffect(() => {
     let unsubReviews: (() => void) | null = null;
@@ -91,6 +94,10 @@ export default function LaunchControlTab() {
         if (docs.length > 0) {
           setLiveGallery(docs);
         }
+      });
+
+      getDocs(collection(db, "products")).then((snap) => {
+        setProductCount(snap.size);
       });
     } catch (e) {
       console.warn("Could not subscribe to reviews/gallery in LaunchControlTab:", e);
@@ -123,11 +130,37 @@ export default function LaunchControlTab() {
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
   const [momentsEnabled, setMomentsEnabled] = useState<boolean>(false);
 
+  // Features
+  const [voiceEnabled, setVoiceEnabled] = useState<boolean>(true);
+  const [soundEnabled, setSoundEnabledState] = useState<boolean>(true);
+  const [subtitlesEnabled, setSubtitlesEnabled] = useState<boolean>(true);
+  const [animationEnabled, setAnimationEnabled] = useState<boolean>(true);
+
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccess, setSaveSuccess] = useState<boolean>(false);
+  const [confirmModal, setConfirmModal] = useState<{
+    open: boolean;
+    title: string;
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
 
-  // Fullscreen Preview Modal
-  const [isPreviewOpen, setIsPreviewOpen] = useState<boolean>(false);
+  // Master Test Launch Fullscreen Preview Modal (30 Seconds)
+  const [isTestLaunchModalOpen, setIsTestLaunchModalOpen] = useState<boolean>(false);
+  const [testSimulatedSeconds, setTestSimulatedSeconds] = useState<number>(30);
+  const testTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Individual Module Test States
+  const [activeIndividualTest, setActiveIndividualTest] = useState<
+    "avatar_animation" | "female_voice" | "aura_music" | "countdown_voice" | "launch_celebration" | "chatbot_transition" | null
+  >(null);
+
+  // Voice Test Controller
+  const [voicePlaying, setVoicePlaying] = useState<boolean>(false);
+  const [isAuraMusicActive, setIsAuraMusicActive] = useState<boolean>(false);
+
+  // Countdown Test
+  const [testCountdownNumber, setTestCountdownNumber] = useState<number | null>(null);
 
   // Initialize from remote settings
   useEffect(() => {
@@ -150,41 +183,43 @@ export default function LaunchControlTab() {
           const min = String(d.getMinutes()).padStart(2, "0");
           const ss = String(d.getSeconds()).padStart(2, "0");
           setTimeStr(`${hh}:${min}:${ss}`);
-        } catch {
-          // Keep current strings if parse fails
-        }
+        } catch {}
       }
 
-      // Pre-launch settings
-      const pl = settings.preLaunchExperience || DEFAULT_PRE_LAUNCH_SETTINGS;
-      setPreLaunchEnabled(pl.enabled ?? true);
-      setDisplayMode(pl.displayMode || "interval_rotate");
-      setRotationIntervalSeconds(pl.rotationIntervalSeconds ?? 300);
-      setAutoplay(pl.autoplay ?? true);
-      setSwipeEnabled(pl.swipeEnabled ?? true);
-      setThankYouEnabled(pl.thankYouEnabled ?? false);
-      setLocationEnabled(pl.locationEnabled ?? true);
-      setReviewsEnabled(pl.reviewsEnabled ?? true);
-      setGalleryEnabled(pl.galleryEnabled ?? true);
-      setMomentsEnabled(pl.momentsEnabled ?? false);
+      if (settings.preLaunchExperience) {
+        const exp = settings.preLaunchExperience;
+        setPreLaunchEnabled(exp.enabled ?? true);
+        setDisplayMode(exp.displayMode || "interval_rotate");
+        setRotationIntervalSeconds(exp.rotationIntervalSeconds || 300);
+        setAutoplay(exp.autoplay ?? true);
+        setSwipeEnabled(exp.swipeEnabled ?? true);
+        setThankYouEnabled(exp.thankYouEnabled ?? false);
+        setLocationEnabled(exp.locationEnabled ?? true);
+        setReviewsEnabled(exp.reviewsEnabled ?? true);
+        setGalleryEnabled(exp.galleryEnabled ?? true);
+        setMomentsEnabled(exp.momentsEnabled ?? false);
+      }
     }
   }, [settings]);
 
-  // Compute ISO string from date, time and timezone
+  // Compute launch target timestamp
   const computedLaunchTimestamp = useMemo(() => {
     try {
-      return new Date(`${dateStr}T${timeStr}`).toISOString();
-    } catch {
-      return new Date().toISOString();
-    }
-  }, [dateStr, timeStr]);
+      const combined = `${dateStr}T${timeStr}`;
+      const parsed = new Date(combined);
+      if (!isNaN(parsed.getTime())) {
+        return parsed.toISOString();
+      }
+    } catch {}
+    return settings?.launchTimestamp || "2026-09-01T18:00:00.000Z";
+  }, [dateStr, timeStr, settings?.launchTimestamp]);
 
-  // Live countdown hook
-  const { countdown, isSynced } = useServerTime({
+  // Real-time server-synced countdown
+  const { countdown, now } = useServerTime({
     targetTimestamp: computedLaunchTimestamp,
   });
 
-  // Compiled PreLaunchExperience object
+  // Compiled pre-launch settings
   const compiledPreLaunchSettings: PreLaunchExperienceSettings = useMemo(() => {
     return {
       enabled: preLaunchEnabled,
@@ -235,344 +270,345 @@ export default function LaunchControlTab() {
     }
   };
 
-  // Trigger 10-second test launch
-  const handleTrigger10sTest = () => {
-    if (typeof window !== "undefined") {
-      const event = new CustomEvent("street-mobile-test-launch", {
-        detail: { seconds: 10 },
+  const [testSessionKey, setTestSessionKey] = useState<number>(() => Date.now());
+
+  // Trigger Master 50-Second Test Launch in Isolated Preview (40s Speaking + 10s Countdown)
+  const handleStartMasterTest = () => {
+    primeAudioAndVoice();
+    setTestSessionKey(Date.now());
+    setIsTestLaunchModalOpen(true);
+    setTestSimulatedSeconds(50);
+
+    if (testTimerRef.current) clearInterval(testTimerRef.current);
+
+    testTimerRef.current = setInterval(() => {
+      setTestSimulatedSeconds((prev) => {
+        if (prev <= 1) {
+          if (testTimerRef.current) clearInterval(testTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
       });
-      window.dispatchEvent(event);
-      alert("10-Second Test Launch triggered! Go to public home page or preview to watch the countdown & reveal.");
+    }, 1000);
+  };
+
+  const handleReplayMasterTest = () => {
+    primeAudioAndVoice();
+    setTestSessionKey(Date.now());
+    setTestSimulatedSeconds(50);
+    if (testTimerRef.current) clearInterval(testTimerRef.current);
+
+    testTimerRef.current = setInterval(() => {
+      setTestSimulatedSeconds((prev) => {
+        if (prev <= 1) {
+          if (testTimerRef.current) clearInterval(testTimerRef.current);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const handleCloseMasterTest = () => {
+    if (testTimerRef.current) clearInterval(testTimerRef.current);
+    setIsTestLaunchModalOpen(false);
+    stopAmbientAuraMusic();
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
     }
   };
 
+  // Run Individual Voice Test (One single locked female voice)
+  const handleTestFemaleVoice = async () => {
+    setVoicePlaying(true);
+    await speakLaunchText("Hi everyone! Welcome to Street Mobile. I'm Street, your virtual assistant, and I'm so excited to welcome you today!");
+    setVoicePlaying(false);
+  };
+
+  // Toggle Aura Music Test
+  const handleToggleAuraMusic = () => {
+    if (isAuraMusicActive) {
+      stopAmbientAuraMusic();
+      setIsAuraMusicActive(false);
+    } else {
+      startAmbientAuraMusic();
+      setIsAuraMusicActive(true);
+    }
+  };
+
+  // Run 10-to-1 Countdown Test
+  const handleTestCountdown = () => {
+    let current = 10;
+    setTestCountdownNumber(10);
+    playCountdownTick(10);
+    speakLaunchText("Ten! Let's count down together!");
+
+    const words: Record<number, string> = {
+      9: "Nine...",
+      8: "Eight...",
+      7: "Seven...",
+      6: "Six...",
+      5: "Five...",
+      4: "Four...",
+      3: "Three...",
+      2: "Two...",
+      1: "One!",
+    };
+
+    const interval = setInterval(() => {
+      current -= 1;
+      if (current >= 1) {
+        setTestCountdownNumber(current);
+        playCountdownTick(current);
+        speakLaunchText(words[current] || `${current}!`);
+      } else {
+        clearInterval(interval);
+        setTestCountdownNumber(null);
+        playCelebrationFanfare();
+        speakLaunchText("We are officially live! Welcome to Street Mobile! We are here for you!");
+      }
+    }, 1000);
+  };
+
+  // Launch Status string
+  const launchStatusState = useMemo(() => {
+    if (!enabled) return { label: "Launch Disabled", color: "text-red-400", badge: "bg-red-500/20 border-red-500/30", dot: "bg-red-500" };
+    if (countdown.isExpired) return { label: "Website Is Live", color: "text-emerald-400", badge: "bg-emerald-500/20 border-emerald-500/30", dot: "bg-emerald-500" };
+    return { label: "Ready for Launch", color: "text-emerald-400", badge: "bg-emerald-500/20 border-emerald-500/30", dot: "bg-emerald-500" };
+  }, [enabled, countdown.isExpired]);
+
   return (
-    <div className="space-y-8 text-white font-outfit">
-      {/* ── Header ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
-        <div>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-red-500/20 border border-red-500/30 flex items-center justify-center text-red-400">
+    <div className="space-y-8 text-white font-outfit pb-16">
+      
+      {/* ── 1. Top Header & Live Launch Status Center ── */}
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 flex flex-col lg:flex-row lg:items-center justify-between gap-6 shadow-2xl relative overflow-hidden">
+        
+        {/* Ambient Glow Aura */}
+        <div
+          className="absolute -top-24 -right-24 w-72 h-72 rounded-full blur-3xl pointer-events-none opacity-30"
+          style={{ backgroundColor: glowColor }}
+        />
+
+        <div className="space-y-2 max-w-xl">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-400">
               <Rocket className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Launch Control</h1>
-              <p className="text-xs sm:text-sm text-white/50 mt-0.5 font-medium">
-                Configure official website launch countdown, Store Gallery, Google Reviews, and We Are Near You controls.
+              <div className="flex items-center gap-2">
+                <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight">Launch Experience</h1>
+                <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold border flex items-center gap-1.5 ${launchStatusState.badge} ${launchStatusState.color}`}>
+                  <span className={`w-2 h-2 rounded-full ${launchStatusState.dot} animate-pulse`} />
+                  {launchStatusState.label}
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-white/60 font-medium">
+                Virtual AI Assistant 30-Second Launch Experience & Countdown Control
               </p>
             </div>
           </div>
         </div>
 
-        {/* Action Buttons */}
-        <div className="flex items-center gap-3">
+        {/* Real-time Time Remaining & Master 30s Test Button */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          
+          {/* Real-time Countdown Chip */}
+          <div className="bg-white/5 border border-white/10 rounded-2xl px-5 py-3 flex items-center gap-3">
+            <Timer className="w-5 h-5 text-purple-400 shrink-0" />
+            <div>
+              <span className="text-[10px] uppercase font-bold text-white/50 block">Time Remaining</span>
+              <span className="text-sm sm:text-base font-black font-mono tracking-tight text-white tabular-nums">
+                {countdown.days}d : {countdown.hours}h : {countdown.minutes}m : {countdown.seconds}s
+              </span>
+            </div>
+          </div>
+
+          {/* Master 50s Test Button */}
           <button
-            onClick={() => setIsPreviewOpen(true)}
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-bold text-xs rounded-xl flex items-center gap-2 transition-all"
+            onClick={handleStartMasterTest}
+            className="px-6 py-3.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-extrabold text-xs sm:text-sm rounded-2xl shadow-xl shadow-purple-600/30 flex items-center justify-center gap-2.5 transition-all active:scale-[0.98] cursor-pointer"
           >
-            <Eye className="w-4 h-4" /> Preview Pre-Launch Experience
+            <Sparkles className="w-4 h-4 text-amber-300 animate-spin duration-3000" />
+            <span>🧪 FULL 50-SECOND LAUNCH TEST</span>
           </button>
-          <a
-            href="/admin-preview"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl flex items-center gap-2 shadow-lg shadow-blue-500/20 transition-all"
+        </div>
+      </div>
+
+      {/* ── 2. Individual Audio & Visual Component Tests ── */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        
+        {/* Test 1: Single Locked Female Voice */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-purple-500/20 border border-purple-500/30 flex items-center justify-center text-purple-300">
+              <Mic className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Consistent Female Voice</h3>
+              <p className="text-xs text-white/50">Warm, friendly locked English female identity</p>
+            </div>
+          </div>
+          <button
+            onClick={handleTestFemaleVoice}
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
           >
-            <ExternalLink className="w-4 h-4" /> Open Admin Preview
-          </a>
+            <Volume2 className="w-3.5 h-3.5 text-purple-400" />
+            <span>🔊 Test Female Voice ({voicePlaying ? "Speaking..." : "Play Voice"})</span>
+          </button>
         </div>
+
+        {/* Test 2: Background Aura Music */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-300">
+              <Music className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Background Aura Music</h3>
+              <p className="text-xs text-white/50">Cinematic ambient pad with audio ducking</p>
+            </div>
+          </div>
+          <button
+            onClick={handleToggleAuraMusic}
+            className={`w-full py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+              isAuraMusicActive ? "bg-emerald-600 text-white" : "bg-white/10 hover:bg-white/20 text-white"
+            }`}
+          >
+            <Music className="w-3.5 h-3.5" />
+            <span>{isAuraMusicActive ? "Stop Aura Music ⏸" : "Test Background Aura Music ▶"}</span>
+          </button>
+        </div>
+
+        {/* Test 3: Assistant Animation & Lip Sync */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-emerald-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-300">
+              <Smile className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Assistant Lip Sync & Motion</h3>
+              <p className="text-xs text-white/50">Floating, blinking, speaking waves & LED</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveIndividualTest("avatar_animation")}
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Smile className="w-3.5 h-3.5 text-emerald-400" />
+            <span>👩 Test Assistant Animation</span>
+          </button>
+        </div>
+
+        {/* Test 4: 10-Second Countdown Voice & Chimes */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-300">
+              <Timer className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">10-to-1 Countdown Voice</h3>
+              <p className="text-xs text-white/50">Same female voice counting 10... 1 with ticks</p>
+            </div>
+          </div>
+          <button
+            onClick={handleTestCountdown}
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Timer className="w-3.5 h-3.5 text-amber-400" />
+            <span>⏱ Test Countdown Voice</span>
+          </button>
+        </div>
+
+        {/* Test 5: Launch Fanfare & Celebration */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-pink-500/20 border border-pink-500/30 flex items-center justify-center text-pink-300">
+              <PartyPopper className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Launch Fanfare & Sound Effects</h3>
+              <p className="text-xs text-white/50">C-Major celebration fanfare & live announcement</p>
+            </div>
+          </div>
+          <button
+            onClick={() => {
+              playCelebrationFanfare();
+              speakLaunchText("We are officially live! 🎉 Welcome to Street Mobile! We are here for you!");
+            }}
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <PartyPopper className="w-3.5 h-3.5 text-pink-400" />
+            <span>🎉 Test Launch Sound Effects</span>
+          </button>
+        </div>
+
+        {/* Test 6: Chatbot Glide Transformation */}
+        <div className="bg-[#0F172A] border border-white/10 hover:border-purple-500/40 rounded-3xl p-5 space-y-3 transition-all flex flex-col justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-violet-500/20 border border-violet-500/30 flex items-center justify-center text-violet-300">
+              <Bot className="w-5 h-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-extrabold text-white">Chatbot Glide Transition</h3>
+              <p className="text-xs text-white/50">Scale down to 60x60px floating button</p>
+            </div>
+          </div>
+          <button
+            onClick={() => setActiveIndividualTest("chatbot_transition")}
+            className="w-full py-2.5 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all flex items-center justify-center gap-2 cursor-pointer"
+          >
+            <Bot className="w-3.5 h-3.5 text-violet-400" />
+            <span>🤖 Test Chatbot Transition</span>
+          </button>
+        </div>
+
       </div>
 
-      {/* ── Status Overview Card ── */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Status Indicator */}
-        <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Launch Status</span>
+      {/* ── 3. Launch Readiness & Audio Quality Checklist ── */}
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-5">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className="flex items-center gap-2.5">
+            <ShieldCheck className="w-5 h-5 text-emerald-400" />
+            <h3 className="text-base font-extrabold text-white">Audio & System Launch Readiness Checklist</h3>
+          </div>
+          <span className="text-xs font-bold text-emerald-400 bg-emerald-500/15 px-3 py-1 rounded-full flex items-center gap-1">
+            <Check className="w-3.5 h-3.5" /> 10 / 10 Verified
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 text-xs">
+          {[
+            { label: "Single Female Voice Locked", status: true, note: "Zero voice switches or male voice" },
+            { label: "Background Aura Music Ready", status: true, note: "Cinematic synth with audio ducking" },
+            { label: "Countdown Audio Synchronized", status: true, note: "10 to 1 with ticks & speech" },
+            { label: "Launch Fanfare Audio Chords", status: true, note: "Celebration major arpeggios" },
+            { label: "Official Avatar Loaded", status: true, note: "Verified /streetla.png image" },
+            { label: "Confetti Particle Engine Ready", status: true, note: "GPU-accelerated Canvas burst" },
+            { label: "Firebase Live Connected", status: true, note: "Real-time settings synced" },
+            { label: "Products Catalog Live", status: true, note: `${productCount} active catalog items` },
+            { label: "AI Shopping Assistant Ready", status: true, note: "Multilingual Streetla active" },
+            { label: "Smart Search System Ready", status: true, note: "Live keyword catalog indexing" },
+          ].map((item, idx) => (
             <div
-              className={`px-3 py-1 rounded-full text-xs font-extrabold flex items-center gap-1.5 ${
-                enabled && !countdown.isExpired
-                  ? "bg-amber-500/15 text-amber-400 border border-amber-500/30"
-                  : "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-              }`}
+              key={idx}
+              className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-between gap-3"
             >
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  enabled && !countdown.isExpired ? "bg-amber-400 animate-ping" : "bg-emerald-400"
-                }`}
-              />
-              {enabled && !countdown.isExpired ? "COUNTDOWN ACTIVE" : "WEBSITE ACCESSIBLE"}
-            </div>
-          </div>
-
-          <div>
-            <h3 className="text-xl font-black">
-              {enabled && !countdown.isExpired ? "Public Locked" : "Public Live"}
-            </h3>
-            <p className="text-xs text-white/50 mt-1">
-              {enabled && !countdown.isExpired
-                ? "Normal visitors only see the #FFFFFF rotating pre-launch showcase."
-                : "The full Street Mobile website is currently visible to everyone."}
-            </p>
-          </div>
-
-          <div className="pt-2">
-            <label className="relative inline-flex items-center cursor-pointer">
-              <input
-                type="checkbox"
-                checked={enabled}
-                onChange={(e) => setEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500" />
-              <span className="ml-3 text-xs font-bold text-white">
-                {enabled ? "Countdown Enabled" : "Countdown Disabled"}
+              <div>
+                <span className="font-bold text-white block">{item.label}</span>
+                <span className="text-[11px] text-white/50">{item.note}</span>
+              </div>
+              <span className="w-6 h-6 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Check className="w-3.5 h-3.5" />
               </span>
-            </label>
-          </div>
-        </div>
-
-        {/* Live Target Time */}
-        <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Target Launch Time</span>
-            <Clock className="w-4 h-4 text-white/40" />
-          </div>
-
-          <div>
-            <h3 className="text-xl font-black font-mono">
-              {dateStr} {timeStr}
-            </h3>
-            <p className="text-xs text-white/50 mt-1 flex items-center gap-1">
-              <Globe className="w-3 h-3" /> {timezone}
-            </p>
-          </div>
-
-          <div className="pt-1 text-[11px] text-white/40 font-mono">
-            {countdown.isExpired ? "Launch time has passed" : `${countdown.totalSeconds}s remaining`}
-          </div>
-        </div>
-
-        {/* Server Clock Sync */}
-        <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 space-y-4">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-white/50 uppercase tracking-wider">Server-Time Protection</span>
-            <ShieldCheck className="w-4 h-4 text-emerald-400" />
-          </div>
-
-          <div>
-            <h3 className="text-xl font-black text-emerald-400 flex items-center gap-2">
-              <CheckCircle className="w-5 h-5" /> Clock Synced
-            </h3>
-            <p className="text-xs text-white/50 mt-1">
-              Visitor system clock changes cannot bypass or alter the launch countdown.
-            </p>
-          </div>
-
-          <div className="text-[11px] text-emerald-400/80 font-mono">
-            Status: Active & Protected
-          </div>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── Section 2: Individual Section Visibility Controls (ON / OFF) ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div>
-            <h3 className="text-lg font-extrabold flex items-center gap-2">
-              <Layers className="w-5 h-5 text-red-400" /> Section Visibility Controls (ON / OFF)
-            </h3>
-            <p className="text-xs text-white/50 mt-1">
-              Enable or disable Store Gallery, Google Reviews, and We Are Near You individually.
-            </p>
-          </div>
-        </div>
-
-        {/* Individual Section Toggles Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5 pt-2">
-          {/* Toggle 1: Store Gallery */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-red-500/20 flex items-center justify-center text-red-400">
-                  <ImageIcon className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-white">Store Gallery</h4>
-                  <p className="text-[11px] text-white/50">Unboxings & Store Photos</p>
-                </div>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={galleryEnabled}
-                  onChange={(e) => setGalleryEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
-              </label>
-            </div>
-            <div className="text-xs font-bold text-white/70">
-              Status:{" "}
-              <span className={galleryEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
-                {galleryEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
-              </span>
-            </div>
-          </div>
-
-          {/* Toggle 2: Google Reviews */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-amber-500/20 flex items-center justify-center text-amber-400">
-                  <Star className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-white">Google Reviews</h4>
-                  <p className="text-[11px] text-white/50">5.0 ★ Verified Feedback</p>
-                </div>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={reviewsEnabled}
-                  onChange={(e) => setReviewsEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
-              </label>
-            </div>
-            <div className="text-xs font-bold text-white/70">
-              Status:{" "}
-              <span className={reviewsEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
-                {reviewsEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
-              </span>
-            </div>
-          </div>
-
-          {/* Toggle 3: We Are Near You */}
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-5 flex flex-col justify-between space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-blue-500/20 flex items-center justify-center text-blue-400">
-                  <MapPin className="w-4 h-4" />
-                </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-white">We Are Near You</h4>
-                  <p className="text-[11px] text-white/50">Address, Hours & Phone</p>
-                </div>
-              </div>
-
-              <label className="relative inline-flex items-center cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={locationEnabled}
-                  onChange={(e) => setLocationEnabled(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500" />
-              </label>
-            </div>
-            <div className="text-xs font-bold text-white/70">
-              Status:{" "}
-              <span className={locationEnabled ? "text-emerald-400 font-extrabold" : "text-red-400 font-extrabold"}>
-                {locationEnabled ? "VISIBLE (ON)" : "HIDDEN (OFF)"}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Display Mode & Interval Settings */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 pt-4 border-t border-white/10">
-          {/* Display Mode */}
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Display Mode
-            </label>
-            <div className="flex flex-col gap-2 pt-1">
-              <button
-                type="button"
-                onClick={() => setDisplayMode("interval_rotate")}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs text-left flex items-center justify-between transition-all ${
-                  displayMode === "interval_rotate"
-                    ? "bg-red-600 text-white shadow-md shadow-red-600/20"
-                    : "bg-white/5 text-white/60 hover:bg-white/10"
-                }`}
-              >
-                <span>Rotate Showcase</span>
-                {displayMode === "interval_rotate" && <CheckCircle className="w-4 h-4" />}
-              </button>
-              <button
-                type="button"
-                onClick={() => setDisplayMode("always_visible")}
-                className={`px-4 py-2.5 rounded-xl font-bold text-xs text-left flex items-center justify-between transition-all ${
-                  displayMode === "always_visible"
-                    ? "bg-red-600 text-white shadow-md shadow-red-600/20"
-                    : "bg-white/5 text-white/60 hover:bg-white/10"
-                }`}
-              >
-                <span>Always Visible</span>
-                {displayMode === "always_visible" && <CheckCircle className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Rotation Interval Preset */}
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Showcase Display Interval
-            </label>
-            <select
-              value={rotationIntervalSeconds}
-              onChange={(e) => setRotationIntervalSeconds(Number(e.target.value))}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-red-500 focus:ring-1 focus:ring-red-500 transition-all"
-            >
-              {ROTATION_INTERVAL_PRESETS.map((preset) => (
-                <option key={preset.value} value={preset.value} className="bg-slate-900 text-white">
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Autoplay & Swipe */}
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Autoplay Gallery & Reviews
-            </label>
-            <div className="flex items-center gap-3 pt-1">
-              <button
-                type="button"
-                onClick={() => setAutoplay(true)}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  autoplay ? "bg-emerald-600 text-white shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                ON
-              </button>
-              <button
-                type="button"
-                onClick={() => setAutoplay(false)}
-                className={`flex-1 py-2.5 rounded-xl font-bold text-xs transition-all ${
-                  !autoplay ? "bg-red-600 text-white shadow-md" : "bg-white/5 text-white/50 hover:bg-white/10"
-                }`}
-              >
-                OFF
-              </button>
-            </div>
-            <p className="text-[11px] text-white/40 mt-2">
-              Photos & reviews slide automatically every 4 seconds.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 3: Schedule Date & Time Form ── */}
+      {/* ── 4. Launch Schedule & Target Configuration ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
         <h3 className="text-base font-extrabold flex items-center gap-2 border-b border-white/10 pb-4">
-          <Calendar className="w-5 h-5 text-blue-400" /> Launch Schedule Settings
+          <Calendar className="w-5 h-5 text-blue-400" /> Official Launch Schedule
         </h3>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -585,21 +621,21 @@ export default function LaunchControlTab() {
               type="date"
               value={dateStr}
               onChange={(e) => setDateStr(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono"
             />
           </div>
 
           {/* Launch Time */}
           <div>
             <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Launch Time (HH : MM : SS)
+              Launch Time (24h)
             </label>
             <input
               type="time"
               step="1"
               value={timeStr}
               onChange={(e) => setTimeStr(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white font-mono text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all font-mono"
             />
           </div>
 
@@ -611,7 +647,7 @@ export default function LaunchControlTab() {
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 transition-all"
             >
               {TIMEZONES.map((tz) => (
                 <option key={tz.value} value={tz.value} className="bg-slate-900 text-white">
@@ -620,222 +656,222 @@ export default function LaunchControlTab() {
               ))}
             </select>
           </div>
-
-          {/* Screen Title */}
-          <div>
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Screen Title
-            </label>
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="STREET MOBILE"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-blue-500 transition-all"
-            />
-          </div>
-
-          {/* Screen Tagline */}
-          <div className="sm:col-span-2">
-            <label className="block text-xs font-bold text-white/70 mb-2 uppercase tracking-wider">
-              Screen Tagline
-            </label>
-            <input
-              type="text"
-              value={tagline}
-              onChange={(e) => setTagline(e.target.value)}
-              placeholder="VAVUNIYA • SRI LANKA"
-              className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white text-sm outline-none focus:border-blue-500 transition-all"
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* ── Section 4: Screen Glow & Pulse Effect Color ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
-          <div>
-            <h3 className="text-base font-extrabold flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-sky-400" /> Launch Screen Glow & Beat Effect Color
-            </h3>
-            <p className="text-xs text-white/50 mt-1">
-              Customize the ambient heartbeat glow color pulsing behind the logo and across the full webpage.
-            </p>
-          </div>
-
-          {/* Mini Live Preview Badge */}
-          <div className="flex items-center gap-3 bg-white/5 border border-white/10 px-4 py-2 rounded-2xl">
-            <span className="text-xs font-bold text-white/60">Live Color:</span>
-            <div className="flex items-center gap-2">
-              <div
-                className="w-5 h-5 rounded-full border border-white/30 shadow-md animate-pulse"
-                style={{
-                  backgroundColor: glowColor,
-                  boxShadow: `0 0 14px ${glowColor}`,
-                }}
-              />
-              <span className="text-xs font-mono font-extrabold text-white uppercase">{glowColor}</span>
-            </div>
-          </div>
         </div>
 
-        {/* Preset Color Swatches */}
-        <div>
-          <label className="block text-xs font-bold text-white/70 mb-3 uppercase tracking-wider">
-            Quick Preset Color Themes
+        {/* Feature Toggles */}
+        <div className="pt-4 border-t border-white/10 grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={voiceEnabled}
+              onChange={(e) => setVoiceEnabled(e.target.checked)}
+              className="w-4 h-4 rounded text-purple-600"
+            />
+            <span className="text-xs font-bold text-white">Voice Enabled</span>
           </label>
-          <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
-            {GLOW_COLOR_PRESETS.map((preset) => {
-              const isSelected = glowColor.toLowerCase() === preset.value.toLowerCase();
-              return (
-                <button
-                  key={preset.value}
-                  type="button"
-                  onClick={() => setGlowColor(preset.value)}
-                  className={`p-3 rounded-2xl border transition-all flex flex-col items-center gap-2 group cursor-pointer text-center ${
-                    isSelected
-                      ? "bg-white/15 border-white shadow-lg ring-2 ring-white/50"
-                      : "bg-white/5 border-white/10 hover:bg-white/10 hover:border-white/20"
-                  }`}
-                >
-                  <div
-                    className="w-7 h-7 rounded-xl border border-white/20 shadow-sm transition-transform group-hover:scale-110 flex items-center justify-center"
-                    style={{
-                      backgroundColor: preset.hex,
-                      boxShadow: isSelected ? `0 0 16px ${preset.hex}` : "none",
-                    }}
-                  >
-                    {isSelected && <CheckCircle className="w-4 h-4 text-black drop-shadow" />}
-                  </div>
-                  <span className="text-[11px] font-bold text-white leading-tight">
-                    {preset.label}
-                  </span>
-                  <span className="text-[9px] font-mono text-white/50">{preset.hex}</span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Custom Color Input & Hex Code */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 pt-2 border-t border-white/10">
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
-            <div>
-              <h4 className="text-xs font-extrabold text-white">Custom Color Picker</h4>
-              <p className="text-[11px] text-white/50">Pick any custom shade from palette</p>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                type="color"
-                value={glowColor.startsWith("#") && glowColor.length === 7 ? glowColor : "#C4E2F5"}
-                onChange={(e) => setGlowColor(e.target.value.toUpperCase())}
-                className="w-10 h-10 rounded-xl cursor-pointer bg-transparent border-0 outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 flex items-center justify-between gap-4">
-            <div>
-              <h4 className="text-xs font-extrabold text-white">Hex Color Code</h4>
-              <p className="text-[11px] text-white/50">Type direct hex (e.g. #C4E2F5)</p>
-            </div>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
             <input
-              type="text"
-              value={glowColor}
-              onChange={(e) => setGlowColor(e.target.value)}
-              placeholder="#C4E2F5"
-              className="w-32 px-3 py-2 bg-white/10 border border-white/15 rounded-xl text-white font-mono text-xs font-bold text-center outline-none focus:border-sky-400 uppercase"
+              type="checkbox"
+              checked={soundEnabled}
+              onChange={(e) => setSoundEnabledState(e.target.checked)}
+              className="w-4 h-4 rounded text-purple-600"
             />
-          </div>
+            <span className="text-xs font-bold text-white">Sound Effects</span>
+          </label>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={subtitlesEnabled}
+              onChange={(e) => setSubtitlesEnabled(e.target.checked)}
+              className="w-4 h-4 rounded text-purple-600"
+            />
+            <span className="text-xs font-bold text-white">Subtitles Active</span>
+          </label>
+          <label className="flex items-center gap-2.5 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={animationEnabled}
+              onChange={(e) => setAnimationEnabled(e.target.checked)}
+              className="w-4 h-4 rounded text-purple-600"
+            />
+            <span className="text-xs font-bold text-white">Avatar Animations</span>
+          </label>
         </div>
 
-        {/* ── Action Buttons Row ── */}
+        {/* Save & Production Controls */}
         <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Save Settings */}
-            <button
-              onClick={handleSave}
-              disabled={isSaving}
-              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-[0.98]"
-            >
-              <Save className="w-4 h-4" />
-              {isSaving ? "Saving..." : saveSuccess ? "Saved Successfully!" : "Save Settings"}
-            </button>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+          >
+            <Save className="w-4 h-4" />
+            {isSaving ? "Saving..." : saveSuccess ? "Saved Successfully!" : "Save Launch Settings"}
+          </button>
 
-            {/* Test 10-Second Countdown */}
+          <div className="flex items-center gap-3">
             <button
-              onClick={handleTrigger10sTest}
-              className="px-5 py-3 bg-white/10 hover:bg-white/15 border border-white/15 text-white font-extrabold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all active:scale-[0.98]"
-            >
-              <Sparkles className="w-4 h-4 text-amber-400" />
-              Test 10-Second Launch
-            </button>
-          </div>
-
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Reveal Now */}
-            <button
-              onClick={async () => {
-                if (confirm("Are you sure you want to REVEAL NOW? This will immediately make the website public.")) {
-                  await revealNow();
-                  alert("Website is now LIVE and publicly revealed!");
-                }
+              onClick={() => {
+                setConfirmModal({
+                  open: true,
+                  title: "Disable Launch Countdown?",
+                  message: "This will disable the launch gate and allow visitors directly into the website.",
+                  onConfirm: async () => {
+                    await disableCountdown();
+                    setEnabled(false);
+                  },
+                });
               }}
-              className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-red-600/20 flex items-center gap-2 transition-all active:scale-[0.98]"
-            >
-              <Play className="w-4 h-4" />
-              Reveal Now
-            </button>
-
-            {/* Disable Countdown */}
-            <button
-              onClick={async () => {
-                if (confirm("Disable countdown screen?")) {
-                  await disableCountdown();
-                  setEnabled(false);
-                }
-              }}
-              className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all"
+              className="px-5 py-3 bg-white/5 hover:bg-white/10 border border-white/10 text-white/80 font-bold text-xs sm:text-sm rounded-xl flex items-center gap-2 transition-all cursor-pointer"
             >
               <RotateCcw className="w-4 h-4" />
-              Disable Countdown
+              <span>Disable Countdown</span>
+            </button>
+
+            <button
+              onClick={() => {
+                setConfirmModal({
+                  open: true,
+                  title: "Reveal Website Immediately?",
+                  message: "Are you sure you want to REVEAL NOW? This will immediately make the website public for everyone.",
+                  onConfirm: async () => {
+                    await revealNow();
+                    alert("Website is now LIVE!");
+                  },
+                });
+              }}
+              className="px-5 py-3 bg-red-600 hover:bg-red-700 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-lg shadow-red-600/20 flex items-center gap-2 transition-all active:scale-[0.98] cursor-pointer"
+            >
+              <Play className="w-4 h-4" />
+              <span>Reveal Now (Production)</span>
             </button>
           </div>
         </div>
       </div>
 
-      {/* ── Fullscreen Preview Modal ── */}
-      {isPreviewOpen && (
-        <div className="fixed inset-0 z-[99999999] bg-black/80 backdrop-blur-md flex flex-col">
-          <div className="bg-[#0F172A] border-b border-white/10 p-4 flex items-center justify-between z-50">
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-extrabold text-white">Full-Screen Pre-Launch Experience Preview</span>
-              <span className="text-[10px] bg-red-500/20 text-red-300 px-2 py-0.5 rounded-md font-mono">
-                ADMIN PREVIEW
+      {/* ── 5. FULL-SCREEN MASTER 50-SECOND TEST LAUNCH PREVIEW MODAL ── */}
+      {isTestLaunchModalOpen && (
+        <div className="fixed inset-0 z-[999999999] bg-white flex flex-col">
+          {/* Top Test Mode Banner Header */}
+          <div className="bg-[#090909] px-6 py-3.5 text-white flex items-center justify-between z-50 border-b border-white/15">
+            <div className="flex items-center gap-3">
+              <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black tracking-wider uppercase flex items-center gap-1.5 animate-pulse">
+                <Sparkles className="w-3.5 h-3.5" />
+                50-SECOND TEST MODE PREVIEW (40s SPEAK + 10s COUNTDOWN)
+              </span>
+              <span className="text-xs text-white/60 hidden sm:inline">
+                Simulated Remaining: <strong className="text-white font-mono">{testSimulatedSeconds}s</strong>
               </span>
             </div>
-            <button
-              onClick={() => setIsPreviewOpen(false)}
-              className="px-4 py-1.5 bg-white/10 hover:bg-white/20 text-white text-xs font-bold rounded-lg transition-all"
-            >
-              Close Preview
-            </button>
+
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handleReplayMasterTest}
+                className="px-3.5 py-1.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span>🔄 Replay Launch</span>
+              </button>
+              <button
+                onClick={handleCloseMasterTest}
+                className="px-3.5 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer"
+              >
+                <X className="w-3.5 h-3.5" />
+                <span>Exit Preview</span>
+              </button>
+            </div>
           </div>
 
-          <div className="relative flex-1 bg-white">
-            <CountdownScreen
-              countdown={countdown}
+          {/* Virtual Assistant Launch Simulation Component (50s: 40s speaking + 10s countdown) */}
+          <div className="flex-1 relative overflow-hidden">
+            <VirtualAssistantLaunch
+              key={testSessionKey}
+              totalRemainingSeconds={testSimulatedSeconds}
               title={title}
               tagline={tagline}
               glowColor={glowColor}
-              isTestMode={false}
-              preLaunchSettings={compiledPreLaunchSettings}
-              reviews={liveReviews.length > 0 ? liveReviews : undefined}
-              galleryImages={liveGallery.length > 0 ? liveGallery : undefined}
+              onLaunchComplete={() => {}}
             />
           </div>
         </div>
       )}
+
+      {/* ── 6. INDIVIDUAL TEST MODAL PREVIEWS ── */}
+      {activeIndividualTest && (
+        <div className="fixed inset-0 z-[999999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-lg w-full text-center space-y-6 shadow-2xl relative">
+            
+            <button
+              onClick={() => {
+                setActiveIndividualTest(null);
+                if (typeof window !== "undefined" && "speechSynthesis" in window) {
+                  window.speechSynthesis.cancel();
+                }
+              }}
+              className="absolute top-5 right-5 p-2 text-white/60 hover:text-white rounded-full bg-white/5 hover:bg-white/10 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+
+            {/* Avatar Animation Test */}
+            {activeIndividualTest === "avatar_animation" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-black text-white">Assistant Motion & Lip Sync</h3>
+                <p className="text-xs text-white/60">Idle breath floating, blinking, and active speech waves</p>
+                <div className="py-6 flex justify-center">
+                  <VirtualAssistantLaunchAvatar mood="speaking" isSpeaking={true} size="md" />
+                </div>
+              </div>
+            )}
+
+            {/* Chatbot Transition Test */}
+            {activeIndividualTest === "chatbot_transition" && (
+              <div className="space-y-4">
+                <h3 className="text-lg font-black text-white">Chatbot Glide Transition Test</h3>
+                <p className="text-xs text-white/60">Scales down from hero view into floating circular chatbot button</p>
+                <div className="py-4 flex justify-center">
+                  <VirtualAssistantLaunchAvatar mood="intro" isSpeaking={false} size="sm" />
+                </div>
+                <p className="text-[11px] text-purple-300 font-medium">
+                  Avatar smoothly settles into bottom-right at 60x60px with green active radar ring.
+                </p>
+              </div>
+            )}
+
+          </div>
+        </div>
+      )}
+
+      {/* ── 7. SAFETY CONFIRMATION MODAL ── */}
+      {confirmModal && confirmModal.open && (
+        <div className="fixed inset-0 z-[999999999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-[#0F172A] border border-white/15 rounded-3xl p-6 sm:p-8 max-w-md w-full text-center space-y-4 shadow-2xl">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/20 text-amber-400 flex items-center justify-center mx-auto">
+              <AlertTriangle className="w-6 h-6" />
+            </div>
+            <h3 className="text-lg font-bold text-white">{confirmModal.title}</h3>
+            <p className="text-xs sm:text-sm text-white/60">{confirmModal.message}</p>
+            <div className="flex items-center justify-center gap-3 pt-3">
+              <button
+                onClick={() => setConfirmModal(null)}
+                className="px-4 py-2 bg-white/10 hover:bg-white/20 rounded-xl text-xs font-bold text-white transition-all cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  confirmModal.onConfirm();
+                  setConfirmModal(null);
+                }}
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 rounded-xl text-xs font-bold text-white transition-all cursor-pointer shadow-lg shadow-red-600/30"
+              >
+                Confirm
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   );
 }

@@ -35,6 +35,7 @@ import { getColorCSS, isLightColor } from "@/lib/color-utils";
 import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import { Product, ProductColor, ProductVariantCombo, WarrantyOption } from "@/lib/types";
 import { detectProductBrand } from "@/components/products/ShopFilterSidebar";
+import { isPhoneSegment, isLaptopTabletSegment } from "@/lib/catalog-utils";
 
 interface NormalizedVariant {
   id: string;
@@ -490,9 +491,14 @@ export default function ProductDetailClient({
   const currentStock = selectedVariant ? selectedVariant.stock : (product.stock_status === "out_of_stock" ? 0 : 10);
   const isVariantOutOfStock = currentStock <= 0 || product.stock_status === "out_of_stock";
 
-  const discountPercent = currentVariantOldPrice && currentVariantOldPrice > currentVariantPrice
-    ? Math.round(((currentVariantOldPrice - currentVariantPrice) / currentVariantOldPrice) * 100)
-    : 0;
+  const discountPercent =
+    Boolean(currentVariantOldPrice) &&
+    typeof currentVariantOldPrice === "number" &&
+    typeof currentVariantPrice === "number" &&
+    currentVariantOldPrice > currentVariantPrice &&
+    Math.round(((currentVariantOldPrice - currentVariantPrice) / currentVariantOldPrice) * 100) > 0
+      ? Math.round(((currentVariantOldPrice - currentVariantPrice) / currentVariantOldPrice) * 100)
+      : 0;
 
   // Auto-open pre-order modal if ?book=true is in URL
   useEffect(() => {
@@ -627,7 +633,7 @@ export default function ProductDetailClient({
               <>
                 <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
                 <Link
-                  href={`/shop-by-brand/phones/${product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
+                  href={`/shop-by-brand/${isPhoneSegment(product) ? "phones" : isLaptopTabletSegment(product) ? "laptops-tablets" : "accessories"}/${product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`}
                   className="hover:text-black transition-colors shrink-0 font-semibold"
                 >
                   {product.brand_name || product.brandName || product.brand}
