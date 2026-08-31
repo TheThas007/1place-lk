@@ -395,13 +395,17 @@ export function speakLaunchText(
     try {
       duckAmbientMusic();
 
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
+      if (typeof window !== "undefined" && "speechSynthesis" in window) {
+        window.speechSynthesis.cancel();
+        if (window.speechSynthesis.paused) {
+          window.speechSynthesis.resume();
+        }
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 0.95;
-      utterance.pitch = options?.pitch || 1.02;
+      utterance.rate = options?.rate || 0.96;
+      utterance.pitch = options?.pitch || 1.04;
+      utterance.volume = 1.0;
 
       currentActiveUtterance = utterance;
 
@@ -410,7 +414,7 @@ export function speakLaunchText(
         utterance.voice = voice;
       }
 
-      // Chromium Keep-Alive Heartbeat
+      // Chromium / Android Keep-Alive Heartbeat
       if (speechHeartbeatTimer) clearInterval(speechHeartbeatTimer);
       speechHeartbeatTimer = setInterval(() => {
         if (typeof window !== "undefined" && "speechSynthesis" in window) {
@@ -419,7 +423,7 @@ export function speakLaunchText(
             window.speechSynthesis.resume();
           }
         }
-      }, 3500);
+      }, 2500);
 
       let hasResolved = false;
       const finish = () => {

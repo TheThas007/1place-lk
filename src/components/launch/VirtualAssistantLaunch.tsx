@@ -253,11 +253,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setDisplayedSeconds(50);
           setActiveCountdownNumber(null);
           setBubbleTitle("WELCOME TO STREET MOBILE 👋");
-          setBubbleBody("I'm STREETLA, your virtual shopping assistant. We are always near you!");
+          setBubbleBody("I'm STREETLA, your friendly virtual shopping assistant. We are always near you!");
           setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
           speakLaunchText(
-            "Hello everyone! Welcome to Street Mobile! I'm STREETLA, and we are always right near you!",
+            "Hey everyone! A super warm welcome to Street Mobile! I'm STREETLA, your friendly shopping assistant, and we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -274,7 +274,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
           speakLaunchText(
-            "We bring you genuine smartphones, flagship devices, premium audio, and authentic accessories at the best unbeatable prices!",
+            "Looking for genuine smartphones, flagship devices, or authentic accessories? We've got you covered with unbeatable prices!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -291,7 +291,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
           speakLaunchText(
-            "With official company warranty, fast delivery, and friendly support, we are always right near you!",
+            "With official company warranty, fast delivery, and loving care, we are always right here for you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -308,7 +308,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
           speakLaunchText(
-            "Enjoy exclusive launch discounts, interest-free installment plans, and express island-wide delivery right to your door!",
+            "Enjoy exclusive launch discounts, interest-free installment plans, and express island-wide delivery right to your hands!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -321,11 +321,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("speaking");
           setDisplayedSeconds(18);
           setBubbleTitle("ARE YOU READY? 🚀");
-          setBubbleBody("The wait is finally over!");
+          setBubbleBody("The countdown is about to begin! Get ready!");
           setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
           speakLaunchText(
-            "The wait is finally over! So everyone, are you ready? Let's launch Street Mobile together!",
+            "The wait is finally over! Everyone, are you ready? Let's count down together in 3, 2, 1!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -390,8 +390,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         // Sequential speech queue ensures "Enjoy your shopping!" is 100% completed without cutoff
         speakLaunchSequence(
           [
-            "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, your virtual shopping assistant.",
-            "Whenever you need help finding smartphones, genuine accessories, or exclusive launch deals, simply chat with me at the bottom corner of your screen. We are always right near you! Enjoy your shopping!",
+            "And we are officially live! Welcome to your all-new Street Mobile! I'm STREETLA, and I'm so happy to be here with you!",
+            "Whenever you need anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time and enjoy your shopping!",
           ],
           {
             onStart: () => setIsSpeaking(true),
@@ -449,12 +449,20 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     };
   }, []);
 
-  const padZero = (n: number) => String(Math.max(0, n)).padStart(2, "0");
+  // Format single digit with leading zero
+  const padZero = (n: number) => (n < 10 ? `0${n}` : `${n}`);
 
   return (
     <div
-      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-between items-center px-4 sm:px-8 py-5 sm:py-7 select-none overflow-hidden font-outfit"
-      style={{ backgroundColor: "#FFFFFF" }}
+      role="dialog"
+      aria-modal="true"
+      aria-label="Street Mobile Virtual AI Assistant Launch Experience"
+      className="fixed inset-0 z-[999999] overflow-hidden select-none bg-gradient-to-b from-[#F5F8FA] via-[#E8F0F7] to-[#DFE9F2]"
+      style={{
+        width: "100vw",
+        height: "100vh",
+        touchAction: "none",
+      }}
     >
       {/* Canvas for Full-screen Confetti Explosion */}
       <canvas
@@ -491,30 +499,21 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         )}
       </AnimatePresence>
 
-      {/* ── Dynamic Ambient Glow Mesh ── */}
+      {/* ── Background Glow Aura ── */}
       <div
-        className="fixed inset-0 pointer-events-none -z-10"
+        className="absolute inset-0 pointer-events-none transition-all duration-1000"
         style={{
-          background: `radial-gradient(ellipse 90% 90% at 50% 35%, ${hexToRgba(glowColor, 0.35)} 0%, rgba(255,255,255,0) 80%)`,
+          background: `radial-gradient(circle 800px at 50% 45%, ${hexToRgba(glowColor, 0.45)}, transparent 70%)`,
         }}
       />
-      <div
-        className="fixed -bottom-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full blur-3xl pointer-events-none -z-10 opacity-30"
-        style={{ backgroundColor: glowColor }}
-      />
 
-      {/* ── Top Header ── */}
-      <div className="w-full max-w-[1400px] flex items-center justify-between z-40">
-        <div className="flex items-center gap-2.5">
-          <div
-            className="w-2.5 h-2.5 rounded-full animate-pulse"
-            style={{
-              backgroundColor: glowColor || "#0EA5E9",
-              boxShadow: `0 0 10px ${hexToRgba(glowColor, 0.8)}`,
-            }}
-          />
-          <span className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
-            OFFICIAL LAUNCH
+      {/* ── Top Bar: Location & Sound Status ── */}
+      <div className="relative z-20 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
+        {/* Left Status */}
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="text-[11px] sm:text-xs font-bold tracking-[0.2em] text-[#374151] uppercase">
+            {currentPhase === "REVEAL" ? "GRAND REVEAL LIVE" : "OFFICIAL LIVE LAUNCH"}
           </span>
         </div>
 
@@ -560,44 +559,51 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           </p>
         </div>
 
-        {/* ── 4 Countdown White Boxes (DAYS : HOURS : MINUTES : SECONDS) ── */}
-        <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2">
-          {[
-            { value: "00", label: "DAYS" },
-            { value: "00", label: "HOURS" },
-            { value: "00", label: "MINUTES" },
-            { value: padZero(displayedSeconds), label: "SECONDS" },
-          ].map((unit, idx) => (
-            <div key={unit.label} className="flex items-center">
-              <div className="flex flex-col items-center">
-                <div
-                  className="bg-[#FFFFFF] rounded-2xl sm:rounded-3xl px-3.5 py-2.5 sm:px-6 sm:py-4 md:px-8 md:py-5 min-w-[62px] sm:min-w-[90px] md:min-w-[115px] flex items-center justify-center transition-all"
-                  style={{
-                    border: `1px solid ${hexToRgba(glowColor, 0.55)}`,
-                    boxShadow: `0 8px 28px ${hexToRgba(glowColor, 0.22)}`,
-                  }}
-                >
-                  <span className="font-black text-2xl sm:text-4xl md:text-5xl font-mono text-[#090909] tracking-tight tabular-nums">
-                    {unit.value}
+        {/* ── 4 Countdown White Boxes (Replaced cleanly by Live Badge during REVEAL) ── */}
+        {currentPhase !== "REVEAL" && !isRevealed ? (
+          <div className="flex items-center justify-center gap-2 sm:gap-4 md:gap-6 pt-1 sm:pt-2 transition-opacity duration-500">
+            {[
+              { value: "00", label: "DAYS" },
+              { value: "00", label: "HOURS" },
+              { value: "00", label: "MINUTES" },
+              { value: padZero(displayedSeconds), label: "SECONDS" },
+            ].map((unit, idx) => (
+              <div key={unit.label} className="flex items-center">
+                <div className="flex flex-col items-center">
+                  <div
+                    className="bg-[#FFFFFF] rounded-2xl sm:rounded-3xl px-3.5 py-2.5 sm:px-6 sm:py-4 md:px-8 md:py-5 min-w-[62px] sm:min-w-[90px] md:min-w-[115px] flex items-center justify-center transition-all"
+                    style={{
+                      border: `1px solid ${hexToRgba(glowColor, 0.55)}`,
+                      boxShadow: `0 8px 28px ${hexToRgba(glowColor, 0.22)}`,
+                    }}
+                  >
+                    <span className="font-black text-2xl sm:text-4xl md:text-5xl font-mono text-[#090909] tracking-tight tabular-nums">
+                      {unit.value}
+                    </span>
+                  </div>
+                  <span className="mt-1.5 sm:mt-2 text-[8.5px] sm:text-[10.5px] md:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
+                    {unit.label}
                   </span>
                 </div>
-                <span className="mt-1.5 sm:mt-2 text-[8.5px] sm:text-[10.5px] md:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
-                  {unit.label}
-                </span>
+                {idx < 3 && (
+                  <div
+                    className="font-black text-xl sm:text-3xl px-1 sm:px-2 pb-4 select-none"
+                    style={{ color: glowColor || "#C4E2F5" }}
+                  >
+                    :
+                  </div>
+                )}
               </div>
-
-              {/* Colon divider */}
-              {idx < 3 && (
-                <div
-                  className="font-black text-xl sm:text-3xl px-1 sm:px-2 pb-4 select-none"
-                  style={{ color: glowColor || "#C4E2F5" }}
-                >
-                  :
-                </div>
-              )}
+            ))}
+          </div>
+        ) : (
+          <div className="pt-2 sm:pt-3 flex flex-col items-center">
+            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-widest shadow-lg shadow-emerald-500/25">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <span>WE ARE OFFICIALLY LIVE! 🎉</span>
             </div>
-          ))}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* ── Center Stage: Speech Bubble (Left) + STREETLA Avatar (Center) + Waveform (Right) ── */}
