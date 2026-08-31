@@ -457,12 +457,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       role="dialog"
       aria-modal="true"
       aria-label="Street Mobile Virtual AI Assistant Launch Experience"
-      className="fixed inset-0 z-[999999] overflow-hidden select-none bg-gradient-to-b from-[#F5F8FA] via-[#E8F0F7] to-[#DFE9F2]"
-      style={{
-        width: "100vw",
-        height: "100vh",
-        touchAction: "none",
-      }}
+      className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-between items-center px-4 sm:px-8 py-5 sm:py-7 select-none overflow-hidden font-outfit"
+      style={{ backgroundColor: "#FFFFFF", touchAction: "none" }}
     >
       {/* Canvas for Full-screen Confetti Explosion */}
       <canvas
@@ -499,44 +495,53 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         )}
       </AnimatePresence>
 
-      {/* ── Background Glow Aura ── */}
+      {/* ── Dynamic Ambient Glow Mesh ── */}
       <div
-        className="absolute inset-0 pointer-events-none transition-all duration-1000"
+        className="fixed inset-0 pointer-events-none -z-10"
         style={{
-          background: `radial-gradient(circle 800px at 50% 45%, ${hexToRgba(glowColor, 0.45)}, transparent 70%)`,
+          background: `radial-gradient(ellipse 90% 90% at 50% 35%, ${hexToRgba(glowColor, 0.35)} 0%, rgba(255,255,255,0) 80%)`,
         }}
       />
+      <div
+        className="fixed -bottom-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full blur-3xl pointer-events-none -z-10 opacity-30"
+        style={{ backgroundColor: glowColor }}
+      />
 
-      {/* ── Top Bar: Location & Sound Status ── */}
-      <div className="relative z-20 w-full max-w-6xl mx-auto px-4 sm:px-6 pt-3 sm:pt-4 flex items-center justify-between">
-        {/* Left Status */}
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-[11px] sm:text-xs font-bold tracking-[0.2em] text-[#374151] uppercase">
-            {currentPhase === "REVEAL" ? "GRAND REVEAL LIVE" : "OFFICIAL LIVE LAUNCH"}
+      {/* ── Top Header ── */}
+      <div className="w-full max-w-[1400px] flex items-center justify-between z-40">
+        <div className="flex items-center gap-2.5">
+          <div
+            className="w-2.5 h-2.5 rounded-full animate-pulse"
+            style={{
+              backgroundColor: glowColor || "#0EA5E9",
+              boxShadow: `0 0 10px ${hexToRgba(glowColor, 0.8)}`,
+            }}
+          />
+          <span className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
+            {currentPhase === "REVEAL" ? "GRAND REVEAL LIVE" : "OFFICIAL LAUNCH"}
           </span>
         </div>
 
-        {/* Right Label & Sound Toggle */}
-        <div className="flex items-center gap-4">
+        {/* Right: Sound toggle & Location */}
+        <div className="flex items-center gap-3 sm:gap-6">
           <button
             onClick={toggleSound}
-            className="px-3 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 text-[11px] font-bold text-neutral-700 flex items-center gap-1.5 transition-colors cursor-pointer border border-neutral-200"
+            className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700 flex items-center gap-2 transition-colors cursor-pointer border border-neutral-200"
           >
             {soundActive ? (
               <>
-                <Volume2 className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                <Volume2 className="w-4 h-4 text-purple-600 animate-pulse" />
                 <span className="hidden sm:inline">Sound ON</span>
               </>
             ) : (
               <>
-                <VolumeX className="w-3.5 h-3.5 text-neutral-400" />
+                <VolumeX className="w-4 h-4 text-neutral-400" />
                 <span className="hidden sm:inline">Sound OFF</span>
               </>
             )}
           </button>
 
-          <span className="text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-[#6B7280] uppercase">
+          <span className="text-[11px] sm:text-xs font-bold tracking-[0.25em] text-[#6B7280] uppercase">
             SRI LANKA
           </span>
         </div>
