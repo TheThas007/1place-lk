@@ -214,17 +214,13 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   /**
    * ─────────────────────────────────────────────────────────────
-   * MASTER CLOCK LOOP
+   * FLUID SEQUENTIAL PRESENTATION RUNNER (ZERO WAITING GAPS)
    * ─────────────────────────────────────────────────────────────
    */
   useEffect(() => {
+    let isCancelled = false;
     primeAudioAndVoice();
     startAmbientAuraMusic();
-
-    launchStartRef.current = performance.now();
-    lastPhaseRef.current = null;
-    lastCountdownNumberRef.current = null;
-    revealTriggeredRef.current = false;
 
     const countdownWords: Record<number, string> = {
       10: "Ten!",
@@ -239,213 +235,182 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       1: "One!",
     };
 
-    function frame(now: number) {
-      const elapsedMs = now - launchStartRef.current;
-      const { phase, countdownNumber } = phaseResolver(elapsedMs);
+    const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-      // ── Handle Phase Transitions ──
-      if (phase !== lastPhaseRef.current) {
-        lastPhaseRef.current = phase;
-        setCurrentPhase(phase);
+    async function runLaunchFlow() {
+      // ── Phase 1: WELCOME ──
+      if (isCancelled) return;
+      setCurrentPhase("WELCOME");
+      setMood("intro");
+      setDisplayedSeconds(60);
+      setActiveCountdownNumber(null);
+      setBubbleTitle("WELCOME TO STREET MOBILE 👋");
+      setBubbleBody("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
+      setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
-        // Phase 1: WELCOME (0s -> 10s)
-        if (phase === "WELCOME") {
-          setMood("intro");
-          setDisplayedSeconds(60);
-          setActiveCountdownNumber(null);
-          setBubbleTitle("WELCOME TO STREET MOBILE 👋");
-          setBubbleBody("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
-          setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
-
-          playLaunchVoice(
-            "/audio/launch/phase1_welcome.mp3",
-            "Hey everyone! A super warm welcome to Street Mobile! I'm Street-lah, your friendly assistant, and we are always right near you!",
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
+      await playLaunchVoice(
+        "/audio/launch/phase1_welcome.mp3",
+        "Hey everyone! A super warm welcome to Street Mobile! I'm Street-lah, your friendly assistant, and we are always right near you!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
         }
+      );
+      if (isCancelled) return;
+      await sleep(350);
 
-        // Phase 2: PRODUCTS (10s -> 20s)
-        else if (phase === "PRODUCTS") {
-          setMood("speaking");
-          setDisplayedSeconds(50);
-          setBubbleTitle("LATEST GENUINE TECH 📱");
-          setBubbleBody("Discover flagship smartphones, premium audio, and authentic accessories at unbeatable prices!");
-          setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
+      // ── Phase 2: PRODUCTS ──
+      if (isCancelled) return;
+      setCurrentPhase("PRODUCTS");
+      setMood("speaking");
+      setDisplayedSeconds(48);
+      setBubbleTitle("LATEST GENUINE TECH 📱");
+      setBubbleBody("Discover flagship smartphones, premium audio, and authentic accessories at unbeatable prices!");
+      setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
-          playLaunchVoice(
-            "/audio/launch/phase2_products.mp3",
-            "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got unbeatable prices you will love!",
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
+      await playLaunchVoice(
+        "/audio/launch/phase2_products.mp3",
+        "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got unbeatable prices you will love!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
         }
+      );
+      if (isCancelled) return;
+      await sleep(350);
 
-        // Phase 3: WARRANTY & NEAR YOU (20s -> 30s)
-        else if (phase === "WARRANTY") {
-          setMood("speaking");
-          setDisplayedSeconds(40);
-          setBubbleTitle("OFFICIAL WARRANTY & CARE 🛡️");
-          setBubbleBody("100% genuine products with official company warranty, fast island-wide delivery, and friendly care.");
-          setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
+      // ── Phase 3: WARRANTY & NEAR YOU ──
+      if (isCancelled) return;
+      setCurrentPhase("WARRANTY");
+      setMood("speaking");
+      setDisplayedSeconds(36);
+      setBubbleTitle("OFFICIAL WARRANTY & CARE 🛡️");
+      setBubbleBody("100% genuine products with official company warranty, fast island-wide delivery, and friendly care.");
+      setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
-          playLaunchVoice(
-            "/audio/launch/phase3_warranty.mp3",
-            "Every single device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
+      await playLaunchVoice(
+        "/audio/launch/phase3_warranty.mp3",
+        "Every single device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
         }
+      );
+      if (isCancelled) return;
+      await sleep(350);
 
-        // Phase 4: OFFERS & DEALS (30s -> 40s)
-        else if (phase === "SHOWROOM") {
-          setMood("speaking");
-          setDisplayedSeconds(30);
-          setBubbleTitle("EXCLUSIVE LAUNCH DEALS 🎁");
-          setBubbleBody("Huge launch discounts, 0% interest installment plans, and express delivery right to your door!");
-          setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
+      // ── Phase 4: OFFERS & DEALS ──
+      if (isCancelled) return;
+      setCurrentPhase("SHOWROOM");
+      setMood("speaking");
+      setDisplayedSeconds(24);
+      setBubbleTitle("EXCLUSIVE LAUNCH DEALS 🎁");
+      setBubbleBody("Huge launch discounts, 0% interest installment plans, and express delivery right to your door!");
+      setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
-          playLaunchVoice(
-            "/audio/launch/phase4_deals.mp3",
-            "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery!",
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
+      await playLaunchVoice(
+        "/audio/launch/phase4_deals.mp3",
+        "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
         }
+      );
+      if (isCancelled) return;
+      await sleep(350);
 
-        // Phase 5: BUILDUP (40s -> 50s)
-        else if (phase === "BUILDUP") {
-          setMood("speaking");
-          setDisplayedSeconds(20);
-          setBubbleTitle("ARE YOU READY? 🚀");
-          setBubbleBody("The wait is finally over! Let's count down together in 3, 2, 1!");
-          setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
+      // ── Phase 5: BUILDUP ──
+      if (isCancelled) return;
+      setCurrentPhase("BUILDUP");
+      setMood("speaking");
+      setDisplayedSeconds(12);
+      setBubbleTitle("ARE YOU READY? 🚀");
+      setBubbleBody("The wait is finally over! Let's count down together in 3, 2, 1!");
+      setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
-          playLaunchVoice(
-            "/audio/launch/phase5_buildup.mp3",
-            "The wait is finally over! Get ready to step into the future of shopping. Let's count down together in 3, 2, 1!",
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
+      await playLaunchVoice(
+        "/audio/launch/phase5_buildup.mp3",
+        "The wait is finally over! Get ready to step into the future of shopping. Let's count down together in 3, 2, 1!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
         }
+      );
+      if (isCancelled) return;
+      await sleep(400);
 
-        // Phase 6: COUNTDOWN Entry at exactly 50,000ms
-        else if (phase === "COUNTDOWN") {
-          if (typeof window !== "undefined" && "speechSynthesis" in window) {
-            window.speechSynthesis.cancel();
-          }
-          setMood("counting");
-        }
-      }
+      // ── Phase 6: SYNCHRONIZED COUNTDOWN 10 -> 1 ──
+      if (isCancelled) return;
+      setCurrentPhase("COUNTDOWN");
+      setMood("counting");
 
-      // ── Handle Countdown Numbers (50,000ms -> 60,000ms) ──
-      if (phase === "COUNTDOWN" && countdownNumber !== undefined) {
-        if (countdownNumber !== lastCountdownNumberRef.current) {
-          lastCountdownNumberRef.current = countdownNumber;
+      for (let num = 10; num >= 1; num--) {
+        if (isCancelled) return;
+        setActiveCountdownNumber(num);
+        setDisplayedSeconds(num);
+        setBubbleTitle(`LAUNCHING IN ${num}... 🔥`);
+        setBubbleBody(`Get ready! Counting down: ${countdownWords[num] || num}`);
+        setBottomSubtitle(`COUNTING DOWN TOGETHER • LAUNCHING IN ${num}...`);
 
-          setActiveCountdownNumber(countdownNumber);
-          setDisplayedSeconds(countdownNumber);
-          setBubbleTitle(`LAUNCHING IN ${countdownNumber}... 🔥`);
-          setBubbleBody(`Get ready! Counting down: ${countdownWords[countdownNumber] || countdownNumber}`);
-          setBottomSubtitle(`COUNTING DOWN TOGETHER • LAUNCHING IN ${countdownNumber}...`);
+        playCountdownTick(num);
 
-          playCountdownTick(countdownNumber);
-
-          playLaunchVoice(
-            `/audio/launch/count_${countdownNumber}.mp3`,
-            countdownWords[countdownNumber] || String(countdownNumber),
-            {
-              onStart: () => setIsSpeaking(true),
-              onEnd: () => setIsSpeaking(false),
-            }
-          );
-        }
-      }
-
-      // ── Handle Exact 60s Reveal Trigger ──
-      if (elapsedMs >= 60000 && !revealTriggeredRef.current) {
-        revealTriggeredRef.current = true;
-
-        // Immediately stop background ambient music on reveal
-        stopAmbientAuraMusic();
-
-        setDisplayedSeconds(0);
-        setActiveCountdownNumber(null);
-        setMood("celebrating");
-        setIsRevealed(true);
-        setBubbleTitle("I'M STREETLA, YOUR ASSISTANT 👧🛍️");
-        setBubbleBody("Chat with me anytime at the bottom corner for smartphones, accessories, and exclusive deals!");
-        setBottomSubtitle("WE ARE LIVE! 🎉 • Chat with STREETLA at the bottom corner anytime!");
-
-        playCelebrationFanfare();
-        triggerConfetti();
-
-        // Play pristine studio reveal outro
-        playLaunchVoice(
-          "/audio/launch/phase_reveal.mp3",
-          "And we are officially live! Welcome to the brand new Street Mobile! I'm Streetla, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
+        await playLaunchVoice(
+          `/audio/launch/count_${num}.mp3`,
+          countdownWords[num] || String(num),
           {
             onStart: () => setIsSpeaking(true),
-            onEnd: () => {
-              setIsSpeaking(false);
-              // Wait 1.0s after speech finishes, then trigger shutter flicker & glide!
-              setTimeout(() => {
-                setIsFlashFlickering(true);
-                setIsGliding(true);
-                setMood("transforming");
-
-                setTimeout(() => {
-                  stopAllAudioAndSpeech();
-                  if (onLaunchCompleteRef.current) {
-                    onLaunchCompleteRef.current();
-                  }
-                }, 1800);
-              }, 1000);
-            },
+            onEnd: () => setIsSpeaking(false),
           }
         );
+        if (isCancelled) return;
+        await sleep(180);
+      }
 
-        // Generous failsafe timeout
+      // ── Phase 7: GRAND LIVE REVEAL AT 0 ──
+      if (isCancelled) return;
+      setCurrentPhase("REVEAL");
+      setDisplayedSeconds(0);
+      setActiveCountdownNumber(null);
+      setMood("celebrating");
+      setIsRevealed(true);
+      setBubbleTitle("I'M STREETLA, YOUR ASSISTANT 👧🛍️");
+      setBubbleBody("Chat with me anytime at the bottom corner for smartphones, accessories, and exclusive deals!");
+      setBottomSubtitle("WE ARE LIVE! 🎉 • Chat with STREETLA at the bottom corner anytime!");
+
+      stopAmbientAuraMusic();
+      playCelebrationFanfare();
+      triggerConfetti();
+
+      await playLaunchVoice(
+        "/audio/launch/phase_reveal.mp3",
+        "And we are officially live! Welcome to the brand new Street Mobile! I'm Street-lah, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
+        {
+          onStart: () => setIsSpeaking(true),
+          onEnd: () => setIsSpeaking(false),
+        }
+      );
+
+      if (isCancelled) return;
+
+      setTimeout(() => {
+        if (isCancelled) return;
+        setIsFlashFlickering(true);
+        setIsGliding(true);
+        setMood("transforming");
+
         setTimeout(() => {
-          if (!revealTriggeredRef.current) return;
-          setIsGliding((prevGliding) => {
-            if (!prevGliding) {
-              setIsFlashFlickering(true);
-              setMood("transforming");
-              setTimeout(() => {
-                stopAllAudioAndSpeech();
-                if (onLaunchCompleteRef.current) {
-                  onLaunchCompleteRef.current();
-                }
-              }, 1800);
-              return true;
-            }
-            return prevGliding;
-          });
-        }, 22000);
-      }
-
-      if (!revealTriggeredRef.current || elapsedMs < 65000) {
-        animFrameIdRef.current = requestAnimationFrame(frame);
-      }
+          stopAllAudioAndSpeech();
+          if (onLaunchCompleteRef.current) {
+            onLaunchCompleteRef.current();
+          }
+        }, 1800);
+      }, 1000);
     }
 
-    animFrameIdRef.current = requestAnimationFrame(frame);
+    runLaunchFlow();
 
     return () => {
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current);
-      }
+      isCancelled = true;
       stopAllAudioAndSpeech();
     };
   }, []);
