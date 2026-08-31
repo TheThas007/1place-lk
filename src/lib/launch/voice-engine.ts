@@ -2,16 +2,15 @@
 
 /**
  * ─────────────────────────────────────────────────────────────
- * STREETLA MASTER AUDIO & VOICE SYNTHESIS ENGINE (v3)
+ * STREETLA MASTER AUDIO & VOICE SYNTHESIS ENGINE (v3.1)
  * ─────────────────────────────────────────────────────────────
- * Authoritative sound & speech synthesis system for STREETLA:
- * • 100% English Natural Female Voice (Single locked identity)
- * • Instant user-gesture audio priming (`primeAudioAndVoice`)
- * • Web Audio Ambient "Aura" Synth Pad with smooth audio ducking (0.07 -> 0.018)
- * • Crystal Harmonic Countdown Chimes (G4 392Hz -> C6 1046.5Hz)
- * • C-Major Celebration Fanfare (C5, E5, G5, C6, E6)
- * • Strict utterance GC retention to prevent Chrome/Edge clipping
- * • Complete `stopAll()` cleanup contract
+ * Ultra-Clear Voice & Audio Coordinator:
+ * • Highest quality natural female voice matching (Microsoft Online Natural, Google UK Female, Samantha)
+ * • Native 1.0 Pitch & 1.0 Rate (zero pitch-shifting artifacts / distortion)
+ * • Deep Audio Ducking (music lowers to 0.005 during speech so voice is 100% crystal clear)
+ * • Crystal Countdown Chimes (G4 392Hz -> C6 1046.5Hz)
+ * • C-Major Fanfare (C5, E5, G5, C6, E6)
+ * • Strict Garbage-Collection protection for active utterances
  */
 
 let audioCtx: AudioContext | null = null;
@@ -24,7 +23,7 @@ let isAmbientPlaying = false;
 let lockedFemaleVoice: SpeechSynthesisVoice | null = null;
 let isVoiceLocked = false;
 
-// Retain reference to active utterance globally to prevent GC clipping bug
+// Retain reference to active utterance globally to prevent GC clipping
 let currentActiveUtterance: SpeechSynthesisUtterance | null = null;
 
 function getAudioContext(): AudioContext | null {
@@ -42,8 +41,8 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Discovers and permanently locks the SINGLE BEST English Female Voice.
- * Explicitly rejects male names and never re-resolves during a session.
+ * Discovers and locks the HIGHEST FIDELITY English Female Voice.
+ * Prioritizes Neural/Online Natural voices, Samantha, Google UK English Female.
  */
 export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
@@ -58,26 +57,45 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
     "microsoft george", "microsoft ravi"
   ];
 
-  const preferredFemaleKeywords = [
-    "jenny", "zira", "samantha", "victoria", "karen", "aria", "sara",
-    "google uk english female", "google us english", "natural", "female",
-    "siri", "moira", "fiona", "tessa", "sonia", "hazel"
+  // Highest quality natural voices in order of fidelity
+  const priorityFemaleVoices = [
+    "microsoft jenny online (natural)",
+    "microsoft aria online (natural)",
+    "microsoft sonia online (natural)",
+    "google uk english female",
+    "google us english",
+    "natural",
+    "jenny",
+    "aria",
+    "samantha",
+    "victoria",
+    "karen",
+    "zira",
+    "female",
+    "siri",
+    "moira",
+    "fiona",
+    "tessa",
+    "sonia",
+    "hazel"
   ];
 
-  // 1. First Pass: English voice with preferred female keyword and no male keyword
-  const topFemaleVoice = voices.find((v) => {
-    const name = v.name.toLowerCase();
-    const lang = v.lang.toLowerCase();
-    if (!lang.startsWith("en")) return false;
-    const isMale = maleKeywords.some((m) => name.includes(m));
-    if (isMale) return false;
-    return preferredFemaleKeywords.some((f) => name.includes(f));
-  });
+  // 1. First Pass: English voice matching highest quality female keyword
+  for (const keyword of priorityFemaleVoices) {
+    const matched = voices.find((v) => {
+      const name = v.name.toLowerCase();
+      const lang = v.lang.toLowerCase();
+      if (!lang.startsWith("en")) return false;
+      const isMale = maleKeywords.some((m) => name.includes(m));
+      if (isMale) return false;
+      return name.includes(keyword);
+    });
 
-  if (topFemaleVoice) {
-    lockedFemaleVoice = topFemaleVoice;
-    isVoiceLocked = true;
-    return lockedFemaleVoice;
+    if (matched) {
+      lockedFemaleVoice = matched;
+      isVoiceLocked = true;
+      return lockedFemaleVoice;
+    }
   }
 
   // 2. Second Pass: Any English voice that is NOT male
@@ -155,11 +173,11 @@ export function startAmbientAuraMusic() {
     const now = ctx.currentTime;
     ambientGainNode = ctx.createGain();
     ambientGainNode.gain.setValueAtTime(0.001, now);
-    ambientGainNode.gain.exponentialRampToValueAtTime(0.07, now + 1.8); // Base gain: 0.07
+    ambientGainNode.gain.exponentialRampToValueAtTime(0.06, now + 1.8);
 
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(460, now); // 460Hz lowpass filter
+    filter.frequency.setValueAtTime(460, now);
 
     // Warm Harmonic Pad Chord: F3 (174.61Hz), A3 (220Hz), C4 (261.63Hz), E4 (329.63Hz)
     const chordFreqs = [174.61, 220.0, 261.63, 329.63];
@@ -181,7 +199,7 @@ export function startAmbientAuraMusic() {
 }
 
 /**
- * Duck music to 0.018 during speech
+ * Deep Audio Ducking: Dips music volume to 0.005 during speech so voice is 100% pristine
  */
 export function duckAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -189,12 +207,12 @@ export function duckAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.018, now + 0.25);
+    ambientGainNode.gain.linearRampToValueAtTime(0.005, now + 0.2); // ~92% reduction for absolute voice clarity
   } catch (e) {}
 }
 
 /**
- * Restore music to 0.07 when speech concludes
+ * Restore music smoothly after speech concludes
  */
 export function restoreAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -202,7 +220,7 @@ export function restoreAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.07, now + 0.6);
+    ambientGainNode.gain.linearRampToValueAtTime(0.06, now + 0.5);
   } catch (e) {}
 }
 
@@ -247,11 +265,11 @@ export function playCountdownTick(number: number) {
       8: 493.88, // B4
       7: 523.25, // C5
       6: 587.33, // D5
-      5: 659.25, // E5 (energy build)
+      5: 659.25, // E5
       4: 698.46, // F5
       3: 783.99, // G5
       2: 880.0,  // A5
-      1: 1046.5, // C6 (climax tick)
+      1: 1046.5, // C6
     };
 
     const freq = frequencies[number] || 520;
@@ -262,17 +280,17 @@ export function playCountdownTick(number: number) {
 
     osc.type = number <= 5 ? "triangle" : "sine";
     osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.25, now + 0.12);
+    osc.frequency.exponentialRampToValueAtTime(freq * 1.2, now + 0.1);
 
-    const volume = number <= 5 ? 0.22 : 0.16;
+    const volume = number <= 5 ? 0.20 : 0.15;
     gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + (number <= 5 ? 0.35 : 0.25));
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
 
     osc.connect(gain);
     gain.connect(ctx.destination);
 
     osc.start(now);
-    osc.stop(now + 0.35);
+    osc.stop(now + 0.28);
   } catch (e) {
     console.warn("Audio tick chime error:", e);
   }
@@ -346,8 +364,10 @@ export function speakLaunchText(
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 0.96; // Warm, natural human cadence
-      utterance.pitch = options?.pitch || 1.08; // Friendly, confident, young female tone
+      
+      // Native 1.0 pitch & 1.0 rate for 100% natural, crisp, artifact-free speech
+      utterance.rate = options?.rate || 1.0;
+      utterance.pitch = options?.pitch || 1.0;
 
       currentActiveUtterance = utterance;
 
@@ -372,12 +392,11 @@ export function speakLaunchText(
 
       utterance.onend = finish;
       utterance.onerror = (e) => {
-        console.warn("Speech utterance error:", e);
         finish();
       };
 
       // Failsafe timeout
-      const maxDuration = Math.max(3000, text.length * 110);
+      const maxDuration = Math.max(2800, text.length * 100);
       setTimeout(finish, maxDuration);
 
       window.speechSynthesis.speak(utterance);
