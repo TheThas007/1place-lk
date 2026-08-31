@@ -38,23 +38,23 @@ export function phaseResolver(elapsedMs: number): {
   phase: LaunchPhase;
   countdownNumber?: number;
 } {
-  if (elapsedMs < 8000) {
+  if (elapsedMs < 10000) {
     return { phase: "WELCOME" };
   }
-  if (elapsedMs < 16000) {
+  if (elapsedMs < 20000) {
     return { phase: "PRODUCTS" };
   }
-  if (elapsedMs < 24000) {
+  if (elapsedMs < 30000) {
     return { phase: "WARRANTY" };
   }
-  if (elapsedMs < 32000) {
+  if (elapsedMs < 40000) {
     return { phase: "SHOWROOM" };
   }
-  if (elapsedMs < 40000) {
+  if (elapsedMs < 50000) {
     return { phase: "BUILDUP" };
   }
-  if (elapsedMs < 50000) {
-    const n = 10 - Math.floor((elapsedMs - 40000) / 1000);
+  if (elapsedMs < 60000) {
+    const n = 10 - Math.floor((elapsedMs - 50000) / 1000);
     return {
       phase: "COUNTDOWN",
       countdownNumber: Math.max(1, Math.min(10, n)),
@@ -85,11 +85,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   // UI Reactive States (Updated ONLY on phase or countdown changes)
   const [currentPhase, setCurrentPhase] = useState<LaunchPhase>("WELCOME");
   const [activeCountdownNumber, setActiveCountdownNumber] = useState<number | null>(null);
-  const [displayedSeconds, setDisplayedSeconds] = useState<number>(50);
+  const [displayedSeconds, setDisplayedSeconds] = useState<number>(60);
 
   // Content Cards
   const [bubbleTitle, setBubbleTitle] = useState<string>("WELCOME TO STREET MOBILE 👋");
-  const [bubbleBody, setBubbleBody] = useState<string>("I'm STREETLA, your virtual shopping assistant. We are always near you!");
+  const [bubbleBody, setBubbleBody] = useState<string>("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
   const [bottomSubtitle, setBottomSubtitle] = useState<string>(
     "Welcome to the Grand Launch • We are near you ✨"
   );
@@ -189,16 +189,16 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         p.vy += 0.45;
         p.vx *= 0.98;
         p.rotation += p.rotSpeed;
-        p.opacity -= 0.004;
+        p.opacity -= 0.007;
 
-        if (p.opacity > 0 && p.y < canvas.height + 60) {
+        if (p.opacity > 0) {
           alive = true;
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rotation * Math.PI) / 180);
           ctx.fillStyle = p.color;
           ctx.globalAlpha = Math.max(0, p.opacity);
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size * 0.6);
+          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
           ctx.restore();
         }
       });
@@ -247,10 +247,10 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseRef.current = phase;
         setCurrentPhase(phase);
 
-        // Phase 1: WELCOME (0s -> 8s)
+        // Phase 1: WELCOME (0s -> 10s)
         if (phase === "WELCOME") {
           setMood("intro");
-          setDisplayedSeconds(50);
+          setDisplayedSeconds(60);
           setActiveCountdownNumber(null);
           setBubbleTitle("WELCOME TO STREET MOBILE 👋");
           setBubbleBody("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
@@ -265,10 +265,10 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 2: PRODUCTS (8s -> 16s)
+        // Phase 2: PRODUCTS (10s -> 20s)
         else if (phase === "PRODUCTS") {
           setMood("speaking");
-          setDisplayedSeconds(42);
+          setDisplayedSeconds(50);
           setBubbleTitle("LATEST GENUINE TECH 📱");
           setBubbleBody("Discover flagship smartphones, premium audio, and authentic accessories at unbeatable prices!");
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
@@ -282,10 +282,10 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 3: WARRANTY & NEAR YOU (16s -> 24s)
+        // Phase 3: WARRANTY & NEAR YOU (20s -> 30s)
         else if (phase === "WARRANTY") {
           setMood("speaking");
-          setDisplayedSeconds(34);
+          setDisplayedSeconds(40);
           setBubbleTitle("OFFICIAL WARRANTY & CARE 🛡️");
           setBubbleBody("100% genuine products with official company warranty, fast island-wide delivery, and friendly care.");
           setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
@@ -299,10 +299,10 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 4: OFFERS & DEALS (24s -> 32s)
+        // Phase 4: OFFERS & DEALS (30s -> 40s)
         else if (phase === "SHOWROOM") {
           setMood("speaking");
-          setDisplayedSeconds(26);
+          setDisplayedSeconds(30);
           setBubbleTitle("EXCLUSIVE LAUNCH DEALS 🎁");
           setBubbleBody("Huge launch discounts, 0% interest installment plans, and express delivery right to your door!");
           setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
@@ -316,16 +316,16 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 5: BUILDUP (32s -> 40s)
+        // Phase 5: BUILDUP (40s -> 50s)
         else if (phase === "BUILDUP") {
           setMood("speaking");
-          setDisplayedSeconds(18);
+          setDisplayedSeconds(20);
           setBubbleTitle("ARE YOU READY? 🚀");
           setBubbleBody("The wait is finally over! Let's count down together in 3, 2, 1!");
           setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
           speakLaunchText(
-            "The wait is finally over! So get ready, everyone! Let's count down together and launch Street Mobile in 3, 2, 1!",
+            "The wait is finally over! So get ready, everyone! Let's count down together and launch the all-new Street Mobile in 3, 2, 1!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -333,7 +333,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 6: COUNTDOWN Entry at exactly 40,000ms
+        // Phase 6: COUNTDOWN Entry at exactly 50,000ms
         else if (phase === "COUNTDOWN") {
           if (typeof window !== "undefined" && "speechSynthesis" in window) {
             window.speechSynthesis.cancel();
@@ -342,7 +342,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         }
       }
 
-      // ── Handle Countdown Numbers (40,000ms -> 50,000ms) ──
+      // ── Handle Countdown Numbers (50,000ms -> 60,000ms) ──
       if (phase === "COUNTDOWN" && countdownNumber !== undefined) {
         if (countdownNumber !== lastCountdownNumberRef.current) {
           lastCountdownNumberRef.current = countdownNumber;
@@ -365,8 +365,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         }
       }
 
-      // ── Handle Exact 0s Reveal Trigger ──
-      if (elapsedMs >= 50000 && !revealTriggeredRef.current) {
+      // ── Handle Exact 60s Reveal Trigger ──
+      if (elapsedMs >= 60000 && !revealTriggeredRef.current) {
         revealTriggeredRef.current = true;
 
         // Immediately stop background ambient music on reveal
@@ -390,8 +390,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         // Sequential speech queue ensures "Enjoy your shopping!" is 100% completed without cutoff
         speakLaunchSequence(
           [
-            "And we are officially live! Welcome to your all-new Street Mobile! I'm STREETLA, and I'm so happy to be here with you!",
-            "Whenever you need anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time and enjoy your shopping!",
+            "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual shopping companion.",
+            "Whenever you need help finding smartphones, genuine accessories, or exclusive deals, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
           ],
           {
             onStart: () => setIsSpeaking(true),
@@ -434,7 +434,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         }, 22000);
       }
 
-      if (!revealTriggeredRef.current || elapsedMs < 55000) {
+      if (!revealTriggeredRef.current || elapsedMs < 65000) {
         animFrameIdRef.current = requestAnimationFrame(frame);
       }
     }
