@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Sparkles, Rocket } from "lucide-react";
 import {
   speakLaunchText,
+  speakLaunchSequence,
   playCountdownTick,
   playCelebrationFanfare,
   startAmbientAuraMusic,
@@ -30,10 +31,8 @@ export type LaunchPhase =
 
 /**
  * ─────────────────────────────────────────────────────────────
- * PURE PHASE RESOLVER (v3.1 — Optimized Speech Windows)
+ * PURE PHASE RESOLVER (v3.3 — Optimized Timing)
  * ─────────────────────────────────────────────────────────────
- * Each phase has 8 full seconds and dialogue is tuned to ~4.5-5.2s,
- * guaranteeing 2.5s-3.5s of breathing room so NO speech is ever cut!
  */
 export function phaseResolver(elapsedMs: number): {
   phase: LaunchPhase;
@@ -90,18 +89,19 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   // Content Cards
   const [bubbleTitle, setBubbleTitle] = useState<string>("WELCOME TO STREET MOBILE 👋");
-  const [bubbleBody, setBubbleBody] = useState<string>("I'm STREETLA, your virtual shopping assistant.");
+  const [bubbleBody, setBubbleBody] = useState<string>("I'm STREETLA, your virtual shopping assistant. We are always near you!");
   const [bottomSubtitle, setBottomSubtitle] = useState<string>(
-    "Welcome to the Grand Launch • Your smarter way to shop for technology ✨"
+    "Welcome to the Grand Launch • We are near you ✨"
   );
 
   // Avatar & Speaking state
   const [mood, setMood] = useState<AssistantMood>("intro");
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
 
-  // Climax states
+  // Climax & Reveal states
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isGliding, setIsGliding] = useState<boolean>(false);
+  const [isFlashFlickering, setIsFlashFlickering] = useState<boolean>(false);
 
   // Confetti Canvas Ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -213,7 +213,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   /**
    * ─────────────────────────────────────────────────────────────
-   * MASTER CLOCK LOOP (CONTRACT 1, 2, 4, 5)
+   * MASTER CLOCK LOOP
    * ─────────────────────────────────────────────────────────────
    */
   useEffect(() => {
@@ -247,7 +247,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseRef.current = phase;
         setCurrentPhase(phase);
 
-        // Phase 1: WELCOME (0s -> 8s) — ~4.8s speech, 3.2s breathing room
+        // Phase 1: WELCOME (0s -> 8s)
         if (phase === "WELCOME") {
           setMood("intro");
           setDisplayedSeconds(50);
@@ -265,7 +265,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 2: PRODUCTS (8s -> 16s) — ~5.0s speech, 3.0s breathing room
+        // Phase 2: PRODUCTS (8s -> 16s)
         else if (phase === "PRODUCTS") {
           setMood("speaking");
           setDisplayedSeconds(42);
@@ -282,7 +282,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 3: WARRANTY & NEAR YOU (16s -> 24s) — ~4.8s speech, 3.2s breathing room
+        // Phase 3: WARRANTY & NEAR YOU (16s -> 24s)
         else if (phase === "WARRANTY") {
           setMood("speaking");
           setDisplayedSeconds(34);
@@ -299,7 +299,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 4: OFFERS & DEALS (24s -> 32s) — ~5.0s speech, 3.0s breathing room
+        // Phase 4: OFFERS & DEALS (24s -> 32s)
         else if (phase === "SHOWROOM") {
           setMood("speaking");
           setDisplayedSeconds(26);
@@ -316,7 +316,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 5: BUILDUP (32s -> 40s) — ~4.4s speech, completes by 36.5s (3.5s before countdown!)
+        // Phase 5: BUILDUP (32s -> 40s)
         else if (phase === "BUILDUP") {
           setMood("speaking");
           setDisplayedSeconds(18);
@@ -387,14 +387,19 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         playCelebrationFanfare();
         triggerConfetti();
 
-        speakLaunchText(
-          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, your virtual shopping assistant. Whenever you need help finding smartphones, genuine accessories, or exclusive launch deals, simply chat with me at the bottom corner of your screen. We are always right near you! Enjoy your shopping!",
+        // Sequential speech queue ensures "Enjoy your shopping!" is 100% completed without cutoff
+        speakLaunchSequence(
+          [
+            "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, your virtual shopping assistant.",
+            "Whenever you need help finding smartphones, genuine accessories, or exclusive launch deals, simply chat with me at the bottom corner of your screen. We are always right near you! Enjoy your shopping!",
+          ],
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => {
               setIsSpeaking(false);
-              // Wait 1.4 seconds after speech completes, then glide to bottom-right!
+              // Wait 1.0s after "Enjoy your shopping!" finishes, then trigger shutter flicker & glide!
               setTimeout(() => {
+                setIsFlashFlickering(true);
                 setIsGliding(true);
                 setMood("transforming");
 
@@ -403,29 +408,30 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
                   if (onLaunchCompleteRef.current) {
                     onLaunchCompleteRef.current();
                   }
-                }, 1600);
-              }, 1400);
+                }, 1800);
+              }, 1000);
             },
           }
         );
 
-        // Failsafe timeout in case TTS is not supported or muted
+        // Generous failsafe timeout
         setTimeout(() => {
           if (!revealTriggeredRef.current) return;
           setIsGliding((prevGliding) => {
             if (!prevGliding) {
+              setIsFlashFlickering(true);
               setMood("transforming");
               setTimeout(() => {
                 stopAllAudioAndSpeech();
                 if (onLaunchCompleteRef.current) {
                   onLaunchCompleteRef.current();
                 }
-              }, 1600);
+              }, 1800);
               return true;
             }
             return prevGliding;
           });
-        }, 18000);
+        }, 22000);
       }
 
       if (!revealTriggeredRef.current || elapsedMs < 55000) {
@@ -456,7 +462,36 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         className="fixed inset-0 pointer-events-none z-50 w-full h-full"
       />
 
-      {/* ── Dynamic Ambient Glow Mesh (Ice Sky Blue / Glow Color) ── */}
+      {/* ── Cinematic Shutter Flicker & Web Unveil Flash Wave ── */}
+      <AnimatePresence>
+        {isFlashFlickering && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{
+              opacity: [0, 0.98, 0.25, 0.95, 0.35, 0.9, 0],
+            }}
+            transition={{ duration: 1.4, ease: "easeInOut" }}
+            className="fixed inset-0 pointer-events-none z-[99999999] bg-white flex items-center justify-center"
+          >
+            {/* Center Light Aperture Beam */}
+            <motion.div
+              initial={{ scale: 0.2, opacity: 0 }}
+              animate={{ scale: [0.2, 2.8, 5.0], opacity: [0, 1, 0] }}
+              transition={{ duration: 1.2, ease: "easeOut" }}
+              className="w-[500px] h-[500px] rounded-full bg-gradient-to-r from-sky-400 via-purple-500 to-pink-500 blur-3xl opacity-80"
+            />
+            {/* Laser Scanline Sweep */}
+            <motion.div
+              initial={{ top: "0%", opacity: 0 }}
+              animate={{ top: ["0%", "50%", "100%"], opacity: [0, 1, 0] }}
+              transition={{ duration: 0.85, ease: "easeInOut" }}
+              className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_24px_#00E5FF]"
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* ── Dynamic Ambient Glow Mesh ── */}
       <div
         className="fixed inset-0 pointer-events-none -z-10"
         style={{
