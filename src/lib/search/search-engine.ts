@@ -5,7 +5,7 @@ import { getProductSearchClickBoost } from "./search-history";
 // 1. SYNONYMS & EXPANSION DICTIONARY
 // ─────────────────────────────────────────────────────────────
 export const SYNONYM_MAP: Record<string, string[]> = {
-  // Mobile Phones
+  // Mobile Phones & Models
   phone: ["mobile", "smartphone", "cellphone", "ios phone", "android", "handset", "device", "cellular"],
   mobile: ["phone", "smartphone", "cellphone", "handset"],
   smartphone: ["phone", "mobile", "cellphone", "handset"],
@@ -13,6 +13,30 @@ export const SYNONYM_MAP: Record<string, string[]> = {
   galaxy: ["samsung phone", "samsung galaxy", "smartphone", "galaxy ultra", "galaxy plus"],
   redmi: ["xiaomi redmi", "xiaomi", "poco", "smartphone"],
   pixel: ["google pixel", "google phone", "smartphone"],
+
+  // Shorthand Model Specifics
+  s26: ["samsung galaxy s26", "galaxy s26", "samsung s26", "s26 ultra", "s26 plus", "galaxy s26 ultra"],
+  "s26 ultra": ["samsung galaxy s26 ultra", "galaxy s26 ultra", "s26 ultra"],
+  s25: ["samsung galaxy s25", "galaxy s25", "samsung s25", "s25 ultra", "s25 plus"],
+  s24: ["samsung galaxy s24", "galaxy s24", "samsung s24", "s24 ultra", "s24 plus"],
+  s23: ["samsung galaxy s23", "galaxy s23", "samsung s23", "s23 ultra"],
+  s22: ["samsung galaxy s22", "galaxy s22", "samsung s22", "s22 ultra"],
+  "17pro": ["iphone 17 pro", "apple iphone 17 pro", "iphone 17 pro max"],
+  "17 pro": ["iphone 17 pro", "apple iphone 17 pro", "iphone 17 pro max"],
+  "17promax": ["iphone 17 pro max", "apple iphone 17 pro max"],
+  "17 pro max": ["iphone 17 pro max", "apple iphone 17 pro max"],
+  "16pro": ["iphone 16 pro", "apple iphone 16 pro", "iphone 16 pro max"],
+  "16 pro": ["iphone 16 pro", "apple iphone 16 pro", "iphone 16 pro max"],
+  "16promax": ["iphone 16 pro max", "apple iphone 16 pro max"],
+  "16 pro max": ["iphone 16 pro max", "apple iphone 16 pro max"],
+  "15pro": ["iphone 15 pro", "apple iphone 15 pro", "iphone 15 pro max"],
+  "15 pro": ["iphone 15 pro", "apple iphone 15 pro", "iphone 15 pro max"],
+  "15promax": ["iphone 15 pro max", "apple iphone 15 pro max"],
+  "15 pro max": ["iphone 15 pro max", "apple iphone 15 pro max"],
+  "14pro": ["iphone 14 pro", "apple iphone 14 pro", "iphone 14 pro max"],
+  "14 pro": ["iphone 14 pro", "apple iphone 14 pro"],
+  "13pro": ["iphone 13 pro", "apple iphone 13 pro"],
+  "13 pro": ["iphone 13 pro", "apple iphone 13 pro"],
 
   // Accessories
   accessory: ["accessories", "gear", "add-on", "gadget", "peripheral"],

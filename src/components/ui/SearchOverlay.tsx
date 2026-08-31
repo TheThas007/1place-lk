@@ -274,6 +274,105 @@ export default function SearchOverlay() {
     setRecentSearches([]);
   };
 
+  // Smart submission resolver: Directly routes to Product, Brand, Category, or Search Page
+  const handleSmartSearchSubmit = (inputQuery: string) => {
+    const rawQ = inputQuery.trim();
+    if (!rawQ) return;
+    const cleanQ = normalizeText(rawQ);
+
+    // If user has navigated to an active item in dropdown with arrow keys
+    if (activeItemIndex >= 0 && activeItemIndex < navigableItems.length) {
+      const item = navigableItems[activeItemIndex];
+      if (item.type === "suggestion") {
+        handleSelectQuery(item.data);
+        return;
+      }
+      if (item.type === "category") {
+        handleSelectCategory(item.data);
+        return;
+      }
+      if (item.type === "brand") {
+        handleSelectBrand(item.data);
+        return;
+      }
+      if (item.type === "product") {
+        handleSelectProduct(item.data);
+        return;
+      }
+    }
+
+    // 1. Direct Brand Match (e.g. "Apple", "Samsung", "Xiaomi", "Anker", "Baseus", "Remax", "Hoco", "JBL", "Sony")
+    const matchedBrand =
+      brands.find((b) => {
+        const bName = normalizeText(b.name || "");
+        const bSlug = normalizeText(b.slug || "");
+        return bName === cleanQ || bSlug === cleanQ;
+      }) ||
+      searchResults?.brands.find((bm) => {
+        const bName = normalizeText(bm.brand.name || "");
+        const bSlug = normalizeText(bm.brand.slug || "");
+        return bName === cleanQ || bSlug === cleanQ || (bm.score >= 80 && cleanQ.length >= 3);
+      })?.brand;
+
+    if (matchedBrand) {
+      handleSelectBrand(matchedBrand);
+      return;
+    }
+
+    // 2. Direct Category Match (e.g. "Smartphones", "Chargers", "Earbuds", "Power Banks", "Covers", "Cases", "Cables")
+    const matchedCat =
+      categories.find((c) => {
+        const cName = normalizeText(c.name || "");
+        const cSlug = normalizeText(c.slug || "");
+        return cName === cleanQ || cSlug === cleanQ;
+      }) ||
+      searchResults?.categories.find((cm) => {
+        const cName = normalizeText(cm.category.name || "");
+        const cSlug = normalizeText(cm.category.slug || "");
+        return cName === cleanQ || cSlug === cleanQ || (cm.score >= 80 && cleanQ.length >= 3);
+      })?.category;
+
+    if (matchedCat) {
+      handleSelectCategory(matchedCat);
+      return;
+    }
+
+    // 3. Direct Specific Product Match (e.g. "iPhone 17 Pro", "S26", "Samsung S26", "AirPods Pro 2", "16 Pro Max")
+    if (searchResults && searchResults.products.length > 0) {
+      const topProduct = searchResults.products[0];
+      const pName = normalizeText(topProduct.name || "");
+      const pSlug = normalizeText(topProduct.slug || "");
+
+      const isExactMatch = pName === cleanQ || pSlug === cleanQ;
+
+      // Check if all tokens of cleanQ are contained in product name (e.g. "iphone", "17", "pro" in "Apple iPhone 17 Pro")
+      const qTokens = cleanQ.split(" ").filter(Boolean);
+      const allTokensInName = qTokens.length >= 1 && qTokens.every((t) => pName.includes(t));
+
+      // Model number patterns or high confidence single product
+      const isModelShortcut =
+        cleanQ.startsWith("s2") ||
+        cleanQ.startsWith("s1") ||
+        cleanQ.startsWith("iphone") ||
+        cleanQ.includes("17") ||
+        cleanQ.includes("16") ||
+        cleanQ.includes("15") ||
+        cleanQ.includes("14") ||
+        cleanQ.includes("13") ||
+        cleanQ.includes("airpod") ||
+        cleanQ.includes("ultra") ||
+        cleanQ.includes("max");
+
+      if (isExactMatch || searchResults.products.length === 1 || (allTokensInName && (qTokens.length >= 2 || isModelShortcut))) {
+        handleSelectProduct(topProduct);
+        return;
+      }
+    }
+
+    // 4. Default: Open Search Catalog
+    handleSelectQuery(rawQ);
+  };
+
   // Keyboard navigation handler
   const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "ArrowDown") {
@@ -288,19 +387,7 @@ export default function SearchOverlay() {
       }
     } else if (e.key === "Enter") {
       e.preventDefault();
-      if (activeItemIndex >= 0 && activeItemIndex < navigableItems.length) {
-        const item = navigableItems[activeItemIndex];
-        if (item.type === "suggestion") handleSelectQuery(item.data);
-        else if (item.type === "category") handleSelectCategory(item.data);
-        else if (item.type === "brand") handleSelectBrand(item.data);
-        else if (item.type === "product") handleSelectProduct(item.data);
-      } else if (query.trim()) {
-        if (searchResults && searchResults.products.length === 1) {
-          handleSelectProduct(searchResults.products[0]);
-        } else {
-          handleSelectQuery(query);
-        }
-      }
+      handleSmartSearchSubmit(query);
     }
   };
 
@@ -326,7 +413,14 @@ export default function SearchOverlay() {
         {/* ── Top Header Search Bar ── */}
         <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-white/10 flex items-center gap-2 sm:gap-3 shrink-0">
           <div className="relative flex-1 flex items-center bg-white/10 border border-white/20 hover:border-white/35 focus-within:border-amber-400/80 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3.5 transition-all shadow-inner min-w-0">
-            <Search className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0 mr-2.5 sm:mr-3" />
+            <button
+              type="button"
+              onClick={() => handleSmartSearchSubmit(query)}
+              className="p-0 mr-2.5 sm:mr-3 text-amber-400 hover:text-amber-300 transition-colors shrink-0 cursor-pointer"
+              title="Search"
+            >
+              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
+            </button>
             <input
               ref={inputRef}
               type="text"
