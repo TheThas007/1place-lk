@@ -1411,7 +1411,7 @@ export default function ProductModal({
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5 pt-1 text-xs">
-                    {/* 1. Product Type Setting (Phone / Laptop / Accessory) */}
+                    {/* 1. Product Type Setting (Phone / Laptop / Tab / Accessory) */}
                     <div>
                       <label className="block font-bold text-gray-700 mb-1.5">1. Product Type</label>
                       <div className="grid grid-cols-3 p-1 bg-white border border-gray-200 rounded-xl w-full gap-1">
@@ -1445,7 +1445,7 @@ export default function ProductModal({
                               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
                           }`}
                         >
-                          💻 Laptop
+                          💻 Laptop / Tab
                         </button>
                         <button
                           type="button"
@@ -1513,7 +1513,7 @@ export default function ProductModal({
                       </div>
                     </div>
 
-                    {/* 3. Storage Options Setting (Universal for Phone, Laptop & Accessory) */}
+                    {/* 3. Storage Options Setting (Universal for Phone, Laptop / Tab & Accessory) */}
                     <div>
                       <label className="block font-bold text-gray-700 mb-1.5 truncate">
                         {productType === "laptop"
