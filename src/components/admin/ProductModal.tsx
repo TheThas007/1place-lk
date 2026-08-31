@@ -547,14 +547,14 @@ export default function ProductModal({
         setVariantCombos([]);
       }
 
-      // Warranty Options
+      // Warranty Options (Only populate if explicitly defined in product)
       if (initialData.warranty_options && initialData.warranty_options.length > 0) {
-        setWarrantyOptions(initialData.warranty_options);
-      } else {
+        setWarrantyOptions(initialData.warranty_options.filter((w) => w.title && w.title.trim() !== "" && w.title.toLowerCase() !== "none" && w.title.toLowerCase() !== "no warranty"));
+      } else if (initialData.warranty && initialData.warranty.trim() !== "" && initialData.warranty.toLowerCase() !== "none" && initialData.warranty.toLowerCase() !== "no warranty") {
         setWarrantyOptions([
           {
             id: "w-1",
-            title: initialData.warranty || "1 Month Limited Shop Warranty",
+            title: initialData.warranty.trim(),
             type: "Shop Warranty",
             duration_value: 1,
             duration_unit: "months",
@@ -563,11 +563,11 @@ export default function ProductModal({
             status: "active",
             is_default: true,
           },
-          ...(initialData.brand_warranty
+          ...(initialData.brand_warranty && initialData.brand_warranty.trim() !== "" && initialData.brand_warranty.toLowerCase() !== "none"
             ? [
                 {
                   id: "w-2",
-                  title: initialData.brand_warranty,
+                  title: initialData.brand_warranty.trim(),
                   type: "Manufacturer Warranty" as const,
                   duration_value: 1,
                   duration_unit: "years" as const,
@@ -578,6 +578,8 @@ export default function ProductModal({
               ]
             : []),
         ]);
+      } else {
+        setWarrantyOptions([]);
       }
     } else {
       // Reset New Product
@@ -704,29 +706,8 @@ export default function ProductModal({
         setVariantCombos([]);
       }
 
-      setWarrantyOptions([
-        {
-          id: "w-1",
-          title: "1 Month Limited Shop Warranty",
-          type: "Shop Warranty",
-          duration_value: 1,
-          duration_unit: "months",
-          additional_price: 0,
-          coverage_details: "Hardware defect warranty provided by Street Mobile Vavuniya.",
-          status: "active",
-          is_default: true,
-        },
-        {
-          id: "w-2",
-          title: "1 Year Official Brand Warranty",
-          type: "Manufacturer Warranty",
-          duration_value: 1,
-          duration_unit: "years",
-          additional_price: 0,
-          coverage_details: "Official brand service center warranty.",
-          status: "active",
-        },
-      ]);
+      // Default to empty warranty options (No warranty shown unless admin explicitly adds a plan)
+      setWarrantyOptions([]);
     }
 
     setHasUnsavedChanges(false);
@@ -1016,7 +997,7 @@ export default function ProductModal({
               available_stock: Math.max(0, (Number(v.stock_quantity) || 0) - (v.reserved_stock || 0)),
               sku: v.sku || code || slug,
               image_ref: v.image_ref && finalImages.includes(v.image_ref) ? v.image_ref : colorImage,
-              warranty: v.warranty || warrantyOptions[0]?.title || "1 Month Shop Warranty",
+              warranty: v.warranty || warrantyOptions[0]?.title || "",
             };
           });
 
@@ -1064,7 +1045,7 @@ export default function ProductModal({
         color_variants: cleanedColorVariants,
         variant_combos: enrichedVariantCombos,
         warranty_options: warrantyOptions,
-        warranty: warrantyOptions[0]?.title || "1 Month Shop Warranty",
+        warranty: warrantyOptions[0]?.title || "",
         brand_warranty: warrantyOptions.find((w) => w.type === "Manufacturer Warranty")?.title || "",
         specifications: specRows.reduce((acc, r) => {
           if (r.key.trim() && r.value.trim()) acc[r.key.trim()] = r.value.trim();

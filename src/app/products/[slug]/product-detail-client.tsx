@@ -485,13 +485,36 @@ export default function ProductDetailClient({
   const [added, setAdded] = useState(false);
   const [buyingNow, setBuyingNow] = useState(false);
 
-  // Warranty Options
+  // Warranty Options (Only valid user-added warranties)
   const availableWarranties = useMemo(() => {
     if (product.warranty_options && product.warranty_options.length > 0) {
-      return product.warranty_options.filter((w) => w.status !== "inactive");
+      return product.warranty_options.filter(
+        (w) =>
+          w.status !== "inactive" &&
+          w.title &&
+          w.title.trim() !== "" &&
+          w.title.toLowerCase() !== "none" &&
+          w.title.toLowerCase() !== "no warranty"
+      );
     }
     return [];
   }, [product]);
+
+  const hasShopWarranty = Boolean(
+    availableWarranties.length === 0 &&
+    product.warranty &&
+    product.warranty.trim() !== "" &&
+    product.warranty.toLowerCase() !== "none" &&
+    product.warranty.toLowerCase() !== "no warranty"
+  );
+
+  const hasBrandWarranty = Boolean(
+    availableWarranties.length === 0 &&
+    product.brand_warranty &&
+    product.brand_warranty.trim() !== "" &&
+    product.brand_warranty.toLowerCase() !== "none" &&
+    product.brand_warranty.toLowerCase() !== "no warranty"
+  );
 
   const [selectedWarranty, setSelectedWarranty] = useState<WarrantyOption | null>(
     availableWarranties.find((w) => w.is_default) || availableWarranties[0] || null
@@ -849,8 +872,8 @@ export default function ProductDetailClient({
                 </p>
               )}
 
-              {/* ── Warranty Badges (Fully contained) ── */}
-              {(availableWarranties.length > 0 || product.warranty || product.brand_warranty) && (
+              {/* ── Warranty Badges (Only shown if admin configured warranty) ── */}
+              {(availableWarranties.length > 0 || hasShopWarranty || hasBrandWarranty) && (
                 <div className="space-y-2 mb-6 w-full min-w-0 max-w-full">
                   {availableWarranties.length > 0 ? (
                     availableWarranties.map((w) => (
@@ -869,7 +892,7 @@ export default function ProductDetailClient({
                     ))
                   ) : (
                     <>
-                      {product.warranty && (
+                      {hasShopWarranty && (
                         <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl w-full min-w-0 max-w-full">
                           <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1 break-words">
@@ -879,7 +902,7 @@ export default function ProductDetailClient({
                         </div>
                       )}
 
-                      {product.brand_warranty && (
+                      {hasBrandWarranty && (
                         <div className="flex items-start gap-2.5 sm:gap-3 text-xs sm:text-sm font-bold text-black bg-[#FAFAFA] border border-[#EAEAEA] px-3.5 py-2.5 sm:px-4 sm:py-3 rounded-2xl w-full min-w-0 max-w-full">
                           <Award className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1 break-words">
