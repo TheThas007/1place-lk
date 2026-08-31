@@ -380,32 +380,52 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         setActiveCountdownNumber(null);
         setMood("celebrating");
         setIsRevealed(true);
-        setBubbleTitle("STREET MOBILE IS LIVE! 🚀");
-        setBubbleBody("Explore genuine smartphones, gadgets and more.");
-        setBottomSubtitle("WE ARE OFFICIALLY LIVE! 🎉 • We are always right near you!");
+        setBubbleTitle("I'M STREETLA, YOUR ASSISTANT 👧🛍️");
+        setBubbleBody("Chat with me anytime at the bottom corner for smartphones, accessories, and exclusive deals!");
+        setBottomSubtitle("WE ARE LIVE! 🎉 • Chat with STREETLA at the bottom corner anytime!");
 
         playCelebrationFanfare();
         triggerConfetti();
 
         speakLaunchText(
-          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, and remember, we are always right near you!",
+          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, your virtual shopping assistant. Whenever you need help finding smartphones, genuine accessories, or exclusive launch deals, simply chat with me at the bottom corner of your screen. We are always right near you! Enjoy your shopping!",
           {
             onStart: () => setIsSpeaking(true),
-            onEnd: () => setIsSpeaking(false),
+            onEnd: () => {
+              setIsSpeaking(false);
+              // Wait 1.4 seconds after speech completes, then glide to bottom-right!
+              setTimeout(() => {
+                setIsGliding(true);
+                setMood("transforming");
+
+                setTimeout(() => {
+                  stopAllAudioAndSpeech();
+                  if (onLaunchCompleteRef.current) {
+                    onLaunchCompleteRef.current();
+                  }
+                }, 1600);
+              }, 1400);
+            },
           }
         );
 
+        // Failsafe timeout in case TTS is not supported or muted
         setTimeout(() => {
-          setIsGliding(true);
-          setMood("transforming");
-
-          setTimeout(() => {
-            stopAllAudioAndSpeech();
-            if (onLaunchCompleteRef.current) {
-              onLaunchCompleteRef.current();
+          if (!revealTriggeredRef.current) return;
+          setIsGliding((prevGliding) => {
+            if (!prevGliding) {
+              setMood("transforming");
+              setTimeout(() => {
+                stopAllAudioAndSpeech();
+                if (onLaunchCompleteRef.current) {
+                  onLaunchCompleteRef.current();
+                }
+              }, 1600);
+              return true;
             }
-          }, 1600);
-        }, 4200);
+            return prevGliding;
+          });
+        }, 18000);
       }
 
       if (!revealTriggeredRef.current || elapsedMs < 55000) {
