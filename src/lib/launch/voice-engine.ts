@@ -2,13 +2,16 @@
 
 /**
  * ─────────────────────────────────────────────────────────────
- * STREET MOBILE MASTER AUDIO & VOICE SYNTHESIS ENGINE
+ * STREETLA MASTER AUDIO & VOICE SYNTHESIS ENGINE (v3)
  * ─────────────────────────────────────────────────────────────
- * • Single locked-in English female voice identity (zero male/robotic switches)
- * • Pre-initialized Web Audio synth with Ambient "Aura" Pad
- * • Automatic audio ducking (lowers background music during speech)
- * • Harmonic crystal countdown chimes (10 -> 1) and C-Major celebration fanfare
- * • Strict utterance management with Chromium GC retention & zero cancel collisions
+ * Authoritative sound & speech synthesis system for STREETLA:
+ * • 100% English Natural Female Voice (Single locked identity)
+ * • Instant user-gesture audio priming (`primeAudioAndVoice`)
+ * • Web Audio Ambient "Aura" Synth Pad with smooth audio ducking (0.07 -> 0.018)
+ * • Crystal Harmonic Countdown Chimes (G4 392Hz -> C6 1046.5Hz)
+ * • C-Major Celebration Fanfare (C5, E5, G5, C6, E6)
+ * • Strict utterance GC retention to prevent Chrome/Edge clipping
+ * • Complete `stopAll()` cleanup contract
  */
 
 let audioCtx: AudioContext | null = null;
@@ -19,17 +22,10 @@ let isAmbientPlaying = false;
 
 // Cached single locked female voice
 let lockedFemaleVoice: SpeechSynthesisVoice | null = null;
+let isVoiceLocked = false;
 
-export function primeAudioAndVoice() {
-  if (typeof window === "undefined") return;
-  getAudioContext();
-  getLockedFemaleVoice();
-  if ("speechSynthesis" in window) {
-    if (window.speechSynthesis.paused) {
-      window.speechSynthesis.resume();
-    }
-  }
-}
+// Retain reference to active utterance globally to prevent GC clipping bug
+let currentActiveUtterance: SpeechSynthesisUtterance | null = null;
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -46,12 +42,12 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Discovers and locks the SINGLE BEST English Female Voice on this system.
- * Explicitly rejects all male voice names and caches the voice instance permanently.
+ * Discovers and permanently locks the SINGLE BEST English Female Voice.
+ * Explicitly rejects male names and never re-resolves during a session.
  */
 export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
-  if (lockedFemaleVoice) return lockedFemaleVoice;
+  if (lockedFemaleVoice && isVoiceLocked) return lockedFemaleVoice;
 
   const voices = window.speechSynthesis.getVoices();
   if (!voices || voices.length === 0) return null;
@@ -63,8 +59,8 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   ];
 
   const preferredFemaleKeywords = [
-    "zira", "jenny", "samantha", "victoria", "karen", "aria", "sara",
-    "female", "natural", "google uk english female", "google us english",
+    "jenny", "zira", "samantha", "victoria", "karen", "aria", "sara",
+    "google uk english female", "google us english", "natural", "female",
     "siri", "moira", "fiona", "tessa", "sonia", "hazel"
   ];
 
@@ -80,6 +76,7 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
 
   if (topFemaleVoice) {
     lockedFemaleVoice = topFemaleVoice;
+    isVoiceLocked = true;
     return lockedFemaleVoice;
   }
 
@@ -93,12 +90,14 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
 
   if (anyNonMaleEnglish) {
     lockedFemaleVoice = anyNonMaleEnglish;
+    isVoiceLocked = true;
     return lockedFemaleVoice;
   }
 
   // 3. Fallback to first English voice
   const fallback = voices.find((v) => v.lang.toLowerCase().startsWith("en")) || voices[0] || null;
   lockedFemaleVoice = fallback;
+  isVoiceLocked = true;
   return lockedFemaleVoice;
 }
 
@@ -108,6 +107,20 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
     getLockedFemaleVoice();
   };
   getLockedFemaleVoice();
+}
+
+/**
+ * Prime AudioContext and Speech Engine immediately inside user click handler
+ */
+export function primeAudioAndVoice() {
+  if (typeof window === "undefined") return;
+  getAudioContext();
+  getLockedFemaleVoice();
+  if ("speechSynthesis" in window) {
+    if (window.speechSynthesis.paused) {
+      window.speechSynthesis.resume();
+    }
+  }
 }
 
 export function setLaunchSoundEnabled(enabled: boolean) {
@@ -142,13 +155,13 @@ export function startAmbientAuraMusic() {
     const now = ctx.currentTime;
     ambientGainNode = ctx.createGain();
     ambientGainNode.gain.setValueAtTime(0.001, now);
-    ambientGainNode.gain.exponentialRampToValueAtTime(0.07, now + 2.0); // Soft ambient volume
+    ambientGainNode.gain.exponentialRampToValueAtTime(0.07, now + 1.8); // Base gain: 0.07
 
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(460, now); // Warm low-pass cutoff
+    filter.frequency.setValueAtTime(460, now); // 460Hz lowpass filter
 
-    // Warm Harmonic Pad Chord: F3, A3, C4, E4
+    // Warm Harmonic Pad Chord: F3 (174.61Hz), A3 (220Hz), C4 (261.63Hz), E4 (329.63Hz)
     const chordFreqs = [174.61, 220.0, 261.63, 329.63];
     ambientOscillators = chordFreqs.map((freq) => {
       const osc = ctx.createOscillator();
@@ -163,12 +176,12 @@ export function startAmbientAuraMusic() {
     ambientGainNode.connect(ctx.destination);
     isAmbientPlaying = true;
   } catch (e) {
-    console.warn("Ambient aura sound error:", e);
+    console.warn("Ambient aura error:", e);
   }
 }
 
 /**
- * Smooth Audio Ducking: Lowers background music when assistant speaks
+ * Duck music to 0.018 during speech
  */
 export function duckAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -176,12 +189,12 @@ export function duckAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.018, now + 0.25); // Duck to ~20%
+    ambientGainNode.gain.linearRampToValueAtTime(0.018, now + 0.25);
   } catch (e) {}
 }
 
 /**
- * Restore background music volume smoothly
+ * Restore music to 0.07 when speech concludes
  */
 export function restoreAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -198,7 +211,7 @@ export function stopAmbientAuraMusic() {
     try {
       const now = audioCtx ? audioCtx.currentTime : 0;
       if (ambientGainNode && audioCtx) {
-        ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.4);
+        ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.3);
       }
       setTimeout(() => {
         ambientOscillators.forEach((osc) => {
@@ -209,7 +222,7 @@ export function stopAmbientAuraMusic() {
         });
         ambientOscillators = [];
         isAmbientPlaying = false;
-      }, 450);
+      }, 350);
     } catch (e) {
       ambientOscillators = [];
       isAmbientPlaying = false;
@@ -219,7 +232,7 @@ export function stopAmbientAuraMusic() {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * COUNTDOWN CHIMES (10 -> 1)
+ * COUNTDOWN CRYSTAL CHIMES (G4 392Hz -> C6 1046.5Hz)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCountdownTick(number: number) {
@@ -267,7 +280,7 @@ export function playCountdownTick(number: number) {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * CELEBRATION FANFARE (0s)
+ * CELEBRATION FANFARE (C5, E5, G5, C6, E6)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCelebrationFanfare() {
@@ -303,12 +316,9 @@ export function playCelebrationFanfare() {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * SPEECH SYNTHESIS NARRATOR (SINGLE LOCKED FEMALE VOICE)
+ * STREETLA SPEECH SYNTHESIS NARRATOR (SINGLE LOCKED FEMALE VOICE)
  * ─────────────────────────────────────────────────────────────
  */
-// Retain reference globally to prevent Chromium Garbage Collection bug
-const activeUtterances: SpeechSynthesisUtterance[] = [];
-
 export function speakLaunchText(
   text: string,
   options?: {
@@ -324,27 +334,23 @@ export function speakLaunchText(
       setTimeout(() => {
         if (options?.onEnd) options.onEnd();
         resolve();
-      }, 1500);
+      }, 1200);
       return;
     }
 
     try {
-      // Duck background aura music when speech begins
       duckAmbientMusic();
 
-      // Ensure speech synthesis is running
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 0.95; // Warm, natural human cadence
-      utterance.pitch = options?.pitch || 1.08; // Friendly, young professional feminine tone
+      utterance.rate = options?.rate || 0.96; // Warm, natural human cadence
+      utterance.pitch = options?.pitch || 1.08; // Friendly, confident, young female tone
 
-      // Retain reference to prevent premature garbage collection
-      activeUtterances.push(utterance);
+      currentActiveUtterance = utterance;
 
-      // Always use the single locked female voice
       const voice = getLockedFemaleVoice();
       if (voice) {
         utterance.voice = voice;
@@ -354,11 +360,7 @@ export function speakLaunchText(
       const finish = () => {
         if (hasResolved) return;
         hasResolved = true;
-
-        // Remove from active list
-        const idx = activeUtterances.indexOf(utterance);
-        if (idx !== -1) activeUtterances.splice(idx, 1);
-
+        currentActiveUtterance = null;
         restoreAmbientMusic();
         if (options?.onEnd) options.onEnd();
         resolve();
@@ -370,16 +372,16 @@ export function speakLaunchText(
 
       utterance.onend = finish;
       utterance.onerror = (e) => {
+        console.warn("Speech utterance error:", e);
         finish();
       };
 
-      // Failsafe timeout to prevent frozen state if browser speech drops callback
-      const maxDuration = Math.max(3200, text.length * 110);
+      // Failsafe timeout
+      const maxDuration = Math.max(3000, text.length * 110);
       setTimeout(finish, maxDuration);
 
       window.speechSynthesis.speak(utterance);
 
-      // Ensure Chrome doesn't suspend speech queue
       if (window.speechSynthesis.paused) {
         window.speechSynthesis.resume();
       }
@@ -391,4 +393,19 @@ export function speakLaunchText(
       resolve();
     }
   });
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * FULL CLEANUP CONTRACT
+ * ─────────────────────────────────────────────────────────────
+ */
+export function stopAllAudioAndSpeech() {
+  stopAmbientAuraMusic();
+  currentActiveUtterance = null;
+  if (typeof window !== "undefined" && "speechSynthesis" in window) {
+    try {
+      window.speechSynthesis.cancel();
+    } catch (e) {}
+  }
 }

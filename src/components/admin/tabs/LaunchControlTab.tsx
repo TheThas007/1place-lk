@@ -53,6 +53,7 @@ import {
   setLaunchSoundEnabled,
   getLockedFemaleVoice,
   primeAudioAndVoice,
+  stopAllAudioAndSpeech,
 } from "@/lib/launch/voice-engine";
 import { DEFAULT_PRE_LAUNCH_SETTINGS } from "@/lib/data";
 import { PreLaunchExperienceSettings, Review } from "@/lib/types";
@@ -270,12 +271,12 @@ export default function LaunchControlTab() {
     }
   };
 
-  const [testSessionKey, setTestSessionKey] = useState<number>(() => Date.now());
+  const [testSessionKey, setTestSessionKey] = useState<string>(() => Date.now().toString());
 
   // Trigger Master 50-Second Test Launch in Isolated Preview (40s Speaking + 10s Countdown)
   const handleStartMasterTest = () => {
     primeAudioAndVoice();
-    setTestSessionKey(Date.now());
+    setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
     setIsTestLaunchModalOpen(true);
     setTestSimulatedSeconds(50);
 
@@ -294,7 +295,7 @@ export default function LaunchControlTab() {
 
   const handleReplayMasterTest = () => {
     primeAudioAndVoice();
-    setTestSessionKey(Date.now());
+    setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
     setTestSimulatedSeconds(50);
     if (testTimerRef.current) clearInterval(testTimerRef.current);
 
@@ -312,16 +313,13 @@ export default function LaunchControlTab() {
   const handleCloseMasterTest = () => {
     if (testTimerRef.current) clearInterval(testTimerRef.current);
     setIsTestLaunchModalOpen(false);
-    stopAmbientAuraMusic();
-    if (typeof window !== "undefined" && "speechSynthesis" in window) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllAudioAndSpeech();
   };
 
   // Run Individual Voice Test (One single locked female voice)
   const handleTestFemaleVoice = async () => {
     setVoicePlaying(true);
-    await speakLaunchText("Hi everyone! Welcome to Street Mobile. I'm Street, your virtual assistant, and I'm so excited to welcome you today!");
+    await speakLaunchText("Hello everyone! Welcome to Street Mobile! I'm STREETLA, your virtual shopping assistant, and I'm so excited to welcome you all to this very special moment!");
     setVoicePlaying(false);
   };
 

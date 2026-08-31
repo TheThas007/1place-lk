@@ -62,7 +62,7 @@ export default function StreetAssistant() {
   const [inputVal, setInputVal] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>("/streetla.png");
-  const [assistantName, setAssistantName] = useState<string>("Streetla");
+  const [assistantName, setAssistantName] = useState<string>("STREETLA");
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -486,7 +486,7 @@ export default function StreetAssistant() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-none">
-                      {assistantName || "AI Shopping Assistant"}
+                      {assistantName || "STREETLA"}
                     </h3>
                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -494,7 +494,7 @@ export default function StreetAssistant() {
                     </span>
                   </div>
                   <span className="text-[11px] text-neutral-400 font-medium leading-none block mt-1">
-                    Smart Shopping Assistant
+                    Street Mobile Virtual AI Assistant
                   </span>
                 </div>
               </div>

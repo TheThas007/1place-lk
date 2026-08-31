@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, useCallback } from "react";
+import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Sparkles, Rocket } from "lucide-react";
 import {
@@ -11,11 +11,59 @@ import {
   stopAmbientAuraMusic,
   setLaunchSoundEnabled,
   getLockedFemaleVoice,
+  primeAudioAndVoice,
+  stopAllAudioAndSpeech,
 } from "@/lib/launch/voice-engine";
 import {
   VirtualAssistantLaunchAvatar,
   AssistantMood,
 } from "./VirtualAssistantLaunchAvatar";
+
+export type LaunchPhase =
+  | "WELCOME"
+  | "PRODUCTS"
+  | "WARRANTY"
+  | "SHOWROOM"
+  | "BUILDUP"
+  | "COUNTDOWN"
+  | "REVEAL";
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * PURE PHASE RESOLVER (CONTRACT 1 & 2)
+ * ─────────────────────────────────────────────────────────────
+ * Pure deterministic mapping: elapsedMs -> LaunchPhase & countdownNumber
+ */
+export function phaseResolver(elapsedMs: number): {
+  phase: LaunchPhase;
+  countdownNumber?: number;
+} {
+  if (elapsedMs < 8000) {
+    return { phase: "WELCOME" };
+  }
+  if (elapsedMs < 16000) {
+    return { phase: "PRODUCTS" };
+  }
+  if (elapsedMs < 24000) {
+    return { phase: "WARRANTY" };
+  }
+  if (elapsedMs < 33000) {
+    return { phase: "SHOWROOM" };
+  }
+  if (elapsedMs < 40000) {
+    return { phase: "BUILDUP" };
+  }
+  if (elapsedMs < 50000) {
+    const n = 10 - Math.floor((elapsedMs - 40000) / 1000);
+    return {
+      phase: "COUNTDOWN",
+      countdownNumber: Math.max(1, Math.min(10, n)),
+    };
+  }
+  return {
+    phase: "REVEAL",
+  };
+}
 
 interface VirtualAssistantLaunchProps {
   totalRemainingSeconds?: number;
@@ -25,42 +73,46 @@ interface VirtualAssistantLaunchProps {
   onLaunchComplete: () => void;
 }
 
-export function VirtualAssistantLaunch({
-  totalRemainingSeconds = 50,
+export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   title = "STREET MOBILE",
   tagline = "VAVUNIYA • SRI LANKA",
   glowColor = "#C4E2F5",
   onLaunchComplete,
 }: VirtualAssistantLaunchProps) {
-  // Sound toggle state
+  // Sound state
   const [soundActive, setSoundActive] = useState<boolean>(true);
 
-  // Synchronized countdown seconds display
+  // UI Reactive States (Updated ONLY on phase or countdown changes — never 60fps!)
+  const [currentPhase, setCurrentPhase] = useState<LaunchPhase>("WELCOME");
+  const [activeCountdownNumber, setActiveCountdownNumber] = useState<number | null>(null);
   const [displayedSeconds, setDisplayedSeconds] = useState<number>(50);
 
-  // Dialogues & Subtitles matching user uploaded design
-  const [speechBubbleTitle, setSpeechBubbleTitle] = useState<string>("Vanakkam everyone! 👋");
-  const [speechBubbleBody, setSpeechBubbleBody] = useState<string>(
-    "Welcome to Street Mobile!\n\nUngalukkaaga latest smartphones, premium gadgets, and genuine accessories ore idathula kondu vara naanga romba excited-a irukkom!"
-  );
-  const [bottomPillTop, setBottomPillTop] = useState<string>("Welcome to the Grand Launch!");
-  const [bottomPillBottom, setBottomPillBottom] = useState<string>(
-    "Bringing genuine devices right to you ✨"
+  // Content Cards
+  const [bubbleTitle, setBubbleTitle] = useState<string>("WELCOME TO STREET MOBILE 👋");
+  const [bubbleBody, setBubbleBody] = useState<string>("I'm STREETLA, your virtual shopping assistant.");
+  const [bottomSubtitle, setBottomSubtitle] = useState<string>(
+    "Welcome to the Grand Launch • Your smarter way to shop for technology ✨"
   );
 
-  // Avatar & Visual States
+  // Avatar & Speaking state
   const [mood, setMood] = useState<AssistantMood>("intro");
   const [isSpeaking, setIsSpeaking] = useState<boolean>(false);
-  const [activeCountNumber, setActiveCountNumber] = useState<number | null>(null);
 
-  // Celebration state
-  const [isLiveCelebration, setIsLiveCelebration] = useState<boolean>(false);
-  const [isGlidingToBottomRight, setIsGlidingToBottomRight] = useState<boolean>(false);
+  // Climax states
+  const [isRevealed, setIsRevealed] = useState<boolean>(false);
+  const [isGliding, setIsGliding] = useState<boolean>(false);
 
-  // Canvas Confetti Ref
+  // Confetti Canvas Ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
-  // Helper function to convert hex to rgba
+  // Master Clock & Guard Refs
+  const animFrameIdRef = useRef<number | null>(null);
+  const launchStartRef = useRef<number>(0);
+  const lastPhaseRef = useRef<LaunchPhase | null>(null);
+  const lastCountdownNumberRef = useRef<number | null>(null);
+  const revealTriggeredRef = useRef<boolean>(false);
+
+  // Helper for hexToRgba
   const hexToRgba = (hex: string, alpha: number) => {
     const cleanHex = hex.replace("#", "");
     const r = parseInt(cleanHex.substring(0, 2), 16) || 196;
@@ -81,7 +133,7 @@ export function VirtualAssistantLaunch({
     }
   }, [soundActive]);
 
-  // Canvas Confetti Particle System for 0s Celebration
+  // Canvas Confetti Particle System for 0s Reveal
   const triggerConfetti = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -128,7 +180,7 @@ export function VirtualAssistantLaunch({
       particles.forEach((p) => {
         p.x += p.vx;
         p.y += p.vy;
-        p.vy += 0.45; // gravity
+        p.vy += 0.45;
         p.vx *= 0.98;
         p.rotation += p.rotSpeed;
         p.opacity -= 0.004;
@@ -151,211 +203,224 @@ export function VirtualAssistantLaunch({
     };
 
     render();
-
-    return () => {
-      if (animationFrame) cancelAnimationFrame(animationFrame);
-    };
   }, []);
 
-  // ── Master Continuous Audio & Countdown Director (50 Seconds: 40s Speaking + 10s Countdown) ──
+  /**
+   * ─────────────────────────────────────────────────────────────
+   * MASTER CLOCK LOOP (CONTRACT 1, 2, 4, 5)
+   * ─────────────────────────────────────────────────────────────
+   */
   useEffect(() => {
-    // Initialize voice and soft ambient aura pad
-    getLockedFemaleVoice();
+    // 1. Prime audio, discover locked female voice, start ambient aura music
+    primeAudioAndVoice();
     startAmbientAuraMusic();
 
-    let isCancelled = false;
+    // 2. Set authoritative start timestamp
+    launchStartRef.current = performance.now();
+    lastPhaseRef.current = null;
+    lastCountdownNumberRef.current = null;
+    revealTriggeredRef.current = false;
 
-    // Smooth clock ticker for 50s down to 10s
-    let clockSeconds = 50;
-    const clockInterval = setInterval(() => {
-      if (clockSeconds > 10) {
-        clockSeconds -= 1;
-        setDisplayedSeconds(clockSeconds);
-      }
-    }, 1000);
-
-    const runMasterLaunchFlow = async () => {
-      // Small tick for browser audio context preparation
-      await new Promise((r) => setTimeout(r, 300));
-      if (isCancelled) return;
-
-      // ── Phase 1 (50s – 41s): Welcome & Personal Introduction ──
-      setMood("intro");
-      setSpeechBubbleTitle("Vanakkam everyone! 👋");
-      setSpeechBubbleBody(
-        "Welcome to Street Mobile!\n\nI'm Street, your virtual shopping assistant, and I am so thrilled to welcome all of you to our grand launch today!"
-      );
-      setBottomPillTop("Welcome to the Grand Launch!");
-      setBottomPillBottom("Bringing genuine devices right to you ✨");
-
-      await speakLaunchText(
-        "Vanakkam everyone! Welcome to Street Mobile! I'm Street, your virtual shopping assistant, and I am so thrilled to welcome all of you to our official grand launch today!",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-
-      // ── Phase 2 (40s – 31s): Genuine Smartphones & Vavuniya Flagship Store ──
-      setMood("speaking");
-      setSpeechBubbleTitle("Latest Genuine Tech 📱");
-      setSpeechBubbleBody(
-        "Flagship smartphones, amazing gadgets & 100% genuine accessories — right here in Vavuniya and across Sri Lanka!"
-      );
-      setBottomPillTop("Flagship Smartphones & Gadgets");
-      setBottomPillBottom("100% Genuine Quality in Vavuniya & Island-wide 📱");
-
-      await speakLaunchText(
-        "Street Mobile is here to bring you the latest genuine smartphones, flagship devices, premium audio, and authentic accessories, right here in Vavuniya and delivered all across Sri Lanka!",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-
-      // ── Phase 3 (30s – 21s): Genuine Warranties & We Are Always Here For You ──
-      setMood("speaking");
-      setSpeechBubbleTitle("We Are Always Right Here For You! 🛡️");
-      setSpeechBubbleBody(
-        "100% Genuine Company Warranties, Express Delivery, Easy Installment Plans & 24/7 Smart Assistant Support!"
-      );
-      setBottomPillTop("Genuine Warranty & Express Delivery");
-      setBottomPillBottom("We are always right here for you 💖");
-
-      await speakLaunchText(
-        "With 100% genuine company warranties, instant express delivery, easy installment plans, and 24/7 smart assistant support — we are always right here for you!",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-
-      // ── Phase 4 (20s – 12s): Shared Milestone & Excitement ──
-      setMood("speaking");
-      setSpeechBubbleTitle("The Wait Is Finally Over! ⏳");
-      setSpeechBubbleBody(
-        "We have all been waiting for this grand moment together, and now... our showroom and online experience are going live!"
-      );
-      setBottomPillTop("The Wait Is Finally Over!");
-      setBottomPillBottom("Get ready for the official grand reveal 🔥");
-
-      await speakLaunchText(
-        "We have all been waiting for this very special moment together, and now... the wait is finally over! Our full showroom and online store are about to go live!",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-
-      // ── Phase 5 (11s): The Grand Call to Launch ──
-      setMood("speaking");
-      setSpeechBubbleTitle("Are You All Ready? 🚀");
-      setSpeechBubbleBody("Take a deep breath! Let's count down and launch Street Mobile together in...");
-      setBottomPillTop("Are you all ready?");
-      setBottomPillBottom("Let's launch Street Mobile in... 🚀");
-
-      await speakLaunchText(
-        "So, are you all ready? Take a deep breath! Let's count down and launch Street Mobile together in...",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-      clearInterval(clockInterval);
-
-      // ── Phase 6: The 10-Second Grand Countdown (10 -> 1) ──
-      setMood("counting");
-      const countdownWords: Record<number, string> = {
-        10: "Ten!",
-        9: "Nine!",
-        8: "Eight!",
-        7: "Seven!",
-        6: "Six!",
-        5: "Five!",
-        4: "Four!",
-        3: "Three!",
-        2: "Two!",
-        1: "One!",
-      };
-
-      for (let sec = 10; sec >= 1; sec--) {
-        if (isCancelled) return;
-
-        setDisplayedSeconds(sec);
-        setActiveCountNumber(sec);
-        setSpeechBubbleTitle(`Launching in ${sec} seconds... 🔥`);
-        setSpeechBubbleBody(`Get ready! Counting down: ${countdownWords[sec]}`);
-        setBottomPillTop("Counting Down Together!");
-        setBottomPillBottom(`Launching in ${sec}...`);
-
-        playCountdownTick(sec);
-
-        speakLaunchText(countdownWords[sec], {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        });
-
-        await new Promise((r) => setTimeout(r, 1000));
-      }
-
-      if (isCancelled) return;
-
-      // ── Phase 7: 0s - Official Live Launch & Grand Celebration ──
-      setDisplayedSeconds(0);
-      setActiveCountNumber(null);
-      setMood("celebrating");
-      setIsLiveCelebration(true);
-      setSpeechBubbleTitle("STREET MOBILE IS LIVE! 🚀");
-      setSpeechBubbleBody(
-        "Welcome to the all-new Street Mobile! Explore genuine smartphones, gadgets & accessories now!"
-      );
-      setBottomPillTop("WE ARE OFFICIALLY LIVE! 🎉");
-      setBottomPillBottom("Welcome to the all-new Street Mobile!");
-
-      playCelebrationFanfare();
-      triggerConfetti();
-
-      await speakLaunchText(
-        "And... we are officially live! 🎉 Welcome to the all-new Street Mobile! We are always right here for you!",
-        {
-          onStart: () => setIsSpeaking(true),
-          onEnd: () => setIsSpeaking(false),
-        }
-      );
-
-      if (isCancelled) return;
-
-      // Hold celebration for 3.5s, then glide to bottom-right
-      await new Promise((r) => setTimeout(r, 3500));
-      if (isCancelled) return;
-
-      setIsGlidingToBottomRight(true);
-      setMood("transforming");
-
-      setTimeout(() => {
-        onLaunchComplete();
-      }, 1600);
+    // Countdown words
+    const countdownWords: Record<number, string> = {
+      10: "Ten!",
+      9: "Nine!",
+      8: "Eight!",
+      7: "Seven!",
+      6: "Six!",
+      5: "Five!",
+      4: "Four!",
+      3: "Three!",
+      2: "Two!",
+      1: "One!",
     };
 
-    runMasterLaunchFlow();
+    function frame(now: number) {
+      const elapsedMs = now - launchStartRef.current;
+      const { phase, countdownNumber } = phaseResolver(elapsedMs);
 
-    return () => {
-      isCancelled = true;
-      clearInterval(clockInterval);
-      stopAmbientAuraMusic();
-      if (typeof window !== "undefined" && "speechSynthesis" in window) {
-        window.speechSynthesis.cancel();
+      // ── Handle Phase Transitions (Guarded by lastPhaseRef) ──
+      if (phase !== lastPhaseRef.current) {
+        lastPhaseRef.current = phase;
+        setCurrentPhase(phase);
+
+        // Phase 1: WELCOME (0s -> 8s)
+        if (phase === "WELCOME") {
+          setMood("intro");
+          setDisplayedSeconds(50);
+          setActiveCountdownNumber(null);
+          setBubbleTitle("WELCOME TO STREET MOBILE 👋");
+          setBubbleBody("I'm STREETLA, your virtual shopping assistant.");
+          setBottomSubtitle("Welcome to the Grand Launch • Your smarter way to shop for technology ✨");
+
+          speakLaunchText(
+            "Hello everyone! Welcome to Street Mobile! I'm STREETLA, your virtual shopping assistant, and I'm so excited to welcome you all to this very special moment!",
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
+        }
+
+        // Phase 2: PRODUCTS (8s -> 16s)
+        else if (phase === "PRODUCTS") {
+          setMood("speaking");
+          setDisplayedSeconds(42);
+          setBubbleTitle("LATEST GENUINE TECH 📱");
+          setBubbleBody("Flagship smartphones, premium audio and authentic accessories.");
+          setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
+
+          speakLaunchText(
+            "From the latest smartphones and flagship devices, to premium audio and genuine accessories, Street Mobile is bringing amazing technology right here to Vavuniya!",
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
+        }
+
+        // Phase 3: WARRANTY (16s -> 24s)
+        else if (phase === "WARRANTY") {
+          setMood("speaking");
+          setDisplayedSeconds(34);
+          setBubbleTitle("WE'RE ALWAYS HERE FOR YOU 🛡️");
+          setBubbleBody("Genuine products, official warranty, fast delivery and friendly support.");
+          setBottomSubtitle("Genuine Warranty & Express Delivery • We're here for you 💙");
+
+          speakLaunchText(
+            "With genuine products, official company warranty, fast delivery, easy payment options, and friendly support, we're here to make your shopping experience simple and worry-free.",
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
+        }
+
+        // Phase 4: SHOWROOM (24s -> 33s)
+        else if (phase === "SHOWROOM") {
+          setMood("speaking");
+          setDisplayedSeconds(26);
+          setBubbleTitle("VAVUNIYA → SRI LANKA 🇱🇰");
+          setBubbleBody("Visit our flagship showroom or shop online from anywhere in Sri Lanka.");
+          setBottomSubtitle("Visit Us or Shop Online • Street Mobile is ready for you");
+
+          speakLaunchText(
+            "Whether you're visiting our flagship showroom or shopping with us online from anywhere in Sri Lanka, Street Mobile is ready to serve you!",
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
+        }
+
+        // Phase 5: BUILDUP (33s -> 40s)
+        else if (phase === "BUILDUP") {
+          setMood("speaking");
+          setDisplayedSeconds(17);
+          setBubbleTitle("ARE YOU READY? 🚀");
+          setBubbleBody("The wait is finally over!");
+          setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
+
+          speakLaunchText(
+            "We've been waiting for this moment together… and now, the wait is finally over! So everyone, are you ready? Because Street Mobile is about to go live!",
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
+        }
+
+        // Phase 6: COUNTDOWN Entry at exactly 40,000ms
+        else if (phase === "COUNTDOWN") {
+          // CONTRACT 2: Cancel Phase 5 speech immediately
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+          }
+          setMood("counting");
+        }
       }
+
+      // ── Handle Countdown Numbers (40,000ms -> 50,000ms) ──
+      if (phase === "COUNTDOWN" && countdownNumber !== undefined) {
+        if (countdownNumber !== lastCountdownNumberRef.current) {
+          lastCountdownNumberRef.current = countdownNumber;
+
+          // Update React UI state for this single second step
+          setActiveCountdownNumber(countdownNumber);
+          setDisplayedSeconds(countdownNumber);
+          setBubbleTitle(`LAUNCHING IN ${countdownNumber}... 🔥`);
+          setBubbleBody(`Get ready! Counting down: ${countdownWords[countdownNumber] || countdownNumber}`);
+          setBottomSubtitle(`COUNTING DOWN TOGETHER • LAUNCHING IN ${countdownNumber}...`);
+
+          // Play crystal chime
+          playCountdownTick(countdownNumber);
+
+          // Cancel any previous tick speech and speak new number
+          if (typeof window !== "undefined" && "speechSynthesis" in window) {
+            window.speechSynthesis.cancel();
+          }
+          speakLaunchText(countdownWords[countdownNumber] || String(countdownNumber), {
+            onStart: () => setIsSpeaking(true),
+            onEnd: () => setIsSpeaking(false),
+          });
+        }
+      }
+
+      // ── Handle Exact 0s Reveal Trigger (Contract 4 & Section 18) ──
+      if (elapsedMs >= 50000 && !revealTriggeredRef.current) {
+        revealTriggeredRef.current = true;
+
+        // Cancel countdown speech
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          window.speechSynthesis.cancel();
+        }
+
+        setDisplayedSeconds(0);
+        setActiveCountdownNumber(null);
+        setMood("celebrating");
+        setIsRevealed(true);
+        setBubbleTitle("STREET MOBILE IS LIVE! 🚀");
+        setBubbleBody("Explore genuine smartphones, gadgets and more.");
+        setBottomSubtitle("WE ARE OFFICIALLY LIVE! 🎉 • Welcome to Street Mobile!");
+
+        // Play C-Major fanfare & confetti
+        playCelebrationFanfare();
+        triggerConfetti();
+
+        // Climax Launch Announcement
+        speakLaunchText(
+          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, and I'm always here to help you!",
+          {
+            onStart: () => setIsSpeaking(true),
+            onEnd: () => setIsSpeaking(false),
+          }
+        );
+
+        // Section 21: STREETLA Chatbot Transformation (4.2 seconds hold, then glide)
+        setTimeout(() => {
+          setIsGliding(true);
+          setMood("transforming");
+
+          setTimeout(() => {
+            onLaunchComplete();
+          }, 1600);
+        }, 4200);
+      }
+
+      // Continue master clock loop while active
+      if (!revealTriggeredRef.current || elapsedMs < 55000) {
+        animFrameIdRef.current = requestAnimationFrame(frame);
+      }
+    }
+
+    animFrameIdRef.current = requestAnimationFrame(frame);
+
+    // Section 43: Complete Cleanup Contract
+    return () => {
+      if (animFrameIdRef.current) {
+        cancelAnimationFrame(animFrameIdRef.current);
+      }
+      stopAllAudioAndSpeech();
     };
   }, [onLaunchComplete, triggerConfetti]);
 
@@ -384,7 +449,7 @@ export function VirtualAssistantLaunch({
         style={{ backgroundColor: glowColor }}
       />
 
-      {/* ── Top Micro-Labels Header (Matching User Uploaded Image) ── */}
+      {/* ── Top Header (Section 30) ── */}
       <div className="w-full max-w-[1400px] flex items-center justify-between z-40">
         <div className="flex items-center gap-2.5">
           <div
@@ -424,9 +489,9 @@ export function VirtualAssistantLaunch({
         </div>
       </div>
 
-      {/* ── Middle Top: Street Mobile Logo + Tagline + Countdown Boxes ── */}
+      {/* ── Middle Top: Street Mobile Logo + Tagline + Countdown Boxes (Section 31 & 32) ── */}
       <div className="w-full max-w-4xl flex flex-col items-center justify-center text-center space-y-3 sm:space-y-4 pt-1 sm:pt-2">
-        {/* Street Mobile Official Logo */}
+        {/* Official Street Mobile Logo */}
         <div className="relative flex flex-col items-center justify-center">
           <img
             src="/logo.png"
@@ -481,11 +546,11 @@ export function VirtualAssistantLaunch({
         </div>
       </div>
 
-      {/* ── Center Stage: Speech Bubble (Left) + 3D Girl Avatar (Center) + Live Audio Waveform (Right) ── */}
+      {/* ── Center Stage: Speech Bubble (Left) + STREETLA Avatar (Center) + Waveform (Right) (Section 33) ── */}
       <div className="w-full max-w-6xl flex items-center justify-center relative my-auto py-2 sm:py-4">
         {/* Left: Floating Speech Bubble */}
         <AnimatePresence>
-          {!isLiveCelebration && !isGlidingToBottomRight && (
+          {!isRevealed && !isGliding && (
             <motion.div
               initial={{ opacity: 0, x: -30, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -493,23 +558,23 @@ export function VirtualAssistantLaunch({
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="hidden md:flex flex-col text-left max-w-[280px] lg:max-w-[340px] p-5 rounded-3xl bg-white border border-neutral-200/90 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] relative mr-4 z-20"
             >
-              {/* Pointing triangle to the avatar */}
+              {/* Pointing triangle to STREETLA */}
               <div className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-t-[9px] border-t-transparent border-b-[9px] border-b-transparent border-l-[10px] border-l-white" />
 
               <h4 className="font-extrabold text-sm sm:text-base text-neutral-950 mb-1">
-                {speechBubbleTitle}
+                {bubbleTitle}
               </h4>
               <p className="text-xs sm:text-[13px] leading-relaxed text-neutral-700 whitespace-pre-line font-medium">
-                {speechBubbleBody}
+                {bubbleBody}
               </p>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Center: 3D Girl Avatar Character */}
+        {/* Center: STREETLA 3D Avatar (Section 35 & 21) */}
         <motion.div
           animate={
-            isGlidingToBottomRight
+            isGliding
               ? {
                   x: typeof window !== "undefined" ? window.innerWidth / 2 - 50 : 300,
                   y: typeof window !== "undefined" ? window.innerHeight / 2 - 50 : 300,
@@ -525,20 +590,38 @@ export function VirtualAssistantLaunch({
           }
           transition={{
             duration: 1.4,
-            ease: [0.16, 1, 0.3, 1],
+            ease: [0.34, 1.56, 0.64, 1],
           }}
-          className="relative z-30"
+          className="relative z-30 flex flex-col items-center"
         >
           <VirtualAssistantLaunchAvatar
             mood={mood}
             isSpeaking={isSpeaking}
             size="hero"
           />
+
+          {/* Section 14: Giant Center Countdown Number Overlay during Countdown */}
+          <AnimatePresence mode="wait">
+            {activeCountdownNumber !== null && !isRevealed && (
+              <motion.div
+                key={activeCountdownNumber}
+                initial={{ scale: 0.85, opacity: 0, y: 10 }}
+                animate={{ scale: 1, opacity: 1, y: 0 }}
+                exit={{ scale: 1.25, opacity: 0 }}
+                transition={{ duration: 0.45, ease: "easeOut" }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none z-40"
+              >
+                <span className="text-8xl sm:text-9xl font-black font-mono tracking-tighter text-white drop-shadow-[0_0_40px_rgba(168,85,247,0.95)] drop-shadow-[0_0_80px_rgba(14,165,233,0.85)]">
+                  {activeCountdownNumber}
+                </span>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </motion.div>
 
-        {/* Right: Floating Purple Audio Waveform Card */}
+        {/* Right: 20-Bar Purple Waveform Card (Section 33 & 34) */}
         <AnimatePresence>
-          {!isLiveCelebration && !isGlidingToBottomRight && (
+          {!isRevealed && !isGliding && (
             <motion.div
               initial={{ opacity: 0, x: 30, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -546,7 +629,7 @@ export function VirtualAssistantLaunch({
               transition={{ duration: 0.5, ease: "easeOut" }}
               className="hidden md:flex flex-col items-center justify-center p-4 sm:p-5 rounded-3xl bg-white border border-purple-100 shadow-[0_12px_40px_-8px_rgba(147,51,234,0.14)] ml-4 z-20 min-w-[220px] lg:min-w-[260px]"
             >
-              {/* Dynamic Animated Equalizer Bars */}
+              {/* Dynamic 20 Animated Equalizer Bars */}
               <div className="flex items-center gap-1 h-8 px-3">
                 {[4, 12, 22, 16, 28, 14, 26, 20, 32, 18, 24, 12, 30, 16, 22, 14, 8, 16, 24, 10].map(
                   (h, i) => (
@@ -573,42 +656,39 @@ export function VirtualAssistantLaunch({
               </div>
 
               <span className="mt-3 text-[10px] font-extrabold tracking-[0.22em] text-purple-700 uppercase">
-                {isSpeaking ? "AI ASSISTANT IS SPEAKING..." : "AI ASSISTANT READY"}
+                {isSpeaking ? "STREETLA IS SPEAKING..." : "STREETLA READY"}
               </span>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* ── Mobile Speech Bubble (Shown on Small Screens Below Avatar) ── */}
+      {/* ── Mobile Speech Bubble (Shown on Small Screens Below STREETLA) ── */}
       <div className="md:hidden w-full max-w-sm px-3 z-30 -mt-2">
         <div className="p-3.5 rounded-2xl bg-white border border-neutral-200/90 shadow-md text-left">
-          <h5 className="font-extrabold text-xs text-neutral-950">{speechBubbleTitle}</h5>
+          <h5 className="font-extrabold text-xs text-neutral-950">{bubbleTitle}</h5>
           <p className="text-[11px] text-neutral-700 leading-snug mt-0.5 line-clamp-3">
-            {speechBubbleBody}
+            {bubbleBody}
           </p>
         </div>
       </div>
 
-      {/* ── Bottom Subtitle Pill Card (Exact Match to User Uploaded Image) ── */}
-      {!isGlidingToBottomRight && (
+      {/* ── Bottom Subtitle Pill Card ── */}
+      {!isGliding && (
         <motion.div
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
-          className="w-full max-w-md mx-auto py-2.5 sm:py-3.5 px-6 rounded-3xl bg-white/90 backdrop-blur-xl border border-neutral-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] text-center z-30"
+          className="w-full max-w-lg mx-auto py-2.5 sm:py-3.5 px-6 rounded-3xl bg-white/90 backdrop-blur-xl border border-neutral-200/80 shadow-[0_8px_30px_rgba(0,0,0,0.06)] text-center z-30"
         >
-          <p className="text-xs sm:text-sm font-semibold text-neutral-800 leading-tight">
-            {bottomPillTop}
-          </p>
-          <p className="text-xs sm:text-[13.5px] font-extrabold text-purple-600 leading-tight mt-0.5">
-            {bottomPillBottom}
+          <p className="text-xs sm:text-[13px] font-extrabold text-purple-700 leading-tight">
+            {bottomSubtitle}
           </p>
         </motion.div>
       )}
 
-      {/* ── 0s Official Launch Celebration Overlay ── */}
+      {/* ── 0s Official Live Launch Climax Overlay (Section 18 & 20) ── */}
       <AnimatePresence>
-        {isLiveCelebration && !isGlidingToBottomRight && (
+        {isRevealed && !isGliding && (
           <motion.div
             initial={{ scale: 0.6, opacity: 0, y: 20 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -626,11 +706,11 @@ export function VirtualAssistantLaunch({
             </h2>
 
             <p className="text-xs sm:text-base font-semibold text-neutral-700 max-w-md mx-auto mt-2">
-              Welcome to the all-new Street Mobile. We are always right here for you!
+              Welcome to the all-new Street Mobile. I&apos;m STREETLA, and I&apos;m always here to help you!
             </p>
           </motion.div>
         )}
       </AnimatePresence>
     </div>
   );
-}
+});
