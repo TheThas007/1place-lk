@@ -166,7 +166,7 @@ export function isLaunchSoundEnabled(): boolean {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * ULTRA-SMOOTH WARM AMBIENT PAD & AUDIO DUCKING
+ * ULTRA-SMOOTH VELVET AMBIENT PAD & AUDIO DUCKING
  * ─────────────────────────────────────────────────────────────
  */
 export function startAmbientAuraMusic() {
@@ -180,20 +180,20 @@ export function startAmbientAuraMusic() {
     const now = ctx.currentTime;
     ambientGainNode = ctx.createGain();
     ambientGainNode.gain.setValueAtTime(0.0001, now);
-    ambientGainNode.gain.exponentialRampToValueAtTime(0.032, now + 2.5);
+    ambientGainNode.gain.exponentialRampToValueAtTime(0.022, now + 3.0);
 
-    // Warm, soothing lowpass filter (320Hz)
+    // Warm, silky-smooth lowpass filter (240Hz for velvet warmth)
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(320, now);
-    filter.Q.setValueAtTime(0.7, now);
+    filter.frequency.setValueAtTime(240, now);
+    filter.Q.setValueAtTime(0.5, now);
 
-    // F-Major 7th Soothing Chord: F3 (174.61Hz), C4 (261.63Hz), E4 (329.63Hz), A4 (440.0Hz)
-    const chordFreqs = [174.61, 261.63, 329.63, 440.0];
+    // C-Major 9th Celestial Velvet Chord: C3 (130.81Hz), G3 (196.0Hz), E4 (329.63Hz), B4 (493.88Hz)
+    const chordFreqs = [130.81, 196.0, 329.63, 493.88];
     ambientOscillators = chordFreqs.map((freq, idx) => {
       const osc = ctx.createOscillator();
       osc.type = "sine";
-      const detune = idx % 2 === 0 ? 2 : -2;
+      const detune = idx % 2 === 0 ? 1.5 : -1.5;
       osc.frequency.setValueAtTime(freq, now);
       osc.detune.setValueAtTime(detune, now);
       osc.connect(filter);
@@ -210,7 +210,7 @@ export function startAmbientAuraMusic() {
 }
 
 /**
- * Deep Audio Ducking: Dips music volume to 0.002 during speech so voice is 100% pristine
+ * Deep Audio Ducking: Dips music volume to 0.001 during speech so voice is 100% crystal clear
  */
 export function duckAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -218,7 +218,7 @@ export function duckAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.002, now + 0.18);
+    ambientGainNode.gain.linearRampToValueAtTime(0.001, now + 0.2);
   } catch (e) {}
 }
 
@@ -231,7 +231,7 @@ export function restoreAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.032, now + 0.8);
+    ambientGainNode.gain.linearRampToValueAtTime(0.022, now + 1.2);
   } catch (e) {}
 }
 
@@ -242,7 +242,7 @@ export function stopAmbientAuraMusic() {
       const now = audioCtx.currentTime;
       ambientGainNode.gain.cancelScheduledValues(now);
       ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-      ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.08);
+      ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.12);
     } catch (e) {}
   }
   if (ambientOscillators.length > 0) {
@@ -255,13 +255,13 @@ export function stopAmbientAuraMusic() {
           osc.disconnect();
         } catch (e) {}
       });
-    }, 100);
+    }, 150);
   }
 }
 
 /**
  * ─────────────────────────────────────────────────────────────
- * FUTURISTIC GLASS RESONANCE COUNTDOWN PINGS (10 -> 1)
+ * SOFT CRYSTAL WATER-CHIME COUNTDOWN PINGS (10 -> 1)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCountdownTick(number: number) {
@@ -270,48 +270,44 @@ export function playCountdownTick(number: number) {
     const ctx = getAudioContext();
     if (!ctx) return;
 
+    // Harmonic pentatonic frequencies (ultra-soft and pleasant)
     const baseFrequencies: Record<number, number> = {
-      10: 440.0,  // A4
-      9: 493.88,  // B4
-      8: 523.25,  // C5
-      7: 587.33,  // D5
-      6: 659.25,  // E5
-      5: 698.46,  // F5
-      4: 783.99,  // G5
-      3: 880.0,   // A5
-      2: 987.77,  // B5
-      1: 1046.5,  // C6
+      10: 440.0,
+      9: 493.88,
+      8: 523.25,
+      7: 587.33,
+      6: 659.25,
+      5: 698.46,
+      4: 783.99,
+      3: 880.0,
+      2: 987.77,
+      1: 1046.5,
     };
 
-    const freq = baseFrequencies[number] || 600;
+    const freq = baseFrequencies[number] || 520;
     const now = ctx.currentTime;
 
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(freq, now);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
-    const baseVol = number <= 3 ? 0.20 : 0.14;
-    gain1.gain.setValueAtTime(baseVol, now);
-    gain1.gain.exponentialRampToValueAtTime(0.001, now + (number <= 3 ? 0.32 : 0.22));
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, now);
 
-    osc1.connect(gain1);
-    gain1.connect(ctx.destination);
-    osc1.start(now);
-    osc1.stop(now + 0.32);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1200, now);
 
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "triangle";
-    osc2.frequency.setValueAtTime(freq * 1.5, now);
+    const baseVol = number <= 3 ? 0.12 : 0.08;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(baseVol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (number <= 3 ? 0.35 : 0.25));
 
-    gain2.gain.setValueAtTime(baseVol * 0.4, now);
-    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
 
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-    osc2.start(now);
-    osc2.stop(now + 0.12);
+    osc.start(now);
+    osc.stop(now + 0.36);
   } catch (e) {
     console.warn("Countdown ping error:", e);
   }
