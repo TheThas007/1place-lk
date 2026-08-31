@@ -2,21 +2,21 @@
 
 /**
  * ─────────────────────────────────────────────────────────────
- * STREETLA MASTER AUDIO & VOICE SYNTHESIS ENGINE (v3.1)
+ * STREETLA CINEMATIC AUDIO & VOICE SYNTHESIS ENGINE (v3.2)
  * ─────────────────────────────────────────────────────────────
- * Ultra-Clear Voice & Audio Coordinator:
- * • Highest quality natural female voice matching (Microsoft Online Natural, Google UK Female, Samantha)
- * • Native 1.0 Pitch & 1.0 Rate (zero pitch-shifting artifacts / distortion)
- * • Deep Audio Ducking (music lowers to 0.005 during speech so voice is 100% crystal clear)
- * • Crystal Countdown Chimes (G4 392Hz -> C6 1046.5Hz)
- * • C-Major Fanfare (C5, E5, G5, C6, E6)
- * • Strict Garbage-Collection protection for active utterances
+ * Ultra-Modern Sound Design:
+ * • Ethereal Dynamic Ambient Shimmer (Warm celestial pad with subtle breathing filter)
+ * • Futuristic Glass Resonance Countdown Chimes (Dual-layer bell/ping harmonics)
+ * • Cinematic Celebration Fanfare & Sub-Impact (Glissando arpeggio + golden chord)
+ * • Single Locked Highest-Fidelity Female English Voice
+ * • Zero-distortion native 1.0 pitch/rate with deep audio ducking
  */
 
 let audioCtx: AudioContext | null = null;
 let soundEnabled = true;
 let ambientGainNode: GainNode | null = null;
 let ambientOscillators: OscillatorNode[] = [];
+let ambientLfo: OscillatorNode | null = null;
 let isAmbientPlaying = false;
 
 // Cached single locked female voice
@@ -41,8 +41,7 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Discovers and locks the HIGHEST FIDELITY English Female Voice.
- * Prioritizes Neural/Online Natural voices, Samantha, Google UK English Female.
+ * Discovers and permanently locks the HIGHEST FIDELITY English Female Voice.
  */
 export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
@@ -80,7 +79,7 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
     "hazel"
   ];
 
-  // 1. First Pass: English voice matching highest quality female keyword
+  // 1. First Pass: Match highest quality female keyword
   for (const keyword of priorityFemaleVoices) {
     const matched = voices.find((v) => {
       const name = v.name.toLowerCase();
@@ -112,14 +111,12 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
     return lockedFemaleVoice;
   }
 
-  // 3. Fallback to first English voice
   const fallback = voices.find((v) => v.lang.toLowerCase().startsWith("en")) || voices[0] || null;
   lockedFemaleVoice = fallback;
   isVoiceLocked = true;
   return lockedFemaleVoice;
 }
 
-// Auto-register voice changes listener
 if (typeof window !== "undefined" && "speechSynthesis" in window) {
   window.speechSynthesis.onvoiceschanged = () => {
     getLockedFemaleVoice();
@@ -159,7 +156,7 @@ export function isLaunchSoundEnabled(): boolean {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * AMBIENT AURA BACKGROUND MUSIC & AUDIO DUCKING
+ * CINEMATIC ETHEREAL AMBIENT PAD & AUDIO DUCKING
  * ─────────────────────────────────────────────────────────────
  */
 export function startAmbientAuraMusic() {
@@ -172,19 +169,34 @@ export function startAmbientAuraMusic() {
 
     const now = ctx.currentTime;
     ambientGainNode = ctx.createGain();
-    ambientGainNode.gain.setValueAtTime(0.001, now);
-    ambientGainNode.gain.exponentialRampToValueAtTime(0.06, now + 1.8);
+    ambientGainNode.gain.setValueAtTime(0.0001, now);
+    ambientGainNode.gain.exponentialRampToValueAtTime(0.05, now + 2.0);
 
+    // Warm Dynamic Filter
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(460, now);
+    filter.frequency.setValueAtTime(520, now);
+    filter.Q.setValueAtTime(1.2, now);
 
-    // Warm Harmonic Pad Chord: F3 (174.61Hz), A3 (220Hz), C4 (261.63Hz), E4 (329.63Hz)
-    const chordFreqs = [174.61, 220.0, 261.63, 329.63];
-    ambientOscillators = chordFreqs.map((freq) => {
+    // Subtle LFO Breathing Sweep (0.12Hz)
+    const lfo = ctx.createOscillator();
+    const lfoGain = ctx.createGain();
+    lfo.frequency.setValueAtTime(0.12, now);
+    lfoGain.gain.setValueAtTime(180, now);
+    lfo.connect(lfoGain);
+    lfoGain.connect(filter.frequency);
+    lfo.start(now);
+    ambientLfo = lfo;
+
+    // Modern D-Major 9th Floating Chord: D4 (293.66Hz), A4 (440Hz), F#5 (739.99Hz), C#6 (1108.73Hz)
+    const chordFreqs = [293.66, 440.0, 739.99, 1108.73];
+    ambientOscillators = chordFreqs.map((freq, idx) => {
       const osc = ctx.createOscillator();
       osc.type = "sine";
+      // Subtle micro-detune for lush stereo-like thickness
+      const detune = idx % 2 === 0 ? 4 : -4;
       osc.frequency.setValueAtTime(freq, now);
+      osc.detune.setValueAtTime(detune, now);
       osc.connect(filter);
       osc.start(now);
       return osc;
@@ -194,12 +206,12 @@ export function startAmbientAuraMusic() {
     ambientGainNode.connect(ctx.destination);
     isAmbientPlaying = true;
   } catch (e) {
-    console.warn("Ambient aura error:", e);
+    console.warn("Ambient sound error:", e);
   }
 }
 
 /**
- * Deep Audio Ducking: Dips music volume to 0.005 during speech so voice is 100% pristine
+ * Deep Audio Ducking: Dips music volume to 0.003 during speech so voice is 100% pristine
  */
 export function duckAmbientMusic() {
   if (!ambientGainNode || !audioCtx || !isAmbientPlaying) return;
@@ -207,7 +219,7 @@ export function duckAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.005, now + 0.2); // ~92% reduction for absolute voice clarity
+    ambientGainNode.gain.linearRampToValueAtTime(0.003, now + 0.18);
   } catch (e) {}
 }
 
@@ -220,7 +232,7 @@ export function restoreAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.06, now + 0.5);
+    ambientGainNode.gain.linearRampToValueAtTime(0.05, now + 0.6);
   } catch (e) {}
 }
 
@@ -231,8 +243,15 @@ export function stopAmbientAuraMusic() {
       const now = audioCtx.currentTime;
       ambientGainNode.gain.cancelScheduledValues(now);
       ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-      ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.1);
+      ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.08);
     } catch (e) {}
+  }
+  if (ambientLfo) {
+    try {
+      ambientLfo.stop();
+      ambientLfo.disconnect();
+    } catch (e) {}
+    ambientLfo = null;
   }
   if (ambientOscillators.length > 0) {
     const oscs = [...ambientOscillators];
@@ -244,13 +263,13 @@ export function stopAmbientAuraMusic() {
           osc.disconnect();
         } catch (e) {}
       });
-    }, 120);
+    }, 100);
   }
 }
 
 /**
  * ─────────────────────────────────────────────────────────────
- * COUNTDOWN CRYSTAL CHIMES (G4 392Hz -> C6 1046.5Hz)
+ * FUTURISTIC GLASS RESONANCE COUNTDOWN PINGS (10 -> 1)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCountdownTick(number: number) {
@@ -259,46 +278,58 @@ export function playCountdownTick(number: number) {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    const frequencies: Record<number, number> = {
-      10: 392.0, // G4
-      9: 440.0,  // A4
-      8: 493.88, // B4
-      7: 523.25, // C5
-      6: 587.33, // D5
-      5: 659.25, // E5
-      4: 698.46, // F5
-      3: 783.99, // G5
-      2: 880.0,  // A5
-      1: 1046.5, // C6
+    const baseFrequencies: Record<number, number> = {
+      10: 440.0,  // A4
+      9: 493.88,  // B4
+      8: 523.25,  // C5
+      7: 587.33,  // D5
+      6: 659.25,  // E5
+      5: 698.46,  // F5
+      4: 783.99,  // G5
+      3: 880.0,   // A5
+      2: 987.77,  // B5
+      1: 1046.5,  // C6 (Triumphant High Ping)
     };
 
-    const freq = frequencies[number] || 520;
+    const freq = baseFrequencies[number] || 600;
     const now = ctx.currentTime;
 
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
+    // 1. Primary Pure Glass Tone
+    const osc1 = ctx.createOscillator();
+    const gain1 = ctx.createGain();
+    osc1.type = "sine";
+    osc1.frequency.setValueAtTime(freq, now);
 
-    osc.type = number <= 5 ? "triangle" : "sine";
-    osc.frequency.setValueAtTime(freq, now);
-    osc.frequency.exponentialRampToValueAtTime(freq * 1.2, now + 0.1);
+    const baseVol = number <= 3 ? 0.22 : 0.16;
+    gain1.gain.setValueAtTime(baseVol, now);
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + (number <= 3 ? 0.35 : 0.24));
 
-    const volume = number <= 5 ? 0.20 : 0.15;
-    gain.gain.setValueAtTime(volume, now);
-    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.28);
+    osc1.connect(gain1);
+    gain1.connect(ctx.destination);
+    osc1.start(now);
+    osc1.stop(now + 0.35);
 
-    osc.connect(gain);
-    gain.connect(ctx.destination);
+    // 2. High-Tech Shimmer Overtone (Harmonic Fifth / Octave)
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.type = "triangle";
+    osc2.frequency.setValueAtTime(freq * 1.5, now);
 
-    osc.start(now);
-    osc.stop(now + 0.28);
+    gain2.gain.setValueAtTime(baseVol * 0.45, now);
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.start(now);
+    osc2.stop(now + 0.14);
   } catch (e) {
-    console.warn("Audio tick chime error:", e);
+    console.warn("Countdown ping error:", e);
   }
 }
 
 /**
  * ─────────────────────────────────────────────────────────────
- * CELEBRATION FANFARE (C5, E5, G5, C6, E6)
+ * CINEMATIC CELEBRATION FANFARE & REVEAL CHORD (0s REVEAL)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCelebrationFanfare() {
@@ -308,27 +339,43 @@ export function playCelebrationFanfare() {
     if (!ctx) return;
 
     const now = ctx.currentTime;
-    // C Major Arpeggio: C5 -> E5 -> G5 -> C6 -> E6
-    const chords = [523.25, 659.25, 783.99, 1046.5, 1318.51];
 
-    chords.forEach((freq, idx) => {
+    // 1. Cinematic Sub-Bass Impact (Warm Boomy Punch)
+    const subOsc = ctx.createOscillator();
+    const subGain = ctx.createGain();
+    subOsc.type = "sine";
+    subOsc.frequency.setValueAtTime(95, now);
+    subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.6);
+    subGain.gain.setValueAtTime(0.35, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
+    subOsc.connect(subGain);
+    subGain.connect(ctx.destination);
+    subOsc.start(now);
+    subOsc.stop(now + 1.2);
+
+    // 2. Ascending Sparkling Glissando Arpeggio
+    // C4 -> G4 -> C5 -> E5 -> G5 -> C6 -> E6 -> G6
+    const arpeggio = [261.63, 392.0, 523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+
+    arpeggio.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
       osc.type = "triangle";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.07);
+      osc.frequency.setValueAtTime(freq, now + idx * 0.055);
 
-      gain.gain.setValueAtTime(0.24, now + idx * 0.07);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.07 + 1.4);
+      const delay = idx * 0.055;
+      gain.gain.setValueAtTime(0.20, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.8);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
-      osc.start(now + idx * 0.07);
-      osc.stop(now + idx * 0.07 + 1.4);
+      osc.start(now + delay);
+      osc.stop(now + delay + 1.8);
     });
   } catch (e) {
-    console.warn("Fanfare error:", e);
+    console.warn("Celebration fanfare error:", e);
   }
 }
 
@@ -365,7 +412,6 @@ export function speakLaunchText(
 
       const utterance = new SpeechSynthesisUtterance(text);
       
-      // Native 1.0 pitch & 1.0 rate for 100% natural, crisp, artifact-free speech
       utterance.rate = options?.rate || 1.0;
       utterance.pitch = options?.pitch || 1.0;
 
@@ -395,7 +441,6 @@ export function speakLaunchText(
         finish();
       };
 
-      // Failsafe timeout
       const maxDuration = Math.max(2800, text.length * 100);
       setTimeout(finish, maxDuration);
 
