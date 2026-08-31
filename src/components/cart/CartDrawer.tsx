@@ -422,8 +422,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           {/* Controls & Remove option */}
                           <div className="flex flex-col items-end justify-between shrink-0">
                             <button
-                              onClick={() => removeFromCart(item.productId)}
-                              className="p-1.5 rounded-lg text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all flex items-center gap-1 text-[11px] font-semibold"
+                              onClick={() => removeFromCart(item.productId, item.variantId, item.color, item.storage)}
+                              className="p-1.5 rounded-lg text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                               title="Remove Product"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
@@ -431,8 +431,8 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             </button>
                             <div className="flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-1 py-1 mt-2">
                               <button
-                                onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId, item.color, item.storage)}
+                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all cursor-pointer"
                               >
                                 <Minus className="w-3 h-3" />
                               </button>
@@ -440,12 +440,19 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 {item.quantity}
                               </span>
                               <button
-                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all"
+                                onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId, item.color, item.storage)}
+                                disabled={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock}
+                                title={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock ? `Maximum available stock is ${item.maxStock}` : "Increase quantity"}
+                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
                               >
                                 <Plus className="w-3 h-3" />
                               </button>
                             </div>
+                            {typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock && (
+                              <span className="text-[10px] text-amber-400 font-semibold mt-1">
+                                Max stock ({item.maxStock})
+                              </span>
+                            )}
                           </div>
                         </motion.div>
                       ))}

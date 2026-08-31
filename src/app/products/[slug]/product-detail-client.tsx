@@ -128,6 +128,17 @@ export default function ProductDetailClient({
     return [];
   }, [product]);
 
+  // Helper: Safely resolve stock from combo or base product
+  const resolveStock = (rawStock: any): number => {
+    if ((product.stock_status as string) === "out_of_stock") return 0;
+    if (rawStock !== undefined && rawStock !== null && rawStock !== "") {
+      const parsed = Number(rawStock);
+      return isNaN(parsed) ? 0 : Math.max(0, parsed);
+    }
+    const pStock = product.stock_count ?? product.stock_quantity ?? ((product.stock_status as string) === "out_of_stock" ? 0 : 10);
+    return Math.max(0, Number(pStock) || 0);
+  };
+
   // 2. Normalized Product Variants (Single Source of Truth)
   const normalizedVariants: NormalizedVariant[] = useMemo(() => {
     const list: NormalizedVariant[] = [];
@@ -137,6 +148,8 @@ export default function ProductDetailClient({
         product.variant_combos.forEach((combo, idx) => {
           const validPrice = (combo.price && Number(combo.price) > 0) ? Number(combo.price) : (product.price || 0);
           const validOldPrice = (combo.old_price && Number(combo.old_price) > 0) ? Number(combo.old_price) : (product.old_price || null);
+          const rawStock = combo.stock_quantity ?? (combo as any).available_stock ?? (combo as any).stock;
+          const comboStock = (combo.status === "inactive" || (combo as any).status === "out_of_stock") ? 0 : resolveStock(rawStock);
 
           list.push({
             id: combo.id || `v-${idx}`,
@@ -147,7 +160,7 @@ export default function ProductDetailClient({
             sim_type: combo.sim_type,
             price: validPrice,
             old_price: validOldPrice,
-            stock: combo.stock_quantity ?? (product.stock_status === "out_of_stock" ? 0 : 10),
+            stock: comboStock,
             sku: combo.sku || product.code || product.slug,
             image: combo.image_ref || product.images?.[0],
             gallery: product.images || [],
@@ -164,7 +177,7 @@ export default function ProductDetailClient({
             storage: st,
             price: (product.storage_prices && product.storage_prices[st]) || product.price,
             old_price: product.old_price,
-            stock: product.stock_status === "out_of_stock" ? 0 : 10,
+            stock: resolveStock(product.stock_count ?? product.stock_quantity),
             sku: product.code ? `${product.code}-${st}` : `${product.slug}-${st.toLowerCase()}`,
             image: product.images?.[0],
             gallery: product.images || [],
@@ -179,7 +192,7 @@ export default function ProductDetailClient({
           storage: "Standard",
           price: product.price || 0,
           old_price: product.old_price || null,
-          stock: product.stock_status === "out_of_stock" ? 0 : 10,
+          stock: resolveStock(product.stock_count ?? product.stock_quantity),
           sku: product.code || product.slug,
           image: product.images?.[0],
           gallery: product.images || [],
@@ -197,6 +210,8 @@ export default function ProductDetailClient({
 
         const validPrice = (combo.price && Number(combo.price) > 0) ? Number(combo.price) : (product.price || 0);
         const validOldPrice = (combo.old_price && Number(combo.old_price) > 0) ? Number(combo.old_price) : (product.old_price || null);
+        const rawStock = combo.stock_quantity ?? (combo as any).available_stock ?? (combo as any).stock;
+        const comboStock = (combo.status === "inactive" || (combo as any).status === "out_of_stock") ? 0 : resolveStock(rawStock);
 
         if (matchedColor) {
           list.push({
@@ -208,7 +223,7 @@ export default function ProductDetailClient({
             sim_type: combo.sim_type,
             price: validPrice,
             old_price: validOldPrice,
-            stock: combo.stock_quantity ?? (product.stock_status === "out_of_stock" ? 0 : 10),
+            stock: comboStock,
             sku: combo.sku || product.code || product.slug,
             image: combo.image_ref || matchedColor.cover_image || matchedColor.images?.[0] || product.images?.[0],
             gallery: matchedColor.images?.length > 0 ? matchedColor.images : (product.images || []),
@@ -227,7 +242,7 @@ export default function ProductDetailClient({
               sim_type: combo.sim_type,
               price: validPrice,
               old_price: validOldPrice,
-              stock: combo.stock_quantity ?? (product.stock_status === "out_of_stock" ? 0 : 10),
+              stock: comboStock,
               sku: combo.sku || product.code || product.slug,
               image: combo.image_ref || c.cover_image || c.images?.[0] || product.images?.[0],
               gallery: c.images?.length > 0 ? c.images : (product.images || []),
@@ -247,7 +262,7 @@ export default function ProductDetailClient({
             storage: st,
             price: (product.storage_prices && product.storage_prices[st]) || product.price,
             old_price: product.old_price,
-            stock: product.stock_status === "out_of_stock" ? 0 : 10,
+            stock: resolveStock(product.stock_count ?? product.stock_quantity),
             sku: product.code ? `${product.code}-${st}` : `${product.slug}-${c.name.toLowerCase()}-${st.toLowerCase()}`,
             image: c.cover_image || c.images?.[0] || product.images?.[0],
             gallery: c.images?.length > 0 ? c.images : (product.images || []),
@@ -264,7 +279,7 @@ export default function ProductDetailClient({
           storage: "Standard",
           price: product.price,
           old_price: product.old_price,
-          stock: product.stock_status === "out_of_stock" ? 0 : 10,
+          stock: resolveStock(product.stock_count ?? product.stock_quantity),
           sku: product.code || product.slug,
           image: c.cover_image || c.images?.[0] || product.images?.[0],
           gallery: c.images?.length > 0 ? c.images : (product.images || []),
@@ -507,16 +522,32 @@ export default function ProductDetailClient({
     }
   }, [searchParams, isVariantOutOfStock, isMobileOrLaptop]);
 
+  // Auto-clamp quantity if variant stock decreases below chosen quantity
+  useEffect(() => {
+    if (currentStock > 0 && quantity > currentStock) {
+      setQuantity(currentStock);
+    }
+  }, [currentStock, quantity]);
+
   const handleQuantityChange = (delta: number) => {
-    setQuantity((prev) => Math.max(1, prev + delta));
+    if (isVariantOutOfStock || currentStock <= 0) {
+      setQuantity(1);
+      return;
+    }
+    setQuantity((prev) => {
+      const maxAllowed = Math.max(1, currentStock);
+      const nextVal = prev + delta;
+      return Math.max(1, Math.min(maxAllowed, nextVal));
+    });
   };
 
   const currentActiveImage = allMasterImages[selectedGalleryIndex] || product.images?.[0] || "";
 
   const handleAddToCart = () => {
-    if (isVariantOutOfStock || !selectedVariant) return;
+    if (isVariantOutOfStock || !selectedVariant || currentStock <= 0) return;
 
     const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
+    const finalQty = Math.min(currentStock, Math.max(1, quantity));
 
     handleAuthenticatedPurchase({
       action: "add-to-cart",
@@ -528,7 +559,8 @@ export default function ProductDetailClient({
       color: finalColor,
       storage: selectedVariant.storage,
       ram: selectedVariant.ram,
-      quantity,
+      quantity: finalQty,
+      maxStock: currentStock,
       image: currentActiveImage,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
@@ -544,9 +576,10 @@ export default function ProductDetailClient({
   };
 
   const handleBuyNow = () => {
-    if (isVariantOutOfStock || !selectedVariant) return;
+    if (isVariantOutOfStock || !selectedVariant || currentStock <= 0) return;
 
     const finalColor = selectedVariant?.color || (hasUserChosenColor ? selectedColor : (colorVariants[0]?.name || ""));
+    const finalQty = Math.min(currentStock, Math.max(1, quantity));
 
     handleAuthenticatedPurchase({
       action: "buy-now",
@@ -558,7 +591,8 @@ export default function ProductDetailClient({
       color: finalColor,
       storage: selectedVariant.storage,
       ram: selectedVariant.ram,
-      quantity,
+      quantity: finalQty,
+      maxStock: currentStock,
       image: currentActiveImage,
       warrantyTitle: selectedWarranty?.title || product.warranty,
       warrantyPrice: selectedWarranty?.additional_price || 0,
@@ -884,22 +918,36 @@ export default function ProductDetailClient({
                       const isSelected = hasUserChosenColor && selectedColor.toLowerCase() === c.name.toLowerCase();
                       const hexColor = c.hex && c.hex.startsWith("#") ? c.hex : getColorCSS(c.name);
                       const light = isLightColor(hexColor);
+
+                      const colorVariantsList = normalizedVariants.filter(
+                        (v) => v.color.toLowerCase() === c.name.toLowerCase() && v.status !== "inactive"
+                      );
+                      const colorTotalStock = colorVariantsList.length > 0
+                        ? colorVariantsList.reduce((sum, v) => sum + v.stock, 0)
+                        : (product.stock_status === "out_of_stock" ? 0 : 10);
+                      const isColorOutOfStock = colorTotalStock <= 0;
+
                       return (
                         <button
                           key={c.id || c.name}
                           type="button"
                           onClick={() => handleSelectColor(c.name)}
                           aria-label={c.name}
-                          title={`${c.name}${isSelected ? " (Selected - click again to reset)" : ""}`}
+                          title={`${c.name}${isColorOutOfStock ? " (Out of Stock)" : ""}${isSelected ? " (Selected - click again to reset)" : ""}`}
                           className={`w-9 h-9 rounded-full relative flex items-center justify-center transition-all cursor-pointer ${
                             isSelected
                               ? "ring-2 ring-black ring-offset-2 scale-110 shadow-sm"
+                              : isColorOutOfStock
+                              ? "border border-neutral-300 opacity-60 hover:opacity-100"
                               : "border border-neutral-300 hover:scale-105 hover:border-neutral-400"
                           }`}
                           style={{ backgroundColor: hexColor }}
                         >
                           {isSelected && (
                             <Check className={`w-3.5 h-3.5 ${light ? "text-black stroke-[3]" : "text-white stroke-[3]"}`} />
+                          )}
+                          {isColorOutOfStock && !isSelected && (
+                            <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-red-500 border-2 border-white" title="Out of stock" />
                           )}
                         </button>
                       );
@@ -1026,17 +1074,24 @@ export default function ProductDetailClient({
                   </div>
                 )}
 
-              {/* Quantity Selector */}
+              {/* Quantity Selector & Stock Indicator */}
               <div className="mb-8">
-                <label className="block text-xs font-bold text-black uppercase tracking-wider mb-2.5">
-                  Quantity
-                </label>
+                <div className="flex items-center justify-between gap-2 mb-2.5">
+                  <label className="block text-xs font-bold text-black uppercase tracking-wider">
+                    Quantity
+                  </label>
+                  {currentStock > 0 && currentStock <= 5 && (
+                    <span className="text-[11px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">
+                      ⚠️ Only {currentStock} unit{currentStock > 1 ? "s" : ""} left in stock!
+                    </span>
+                  )}
+                </div>
                 <div className="inline-flex items-center border border-[#EAEAEA] rounded-full p-1 bg-white">
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(-1)}
-                    disabled={quantity <= 1 || isVariantOutOfStock}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30"
+                    disabled={quantity <= 1 || isVariantOutOfStock || currentStock <= 0}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <Minus className="w-3.5 h-3.5" />
                   </button>
@@ -1044,12 +1099,18 @@ export default function ProductDetailClient({
                   <button
                     type="button"
                     onClick={() => handleQuantityChange(1)}
-                    disabled={isVariantOutOfStock}
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30"
+                    disabled={isVariantOutOfStock || currentStock <= 0 || quantity >= currentStock}
+                    title={quantity >= currentStock ? `Maximum available stock is ${currentStock}` : "Increase quantity"}
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-gray-600 hover:text-black hover:bg-gray-100 transition-colors disabled:opacity-30 cursor-pointer disabled:cursor-not-allowed"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
+                {currentStock > 0 && quantity >= currentStock && (
+                  <p className="text-[11px] text-gray-500 mt-1.5 font-medium">
+                    You have reached the maximum available units ({currentStock}) in stock.
+                  </p>
+                )}
               </div>
 
               {/* ── Primary Action Buttons (Add to Bag, Buy Now, Wishlist) ── */}

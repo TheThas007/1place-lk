@@ -16,6 +16,7 @@ export interface PurchaseGuardActionOptions {
   ram?: string;
   variantId?: string;
   quantity?: number;
+  maxStock?: number;
   image?: string;
   warrantyTitle?: string;
   warrantyPrice?: number;
@@ -61,6 +62,7 @@ export function usePurchaseGuard() {
         price: options.product.price,
         image: options.image || options.product.images?.[0] || "/placeholder-phone.webp",
         quantity: options.quantity || 1,
+        maxStock: options.maxStock,
         color: options.color || options.product.colors?.[0],
         storage: options.storage || options.product.storage_options?.[0],
         ram: options.ram,

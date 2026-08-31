@@ -19,6 +19,7 @@ export interface CartItem {
   price: number;
   image: string;
   quantity: number;
+  maxStock?: number;
   color?: string;
   ram?: string;
   storage?: string;
@@ -35,8 +36,8 @@ export interface CartItem {
 interface CartContextType {
   cart: CartItem[];
   addToCart: (item: CartItem) => void;
-  removeFromCart: (productId: string) => void;
-  updateQuantity: (productId: string, quantity: number) => void;
+  removeFromCart: (productId: string, variantId?: string, color?: string, storage?: string) => void;
+  updateQuantity: (productId: string, quantity: number, variantId?: string, color?: string, storage?: string) => void;
   clearCart: () => void;
   itemCount: number;
   total: number;
@@ -44,7 +45,13 @@ interface CartContextType {
 
 const CartContext = createContext<CartContextType | null>(null);
 
-const CART_KEY = "sm_guest_cart";
+function isMatchingItem(a: CartItem, productId: string, variantId?: string, color?: string, storage?: string): boolean {
+  if (a.productId !== productId) return false;
+  if (variantId !== undefined && a.variantId !== variantId) return false;
+  if (color !== undefined && a.color !== color) return false;
+  if (storage !== undefined && a.storage !== storage) return false;
+  return true;
+}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
@@ -87,35 +94,53 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const addToCart = useCallback((item: CartItem) => {
     setCart((prev) => {
-      const existing = prev.find(
+      const existingIdx = prev.findIndex(
         (i) =>
           i.productId === item.productId &&
-          i.color === item.color &&
-          i.storage === item.storage
+          (item.variantId ? i.variantId === item.variantId : true) &&
+          (i.color || "") === (item.color || "") &&
+          (i.storage || "") === (item.storage || "")
       );
-      if (existing) {
-        return prev.map((i) =>
-          i.productId === item.productId &&
-          i.color === item.color &&
-          i.storage === item.storage
-            ? { ...i, quantity: i.quantity + item.quantity }
-            : i
-        );
+
+      const maxLimit = typeof item.maxStock === "number" && item.maxStock > 0 ? item.maxStock : 99;
+
+      if (existingIdx >= 0) {
+        const updated = [...prev];
+        const currentQty = updated[existingIdx].quantity;
+        const newQty = Math.min(maxLimit, currentQty + item.quantity);
+        updated[existingIdx] = {
+          ...updated[existingIdx],
+          ...item,
+          quantity: newQty,
+          maxStock: item.maxStock ?? updated[existingIdx].maxStock,
+        };
+        return updated;
       }
-      return [...prev, item];
+
+      const initialQty = Math.min(maxLimit, Math.max(1, item.quantity));
+      return [...prev, { ...item, quantity: initialQty }];
     });
   }, []);
 
-  const removeFromCart = useCallback((productId: string) => {
-    setCart((prev) => prev.filter((i) => i.productId !== productId));
+  const removeFromCart = useCallback((productId: string, variantId?: string, color?: string, storage?: string) => {
+    setCart((prev) =>
+      prev.filter((i) => !isMatchingItem(i, productId, variantId, color, storage))
+    );
   }, []);
 
-  const updateQuantity = useCallback((productId: string, quantity: number) => {
+  const updateQuantity = useCallback((productId: string, quantity: number, variantId?: string, color?: string, storage?: string) => {
     if (quantity <= 0) {
-      setCart((prev) => prev.filter((i) => i.productId !== productId));
+      setCart((prev) => prev.filter((i) => !isMatchingItem(i, productId, variantId, color, storage)));
     } else {
       setCart((prev) =>
-        prev.map((i) => (i.productId === productId ? { ...i, quantity } : i))
+        prev.map((i) => {
+          if (isMatchingItem(i, productId, variantId, color, storage)) {
+            const maxLimit = typeof i.maxStock === "number" && i.maxStock > 0 ? i.maxStock : 99;
+            const clamped = Math.min(maxLimit, Math.max(1, quantity));
+            return { ...i, quantity: clamped };
+          }
+          return i;
+        })
       );
     }
   }, []);

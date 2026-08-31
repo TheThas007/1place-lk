@@ -811,7 +811,10 @@ export default function ProductModal({
     let defaultRam = "";
 
     if (hasStorageVariants) {
-      if (productType === "laptop") {
+      if (availableStorage && availableStorage.length > 0) {
+        storagePresets = availableStorage;
+        defaultRam = productType === "laptop" ? "16GB RAM" : productType === "phone" ? "8GB" : "";
+      } else if (productType === "laptop") {
         storagePresets = ["256GB SSD", "512GB SSD", "1TB SSD"];
         defaultRam = "16GB RAM";
       } else if (productType === "phone") {
@@ -1146,26 +1149,26 @@ export default function ProductModal({
 
       {/* ── TAB NAVIGATION HEADER ── */}
       <div className="bg-gray-50 border-b border-gray-200 px-6 overflow-x-auto shrink-0 select-none">
-        <div className="flex items-center gap-1 min-w-[650px]">
-          {(productType === "phone"
-            ? [
-                { id: 1, label: "1. Basic Info", icon: Tag },
-                { id: 2, label: "2. Media & Colours", icon: Palette },
-                { id: 3, label: "3. Storage & Variants", icon: Sliders },
-                { id: 4, label: "4. Specifications", icon: Cpu },
-                { id: 5, label: "5. Warranty", icon: ShieldCheck },
-                { id: 6, label: "6. Payments & Delivery", icon: Truck },
-                { id: 7, label: "7. SEO & Publishing", icon: Globe },
-              ]
-            : [
-                { id: 1, label: "1. Basic Info & Pricing", icon: Tag },
-                { id: 2, label: "2. Media & Photos", icon: Palette },
-                { id: 4, label: "3. Specifications", icon: Cpu },
-                { id: 5, label: "4. Warranty", icon: ShieldCheck },
-                { id: 6, label: "5. Payments & Delivery", icon: Truck },
-                { id: 7, label: "6. SEO & Publishing", icon: Globe },
-              ]
-          ).map((tab) => {
+        <div className="flex items-center gap-1 min-w-[720px]">
+          {[
+            { id: 1, label: "1. Basic Info & Pricing", icon: Tag },
+            { id: 2, label: hasColorVariants ? "2. Media & Colours" : "2. Media & Photos", icon: Palette },
+            {
+              id: 3,
+              label: productType === "laptop"
+                ? "3. RAM & Storage Variants"
+                : productType === "phone"
+                ? "3. Storage & Variants"
+                : hasStorageVariants || hasColorVariants
+                ? "3. Variants & Stock"
+                : "3. Inventory & Stock",
+              icon: Sliders,
+            },
+            { id: 4, label: "4. Specifications", icon: Cpu },
+            { id: 5, label: "5. Warranty", icon: ShieldCheck },
+            { id: 6, label: "6. Payments & Delivery", icon: Truck },
+            { id: 7, label: "7. SEO & Publishing", icon: Globe },
+          ].map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
@@ -1174,7 +1177,7 @@ export default function ProductModal({
                 onClick={() => setActiveTab(tab.id)}
                 className={`py-3 px-4 font-bold text-xs border-b-2 flex items-center gap-2 transition-all whitespace-nowrap cursor-pointer ${
                   isActive
-                    ? "border-blue-600 text-blue-600 bg-white"
+                    ? "border-blue-600 text-blue-600 bg-white shadow-2xs"
                     : "border-transparent text-gray-500 hover:text-gray-800 hover:bg-gray-100/60"
                 }`}
               >
@@ -1550,6 +1553,15 @@ export default function ProductModal({
                           type="button"
                           onClick={() => {
                             setHasStorageVariants(true);
+                            if (availableStorage.length === 0) {
+                              if (productType === "laptop") {
+                                setAvailableStorage(["256GB SSD", "512GB SSD", "1TB SSD"]);
+                              } else if (productType === "phone") {
+                                setAvailableStorage(["128GB", "256GB", "512GB"]);
+                              } else {
+                                setAvailableStorage(["64GB", "128GB", "256GB"]);
+                              }
+                            }
                             setHasUnsavedChanges(true);
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1563,6 +1575,116 @@ export default function ProductModal({
                       </div>
                     </div>
                   </div>
+
+                  {/* Dynamic Storage & Capacity Preset Chips (Shown when Storage Variants are Enabled) */}
+                  {hasStorageVariants && (
+                    <div className="mt-3 p-3.5 bg-blue-50/60 border border-blue-200 rounded-2xl space-y-2.5 text-xs animate-in fade-in">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <label className="font-bold text-blue-900 flex items-center gap-1.5">
+                          <Sliders className="w-3.5 h-3.5 text-blue-600" />
+                          {productType === "laptop"
+                            ? "Select Laptop / Tab Storage & SSD Options:"
+                            : productType === "phone"
+                            ? "Select Phone Storage Options:"
+                            : "Select Accessory Storage / Capacity Options:"}
+                        </label>
+                        <span className="text-[11px] text-blue-700 font-medium">
+                          Click chips to toggle or add custom
+                        </span>
+                      </div>
+
+                      {/* Quick Presets Chips */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {(productType === "laptop"
+                          ? ["128GB SSD", "256GB SSD", "512GB SSD", "1TB SSD", "2TB SSD", "8GB RAM", "16GB RAM", "32GB RAM"]
+                          : productType === "phone"
+                          ? ["64GB", "128GB", "256GB", "512GB", "1TB"]
+                          : ["32GB", "64GB", "128GB", "256GB", "512GB", "1TB", "10000mAh", "20000mAh", "Standard"]
+                        ).map((preset) => {
+                          const isSelected = availableStorage.includes(preset);
+                          return (
+                            <button
+                              key={preset}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setAvailableStorage(availableStorage.filter((s) => s !== preset));
+                                } else {
+                                  setAvailableStorage([...availableStorage, preset]);
+                                }
+                                setHasUnsavedChanges(true);
+                              }}
+                              className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-blue-600 text-white shadow-xs"
+                                  : "bg-white border border-blue-200 text-blue-800 hover:bg-blue-100"
+                              }`}
+                            >
+                              {isSelected ? `✓ ${preset}` : `+ ${preset}`}
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Add Custom Storage / Capacity Input */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={customStorageInput}
+                          onChange={(e) => setCustomStorageInput(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && customStorageInput.trim()) {
+                              e.preventDefault();
+                              if (!availableStorage.includes(customStorageInput.trim())) {
+                                setAvailableStorage([...availableStorage, customStorageInput.trim()]);
+                              }
+                              setCustomStorageInput("");
+                              setHasUnsavedChanges(true);
+                            }
+                          }}
+                          placeholder={
+                            productType === "laptop"
+                              ? "Type custom (e.g. 512GB NVMe / 32GB RAM) and press Add..."
+                              : productType === "phone"
+                              ? "Type custom (e.g. 256GB / 12GB) and press Add..."
+                              : "Type custom (e.g. 30000mAh / 64GB) and press Add..."
+                          }
+                          className="flex-1 px-3 py-1.5 bg-white border border-blue-200 rounded-xl text-xs outline-none focus:border-blue-500 font-medium"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (customStorageInput.trim()) {
+                              if (!availableStorage.includes(customStorageInput.trim())) {
+                                setAvailableStorage([...availableStorage, customStorageInput.trim()]);
+                              }
+                              setCustomStorageInput("");
+                              setHasUnsavedChanges(true);
+                            }
+                          }}
+                          className="px-3 py-1.5 bg-blue-700 hover:bg-blue-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          + Add
+                        </button>
+                      </div>
+
+                      {availableStorage.length > 0 && (
+                        <div className="flex items-center justify-between pt-1 text-[11px] text-blue-800 font-bold border-t border-blue-200/60">
+                          <span>Active Storage Options: {availableStorage.join(", ")}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              handleGenerateCombinations();
+                              setActiveTab(3);
+                            }}
+                            className="text-blue-700 hover:text-blue-900 underline font-extrabold cursor-pointer"
+                          >
+                            ⚡ Auto-Generate Variants in Tab 3 &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {/* Old / Regular Price */}
