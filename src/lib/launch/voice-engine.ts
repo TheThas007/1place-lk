@@ -57,25 +57,38 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   ];
 
   const priorityFemaleVoices = [
+    // 1. Google / Android High Quality Neural voices
+    "google uk english female",
+    "google us english",
+    "en-us-x-sfg#female",
+    "en-us-x-tpd#female",
+    "en-us-x-iob#female",
+    "en-gb-x-rjs#female",
+    "samsung english (united states)",
+    "samsung english",
+    // 2. Microsoft Natural Online voices
     "microsoft jenny online (natural)",
     "microsoft aria online (natural)",
     "microsoft sonia online (natural)",
-    "google uk english female",
-    "google us english",
-    "natural",
-    "jenny",
-    "aria",
+    "microsoft ava online (natural)",
+    "microsoft emma online (natural)",
+    "microsoft ana online (natural)",
+    "microsoft zira desktop",
+    // 3. Apple / iOS / macOS Natural voices
+    "samantha (enhanced)",
     "samantha",
     "victoria",
     "karen",
-    "zira",
-    "female",
     "siri",
     "moira",
-    "fiona",
     "tessa",
-    "sonia",
-    "hazel"
+    "fiona",
+    // 4. General Natural Keywords
+    "natural",
+    "female",
+    "jenny",
+    "aria",
+    "zira",
   ];
 
   for (const keyword of priorityFemaleVoices) {
@@ -387,8 +400,8 @@ export function speakLaunchText(
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 1.0;
-      utterance.pitch = options?.pitch || 1.0;
+      utterance.rate = options?.rate || 0.95;
+      utterance.pitch = options?.pitch || 1.02;
 
       currentActiveUtterance = utterance;
 
