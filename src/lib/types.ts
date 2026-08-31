@@ -483,6 +483,7 @@ export interface Review {
 }
 
 export interface GoogleReviewsSettings {
+  enabled?: boolean;
   overall_rating: number;
   total_reviews_count: number;
   write_review_url: string;
@@ -519,6 +520,7 @@ export interface GalleryImage {
 }
 
 export interface GalleryAnimationSettings {
+  enabled?: boolean;
   endlessScrollEnabled: boolean;
   autoplayEnabled: boolean;
   direction: "left" | "right";

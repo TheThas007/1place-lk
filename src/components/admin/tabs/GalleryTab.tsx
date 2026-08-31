@@ -150,6 +150,47 @@ export default function GalleryTab({
 
   return (
     <div className="space-y-6">
+      {/* ── Homepage Section Visibility Switch ── */}
+      <div className={`p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+        animSettings.enabled !== false
+          ? "bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-500/5"
+          : "bg-white/5 border-white/10 opacity-75"
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Sparkles className={`w-4 h-4 ${animSettings.enabled !== false ? "text-emerald-400" : "text-white/40"}`} />
+            <span className="font-extrabold text-sm text-white">Homepage Store Gallery Section</span>
+          </div>
+          <p className="text-xs text-white/50">
+            {animSettings.enabled !== false
+              ? `VISIBLE ON HOMEPAGE • Displays photo marquee on streetmobile.lk`
+              : "HIDDEN • Gallery section is currently hidden from the homepage"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={animSettings.enabled !== false}
+              onChange={async (e) => {
+                const nextVal = e.target.checked;
+                setAnimSettings((prev) => ({ ...prev, enabled: nextVal }));
+                try {
+                  await setDoc(doc(db, "settings", "gallery_animation"), { enabled: nextVal, updatedAt: new Date().toISOString() }, { merge: true });
+                  await setDoc(doc(db, "siteSettings", "galleryAnimation"), { enabled: nextVal, updatedAt: new Date().toISOString() }, { merge: true });
+                  onRefresh?.();
+                } catch (err) {
+                  console.error("Error updating gallery visibility:", err);
+                }
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
+          </label>
+        </div>
+      </div>
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-white/10">
         <div>
           <h3 className="text-xl font-extrabold text-white flex items-center gap-2.5">

@@ -206,28 +206,36 @@ export default async function HomePage() {
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />
 
       {/* 9. Store Gallery (Life at Street Mobile) */}
-      <ScrollReveal enable3d={true}>
-        <GallerySection
-          images={galleryImages as GalleryImage[]}
-          animationSettings={galleryAnimationSettings}
-          uiSettings={uiSettings}
-        />
-      </ScrollReveal>
+      {(galleryAnimationSettings?.enabled ?? true) && (
+        <>
+          <ScrollReveal enable3d={true}>
+            <GallerySection
+              images={galleryImages as GalleryImage[]}
+              animationSettings={galleryAnimationSettings}
+              uiSettings={uiSettings}
+            />
+          </ScrollReveal>
 
-      {/* Showcase position: Below Life at Street Mobile */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
+          {/* Showcase position: Below Life at Street Mobile */}
+          <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
+        </>
+      )}
 
       {/* 10. Google customer reviews (Continuously moves in opposite direction of gallery) */}
-      <ScrollReveal enable3d={true}>
-        <ReviewsSection
-          reviews={reviews}
-          settings={googleReviewsSettings}
-          galleryDirection={galleryAnimationSettings?.direction || "left"}
-        />
-      </ScrollReveal>
+      {(googleReviewsSettings?.enabled ?? true) && (
+        <>
+          <ScrollReveal enable3d={true}>
+            <ReviewsSection
+              reviews={reviews}
+              settings={googleReviewsSettings}
+              galleryDirection={galleryAnimationSettings?.direction || "left"}
+            />
+          </ScrollReveal>
 
-      {/* Showcase position: Below Google Reviews */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_reviews" />
+          {/* Showcase position: Below Google Reviews */}
+          <VisualProductShowcase settings={showcaseSettings} placement="below_reviews" />
+        </>
+      )}
 
       {/* Showcase position: Above Why Choose Street Mobile */}
       <VisualProductShowcase settings={showcaseSettings} placement="above_why_choose" />

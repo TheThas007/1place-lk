@@ -579,7 +579,179 @@ export default function LaunchControlTab() {
         </div>
       </div>
 
-      {/* ── 4. Launch Schedule & Target Configuration ── */}
+      {/* ── 4. Master Launch & Section Visibility Controls (ON / OFF) ── */}
+      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+          <div>
+            <h3 className="text-lg font-extrabold flex items-center gap-2 text-white">
+              <Sliders className="w-5 h-5 text-purple-400" />
+              Launch &amp; Section Visibility Controls (ON / OFF)
+            </h3>
+            <p className="text-xs text-white/50 mt-1">
+              Enable or disable the launch countdown gate and toggle individual showcase sections.
+            </p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto"
+          >
+            <Save className="w-4 h-4" />
+            <span>{isSaving ? "Saving..." : saveSuccess ? "Saved!" : "Save Changes"}</span>
+          </button>
+        </div>
+
+        {/* Master Switches Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          
+          {/* Master 1: Launch Countdown Gate */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            enabled ? "bg-purple-950/30 border-purple-500/40 shadow-lg shadow-purple-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Rocket className={`w-4 h-4 ${enabled ? "text-purple-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Launch Countdown Gate</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {enabled ? "ACTIVE • Visitors see launch gate" : "DISABLED • Direct website access"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={enabled}
+                onChange={(e) => setEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
+            </label>
+          </div>
+
+          {/* Master 2: Pre-Launch Rotating Experience */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            preLaunchEnabled ? "bg-blue-950/30 border-blue-500/40 shadow-lg shadow-blue-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Layers className={`w-4 h-4 ${preLaunchEnabled ? "text-blue-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Rotating Pre-Launch Deck</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {preLaunchEnabled ? "ACTIVE • Cycles trust slides" : "DISABLED • Countdown only"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={preLaunchEnabled}
+                onChange={(e) => setPreLaunchEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-blue-600 shadow-inner"></div>
+            </label>
+          </div>
+
+          {/* Master 3: Store Gallery Slide */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            galleryEnabled ? "bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <ImageIcon className={`w-4 h-4 ${galleryEnabled ? "text-emerald-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Store Photo Gallery</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {galleryEnabled ? `VISIBLE • ${liveGallery.length} photos` : "HIDDEN from showcase"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={galleryEnabled}
+                onChange={(e) => setGalleryEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
+            </label>
+          </div>
+
+          {/* Master 4: Customer Reviews Slide */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            reviewsEnabled ? "bg-amber-950/30 border-amber-500/40 shadow-lg shadow-amber-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Star className={`w-4 h-4 ${reviewsEnabled ? "text-amber-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Customer Reviews Slide</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {reviewsEnabled ? `VISIBLE • ${liveReviews.length} reviews` : "HIDDEN from showcase"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={reviewsEnabled}
+                onChange={(e) => setReviewsEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-amber-600 shadow-inner"></div>
+            </label>
+          </div>
+
+          {/* Master 5: Location & Contact */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            locationEnabled ? "bg-indigo-950/30 border-indigo-500/40 shadow-lg shadow-indigo-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <MapPin className={`w-4 h-4 ${locationEnabled ? "text-indigo-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Store Location &amp; Contact</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {locationEnabled ? "VISIBLE • Vavuniya showroom" : "HIDDEN from showcase"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={locationEnabled}
+                onChange={(e) => setLocationEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-indigo-600 shadow-inner"></div>
+            </label>
+          </div>
+
+          {/* Master 6: Thank You Slide */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            thankYouEnabled ? "bg-pink-950/30 border-pink-500/40 shadow-lg shadow-pink-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <Heart className={`w-4 h-4 ${thankYouEnabled ? "text-pink-400" : "text-white/40"}`} />
+                <span className="font-extrabold text-sm text-white">Thank You Appreciation Card</span>
+              </div>
+              <p className="text-[11px] text-white/50">
+                {thankYouEnabled ? "VISIBLE • Customer gratitude slide" : "HIDDEN (Disabled)"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={thankYouEnabled}
+                onChange={(e) => setThankYouEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-pink-600 shadow-inner"></div>
+            </label>
+          </div>
+
+        </div>
+      </div>
+
+      {/* ── 5. Launch Schedule & Target Configuration ── */}
       <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6">
         <h3 className="text-base font-extrabold flex items-center gap-2 border-b border-white/10 pb-4">
           <Calendar className="w-5 h-5 text-blue-400" /> Official Launch Schedule

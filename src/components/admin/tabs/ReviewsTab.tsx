@@ -122,6 +122,46 @@ export default function ReviewsTab({
 
   return (
     <div className="space-y-8">
+      {/* ── Homepage Section Visibility Switch ── */}
+      <div className={`p-4 sm:p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+        googleSettings.enabled !== false
+          ? "bg-amber-950/30 border-amber-500/40 shadow-lg shadow-amber-500/5"
+          : "bg-white/5 border-white/10 opacity-75"
+      }`}>
+        <div className="space-y-1">
+          <div className="flex items-center gap-2">
+            <Star className={`w-4 h-4 ${googleSettings.enabled !== false ? "text-amber-400" : "text-white/40"}`} />
+            <span className="font-extrabold text-sm text-white">Homepage Google Reviews Section</span>
+          </div>
+          <p className="text-xs text-white/50">
+            {googleSettings.enabled !== false
+              ? `VISIBLE ON HOMEPAGE • Displays customer ratings & reviews marquee on streetmobile.lk`
+              : "HIDDEN • Google Reviews section is currently hidden from the homepage"}
+          </p>
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <label className="relative inline-flex items-center cursor-pointer">
+            <input
+              type="checkbox"
+              checked={googleSettings.enabled !== false}
+              onChange={async (e) => {
+                const nextVal = e.target.checked;
+                setGoogleSettings((prev) => ({ ...prev, enabled: nextVal }));
+                try {
+                  await setDoc(doc(db, "settings", "google_reviews"), { ...googleSettings, enabled: nextVal }, { merge: true });
+                  onSaveSettings({ ...googleSettings, enabled: nextVal });
+                } catch (err) {
+                  console.error("Error updating reviews visibility:", err);
+                }
+              }}
+              className="sr-only peer"
+            />
+            <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-amber-500 shadow-inner"></div>
+          </label>
+        </div>
+      </div>
+
       {/* ── Header ── */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
