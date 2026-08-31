@@ -55,10 +55,9 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   glowColor = "#C4E2F5",
   onLaunchComplete,
 }: VirtualAssistantLaunchProps) {
-  // Master Clock State: Counts down exactly 1 second per second from 60 to 0
+  // Master Clock State: Counts down 1 second per second from 60 to 0
   const initialSeconds = Math.max(1, Math.min(60, Number(totalRemainingSeconds) || 60));
   const [secondsLeft, setSecondsLeft] = useState<number>(initialSeconds);
-  const [hasInteracted, setHasInteracted] = useState<boolean>(false);
 
   // Sound state
   const [soundActive, setSoundActive] = useState<boolean>(true);
@@ -77,6 +76,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   const onLaunchCompleteRef = useRef(onLaunchComplete);
   const lastPhaseTriggeredRef = useRef<string>("");
   const lastCountTriggeredRef = useRef<number | null>(null);
+  const revealStartedRef = useRef<boolean>(false);
 
   useEffect(() => {
     onLaunchCompleteRef.current = onLaunchComplete;
@@ -93,7 +93,6 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   // Sound Toggle Handler
   const toggleSound = useCallback(() => {
-    setHasInteracted(true);
     primeAudioAndVoice();
     const next = !soundActive;
     setSoundActive(next);
@@ -105,10 +104,12 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     }
   }, [soundActive]);
 
-  // Global user interaction listener to unlock audio & voice
+  // Seamless global user interaction listener to unlock audio & voice anywhere
   useEffect(() => {
+    primeAudioAndVoice();
+    startAmbientAuraMusic();
+
     const handleGesture = () => {
-      setHasInteracted(true);
       primeAudioAndVoice();
       if (soundActive) {
         startAmbientAuraMusic();
@@ -117,10 +118,12 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     window.addEventListener("pointerdown", handleGesture, { passive: true });
     window.addEventListener("click", handleGesture, { passive: true });
     window.addEventListener("touchstart", handleGesture, { passive: true });
+    window.addEventListener("scroll", handleGesture, { passive: true });
     return () => {
       window.removeEventListener("pointerdown", handleGesture);
       window.removeEventListener("click", handleGesture);
       window.removeEventListener("touchstart", handleGesture);
+      window.removeEventListener("scroll", handleGesture);
     };
   }, [soundActive]);
 
@@ -149,11 +152,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
     const colors = ["#A855F7", "#EC4899", "#00E676", "#38BDF8", "#FBBF24", "#ED0712", "#FFFFFF"];
 
-    for (let i = 0; i < 260; i++) {
+    for (let i = 0; i < 280; i++) {
       particles.push({
-        x: canvas.width / 2 + (Math.random() - 0.5) * 360,
+        x: canvas.width / 2 + (Math.random() - 0.5) * 380,
         y: canvas.height * 0.38,
-        vx: (Math.random() - 0.5) * 30,
+        vx: (Math.random() - 0.5) * 32,
         vy: -Math.random() * 28 - 6,
         size: Math.random() * 12 + 6,
         color: colors[Math.floor(Math.random() * colors.length)],
@@ -196,7 +199,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     render();
   }, []);
 
-  // ── MASTER 1-SECOND INTERVAL TIMER (Ticking precisely every 1000ms) ──
+  // ── MASTER 1-SECOND INTERVAL TIMER ──
   useEffect(() => {
     primeAudioAndVoice();
     startAmbientAuraMusic();
@@ -237,7 +240,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseTriggeredRef.current = "WELCOME";
         playLaunchVoice(
           "/audio/launch/phase1_welcome.mp3",
-          "Hey everyone! A super warm welcome to Street Mobile! I'm Street-lah, your friendly assistant, and we are always right near you!",
+          "Hey everyone! Welcome to Street Mobile! I'm Street-lah, your virtual assistant, and we are right near you!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -253,7 +256,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseTriggeredRef.current = "PRODUCTS";
         playLaunchVoice(
           "/audio/launch/phase2_products.mp3",
-          "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got unbeatable prices you will love!",
+          "Discover latest flagship smartphones, premium audio, and accessories at unbeatable prices!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -269,7 +272,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseTriggeredRef.current = "WARRANTY";
         playLaunchVoice(
           "/audio/launch/phase3_warranty.mp3",
-          "Every single device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
+          "Every single device comes with official company warranty, fast island-wide delivery, and friendly care!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -285,7 +288,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseTriggeredRef.current = "SHOWROOM";
         playLaunchVoice(
           "/audio/launch/phase4_deals.mp3",
-          "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery!",
+          "Enjoy exclusive launch discounts, zero percent installments, and express doorstep delivery!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -301,7 +304,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         lastPhaseTriggeredRef.current = "BUILDUP";
         playLaunchVoice(
           "/audio/launch/phase5_buildup.mp3",
-          "The wait is finally over! Get ready to step into the future of shopping. Let's count down together in 3, 2, 1!",
+          "The wait is over! Get ready as we count down together in 3, 2, 1!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -327,38 +330,40 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       }
     }
 
-    // ── Phase 7: REVEAL AT 0s ──
+    // ── Phase 7: REVEAL AT 0s (STREETLA Introduces Herself FULLY Before Reveal) ──
     else if (currentPhase === "REVEAL") {
       setMood("celebrating");
-      if (lastPhaseTriggeredRef.current !== "REVEAL") {
-        lastPhaseTriggeredRef.current = "REVEAL";
+      if (!revealStartedRef.current) {
+        revealStartedRef.current = true;
         setIsRevealed(true);
         stopAmbientAuraMusic();
         playCelebrationFanfare();
         triggerConfetti();
 
+        // Play full assistant introduction and welcome
         playLaunchVoice(
           "/audio/launch/phase_reveal.mp3",
-          "And we are officially live! Welcome to the brand new Street Mobile! I'm Street-lah, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
+          "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
           {
             onStart: () => setIsSpeaking(true),
-            onEnd: () => setIsSpeaking(false),
+            onEnd: () => {
+              setIsSpeaking(false);
+              // Wait 2.2 seconds after she COMPLETELY finishes her introduction before starting the reveal transformation!
+              setTimeout(() => {
+                setIsFlashFlickering(true);
+                setIsGliding(true);
+                setMood("transforming");
+
+                setTimeout(() => {
+                  stopAllAudioAndSpeech();
+                  if (onLaunchCompleteRef.current) {
+                    onLaunchCompleteRef.current();
+                  }
+                }, 2000);
+              }, 2200);
+            },
           }
         );
-
-        // Smooth transition to live website after 6 seconds of celebration
-        setTimeout(() => {
-          setIsFlashFlickering(true);
-          setIsGliding(true);
-          setMood("transforming");
-
-          setTimeout(() => {
-            stopAllAudioAndSpeech();
-            if (onLaunchCompleteRef.current) {
-              onLaunchCompleteRef.current();
-            }
-          }, 1800);
-        }, 5500);
       }
     }
   }, [currentPhase, secondsLeft, triggerConfetti]);
@@ -494,26 +499,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           </span>
         </div>
 
-        {/* Center / Top Sound Unlock Prompt (If user hasn't clicked yet) */}
-        {!hasInteracted && (
-          <button
-            onClick={() => {
-              setHasInteracted(true);
-              primeAudioAndVoice();
-              startAmbientAuraMusic();
-            }}
-            className="px-3.5 py-1 rounded-full bg-purple-600/10 hover:bg-purple-600/20 text-purple-700 border border-purple-300 text-[11px] font-extrabold flex items-center gap-1.5 animate-bounce shadow-sm cursor-pointer"
-          >
-            <Volume2 className="w-3.5 h-3.5 text-purple-600" />
-            <span>Tap to Enable Voice & Sound</span>
-          </button>
-        )}
-
         {/* Right: Sound toggle & Location */}
         <div className="flex items-center gap-3 sm:gap-6">
           <button
             onClick={toggleSound}
-            className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700 flex items-center gap-2 transition-colors cursor-pointer border border-neutral-200"
+            className="px-3 py-1.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-xs font-bold text-neutral-700 flex items-center gap-2 transition-colors cursor-pointer border border-neutral-200 shadow-2xs"
           >
             {soundActive ? (
               <>

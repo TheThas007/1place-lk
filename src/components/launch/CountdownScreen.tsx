@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { LaunchCountdownState, PreLaunchExperienceSettings, Review } from "@/lib/types";
 import RotatingContentShowcase from "./RotatingContentShowcase";
+import { primeAudioAndVoice } from "@/lib/launch/voice-engine";
 
 interface CountdownScreenProps {
   countdown: LaunchCountdownState;
@@ -56,23 +57,17 @@ export const CountdownScreen = memo(function CountdownScreen({
   // Prime browser audio permissions on first user touch/interaction
   useEffect(() => {
     const unlockAudio = () => {
-      try {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-          const ctx = new AudioContextClass();
-          if (ctx.state === "suspended") {
-            ctx.resume().catch(() => {});
-          }
-        }
-      } catch (e) {}
+      primeAudioAndVoice();
     };
     window.addEventListener("pointerdown", unlockAudio, { passive: true, once: true });
     window.addEventListener("click", unlockAudio, { passive: true, once: true });
     window.addEventListener("touchstart", unlockAudio, { passive: true, once: true });
+    window.addEventListener("scroll", unlockAudio, { passive: true, once: true });
     return () => {
       window.removeEventListener("pointerdown", unlockAudio);
       window.removeEventListener("click", unlockAudio);
       window.removeEventListener("touchstart", unlockAudio);
+      window.removeEventListener("scroll", unlockAudio);
     };
   }, []);
 
