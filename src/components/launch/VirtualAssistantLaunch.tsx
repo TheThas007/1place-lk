@@ -259,7 +259,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase1_welcome.mp3",
-            "Hey everyone! A super warm welcome to Street Mobile! I'm STREETLA, your friendly virtual shopping assistant, and I'm so excited to launch our all-new store with all of you today! We are always right near you!",
+            "Hey everyone! A super warm welcome to Street Mobile! I'm Streetla, your friendly virtual shopping assistant, and I'm so excited to launch our all-new store with all of you today! We are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -393,7 +393,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         // Play pristine studio reveal outro
         playLaunchVoice(
           "/audio/launch/phase_reveal.mp3",
-          "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
+          "And we are officially live! Welcome to the brand new Street Mobile! I'm Streetla, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => {
