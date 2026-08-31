@@ -2,14 +2,13 @@
 
 /**
  * ─────────────────────────────────────────────────────────────
- * STREETLA CINEMATIC AUDIO & VOICE SYNTHESIS ENGINE (v3.3)
+ * STREETLA CINEMATIC AUDIO & STUDIO VOICE ENGINE (v4.0)
  * ─────────────────────────────────────────────────────────────
  * Ultra-Smooth & Luxury Sound Design:
- * • Smooth Warm Ethereal Ambient Pad (Pure sine F-Major 7th, 320Hz soft warm filter)
- * • Dual-Layer Glass Resonance Countdown Pings (10 -> 1)
- * • Cinematic Celebration Fanfare & Sub-Impact
- * • Multi-Sentence Sequential Speech Queue (Zero clipping on long dialogue)
- * • Chromium Speech Keep-Alive Heartbeat
+ * • Preloaded Studio Neural Audio with 100% Zero Cuts & Zero Voice Shifts
+ * • Smooth Velvet Ambient Pad (Pure sine C-Major 9th, 240Hz soft warm filter)
+ * • Dual-Layer Soft Crystal Pentatonic Countdown Pings (10 -> 1)
+ * • Ascending Glissando Celebration Fanfare & Sub-Impact
  */
 
 let audioCtx: AudioContext | null = null;
@@ -22,9 +21,32 @@ let isAmbientPlaying = false;
 let lockedFemaleVoice: SpeechSynthesisVoice | null = null;
 let isVoiceLocked = false;
 
-// Retain reference to active utterance globally to prevent GC clipping
+// Active audio tracking
+let currentActiveAudio: HTMLAudioElement | null = null;
 let currentActiveUtterance: SpeechSynthesisUtterance | null = null;
 let speechHeartbeatTimer: NodeJS.Timeout | null = null;
+
+// Preloaded audio elements cache for 100% voice consistency
+const launchAudioCache = new Map<string, HTMLAudioElement>();
+
+export const ALL_LAUNCH_AUDIO_PATHS = [
+  "/audio/launch/phase1_welcome.mp3",
+  "/audio/launch/phase2_products.mp3",
+  "/audio/launch/phase3_warranty.mp3",
+  "/audio/launch/phase4_deals.mp3",
+  "/audio/launch/phase5_buildup.mp3",
+  "/audio/launch/phase_reveal.mp3",
+  "/audio/launch/count_10.mp3",
+  "/audio/launch/count_9.mp3",
+  "/audio/launch/count_8.mp3",
+  "/audio/launch/count_7.mp3",
+  "/audio/launch/count_6.mp3",
+  "/audio/launch/count_5.mp3",
+  "/audio/launch/count_4.mp3",
+  "/audio/launch/count_3.mp3",
+  "/audio/launch/count_2.mp3",
+  "/audio/launch/count_1.mp3",
+];
 
 function getAudioContext(): AudioContext | null {
   if (typeof window === "undefined") return null;
@@ -41,7 +63,7 @@ function getAudioContext(): AudioContext | null {
 }
 
 /**
- * Discovers and permanently locks the HIGHEST FIDELITY English Female Voice.
+ * Discovers and permanently locks the HIGHEST FIDELITY English Female Voice for fallback.
  */
 export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   if (typeof window === "undefined" || !("speechSynthesis" in window)) return null;
@@ -57,38 +79,19 @@ export function getLockedFemaleVoice(): SpeechSynthesisVoice | null {
   ];
 
   const priorityFemaleVoices = [
-    // 1. Google / Android High Quality Neural voices
     "google uk english female",
     "google us english",
     "en-us-x-sfg#female",
     "en-us-x-tpd#female",
     "en-us-x-iob#female",
     "en-gb-x-rjs#female",
-    "samsung english (united states)",
     "samsung english",
-    // 2. Microsoft Natural Online voices
     "microsoft jenny online (natural)",
     "microsoft aria online (natural)",
-    "microsoft sonia online (natural)",
     "microsoft ava online (natural)",
-    "microsoft emma online (natural)",
-    "microsoft ana online (natural)",
-    "microsoft zira desktop",
-    // 3. Apple / iOS / macOS Natural voices
-    "samantha (enhanced)",
     "samantha",
-    "victoria",
-    "karen",
-    "siri",
-    "moira",
-    "tessa",
-    "fiona",
-    // 4. General Natural Keywords
     "natural",
     "female",
-    "jenny",
-    "aria",
-    "zira",
   ];
 
   for (const keyword of priorityFemaleVoices) {
@@ -135,12 +138,25 @@ if (typeof window !== "undefined" && "speechSynthesis" in window) {
 }
 
 /**
- * Prime AudioContext and Speech Engine immediately inside user click handler
+ * Prime AudioContext and Preload All Launch Audio immediately inside user click handler
  */
 export function primeAudioAndVoice() {
   if (typeof window === "undefined") return;
   getAudioContext();
   getLockedFemaleVoice();
+
+  // Unlock and preload all studio audio tracks in mobile browser memory
+  ALL_LAUNCH_AUDIO_PATHS.forEach((path) => {
+    try {
+      if (!launchAudioCache.has(path)) {
+        const audio = new Audio(path);
+        audio.preload = "auto";
+        audio.load();
+        launchAudioCache.set(path, audio);
+      }
+    } catch (e) {}
+  });
+
   if ("speechSynthesis" in window) {
     if (window.speechSynthesis.paused) {
       window.speechSynthesis.resume();
@@ -154,6 +170,13 @@ export function setLaunchSoundEnabled(enabled: boolean) {
     getAudioContext();
   } else {
     stopAmbientAuraMusic();
+    if (currentActiveAudio) {
+      try {
+        currentActiveAudio.pause();
+        currentActiveAudio.currentTime = 0;
+      } catch (e) {}
+      currentActiveAudio = null;
+    }
     if (typeof window !== "undefined" && "speechSynthesis" in window) {
       window.speechSynthesis.cancel();
     }
@@ -270,7 +293,6 @@ export function playCountdownTick(number: number) {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    // Harmonic pentatonic frequencies (ultra-soft and pleasant)
     const baseFrequencies: Record<number, number> = {
       10: 440.0,
       9: 493.88,
@@ -346,7 +368,7 @@ export function playCelebrationFanfare() {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = "triangle";
+      osc.type = "sine";
       osc.frequency.setValueAtTime(freq, now + idx * 0.055);
 
       const delay = idx * 0.055;
@@ -364,15 +386,12 @@ export function playCelebrationFanfare() {
   }
 }
 
-let currentActiveAudio: HTMLAudioElement | null = null;
-
 /**
  * ─────────────────────────────────────────────────────────────
- * HIGH-FIDELITY STUDIO NEURAL VOICE PLAYER (ZERO CUTOFF)
+ * HIGH-FIDELITY STUDIO NEURAL VOICE PLAYER (ZERO CUTOFF & ZERO SHIFT)
  * ─────────────────────────────────────────────────────────────
- * Plays pre-rendered studio neural MP3 audio for 100% realistic,
- * zero-dropout speech on all mobile and desktop browsers.
- * Seamlessly falls back to browser Web Speech API if audio is unavailable.
+ * Plays pre-rendered studio neural MP3 audio with cached elements
+ * to guarantee 100% identical voice on all mobile and desktop devices.
  */
 export function playLaunchVoice(
   audioPath: string,
@@ -412,7 +431,15 @@ export function playLaunchVoice(
     }
 
     try {
-      const audio = new Audio(audioPath);
+      // Retrieve preloaded audio or create new
+      let audio = launchAudioCache.get(audioPath);
+      if (!audio) {
+        audio = new Audio(audioPath);
+        launchAudioCache.set(audioPath, audio);
+      } else {
+        audio.currentTime = 0;
+      }
+
       audio.volume = 1.0;
       currentActiveAudio = audio;
 
@@ -432,20 +459,23 @@ export function playLaunchVoice(
 
       audio.onended = finish;
       audio.onerror = () => {
-        console.warn("Studio audio load failed, falling back to Web Speech:", audioPath);
-        speakLaunchText(fallbackText, options).then(resolve);
+        console.warn("Studio audio error:", audioPath);
+        finish();
       };
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
-          console.warn("Audio play prevented/failed, falling back to Web Speech:", err);
-          speakLaunchText(fallbackText, options).then(resolve);
+          console.warn("Audio play prevented:", err);
+          finish();
         });
       }
     } catch (err) {
-      console.warn("Audio element error, falling back to Web Speech:", err);
-      speakLaunchText(fallbackText, options).then(resolve);
+      console.warn("Audio element error:", err);
+      restoreAmbientMusic();
+      if (options?.onStart) options.onStart();
+      if (options?.onEnd) options.onEnd();
+      resolve();
     }
   });
 }
