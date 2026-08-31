@@ -166,12 +166,9 @@ export function isLaunchSoundEnabled(): boolean {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * CINEMATIC ETHEREAL BREATHING AMBIENT PAD & AUDIO DUCKING
+ * ULTRA-SMOOTH VELVET AMBIENT PAD & AUDIO DUCKING
  * ─────────────────────────────────────────────────────────────
  */
-let ambientLfo: OscillatorNode | null = null;
-let ambientLfoGain: GainNode | null = null;
-
 export function startAmbientAuraMusic() {
   if (!soundEnabled || isAmbientPlaying) return;
   try {
@@ -183,29 +180,20 @@ export function startAmbientAuraMusic() {
     const now = ctx.currentTime;
     ambientGainNode = ctx.createGain();
     ambientGainNode.gain.setValueAtTime(0.0001, now);
-    ambientGainNode.gain.exponentialRampToValueAtTime(0.024, now + 3.0);
+    ambientGainNode.gain.exponentialRampToValueAtTime(0.022, now + 3.0);
 
-    // Warm, silky lowpass filter (280Hz)
+    // Warm, silky-smooth lowpass filter (240Hz for velvet warmth)
     const filter = ctx.createBiquadFilter();
     filter.type = "lowpass";
-    filter.frequency.setValueAtTime(280, now);
-    filter.Q.setValueAtTime(0.6, now);
+    filter.frequency.setValueAtTime(240, now);
+    filter.Q.setValueAtTime(0.5, now);
 
-    // Slow organic breathing LFO (0.12Hz)
-    ambientLfo = ctx.createOscillator();
-    ambientLfoGain = ctx.createGain();
-    ambientLfo.frequency.setValueAtTime(0.12, now);
-    ambientLfoGain.gain.setValueAtTime(40, now); // modulates filter cutoff by +/- 40Hz
-    ambientLfo.connect(ambientLfoGain);
-    ambientLfoGain.connect(filter.frequency);
-    ambientLfo.start(now);
-
-    // Cinematic Luxury Db-Major 9th Chord: Db3 (138.59Hz), Ab3 (207.65Hz), F4 (349.23Hz), C5 (523.25Hz)
-    const chordFreqs = [138.59, 207.65, 349.23, 523.25];
+    // C-Major 9th Celestial Velvet Chord: C3 (130.81Hz), G3 (196.0Hz), E4 (329.63Hz), B4 (493.88Hz)
+    const chordFreqs = [130.81, 196.0, 329.63, 493.88];
     ambientOscillators = chordFreqs.map((freq, idx) => {
       const osc = ctx.createOscillator();
       osc.type = "sine";
-      const detune = idx % 2 === 0 ? 1.8 : -1.8;
+      const detune = idx % 2 === 0 ? 1.5 : -1.5;
       osc.frequency.setValueAtTime(freq, now);
       osc.detune.setValueAtTime(detune, now);
       osc.connect(filter);
@@ -243,7 +231,7 @@ export function restoreAmbientMusic() {
     const now = audioCtx.currentTime;
     ambientGainNode.gain.cancelScheduledValues(now);
     ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
-    ambientGainNode.gain.linearRampToValueAtTime(0.024, now + 1.2);
+    ambientGainNode.gain.linearRampToValueAtTime(0.022, now + 1.2);
   } catch (e) {}
 }
 
@@ -256,14 +244,6 @@ export function stopAmbientAuraMusic() {
       ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
       ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.12);
     } catch (e) {}
-  }
-  if (ambientLfo) {
-    try {
-      ambientLfo.stop();
-      ambientLfo.disconnect();
-    } catch (e) {}
-    ambientLfo = null;
-    ambientLfoGain = null;
   }
   if (ambientOscillators.length > 0) {
     const oscs = [...ambientOscillators];
@@ -281,7 +261,7 @@ export function stopAmbientAuraMusic() {
 
 /**
  * ─────────────────────────────────────────────────────────────
- * LUXURY GLASS-BELL COUNTDOWN CHIMES (10 -> 1)
+ * SOFT CRYSTAL WATER-CHIME COUNTDOWN PINGS (10 -> 1)
  * ─────────────────────────────────────────────────────────────
  */
 export function playCountdownTick(number: number) {
@@ -290,61 +270,44 @@ export function playCountdownTick(number: number) {
     const ctx = getAudioContext();
     if (!ctx) return;
 
-    // Harmonic pentatonic bell frequencies (ultra-warm and soothing)
+    // Harmonic pentatonic frequencies (ultra-soft and pleasant)
     const baseFrequencies: Record<number, number> = {
-      10: 523.25,  // C5
-      9: 587.33,   // D5
-      8: 659.25,   // E5
-      7: 698.46,   // F5
-      6: 783.99,   // G5
-      5: 880.0,    // A5
-      4: 987.77,   // B5
-      3: 1046.5,   // C6
-      2: 1174.66,  // D6
-      1: 1318.51,  // E6
+      10: 440.0,
+      9: 493.88,
+      8: 523.25,
+      7: 587.33,
+      6: 659.25,
+      5: 698.46,
+      4: 783.99,
+      3: 880.0,
+      2: 987.77,
+      1: 1046.5,
     };
 
-    const freq = baseFrequencies[number] || 600;
+    const freq = baseFrequencies[number] || 520;
     const now = ctx.currentTime;
 
-    // Fundamental Warm Bell
-    const osc1 = ctx.createOscillator();
-    const gain1 = ctx.createGain();
-    const filter1 = ctx.createBiquadFilter();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const filter = ctx.createBiquadFilter();
 
-    osc1.type = "sine";
-    osc1.frequency.setValueAtTime(freq, now);
+    osc.type = "sine";
+    osc.frequency.setValueAtTime(freq, now);
 
-    filter1.type = "lowpass";
-    filter1.frequency.setValueAtTime(1400, now);
+    filter.type = "lowpass";
+    filter.frequency.setValueAtTime(1200, now);
 
-    const baseVol = number <= 3 ? 0.14 : 0.09;
-    gain1.gain.setValueAtTime(0.0001, now);
-    gain1.gain.linearRampToValueAtTime(baseVol, now + 0.015);
-    gain1.gain.exponentialRampToValueAtTime(0.0001, now + (number <= 3 ? 0.38 : 0.28));
+    const baseVol = number <= 3 ? 0.12 : 0.08;
+    gain.gain.setValueAtTime(0.0001, now);
+    gain.gain.linearRampToValueAtTime(baseVol, now + 0.02);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + (number <= 3 ? 0.35 : 0.25));
 
-    osc1.connect(filter1);
-    filter1.connect(gain1);
-    gain1.connect(ctx.destination);
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(ctx.destination);
 
-    osc1.start(now);
-    osc1.stop(now + 0.4);
-
-    // Subtle Glass Harmonic Overtone
-    const osc2 = ctx.createOscillator();
-    const gain2 = ctx.createGain();
-    osc2.type = "sine";
-    osc2.frequency.setValueAtTime(freq * 2.0, now);
-
-    gain2.gain.setValueAtTime(0.0001, now);
-    gain2.gain.linearRampToValueAtTime(baseVol * 0.25, now + 0.01);
-    gain2.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
-
-    osc2.connect(gain2);
-    gain2.connect(ctx.destination);
-
-    osc2.start(now);
-    osc2.stop(now + 0.18);
+    osc.start(now);
+    osc.stop(now + 0.36);
   } catch (e) {
     console.warn("Countdown ping error:", e);
   }
@@ -363,38 +326,38 @@ export function playCelebrationFanfare() {
 
     const now = ctx.currentTime;
 
-    // 1. Cinematic Sub-Bass Swell
+    // 1. Cinematic Sub-Bass Impact
     const subOsc = ctx.createOscillator();
     const subGain = ctx.createGain();
     subOsc.type = "sine";
-    subOsc.frequency.setValueAtTime(80, now);
-    subOsc.frequency.exponentialRampToValueAtTime(42, now + 0.8);
-    subGain.gain.setValueAtTime(0.24, now);
-    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+    subOsc.frequency.setValueAtTime(90, now);
+    subOsc.frequency.exponentialRampToValueAtTime(45, now + 0.6);
+    subGain.gain.setValueAtTime(0.30, now);
+    subGain.gain.exponentialRampToValueAtTime(0.001, now + 1.2);
     subOsc.connect(subGain);
     subGain.connect(ctx.destination);
     subOsc.start(now);
-    subOsc.stop(now + 1.4);
+    subOsc.stop(now + 1.2);
 
-    // 2. Sparkling Ascending Celestial Harp Glissando
-    const arpeggio = [261.63, 329.63, 392.0, 523.25, 659.25, 783.99, 1046.5, 1318.51];
+    // 2. Ascending Sparkling Glissando Arpeggio
+    const arpeggio = [261.63, 392.0, 523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
 
     arpeggio.forEach((freq, idx) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
 
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(freq, now + idx * 0.055);
 
-      const delay = idx * 0.06;
-      gain.gain.setValueAtTime(0.12, now + delay);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.6);
+      const delay = idx * 0.055;
+      gain.gain.setValueAtTime(0.18, now + delay);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + delay + 1.8);
 
       osc.connect(gain);
       gain.connect(ctx.destination);
 
       osc.start(now + delay);
-      osc.stop(now + delay + 1.6);
+      osc.stop(now + delay + 1.8);
     });
   } catch (e) {
     console.warn("Celebration fanfare error:", e);
@@ -469,8 +432,8 @@ export function speakLaunchText(
         finish();
       };
 
-      // Failsafe timer (maximum duration based on text length + 3s buffer)
-      const maxDuration = Math.max(4000, text.length * 120);
+      // Failsafe timer (maximum duration based on text length + 5s buffer)
+      const maxDuration = Math.max(8000, text.length * 160);
       setTimeout(finish, maxDuration);
 
       setTimeout(() => {
