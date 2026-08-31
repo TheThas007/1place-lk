@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Volume2, VolumeX, Sparkles, Rocket } from "lucide-react";
 import {
+  playLaunchVoice,
   speakLaunchText,
   speakLaunchSequence,
   playCountdownTick,
@@ -256,7 +257,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBubbleBody("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
           setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
-          speakLaunchText(
+          playLaunchVoice(
+            "/audio/launch/phase1_welcome.mp3",
             "Hey everyone! A super warm welcome to Street Mobile! I'm STREETLA, and we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
@@ -273,7 +275,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBubbleBody("Discover flagship smartphones, premium audio, and authentic accessories at unbeatable prices!");
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
-          speakLaunchText(
+          playLaunchVoice(
+            "/audio/launch/phase2_products.mp3",
             "Explore the latest flagship smartphones, crystal-clear audio, and authentic accessories at the best unbeatable prices!",
             {
               onStart: () => setIsSpeaking(true),
@@ -290,7 +293,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBubbleBody("100% genuine products with official company warranty, fast island-wide delivery, and friendly care.");
           setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
-          speakLaunchText(
+          playLaunchVoice(
+            "/audio/launch/phase3_warranty.mp3",
             "Every device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
             {
               onStart: () => setIsSpeaking(true),
@@ -307,7 +311,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBubbleBody("Huge launch discounts, 0% interest installment plans, and express delivery right to your door!");
           setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
-          speakLaunchText(
+          playLaunchVoice(
+            "/audio/launch/phase4_deals.mp3",
             "Enjoy exclusive launch discounts, interest-free installment plans, and express doorstep delivery across Sri Lanka!",
             {
               onStart: () => setIsSpeaking(true),
@@ -324,7 +329,8 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBubbleBody("The wait is finally over! Let's count down together in 3, 2, 1!");
           setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
-          speakLaunchText(
+          playLaunchVoice(
+            "/audio/launch/phase5_buildup.mp3",
             "The wait is finally over! So get ready, everyone! Let's count down together in 3, 2, 1!",
             {
               onStart: () => setIsSpeaking(true),
@@ -355,13 +361,14 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playCountdownTick(countdownNumber);
 
-          if (typeof window !== "undefined" && "speechSynthesis" in window) {
-            window.speechSynthesis.cancel();
-          }
-          speakLaunchText(countdownWords[countdownNumber] || String(countdownNumber), {
-            onStart: () => setIsSpeaking(true),
-            onEnd: () => setIsSpeaking(false),
-          });
+          playLaunchVoice(
+            `/audio/launch/count_${countdownNumber}.mp3`,
+            countdownWords[countdownNumber] || String(countdownNumber),
+            {
+              onStart: () => setIsSpeaking(true),
+              onEnd: () => setIsSpeaking(false),
+            }
+          );
         }
       }
 
@@ -371,10 +378,6 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
         // Immediately stop background ambient music on reveal
         stopAmbientAuraMusic();
-
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          window.speechSynthesis.cancel();
-        }
 
         setDisplayedSeconds(0);
         setActiveCountdownNumber(null);
@@ -387,17 +390,15 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         playCelebrationFanfare();
         triggerConfetti();
 
-        // Sequential speech queue ensures "Enjoy your shopping!" is 100% completed without cutoff
-        speakLaunchSequence(
-          [
-            "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual shopping companion.",
-            "Whenever you need help finding smartphones, genuine accessories, or exclusive deals, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
-          ],
+        // Play pristine studio reveal outro
+        playLaunchVoice(
+          "/audio/launch/phase_reveal.mp3",
+          "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => {
               setIsSpeaking(false);
-              // Wait 1.0s after "Enjoy your shopping!" finishes, then trigger shutter flicker & glide!
+              // Wait 1.0s after speech finishes, then trigger shutter flicker & glide!
               setTimeout(() => {
                 setIsFlashFlickering(true);
                 setIsGliding(true);

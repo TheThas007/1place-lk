@@ -364,9 +364,95 @@ export function playCelebrationFanfare() {
   }
 }
 
+let currentActiveAudio: HTMLAudioElement | null = null;
+
 /**
  * ─────────────────────────────────────────────────────────────
- * STREETLA SINGLE UTTERANCE NARRATOR
+ * HIGH-FIDELITY STUDIO NEURAL VOICE PLAYER (ZERO CUTOFF)
+ * ─────────────────────────────────────────────────────────────
+ * Plays pre-rendered studio neural MP3 audio for 100% realistic,
+ * zero-dropout speech on all mobile and desktop browsers.
+ * Seamlessly falls back to browser Web Speech API if audio is unavailable.
+ */
+export function playLaunchVoice(
+  audioPath: string,
+  fallbackText: string,
+  options?: {
+    rate?: number;
+    pitch?: number;
+    onStart?: () => void;
+    onEnd?: () => void;
+  }
+): Promise<void> {
+  return new Promise((resolve) => {
+    if (!soundEnabled) {
+      if (options?.onStart) options.onStart();
+      setTimeout(() => {
+        if (options?.onEnd) options.onEnd();
+        resolve();
+      }, 1000);
+      return;
+    }
+
+    // Duck ambient music for crystal clear speech
+    duckAmbientMusic();
+
+    // Clean up any previously playing voice audio
+    if (currentActiveAudio) {
+      try {
+        currentActiveAudio.pause();
+        currentActiveAudio.currentTime = 0;
+      } catch (e) {}
+      currentActiveAudio = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch (e) {}
+    }
+
+    try {
+      const audio = new Audio(audioPath);
+      audio.volume = 1.0;
+      currentActiveAudio = audio;
+
+      let hasResolved = false;
+      const finish = () => {
+        if (hasResolved) return;
+        hasResolved = true;
+        currentActiveAudio = null;
+        restoreAmbientMusic();
+        if (options?.onEnd) options.onEnd();
+        resolve();
+      };
+
+      audio.onplay = () => {
+        if (options?.onStart) options.onStart();
+      };
+
+      audio.onended = finish;
+      audio.onerror = () => {
+        console.warn("Studio audio load failed, falling back to Web Speech:", audioPath);
+        speakLaunchText(fallbackText, options).then(resolve);
+      };
+
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn("Audio play prevented/failed, falling back to Web Speech:", err);
+          speakLaunchText(fallbackText, options).then(resolve);
+        });
+      }
+    } catch (err) {
+      console.warn("Audio element error, falling back to Web Speech:", err);
+      speakLaunchText(fallbackText, options).then(resolve);
+    }
+  });
+}
+
+/**
+ * ─────────────────────────────────────────────────────────────
+ * STREETLA SINGLE UTTERANCE NARRATOR (WEB SPEECH FALLBACK)
  * ─────────────────────────────────────────────────────────────
  */
 export function speakLaunchText(
@@ -486,6 +572,13 @@ export async function speakLaunchSequence(
  */
 export function stopAllAudioAndSpeech() {
   stopAmbientAuraMusic();
+  if (currentActiveAudio) {
+    try {
+      currentActiveAudio.pause();
+      currentActiveAudio.currentTime = 0;
+    } catch (e) {}
+    currentActiveAudio = null;
+  }
   if (speechHeartbeatTimer) {
     clearInterval(speechHeartbeatTimer);
     speechHeartbeatTimer = null;
