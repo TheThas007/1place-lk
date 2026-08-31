@@ -1503,6 +1503,26 @@ export default function ProductModal({
                           type="button"
                           onClick={() => {
                             setHasColorVariants(true);
+                            if (colorVariants.length === 0) {
+                              setColorVariants([
+                                {
+                                  id: `col-1`,
+                                  name: "Black",
+                                  hex: "#000000",
+                                  images: [],
+                                  active: true,
+                                  is_default: true,
+                                },
+                                {
+                                  id: `col-2`,
+                                  name: "White",
+                                  hex: "#FFFFFF",
+                                  images: [],
+                                  active: true,
+                                  is_default: false,
+                                },
+                              ]);
+                            }
                             setHasUnsavedChanges(true);
                           }}
                           className={`flex-1 py-1.5 px-2.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
@@ -1575,6 +1595,127 @@ export default function ProductModal({
                       </div>
                     </div>
                   </div>
+
+                  {/* Dynamic Color Presets & Quick Add (Shown when Color Options are Enabled) */}
+                  {hasColorVariants && (
+                    <div className="mt-3 p-3.5 bg-emerald-50/60 border border-emerald-200 rounded-2xl space-y-2.5 text-xs animate-in fade-in">
+                      <div className="flex items-center justify-between flex-wrap gap-2">
+                        <label className="font-bold text-emerald-900 flex items-center gap-1.5">
+                          <Palette className="w-3.5 h-3.5 text-emerald-600" />
+                          Select or Add Product Color Options ({colorVariants.length} Active Colors):
+                        </label>
+                        <span className="text-[11px] text-emerald-700 font-medium">
+                          Click color presets to toggle
+                        </span>
+                      </div>
+
+                      {/* Popular Color Preset Buttons with Live Swatches */}
+                      <div className="flex flex-wrap gap-1.5">
+                        {[
+                          { name: "Black", hex: "#000000" },
+                          { name: "White", hex: "#FFFFFF" },
+                          { name: "Natural Titanium", hex: "#9A958E" },
+                          { name: "Desert Titanium", hex: "#C5B097" },
+                          { name: "Silver", hex: "#E3E4E5" },
+                          { name: "Space Gray", hex: "#535150" },
+                          { name: "Midnight", hex: "#1E232A" },
+                          { name: "Starlight", hex: "#E8E5DD" },
+                          { name: "Gold", hex: "#F5E1A4" },
+                          { name: "Blue", hex: "#206095" },
+                          { name: "Deep Purple", hex: "#4B384C" },
+                          { name: "Green", hex: "#385E48" },
+                          { name: "Pink", hex: "#E8A598" },
+                        ].map((cPreset) => {
+                          const isSelected = colorVariants.some(
+                            (c) => c.name.toLowerCase() === cPreset.name.toLowerCase()
+                          );
+                          return (
+                            <button
+                              key={cPreset.name}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setColorVariants(
+                                    colorVariants.filter(
+                                      (c) => c.name.toLowerCase() !== cPreset.name.toLowerCase()
+                                    )
+                                  );
+                                } else {
+                                  setColorVariants([
+                                    ...colorVariants,
+                                    {
+                                      id: `col-${Date.now()}-${Math.random().toString(36).substring(2, 5)}`,
+                                      name: cPreset.name,
+                                      hex: cPreset.hex,
+                                      images: [],
+                                      active: true,
+                                      is_default: colorVariants.length === 0,
+                                    },
+                                  ]);
+                                }
+                                setHasUnsavedChanges(true);
+                              }}
+                              className={`px-2.5 py-1 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer ${
+                                isSelected
+                                  ? "bg-emerald-700 text-white shadow-xs"
+                                  : "bg-white border border-emerald-200 text-emerald-900 hover:bg-emerald-100"
+                              }`}
+                            >
+                              <span
+                                className="w-2.5 h-2.5 rounded-full border border-black/20 shrink-0 inline-block"
+                                style={{ backgroundColor: cPreset.hex }}
+                              />
+                              <span>{isSelected ? `✓ ${cPreset.name}` : `+ ${cPreset.name}`}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+
+                      {/* Quick Custom Color Add Row */}
+                      <div className="flex items-center gap-2 pt-1">
+                        <input
+                          type="text"
+                          value={newColorName}
+                          onChange={(e) => setNewColorName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && newColorName.trim()) {
+                              e.preventDefault();
+                              handleAddColour();
+                            }
+                          }}
+                          placeholder="Type custom color name (e.g. Phantom Violet) and click Add..."
+                          className="flex-1 px-3 py-1.5 bg-white border border-emerald-200 rounded-xl text-xs outline-none focus:border-emerald-500 font-medium"
+                        />
+                        <input
+                          type="color"
+                          value={newColorHex}
+                          onChange={(e) => setNewColorHex(e.target.value)}
+                          className="w-8 h-8 p-0.5 bg-white border border-emerald-200 rounded-xl cursor-pointer shrink-0"
+                          title="Choose Color Hex"
+                        />
+                        <button
+                          type="button"
+                          onClick={handleAddColour}
+                          className="px-3.5 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl text-xs transition-all cursor-pointer shadow-xs shrink-0"
+                        >
+                          + Add Color
+                        </button>
+                      </div>
+
+                      {colorVariants.length > 0 && (
+                        <div className="flex items-center justify-between pt-1 text-[11px] text-emerald-800 font-bold border-t border-emerald-200/60">
+                          <span>Active Colors: {colorVariants.map((c) => c.name).join(", ")}</span>
+                          <button
+                            type="button"
+                            onClick={() => setActiveTab(2)}
+                            className="text-emerald-800 hover:text-emerald-950 underline font-extrabold cursor-pointer"
+                          >
+                            📸 Upload Photos for each Color in Tab 2 &rarr;
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Dynamic Storage & Capacity Preset Chips (Shown when Storage Variants are Enabled) */}
                   {hasStorageVariants && (
