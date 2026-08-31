@@ -225,26 +225,26 @@ export function restoreAmbientMusic() {
 }
 
 export function stopAmbientAuraMusic() {
-  if (ambientOscillators.length > 0) {
+  isAmbientPlaying = false;
+  if (ambientGainNode && audioCtx) {
     try {
-      const now = audioCtx ? audioCtx.currentTime : 0;
-      if (ambientGainNode && audioCtx) {
-        ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.3);
-      }
-      setTimeout(() => {
-        ambientOscillators.forEach((osc) => {
-          try {
-            osc.stop();
-            osc.disconnect();
-          } catch (e) {}
-        });
-        ambientOscillators = [];
-        isAmbientPlaying = false;
-      }, 350);
-    } catch (e) {
-      ambientOscillators = [];
-      isAmbientPlaying = false;
-    }
+      const now = audioCtx.currentTime;
+      ambientGainNode.gain.cancelScheduledValues(now);
+      ambientGainNode.gain.setValueAtTime(ambientGainNode.gain.value, now);
+      ambientGainNode.gain.linearRampToValueAtTime(0.0001, now + 0.1);
+    } catch (e) {}
+  }
+  if (ambientOscillators.length > 0) {
+    const oscs = [...ambientOscillators];
+    ambientOscillators = [];
+    setTimeout(() => {
+      oscs.forEach((osc) => {
+        try {
+          osc.stop();
+          osc.disconnect();
+        } catch (e) {}
+      });
+    }, 120);
   }
 }
 

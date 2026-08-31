@@ -253,11 +253,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setDisplayedSeconds(50);
           setActiveCountdownNumber(null);
           setBubbleTitle("WELCOME TO STREET MOBILE 👋");
-          setBubbleBody("I'm STREETLA, your virtual shopping assistant.");
-          setBottomSubtitle("Welcome to the Grand Launch • Your smarter way to shop for technology ✨");
+          setBubbleBody("I'm STREETLA, your virtual shopping assistant. We are always near you!");
+          setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
           speakLaunchText(
-            "Hello everyone! Welcome to Street Mobile! I'm STREETLA, and I'm so excited to welcome you all today!",
+            "Hello everyone! Welcome to Street Mobile! I'm STREETLA, and we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -282,16 +282,16 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 3: WARRANTY (16s -> 24s) — ~4.8s speech, 3.2s breathing room
+        // Phase 3: WARRANTY & NEAR YOU (16s -> 24s) — ~4.8s speech, 3.2s breathing room
         else if (phase === "WARRANTY") {
           setMood("speaking");
           setDisplayedSeconds(34);
-          setBubbleTitle("WE'RE ALWAYS HERE FOR YOU 🛡️");
-          setBubbleBody("Genuine products, official warranty, fast delivery and friendly support.");
-          setBottomSubtitle("Genuine Warranty & Express Delivery • We're here for you 💙");
+          setBubbleTitle("WE ARE ALWAYS NEAR YOU 🛡️");
+          setBubbleBody("Official company warranty, fast delivery and friendly support — we are near you.");
+          setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
           speakLaunchText(
-            "With official company warranty, fast delivery, and friendly support, we are always right here for you!",
+            "With official company warranty, fast delivery, and friendly support, we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -369,6 +369,9 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       if (elapsedMs >= 50000 && !revealTriggeredRef.current) {
         revealTriggeredRef.current = true;
 
+        // Immediately stop background ambient music on reveal
+        stopAmbientAuraMusic();
+
         if (typeof window !== "undefined" && "speechSynthesis" in window) {
           window.speechSynthesis.cancel();
         }
@@ -379,13 +382,13 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         setIsRevealed(true);
         setBubbleTitle("STREET MOBILE IS LIVE! 🚀");
         setBubbleBody("Explore genuine smartphones, gadgets and more.");
-        setBottomSubtitle("WE ARE OFFICIALLY LIVE! 🎉 • Welcome to Street Mobile!");
+        setBottomSubtitle("WE ARE OFFICIALLY LIVE! 🎉 • We are always right near you!");
 
         playCelebrationFanfare();
         triggerConfetti();
 
         speakLaunchText(
-          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, and I'm always here to help you!",
+          "And we are officially live! Welcome to the all-new Street Mobile! I'm STREETLA, and remember, we are always right near you!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => setIsSpeaking(false),
@@ -397,6 +400,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("transforming");
 
           setTimeout(() => {
+            stopAllAudioAndSpeech();
             if (onLaunchCompleteRef.current) {
               onLaunchCompleteRef.current();
             }
