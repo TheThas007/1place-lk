@@ -245,7 +245,7 @@ function MobileScrollDrivenTrack({
           start: "top top+=66",
           end: () => `+=${getScrollDist()}`,
           pin: true,
-          pinSpacing: true,
+          pinSpacing: false,
           scrub: 0.8,
           invalidateOnRefresh: true,
         },

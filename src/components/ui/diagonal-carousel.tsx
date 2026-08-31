@@ -124,6 +124,7 @@ export function DiagonalCarousel({
       tabIndex={tabIndex ?? 0}
       onKeyDown={handleKeyDown}
       className={cn("relative isolate h-full w-full overflow-hidden", className)}
+      style={{ touchAction: 'pan-y' }}
       {...props}
     >
       <div className={cn("absolute inset-0 overflow-hidden", viewportClassName)}>

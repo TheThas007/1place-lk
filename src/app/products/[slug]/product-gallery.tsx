@@ -60,7 +60,7 @@ export default function ProductGallery({
   return (
     <div className="space-y-3 sm:space-y-4">
       {/* ── Main Media Display Container (Square 1:1 shape on mobile and desktop) ── */}
-      <div className="relative w-full aspect-square max-h-[340px] sm:max-h-[520px] rounded-[22px] sm:rounded-[28px] overflow-hidden bg-white border border-[#EAEAEA] flex items-center justify-center group shadow-xs p-2 sm:p-6">
+      <div className="relative w-full aspect-square max-h-[340px] sm:max-h-[520px] rounded-[22px] sm:rounded-[28px] overflow-hidden bg-white border border-[#EAEAEA] flex items-center justify-center group shadow-xs p-2 sm:p-6" style={{ touchAction: 'pan-y' }}>
         {/* Bottom-Left Discount Badge */}
         {discount > 0 && (
           <div className="absolute bottom-0 left-0 z-10">
@@ -106,7 +106,7 @@ export default function ProductGallery({
       </div>
 
       {/* ── Thumbnail Row (Contained Horizontal Rail showing ALL uploaded photos) ── */}
-      <div className="flex items-center gap-2 sm:gap-3 w-full max-w-full overflow-x-auto py-1 no-scrollbar scroll-smooth">
+      <div className="flex items-center gap-2 sm:gap-3 w-full max-w-full overflow-x-auto py-1 no-scrollbar scroll-smooth" style={{ touchAction: 'pan-x' }}>
         {displayImages.map((img, i) => (
           <button
             key={i}

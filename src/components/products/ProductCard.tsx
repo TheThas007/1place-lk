@@ -167,7 +167,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         </div>
 
         {/* ── 2. Details Section ── */}
-        <div className="p-3.5 sm:p-5 flex-1 flex flex-col justify-between bg-white">
+        <div className="p-3.5 sm:p-5 flex-1 flex flex-col justify-between bg-white min-h-[130px] sm:min-h-[140px]">
           <div>
             {/* Category / Brand Label (Only if genuinely available) */}
             {(product.category_name || product.brand_name) && (
