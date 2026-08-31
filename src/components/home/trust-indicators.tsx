@@ -220,49 +220,19 @@ function FeatureCard({
 
 
 
-/* ─── Mobile Scroll-Driven Horizontal Track (GSAP ScrollTrigger Pinned, Zero Gap) ─── */
+/* ─── Mobile Horizontal Swipe Track (Native Touch, Zero Pin-Gap) ─── */
 function MobileScrollDrivenTrack({
   onCardClick,
 }: {
   onCardClick: (feature: (typeof features)[0]) => void;
 }) {
-  const containerRef = useRef<HTMLDivElement>(null);
-  const trackRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const container = containerRef.current;
-    const track = trackRef.current;
-    if (!container || !track) return;
-
-    const ctx = gsap.context(() => {
-      const getScrollDist = () => Math.max(150, track.scrollWidth - window.innerWidth + 32);
-
-      gsap.to(track, {
-        x: () => -getScrollDist(),
-        ease: "none",
-        scrollTrigger: {
-          trigger: container,
-          start: "top top+=66",
-          end: () => `+=${getScrollDist()}`,
-          pin: true,
-          pinSpacing: false,
-          scrub: 0.8,
-          invalidateOnRefresh: true,
-        },
-      });
-    }, container);
-
-    return () => ctx.revert();
-  }, []);
-
   return (
     <div
-      ref={containerRef}
-      className="md:hidden w-full bg-white pt-5 pb-5 select-none overflow-hidden"
+      className="md:hidden w-full bg-white pt-4 pb-2 select-none overflow-hidden"
       aria-label="Why Choose Street Mobile"
     >
       {/* Section Header */}
-      <div className="text-center mb-4 px-4 shrink-0">
+      <div className="text-center mb-3 px-4 shrink-0">
         <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
           <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
           Why Choose Us
@@ -275,16 +245,13 @@ function MobileScrollDrivenTrack({
         </p>
       </div>
 
-      {/* Horizontal Scroll-driven Track */}
-      <div className="w-full overflow-hidden">
-        <div
-          ref={trackRef}
-          className="flex items-stretch gap-3.5 sm:gap-4 px-4 py-1 will-change-transform touch-pan-y"
-        >
+      {/* Smooth Horizontal Swipe Container */}
+      <div className="w-full overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
+        <div className="flex items-stretch gap-3.5 sm:gap-4 w-max">
           {features.map((feature) => (
             <div
               key={`mob-feat-${feature.number}`}
-              className="w-[78vw] sm:w-[80vw] max-w-[310px] shrink-0"
+              className="w-[78vw] sm:w-[80vw] max-w-[300px] shrink-0 snap-center"
             >
               <div className="silver-glow-wrapper h-full">
                 <div
@@ -297,7 +264,7 @@ function MobileScrollDrivenTrack({
                       onCardClick(feature);
                     }
                   }}
-                  className="silver-glow-inner group relative w-full h-full min-h-[270px] flex flex-col items-center text-center p-5 sm:p-6 cursor-pointer overflow-hidden
+                  className="silver-glow-inner group relative w-full h-full min-h-[250px] flex flex-col items-center text-center p-5 cursor-pointer overflow-hidden
                     bg-white
                     active:scale-[0.98]
                     transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
@@ -311,18 +278,18 @@ function MobileScrollDrivenTrack({
                   </span>
 
                   {/* Icon Container */}
-                  <div className="w-[50px] h-[50px] rounded-full flex items-center justify-center mb-3 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                  <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
                     <feature.icon className="w-5 h-5 text-gray-900" />
                   </div>
 
-                  <div className="w-7 h-[1px] bg-gray-200 mb-3 rounded-full" />
+                  <div className="w-7 h-[1px] bg-gray-200 mb-2.5 rounded-full" />
 
                   {/* Title */}
-                  <h3 className="font-semibold text-[16px] mb-1 text-gray-900 tracking-tight leading-tight">
+                  <h3 className="font-semibold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
                     {feature.title}
                   </h3>
 
-                  <p className="text-[13px] text-gray-600 leading-[1.5] font-normal max-w-[240px] mx-auto mb-3">
+                  <p className="text-[12.5px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
                     {feature.description}
                   </p>
 

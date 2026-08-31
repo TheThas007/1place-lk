@@ -92,18 +92,13 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       ? product.images[0]
       : "/placeholder-phone.webp";
 
-  // Per-product image fitting & alignment settings
-  const imgSettings = product.imageSettings || product.productImageSettings;
-  const isCover = imgSettings?.fit === "cover";
-  const userScale = typeof imgSettings?.scale === "number" ? imgSettings.scale / 100 : 1.0;
-  const posX = typeof imgSettings?.positionX === "number" ? imgSettings.positionX : 0;
-  const posY = typeof imgSettings?.positionY === "number" ? imgSettings.positionY : 0;
-
-  // Color Swatches (resolved dynamically from product colors / variants)
+  // Color Swatches
   const productSwatches = resolveProductSwatches(product);
 
   const hasRealRating = typeof product.rating === "number" && product.rating > 0;
-  const hasReviewCount = typeof (product.review_count || product.reviews_count) === "number" && ((product.review_count || product.reviews_count) as number) > 0;
+  const hasReviewCount =
+    typeof (product.review_count || product.reviews_count) === "number" &&
+    ((product.review_count || product.reviews_count) as number) > 0;
   const showRating = hasRealRating || hasReviewCount;
   const displayRating = hasRealRating ? product.rating!.toFixed(1) : "5.0";
 
@@ -116,10 +111,9 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
         href={`/products/${product.slug}`}
         className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
-        {/* ── 1. Image Container (Equal responsive height, pure white background, seamless blend) ── */}
+        {/* ── 1. Image Container (Equal responsive height, pure white background) ── */}
         <div className="product-image-container relative w-full h-[180px] sm:h-[220px] md:h-[240px] aspect-square bg-white flex items-center justify-center overflow-hidden rounded-t-2xl border-b border-neutral-100/80">
-          
-          {/* ── Approved Offer Badge Position: Bottom-Left Corner ── */}
+          {/* Approved Offer Badge Position: Bottom-Left Corner */}
           <div className="product-offer-badge absolute bottom-0 left-0 z-10 flex flex-col items-start pointer-events-none">
             {hasDiscount ? (
               <span className="bg-black text-white text-[10px] font-black px-2.5 py-1 rounded-tr-lg uppercase tracking-wider shadow-2xs inline-block">
@@ -155,7 +149,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </button>
 
           {/* Product Image */}
-          <div className="w-full h-full flex items-center justify-center overflow-hidden p-1.5 sm:p-2.5">
+          <div className="w-full h-full flex items-center justify-center overflow-hidden p-2 sm:p-3">
             <img
               src={mainImage}
               alt={product.name}
@@ -166,62 +160,68 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </div>
         </div>
 
-        {/* ── 2. Details Section ── */}
-        <div className="p-3.5 sm:p-5 flex-1 flex flex-col justify-between bg-white min-h-[130px] sm:min-h-[140px]">
-          <div>
-            {/* Category / Brand Label (Only if genuinely available) */}
-            {(product.category_name || product.brand_name) && (
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 block mb-1 truncate">
-                {product.brand_name || product.category_name}
-              </span>
-            )}
+        {/* ── 2. Details Section (Structured for Uniform Alignment across all cards) ── */}
+        <div className="p-3 sm:p-4 flex-1 flex flex-col justify-between bg-white">
+          <div className="flex flex-col">
+            {/* Category / Brand Label (Fixed height row for alignment) */}
+            <div className="h-3.5 mb-1">
+              {(product.category_name || product.brand_name) ? (
+                <span className="text-[10px] font-extrabold uppercase tracking-widest text-neutral-400 block truncate">
+                  {product.brand_name || product.category_name}
+                </span>
+              ) : null}
+            </div>
 
-            {/* Product Title */}
-            <h3 className="font-bold text-xs sm:text-[15px] text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors mb-1">
+            {/* Product Title (Consistent min-height for 1 vs 2 line titles) */}
+            <h3 className="font-bold text-xs sm:text-[14px] text-neutral-900 line-clamp-2 leading-snug group-hover:text-neutral-600 transition-colors min-h-[34px] sm:min-h-[38px] mb-1">
               {product.name}
             </h3>
 
-            {/* Warranty Subtitle (Only when genuinely available) */}
-            {product.warranty && product.warranty.trim() !== "" && (
-              <span className="text-[11px] sm:text-xs text-neutral-400 font-medium block mb-2 truncate">
-                {product.warranty}
-              </span>
-            )}
+            {/* Warranty Subtitle (Consistent height row) */}
+            <div className="h-4 mb-2">
+              {product.warranty && product.warranty.trim() !== "" ? (
+                <span className="text-[10.5px] sm:text-xs text-neutral-400 font-medium block truncate">
+                  {product.warranty}
+                </span>
+              ) : null}
+            </div>
 
-            {/* Price Row */}
-            <div className="flex items-center gap-1.5 sm:gap-2 mb-2 flex-wrap">
-              <span className="font-extrabold text-sm sm:text-base text-neutral-900">
+            {/* Price Row (Uniform min-height container preventing vertical misalignment) */}
+            <div className="flex flex-col sm:flex-row sm:items-baseline gap-0.5 sm:gap-1.5 min-h-[36px] sm:min-h-[28px] mb-2 justify-center">
+              <span className="font-extrabold text-sm sm:text-base text-neutral-900 leading-tight">
                 {formatPrice(product.price)}
               </span>
               {hasDiscount && (
-                <span className="text-[11px] sm:text-xs text-neutral-400 line-through font-normal">
+                <span className="text-[10.5px] sm:text-xs text-neutral-400 line-through font-normal leading-tight">
                   {formatPrice(product.old_price!)}
                 </span>
               )}
             </div>
 
-            {/* Color Swatch Dots (Only if product has genuine colors) */}
-            {productSwatches.length > 0 && (
-              <div className="flex items-center gap-1.5 mb-2.5" aria-label="Available Colors">
-                {productSwatches.slice(0, 5).map((swatch, idx) => (
-                  <span
-                    key={idx}
-                    title={swatch.name}
-                    aria-label={swatch.name}
-                    style={{ backgroundColor: swatch.hex }}
-                    className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
-                  />
-                ))}
-                {productSwatches.length > 5 && (
-                  <span className="text-[9px] font-bold text-neutral-400">
-                    +{productSwatches.length - 5}
-                  </span>
-                )}
-              </div>
-            )}
+            {/* Color Swatch Dots (Consistent height row) */}
+            <div className="h-4 mb-2 flex items-center">
+              {productSwatches.length > 0 ? (
+                <div className="flex items-center gap-1.5" aria-label="Available Colors">
+                  {productSwatches.slice(0, 5).map((swatch, idx) => (
+                    <span
+                      key={idx}
+                      title={swatch.name}
+                      aria-label={swatch.name}
+                      style={{ backgroundColor: swatch.hex }}
+                      className="w-2.5 h-2.5 rounded-full border border-neutral-300 shadow-2xs inline-block shrink-0"
+                    />
+                  ))}
+                  {productSwatches.length > 5 && (
+                    <span className="text-[9px] font-bold text-neutral-400">
+                      +{productSwatches.length - 5}
+                    </span>
+                  )}
+                </div>
+              ) : null}
+            </div>
           </div>
 
-          {/* Rating & Stock Status Row */}
+          {/* Rating & Stock Status Row (Anchored uniformly at bottom) */}
           <div className="flex items-center justify-between text-xs pt-2 border-t border-neutral-100 mt-auto gap-2">
             {showRating ? (
               <div className="flex items-center gap-1 text-neutral-700 font-semibold text-[11px]">
@@ -253,7 +253,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
       </Link>
 
       {/* ── 3. Bottom Full-Width Action (Minimum 44px Touch Height) ── */}
-      <div className="px-3.5 pb-3.5 sm:px-4 sm:pb-4 bg-white">
+      <div className="px-3 pb-3 sm:px-4 sm:pb-4 bg-white">
         {isOutOfStock && !isPreOrder ? (
           <button
             type="button"

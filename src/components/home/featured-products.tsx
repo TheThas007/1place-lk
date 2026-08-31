@@ -95,11 +95,11 @@ export default function FeaturedProducts({
         </div>
 
         {/* Horizontal Slide Rail */}
-        <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory px-4 pb-2 items-stretch">
+        <div className="flex gap-3 overflow-x-auto scrollbar-none snap-x snap-mandatory px-4 pb-2">
           {featuredProducts.map((product) => (
             <div
               key={`mob-fp-${product.id}`}
-              className="w-[46vw] min-w-[155px] max-w-[200px] shrink-0 snap-start flex flex-col"
+              className="w-[46vw] min-w-[155px] max-w-[200px] shrink-0 snap-start h-full"
             >
               <ProductCard product={product} />
             </div>

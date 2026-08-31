@@ -682,8 +682,8 @@ export default function ReviewsSection({
           onTouchCancel={handleMobileTouchEnd}
           onPointerDown={() => setIsMobileInteracting(true)}
           onPointerUp={handleMobileTouchEnd}
-          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-x cursor-grab active:cursor-grabbing"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y cursor-grab active:cursor-grabbing"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {mobileTripledReviews.map((rev, idx) => {
             const safeRating = Math.min(5, Math.max(1, rev.rating || 5));

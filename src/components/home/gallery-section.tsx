@@ -538,8 +538,8 @@ export default function GallerySection({
           onTouchCancel={handleMobileTouchEnd}
           onPointerDown={() => setIsMobileInteracting(true)}
           onPointerUp={handleMobileTouchEnd}
-          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-x cursor-grab active:cursor-grabbing"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch" }}
+          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y cursor-grab active:cursor-grabbing"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {mobileTripledGallery.map((image, idx) => {
             const titleText = image.caption || image.title || "Life at Street Mobile";
