@@ -397,43 +397,31 @@ export function speakLaunchText(
 
       if (typeof window !== "undefined" && "speechSynthesis" in window) {
         window.speechSynthesis.cancel();
-        if (window.speechSynthesis.paused) {
-          window.speechSynthesis.resume();
-        }
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 0.96;
-      utterance.pitch = options?.pitch || 1.04;
+      utterance.rate = options?.rate || 0.98;
+      utterance.pitch = options?.pitch || 1.02;
       utterance.volume = 1.0;
 
       currentActiveUtterance = utterance;
+      if (typeof window !== "undefined") {
+        (window as any).__launchActiveUtterance = utterance;
+      }
 
       const voice = getLockedFemaleVoice();
       if (voice) {
         utterance.voice = voice;
       }
 
-      // Chromium / Android Keep-Alive Heartbeat
-      if (speechHeartbeatTimer) clearInterval(speechHeartbeatTimer);
-      speechHeartbeatTimer = setInterval(() => {
-        if (typeof window !== "undefined" && "speechSynthesis" in window) {
-          if (window.speechSynthesis.speaking && !window.speechSynthesis.paused) {
-            window.speechSynthesis.pause();
-            window.speechSynthesis.resume();
-          }
-        }
-      }, 2500);
-
       let hasResolved = false;
       const finish = () => {
         if (hasResolved) return;
         hasResolved = true;
-        if (speechHeartbeatTimer) {
-          clearInterval(speechHeartbeatTimer);
-          speechHeartbeatTimer = null;
-        }
         currentActiveUtterance = null;
+        if (typeof window !== "undefined") {
+          (window as any).__launchActiveUtterance = null;
+        }
         restoreAmbientMusic();
         if (options?.onEnd) options.onEnd();
         resolve();
@@ -448,7 +436,8 @@ export function speakLaunchText(
         finish();
       };
 
-      const maxDuration = Math.max(3500, text.length * 110);
+      // Failsafe timer (maximum duration based on text length + 3s buffer)
+      const maxDuration = Math.max(4000, text.length * 120);
       setTimeout(finish, maxDuration);
 
       setTimeout(() => {
@@ -458,7 +447,7 @@ export function speakLaunchText(
           }
           window.speechSynthesis.speak(utterance);
         }
-      }, 60);
+      }, 50);
     } catch (e) {
       console.warn("Speech synthesis error:", e);
       restoreAmbientMusic();
