@@ -451,11 +451,14 @@ export function speakLaunchText(
       const maxDuration = Math.max(3500, text.length * 110);
       setTimeout(finish, maxDuration);
 
-      window.speechSynthesis.speak(utterance);
-
-      if (window.speechSynthesis.paused) {
-        window.speechSynthesis.resume();
-      }
+      setTimeout(() => {
+        if (typeof window !== "undefined" && "speechSynthesis" in window) {
+          if (window.speechSynthesis.paused) {
+            window.speechSynthesis.resume();
+          }
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 60);
     } catch (e) {
       console.warn("Speech synthesis error:", e);
       restoreAmbientMusic();

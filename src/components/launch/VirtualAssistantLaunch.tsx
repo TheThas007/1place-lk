@@ -257,7 +257,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
           speakLaunchText(
-            "Hey everyone! A super warm welcome to Street Mobile! I'm STREETLA, your friendly shopping assistant, and we are always right near you!",
+            "Hey everyone! Welcome to Street Mobile. I'm STREETLA, your friendly assistant, and we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -274,7 +274,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
           speakLaunchText(
-            "Looking for genuine smartphones, flagship devices, or authentic accessories? We've got you covered with unbeatable prices!",
+            "We bring you genuine smartphones and authentic accessories at unbeatable prices!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -291,7 +291,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
           speakLaunchText(
-            "With official company warranty, fast delivery, and loving care, we are always right here for you!",
+            "Enjoy official warranty, fast delivery, and caring support right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -308,7 +308,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
           speakLaunchText(
-            "Enjoy exclusive launch discounts, interest-free installment plans, and express island-wide delivery right to your hands!",
+            "Get ready for exclusive launch discounts and express island-wide delivery to your hands!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -325,7 +325,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
           speakLaunchText(
-            "The wait is finally over! Everyone, are you ready? Let's count down together in 3, 2, 1!",
+            "The countdown begins now! Everyone, are you ready? Let's launch together!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
