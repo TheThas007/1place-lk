@@ -106,10 +106,10 @@ export default function LaunchGate({ children }: LaunchGateProps) {
     onZero: handleCountdownZero,
   });
 
-  // Listen for admin test launch event (defaults to 50s)
+  // Listen for admin test launch event (defaults to 60s)
   useEffect(() => {
     const handleTestLaunch = (e: any) => {
-      const seconds = e?.detail?.seconds || 50;
+      const seconds = e?.detail?.seconds || 60;
       setTestCountdownTarget(Date.now() + seconds * 1000);
       setIsRevealing(false);
       setHasManuallyRevealed(false);
@@ -177,8 +177,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
 
   return (
     <>
-      {/* ── 1. Above 50 Seconds: Full-Screen White Launch Countdown ── */}
-      {isLaunchActive && countdown.totalSeconds > 50 && !isRevealing && (
+      {/* ── 1. Above 60 Seconds: Full-Screen White Launch Countdown ── */}
+      {isLaunchActive && countdown.totalSeconds > 60 && !isRevealing && (
         <CountdownScreen
           countdown={countdown}
           title={settings.title || "STREET MOBILE"}
@@ -195,8 +195,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
         />
       )}
 
-      {/* ── 2. Final 50 Seconds: Virtual AI Assistant Launch Experience (40s Speaking + 10s Countdown) ── */}
-      {isLaunchActive && countdown.totalSeconds <= 50 && !hasManuallyRevealed && (
+      {/* ── 2. Final 60 Seconds: Virtual AI Assistant Launch Experience (50s Speaking + 10s Countdown) ── */}
+      {isLaunchActive && countdown.totalSeconds <= 60 && !hasManuallyRevealed && (
         <VirtualAssistantLaunch
           totalRemainingSeconds={countdown.totalSeconds}
           title={settings.title || "STREET MOBILE"}

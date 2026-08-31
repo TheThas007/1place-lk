@@ -273,18 +273,18 @@ export default function LaunchControlTab() {
 
   const [testSessionKey, setTestSessionKey] = useState<string>(() => Date.now().toString());
 
-  // Trigger Master 50-Second Test Launch in Isolated Preview (40s Speaking + 10s Countdown)
+  // Trigger Master 60-Second Test Launch in Isolated Preview (50s Speaking + 10s Countdown)
   const handleStartMasterTest = () => {
     primeAudioAndVoice();
     setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
     setIsTestLaunchModalOpen(true);
-    setTestSimulatedSeconds(50);
+    setTestSimulatedSeconds(60);
   };
 
   const handleReplayMasterTest = () => {
     primeAudioAndVoice();
     setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
-    setTestSimulatedSeconds(50);
+    setTestSimulatedSeconds(60);
   };
 
   const handleCloseMasterTest = () => {
@@ -903,7 +903,7 @@ export default function LaunchControlTab() {
             <div className="flex items-center gap-3">
               <span className="px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black tracking-wider uppercase flex items-center gap-1.5 animate-pulse">
                 <Sparkles className="w-3.5 h-3.5" />
-                50-SECOND TEST MODE PREVIEW (40s SPEAK + 10s COUNTDOWN)
+                60-SECOND TEST MODE PREVIEW (50s SPEAK + 10s COUNTDOWN)
               </span>
               <span className="text-xs text-white/60 hidden sm:inline">
                 Simulated Remaining: <strong className="text-white font-mono">{testSimulatedSeconds}s</strong>

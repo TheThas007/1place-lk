@@ -130,6 +130,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   // Sound Toggle Handler
   const toggleSound = useCallback(() => {
+    primeAudioAndVoice();
     const next = !soundActive;
     setSoundActive(next);
     setLaunchSoundEnabled(next);
@@ -138,6 +139,24 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     } else {
       stopAmbientAuraMusic();
     }
+  }, [soundActive]);
+
+  // Ensure Audio Context & Speech Engine is unlocked on any user gesture
+  useEffect(() => {
+    const handleGesture = () => {
+      primeAudioAndVoice();
+      if (soundActive) {
+        startAmbientAuraMusic();
+      }
+    };
+    window.addEventListener("pointerdown", handleGesture, { passive: true });
+    window.addEventListener("click", handleGesture, { passive: true });
+    window.addEventListener("touchstart", handleGesture, { passive: true });
+    return () => {
+      window.removeEventListener("pointerdown", handleGesture);
+      window.removeEventListener("click", handleGesture);
+      window.removeEventListener("touchstart", handleGesture);
+    };
   }, [soundActive]);
 
   // Canvas Confetti Particle System for 0s Reveal

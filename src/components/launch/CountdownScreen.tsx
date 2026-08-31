@@ -1,6 +1,6 @@
 "use client";
 
-import { memo, useState } from "react";
+import { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Lock, X, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
 import { LaunchCountdownState, PreLaunchExperienceSettings, Review } from "@/lib/types";
@@ -52,6 +52,29 @@ export const CountdownScreen = memo(function CountdownScreen({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Prime browser audio permissions on first user touch/interaction
+  useEffect(() => {
+    const unlockAudio = () => {
+      try {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+          const ctx = new AudioContextClass();
+          if (ctx.state === "suspended") {
+            ctx.resume().catch(() => {});
+          }
+        }
+      } catch (e) {}
+    };
+    window.addEventListener("pointerdown", unlockAudio, { passive: true, once: true });
+    window.addEventListener("click", unlockAudio, { passive: true, once: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true, once: true });
+    return () => {
+      window.removeEventListener("pointerdown", unlockAudio);
+      window.removeEventListener("click", unlockAudio);
+      window.removeEventListener("touchstart", unlockAudio);
+    };
+  }, []);
 
   const timeUnits = [
     { value: days, label: "DAYS" },

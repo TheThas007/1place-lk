@@ -466,8 +466,14 @@ export function playLaunchVoice(
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch((err) => {
-          console.warn("Audio play prevented:", err);
-          finish();
+          console.warn("Audio play prevented, attempting speech synthesis fallback:", err);
+          if (fallbackText && typeof window !== "undefined" && "speechSynthesis" in window) {
+            speakLaunchText(fallbackText, options)
+              .then(() => finish())
+              .catch(() => finish());
+          } else {
+            finish();
+          }
         });
       }
     } catch (err) {
