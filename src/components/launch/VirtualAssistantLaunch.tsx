@@ -270,11 +270,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("speaking");
           setDisplayedSeconds(42);
           setBubbleTitle("LATEST GENUINE TECH 📱");
-          setBubbleBody("Flagship smartphones, premium audio and authentic accessories.");
+          setBubbleBody("Flagship smartphones, premium audio and authentic accessories at the best prices.");
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
           speakLaunchText(
-            "We bring you genuine smartphones, flagship devices, premium audio, and authentic accessories right here in Vavuniya!",
+            "We bring you genuine smartphones, flagship devices, premium audio, and authentic accessories at the best unbeatable prices!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -299,16 +299,16 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           );
         }
 
-        // Phase 4: SHOWROOM (24s -> 32s) — ~4.9s speech, 3.1s breathing room
+        // Phase 4: OFFERS & DEALS (24s -> 32s) — ~5.0s speech, 3.0s breathing room
         else if (phase === "SHOWROOM") {
           setMood("speaking");
           setDisplayedSeconds(26);
-          setBubbleTitle("VAVUNIYA → SRI LANKA 🇱🇰");
-          setBubbleBody("Visit our flagship showroom or shop online from anywhere in Sri Lanka.");
-          setBottomSubtitle("Visit Us or Shop Online • Street Mobile is ready for you");
+          setBubbleTitle("EXCLUSIVE LAUNCH DEALS 🎁");
+          setBubbleBody("Amazing discounts, easy installment plans, and express delivery right to your door.");
+          setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
           speakLaunchText(
-            "Visit our flagship showroom in Vavuniya or shop online easily from anywhere across Sri Lanka!",
+            "Enjoy exclusive launch discounts, interest-free installment plans, and express island-wide delivery right to your door!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
