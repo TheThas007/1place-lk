@@ -396,8 +396,8 @@ export function speakLaunchText(
       }
 
       const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = options?.rate || 0.98;
-      utterance.pitch = options?.pitch || 1.02;
+      utterance.rate = options?.rate || 1.0;
+      utterance.pitch = options?.pitch || 1.04;
       utterance.volume = 1.0;
 
       currentActiveUtterance = utterance;

@@ -253,11 +253,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setDisplayedSeconds(50);
           setActiveCountdownNumber(null);
           setBubbleTitle("WELCOME TO STREET MOBILE 👋");
-          setBubbleBody("I'm STREETLA, your friendly virtual shopping assistant. We are always near you!");
+          setBubbleBody("Hey everyone! I'm STREETLA, your friendly virtual shopping assistant. We are so excited to welcome you to our grand launch!");
           setBottomSubtitle("Welcome to the Grand Launch • We are near you ✨");
 
           speakLaunchText(
-            "Hey everyone! Welcome to Street Mobile. I'm STREETLA, your friendly assistant, and we are always right near you!",
+            "Hey everyone! A super warm welcome to Street Mobile! I'm STREETLA, your friendly virtual shopping assistant, and I'm so thrilled to launch our brand new store with all of you today! We are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -270,11 +270,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("speaking");
           setDisplayedSeconds(42);
           setBubbleTitle("LATEST GENUINE TECH 📱");
-          setBubbleBody("Flagship smartphones, premium audio and authentic accessories at the best prices.");
+          setBubbleBody("Discover flagship smartphones, premium audio, and authentic accessories at unbeatable prices!");
           setBottomSubtitle("Flagship Smartphones & Accessories • 100% Genuine Quality");
 
           speakLaunchText(
-            "We bring you genuine smartphones and authentic accessories at unbeatable prices!",
+            "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got the hottest brands at unbeatable prices you will absolutely love!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -286,12 +286,12 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         else if (phase === "WARRANTY") {
           setMood("speaking");
           setDisplayedSeconds(34);
-          setBubbleTitle("WE ARE ALWAYS NEAR YOU 🛡️");
-          setBubbleBody("Official company warranty, fast delivery and friendly support — we are near you.");
+          setBubbleTitle("OFFICIAL WARRANTY & CARE 🛡️");
+          setBubbleBody("100% genuine products with official company warranty, fast island-wide delivery, and friendly care.");
           setBottomSubtitle("Genuine Warranty & Express Delivery • We are near you 💙");
 
           speakLaunchText(
-            "Enjoy official warranty, fast delivery, and caring support right near you!",
+            "Every single product comes with official company warranty, fast island-wide delivery, and friendly support. From purchase to care, we are always right here for you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -304,11 +304,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("speaking");
           setDisplayedSeconds(26);
           setBubbleTitle("EXCLUSIVE LAUNCH DEALS 🎁");
-          setBubbleBody("Amazing discounts, easy installment plans, and express delivery right to your door.");
+          setBubbleBody("Huge launch discounts, 0% interest installment plans, and express delivery right to your door!");
           setBottomSubtitle("Exclusive Launch Deals • Express Island-wide Delivery 🚚");
 
           speakLaunchText(
-            "Get ready for exclusive launch discounts and express island-wide delivery to your hands!",
+            "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery across Sri Lanka. Shopping has never been this exciting!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -321,11 +321,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("speaking");
           setDisplayedSeconds(18);
           setBubbleTitle("ARE YOU READY? 🚀");
-          setBubbleBody("The countdown is about to begin! Get ready!");
+          setBubbleBody("The wait is finally over! Let's count down together in 3, 2, 1!");
           setBottomSubtitle("The Wait Is Over • Get Ready For The Grand Reveal 🔥");
 
           speakLaunchText(
-            "The countdown begins now! Everyone, are you ready? Let's launch together!",
+            "The wait is finally over! So get ready, everyone! Let's count down together and launch Street Mobile in 3, 2, 1!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
