@@ -392,10 +392,9 @@ export default function ProductDetailClient({
     if (!hasUserChosenColor || !selectedColor || colorVariants.length === 0) {
       return normalizedVariants.filter((v) => v.status !== "inactive");
     }
-    const filtered = normalizedVariants.filter(
+    return normalizedVariants.filter(
       (v) => v.color.toLowerCase() === selectedColor.toLowerCase() && v.status !== "inactive"
     );
-    return filtered.length > 0 ? filtered : normalizedVariants.filter((v) => v.status !== "inactive");
   }, [normalizedVariants, selectedColor, colorVariants, hasUserChosenColor]);
 
   // Selected Variant Option (Tracked by unique Variant ID)
@@ -413,7 +412,10 @@ export default function ProductDetailClient({
 
   // 3. RESET INVALID VARIANT WHEN COLOR CHANGES
   useEffect(() => {
-    if (!selectedColor || availableVariantsForColor.length === 0) return;
+    if (!selectedColor || availableVariantsForColor.length === 0) {
+      setSelectedVariantId("");
+      return;
+    }
 
     const variantStillValid = availableVariantsForColor.some(
       (v) => v.id === selectedVariantId
@@ -526,8 +528,22 @@ export default function ProductDetailClient({
   const currentVariantOldPrice = selectedVariant?.old_price ?? product.old_price;
 
   const currentSku = selectedVariant?.sku || product.code || product.slug;
-  const currentStock = selectedVariant ? selectedVariant.stock : (product.stock_status === "out_of_stock" ? 0 : 10);
-  const isVariantOutOfStock = currentStock <= 0 || product.stock_status === "out_of_stock";
+  const currentStock = useMemo(() => {
+    if (product.stock_status === "out_of_stock") return 0;
+    if (normalizedVariants.length > 0) {
+      if (hasUserChosenColor && selectedColor) {
+        if (availableVariantsForColor.length === 0) {
+          return 0; // The chosen color is not available in inventory
+        }
+        return selectedVariant ? selectedVariant.stock : 0;
+      }
+      return selectedVariant ? selectedVariant.stock : 0;
+    }
+    const rawPStock = product.stock_count ?? product.stock_quantity;
+    return rawPStock !== undefined && rawPStock !== null ? resolveStock(rawPStock) : 0;
+  }, [product, normalizedVariants, hasUserChosenColor, selectedColor, availableVariantsForColor, selectedVariant]);
+
+  const isVariantOutOfStock = currentStock <= 0 || product.stock_status === "out_of_stock" || (hasUserChosenColor && Boolean(selectedColor) && availableVariantsForColor.length === 0 && normalizedVariants.length > 0);
 
   const discountPercent =
     Boolean(currentVariantOldPrice) &&

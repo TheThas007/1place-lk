@@ -17,6 +17,14 @@ export async function POST(req: Request) {
     }
 
     const cleanCode = code.trim().toUpperCase();
+    const normalizedCode = cleanCode.replace(/\s+/g, "");
+    if (normalizedCode === "STREET10" || cleanCode === "STREET 10") {
+      return NextResponse.json(
+        { valid: false, message: "This promo code is currently disabled or inactive." },
+        { status: 400 }
+      );
+    }
+
     const orderSubtotal = Math.max(0, Number(subtotal) || 0);
 
     // 1. First check dedicated 'coupons' collection

@@ -102,9 +102,10 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
   const mainDisplayImage = productImages[activeImageIndex] || productImages[0] || "/placeholder-phone.webp";
 
   const isWishlisted = isInWishlist(product.id);
-  const isOutOfStock = currentCombo
-    ? currentCombo.available_stock <= 0 && currentCombo.stock_quantity <= 0
-    : product.stock_status === "out_of_stock";
+  const hasCombos = Boolean(product.variant_combos && product.variant_combos.length > 0);
+  const isOutOfStock = hasCombos
+    ? (!currentCombo || (Number(currentCombo.available_stock ?? currentCombo.stock_quantity ?? 0) <= 0))
+    : (product.stock_status === "out_of_stock");
 
   const isMobileOrLaptop =
     product.productType === "phone" ||

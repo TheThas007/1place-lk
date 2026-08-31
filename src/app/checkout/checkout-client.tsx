@@ -323,6 +323,16 @@ export default function CheckoutClient() {
   // Promo code handlers with server-side validation
   const handleApplyCoupon = async () => {
     if (!couponInput.trim()) return;
+
+    const normalizedCode = couponInput.trim().toUpperCase().replace(/\s+/g, "");
+    if (normalizedCode === "STREET10" || couponInput.trim().toUpperCase() === "STREET 10") {
+      setCouponMessage({
+        type: "error",
+        text: "This promo code is currently disabled or inactive.",
+      });
+      return;
+    }
+
     setCouponLoading(true);
     setCouponMessage(null);
 
@@ -353,29 +363,10 @@ export default function CheckoutClient() {
         });
       }
     } catch (err) {
-      // Offline / fallback calculation
-      const code = couponInput.trim().toUpperCase();
-      if (code === "WELCOME10" || code === "STREET10") {
-        const discountAmount = Math.round(subtotal * 0.1);
-        setCouponDiscount(discountAmount);
-        setAppliedCoupon(code);
-        setCouponMessage({
-          type: "success",
-          text: `Coupon applied: 10% off (Saved ${formatPrice(discountAmount)})`,
-        });
-      } else if (code === "FREESHIP") {
-        setCouponDiscount(standardDeliveryFee);
-        setAppliedCoupon(code);
-        setCouponMessage({
-          type: "success",
-          text: `Free Shipping coupon applied (Saved ${formatPrice(standardDeliveryFee)})`,
-        });
-      } else {
-        setCouponMessage({
-          type: "error",
-          text: "Could not validate coupon. Please check your connection.",
-        });
-      }
+      setCouponMessage({
+        type: "error",
+        text: "Could not validate coupon. Please check your connection.",
+      });
     } finally {
       setCouponLoading(false);
     }
