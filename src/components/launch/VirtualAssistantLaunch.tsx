@@ -259,7 +259,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase1_welcome.mp3",
-            "Hey everyone! A super warm welcome to Street Mobile! I'm Streetla, your friendly virtual shopping assistant, and I'm so excited to launch our all-new store with all of you today! We are always right near you!",
+            "Hey everyone! A super warm welcome to Street Mobile! I'm Street-lah, your friendly assistant, and we are always right near you!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -277,7 +277,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase2_products.mp3",
-            "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got the hottest global brands at unbeatable prices you will absolutely love!",
+            "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got unbeatable prices you will love!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -295,7 +295,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase3_warranty.mp3",
-            "Every single device comes with official company warranty, fast island-wide delivery, and caring friendly support. From purchase to repair, you can always count on us!",
+            "Every single device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -313,7 +313,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase4_deals.mp3",
-            "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery across Sri Lanka. Shopping has never been this easy and fun!",
+            "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
@@ -331,7 +331,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
           playLaunchVoice(
             "/audio/launch/phase5_buildup.mp3",
-            "The wait is finally over, everyone! Get ready to step into the future of shopping. Let's count down together and launch the all-new Street Mobile in 3, 2, 1!",
+            "The wait is finally over! Get ready to step into the future of shopping. Let's count down together in 3, 2, 1!",
             {
               onStart: () => setIsSpeaking(true),
               onEnd: () => setIsSpeaking(false),
