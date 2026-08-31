@@ -279,39 +279,15 @@ export default function LaunchControlTab() {
     setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
     setIsTestLaunchModalOpen(true);
     setTestSimulatedSeconds(50);
-
-    if (testTimerRef.current) clearInterval(testTimerRef.current);
-
-    testTimerRef.current = setInterval(() => {
-      setTestSimulatedSeconds((prev) => {
-        if (prev <= 1) {
-          if (testTimerRef.current) clearInterval(testTimerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
   const handleReplayMasterTest = () => {
     primeAudioAndVoice();
     setTestSessionKey(Date.now().toString() + "-" + Math.random().toString(36).slice(2));
     setTestSimulatedSeconds(50);
-    if (testTimerRef.current) clearInterval(testTimerRef.current);
-
-    testTimerRef.current = setInterval(() => {
-      setTestSimulatedSeconds((prev) => {
-        if (prev <= 1) {
-          if (testTimerRef.current) clearInterval(testTimerRef.current);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
   };
 
   const handleCloseMasterTest = () => {
-    if (testTimerRef.current) clearInterval(testTimerRef.current);
     setIsTestLaunchModalOpen(false);
     stopAllAudioAndSpeech();
   };

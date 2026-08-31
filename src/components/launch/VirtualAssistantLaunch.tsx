@@ -111,6 +111,11 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   const lastPhaseRef = useRef<LaunchPhase | null>(null);
   const lastCountdownNumberRef = useRef<number | null>(null);
   const revealTriggeredRef = useRef<boolean>(false);
+  const onLaunchCompleteRef = useRef(onLaunchComplete);
+
+  useEffect(() => {
+    onLaunchCompleteRef.current = onLaunchComplete;
+  }, [onLaunchComplete]);
 
   // Helper for hexToRgba
   const hexToRgba = (hex: string, alpha: number) => {
@@ -402,7 +407,9 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           setMood("transforming");
 
           setTimeout(() => {
-            onLaunchComplete();
+            if (onLaunchCompleteRef.current) {
+              onLaunchCompleteRef.current();
+            }
           }, 1600);
         }, 4200);
       }
@@ -422,7 +429,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       }
       stopAllAudioAndSpeech();
     };
-  }, [onLaunchComplete, triggerConfetti]);
+  }, []);
 
   const padZero = (n: number) => String(Math.max(0, n)).padStart(2, "0");
 
