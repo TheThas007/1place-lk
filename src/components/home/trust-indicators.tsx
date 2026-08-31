@@ -220,12 +220,24 @@ function FeatureCard({
 
 
 
-/* ─── Mobile Horizontal Swipe Track (Native Touch, Zero Pin-Gap) ─── */
+/* ─── Mobile Horizontal Swipe Track (Native Touch, Smooth Snap & Indicators) ─── */
 function MobileScrollDrivenTrack({
   onCardClick,
 }: {
   onCardClick: (feature: (typeof features)[0]) => void;
 }) {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.currentTarget;
+    if (target.scrollWidth > 0) {
+      const cardWidth = target.scrollWidth / features.length;
+      const index = Math.round(target.scrollLeft / cardWidth);
+      setActiveIndex(Math.min(features.length - 1, Math.max(0, index)));
+    }
+  };
+
   return (
     <div
       className="md:hidden w-full bg-white pt-4 pb-2 select-none overflow-hidden"
@@ -246,62 +258,82 @@ function MobileScrollDrivenTrack({
       </div>
 
       {/* Smooth Horizontal Swipe Container */}
-      <div className="w-full overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y" style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}>
-        <div className="flex items-stretch gap-3.5 sm:gap-4 w-max">
-          {features.map((feature) => (
-            <div
-              key={`mob-feat-${feature.number}`}
-              className="w-[78vw] sm:w-[80vw] max-w-[300px] shrink-0 snap-center"
-            >
-              <div className="silver-glow-wrapper h-full">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => onCardClick(feature)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ") {
-                      e.preventDefault();
-                      onCardClick(feature);
-                    }
-                  }}
-                  className="silver-glow-inner group relative w-full h-full min-h-[250px] flex flex-col items-center text-center p-5 cursor-pointer overflow-hidden
-                    bg-white
-                    active:scale-[0.98]
-                    transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+      <div
+        ref={scrollRef}
+        onScroll={handleScroll}
+        className="w-full overflow-x-auto scrollbar-none px-4 py-2 flex items-stretch gap-3.5 sm:gap-4 snap-x snap-mandatory scroll-smooth"
+        style={{
+          scrollbarWidth: "none",
+          msOverflowStyle: "none",
+          WebkitOverflowScrolling: "touch",
+          touchAction: "auto",
+        }}
+      >
+        {features.map((feature, idx) => (
+          <div
+            key={`mob-feat-${feature.number}`}
+            className="w-[78vw] sm:w-[80vw] max-w-[300px] shrink-0 snap-center"
+          >
+            <div className="silver-glow-wrapper h-full">
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => onCardClick(feature)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onCardClick(feature);
+                  }
+                }}
+                className="silver-glow-inner group relative w-full h-full min-h-[250px] flex flex-col items-center text-center p-5 cursor-pointer overflow-hidden
+                  bg-white
+                  active:scale-[0.98]
+                  transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+              >
+                {/* Number Indicator */}
+                <span
+                  className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
+                  aria-hidden="true"
                 >
-                  {/* Number Indicator */}
-                  <span
-                    className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
-                    aria-hidden="true"
-                  >
-                    {feature.number}
-                  </span>
+                  {feature.number}
+                </span>
 
-                  {/* Icon Container */}
-                  <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                    <feature.icon className="w-5 h-5 text-gray-900" />
-                  </div>
+                {/* Icon Container */}
+                <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                  <feature.icon className="w-5 h-5 text-gray-900" />
+                </div>
 
-                  <div className="w-7 h-[1px] bg-gray-200 mb-2.5 rounded-full" />
+                <div className="w-7 h-[1px] bg-gray-200 mb-2.5 rounded-full" />
 
-                  {/* Title */}
-                  <h3 className="font-semibold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
-                    {feature.title}
-                  </h3>
+                {/* Title */}
+                <h3 className="font-semibold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
+                  {feature.title}
+                </h3>
 
-                  <p className="text-[12.5px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
-                    {feature.description}
-                  </p>
+                <p className="text-[12.5px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
+                  {feature.description}
+                </p>
 
-                  <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                    <span>Learn more</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </div>
+                <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
+                  <span>Learn more</span>
+                  <ArrowRight className="w-3.5 h-3.5" />
                 </div>
               </div>
             </div>
-          ))}
-        </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Swipe Progress Dots */}
+      <div className="flex items-center justify-center gap-1.5 mt-2.5 pb-1">
+        {features.map((_, dotIdx) => (
+          <span
+            key={dotIdx}
+            className={`h-1.5 rounded-full transition-all duration-300 ${
+              activeIndex === dotIdx ? "w-5 bg-black" : "w-1.5 bg-neutral-300"
+            }`}
+          />
+        ))}
       </div>
     </div>
   );
