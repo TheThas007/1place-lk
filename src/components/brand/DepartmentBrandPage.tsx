@@ -330,7 +330,7 @@ export default function DepartmentBrandPage({
       params.set("category", catSlug);
     }
     const query = params.toString();
-    router.push(
+    router.replace(
       query
         ? `/shop-by-brand/${department.slug}/${brand.slug}?${query}`
         : `/shop-by-brand/${department.slug}/${brand.slug}`,
@@ -379,25 +379,42 @@ export default function DepartmentBrandPage({
           return false;
         }
 
+        // Colour filter
+        if (selectedColour !== "all") {
+          const pName = (p.name || "").toLowerCase();
+          const hasColour =
+            p.colors?.some((c) => c.toLowerCase() === selectedColour.toLowerCase()) ||
+            pName.includes(selectedColour.toLowerCase());
+          if (!hasColour) return false;
+        }
+
         return true;
       })
       .sort((a, b) => {
-        if (sortBy === "price_asc") return a.price - b.price;
-        if (sortBy === "price_desc") return b.price - a.price;
+        if (sortBy === "price_low") return a.price - b.price;
+        if (sortBy === "price_high") return b.price - a.price;
+        if (sortBy === "name_asc") return (a.name || "").localeCompare(b.name || "");
+        if (sortBy === "name_desc") return (b.name || "").localeCompare(a.name || "");
         if (sortBy === "newest") {
-          return new Date(b.created_at || 0).getTime() - new Date(a.created_at || 0).getTime();
+          const tA = a.created_at ? new Date(a.created_at).getTime() : 0;
+          const tB = b.created_at ? new Date(b.created_at).getTime() : 0;
+          return tB - tA;
         }
-        if (sortBy === "discount") {
-          const discA =
-            a.old_price && a.old_price > a.price ? (a.old_price - a.price) / a.old_price : 0;
-          const discB =
-            b.old_price && b.old_price > b.price ? (b.old_price - b.price) / b.old_price : 0;
-          return discB - discA;
-        }
-        // Popularity / Featured default
-        return (b.featured ? 1 : 0) - (a.featured ? 1 : 0);
+        // Popularity: featured first, then stock count
+        const fA = a.featured ? 1 : 0;
+        const fB = b.featured ? 1 : 0;
+        if (fA !== fB) return fB - fA;
+        return (b.stock_count ?? 0) - (a.stock_count ?? 0);
       });
-  }, [products, selectedCategory, searchQuery, selectedStorage, inStockOnly, sortBy]);
+  }, [
+    products,
+    selectedCategory,
+    searchQuery,
+    selectedStorage,
+    inStockOnly,
+    selectedColour,
+    sortBy,
+  ]);
 
   // Section Heading & Description from admin config or defaults
   const sectionHeading =
@@ -415,10 +432,10 @@ export default function DepartmentBrandPage({
           <button
             type="button"
             onClick={() => {
-              if (typeof window !== "undefined" && window.history.length > 1) {
+              if (typeof window !== "undefined" && window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
                 router.back();
               } else {
-                router.push("/");
+                router.push("/#shop-by-brand");
               }
             }}
             className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs transition-all shrink-0 cursor-pointer mr-1 active:scale-95 shadow-2xs"

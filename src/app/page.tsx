@@ -195,12 +195,12 @@ export default async function HomePage() {
       {/* Showcase position: Below Featured Accessories */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_featured_accessories" />
 
-      {/* 8. Shop by Category (Carousel Slider - Desktop only) */}
-      <div className="hidden md:block">
+      {/* 8. Shop by Category (Hidden as requested) */}
+      {/* <div className="hidden md:block">
         <ScrollReveal enable3d={true}>
           <ShopByCategoryCarousel categories={categories} />
         </ScrollReveal>
-      </div>
+      </div> */}
 
       {/* Showcase position: Below Shop by Category */}
       <VisualProductShowcase settings={showcaseSettings} placement="below_category" />

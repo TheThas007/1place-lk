@@ -272,7 +272,7 @@ export default function CategoriesSection({
   return (
     <>
       {/* ── Mobile Layout (< 768px): Approved 3-Column Grid with Category Selector & Show More ── */}
-      <div id="mobile-shop-by-brand" className="md:hidden w-full bg-white px-4 py-4 select-none">
+      <div id="mobile-shop-by-brand" data-section="shop-by-brand" className="md:hidden w-full bg-white px-4 py-4 select-none scroll-mt-20">
         {/* 1. Mobile Header: Left-Aligned Title & Subtitle */}
         <div className="mb-3">
           <h2 className="text-[20px] font-black text-neutral-900 tracking-tight leading-tight">
@@ -371,10 +371,10 @@ export default function CategoriesSection({
       <div className="hidden md:block">
         <ScrollReveal
           as="section"
-          id="categories-section"
+          id="shop-by-brand"
           stagger={0.05}
           yOffset={20}
-          className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans"
+          className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans scroll-mt-20"
         >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
         {/* Header Title & Subtitle */}

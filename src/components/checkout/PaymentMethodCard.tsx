@@ -12,6 +12,7 @@ interface PaymentMethodCardProps {
   codFee: number;
   isCodAllowed?: boolean;
   isCardAllowed?: boolean;
+  deliveryOption?: "standard" | "pickup";
 }
 
 export default function PaymentMethodCard({
@@ -20,7 +21,10 @@ export default function PaymentMethodCard({
   codFee,
   isCodAllowed = true,
   isCardAllowed = true,
+  deliveryOption = "standard",
 }: PaymentMethodCardProps) {
+  const isPickup = deliveryOption === "pickup";
+  const canUseCash = isPickup || isCodAllowed;
   return (
     <div className="space-y-3">
       {/* ── OPTION 1: Credit / Debit Card ── */}
@@ -114,13 +118,13 @@ export default function PaymentMethodCard({
         )}
       </div>
 
-      {/* ── OPTION 2: Cash on Delivery (COD) ── */}
+      {/* ── OPTION 2: Cash on Delivery (COD) / Pay at Showroom ── */}
       <div
         onClick={() => {
-          if (isCodAllowed) onChange("cod");
+          if (canUseCash) onChange("cod");
         }}
         className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 select-none ${
-          !isCodAllowed
+          !canUseCash
             ? "opacity-50 cursor-not-allowed bg-neutral-50 border-neutral-200"
             : selected === "cod"
             ? "border-black bg-neutral-50/60 shadow-xs ring-1 ring-black cursor-pointer"
@@ -145,27 +149,34 @@ export default function PaymentMethodCard({
               <div className="flex items-center gap-2">
                 <Banknote className="w-4 h-4 text-neutral-800" />
                 <span className="text-sm sm:text-base font-bold text-neutral-950">
-                  Cash on Delivery
+                  {isPickup ? "Pay at Showroom (Cash / Card on Pickup)" : "Cash on Delivery"}
                 </span>
+                {isPickup && (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                    Zero Extra Fee
+                  </span>
+                )}
               </div>
               <p className="text-xs text-neutral-500 font-medium">
-                Pay in cash when your order is delivered to your doorstep.
+                {isPickup
+                  ? "Pay in cash or card when you collect your order in-person at our Vavuniya showroom."
+                  : "Pay in cash when your order is delivered to your doorstep."}
               </p>
             </div>
           </div>
 
-          {/* COD Fee */}
+          {/* COD Fee / Handling */}
           <div className="text-right shrink-0">
             <span className="text-xs sm:text-sm font-semibold text-neutral-600 block">
               Handling Fee:
             </span>
             <span className="text-xs sm:text-sm font-extrabold text-neutral-950">
-              {codFee === 0 ? "FREE" : `+${formatPrice(codFee)}`}
+              {isPickup || codFee === 0 ? "FREE" : `+${formatPrice(codFee)}`}
             </span>
           </div>
         </div>
 
-        {!isCodAllowed && (
+        {!isPickup && !isCodAllowed && (
           <div className="mt-3 text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl flex items-center gap-1.5">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>Cash on Delivery is not available for one or more items in your cart.</span>

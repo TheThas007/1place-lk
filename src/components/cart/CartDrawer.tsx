@@ -4,7 +4,7 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { 
   X, ShoppingBag, Trash2, Plus, Minus, MessageCircle, Package, 
-  ArrowLeft, CreditCard, CheckCircle2, Truck, Lock, Loader2 
+  ArrowLeft, CreditCard, CheckCircle2, Truck, Lock, Loader2, Store 
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";

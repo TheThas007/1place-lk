@@ -22,6 +22,7 @@ import {
   MessageCircle,
   Sparkles,
   Calendar,
+  Store,
 } from "lucide-react";
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
 import ProductGallery from "./product-gallery";
@@ -673,17 +674,16 @@ export default function ProductDetailClient({
 
   const handleBack = () => {
     if (typeof window !== "undefined") {
+      // If user came from within the site, native back pops the stack cleanly
+      if (window.history.length > 1 && document.referrer && document.referrer.includes(window.location.host)) {
+        router.back();
+        return;
+      }
+
+      // If user opened directly or refreshed, use last browse location without adding duplicate history
       const lastBrowse = sessionStorage.getItem("last_browse_page");
       if (lastBrowse && !lastBrowse.includes(product.slug)) {
-        router.push(lastBrowse);
-        return;
-      }
-      if (document.referrer && document.referrer.includes(window.location.host) && !document.referrer.includes(product.slug)) {
-        window.location.href = document.referrer;
-        return;
-      }
-      if (window.history.length > 1) {
-        window.history.back();
+        router.replace(lastBrowse);
         return;
       }
     }
@@ -692,11 +692,11 @@ export default function ProductDetailClient({
     if (product.brand_slug || product.brand_name || product.brand) {
       const brandSlug = product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
       const dept = isPhoneSegment(product) ? "phones" : isLaptopTabletSegment(product) ? "laptops-tablets" : "accessories";
-      router.push(`/shop-by-brand/${dept}/${brandSlug}`);
+      router.replace(`/shop-by-brand/${dept}/${brandSlug}`);
       return;
     }
 
-    router.push("/products");
+    router.replace("/products");
   };
 
   return (
@@ -1271,10 +1271,14 @@ export default function ProductDetailClient({
               </div>
 
               {/* ── Trust Badges ── */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 p-3.5 sm:p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs text-gray-700 w-full min-w-0 max-w-full">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3 p-3.5 sm:p-4 bg-[#FAFAFA] border border-[#EAEAEA] rounded-2xl text-xs text-gray-700 w-full min-w-0 max-w-full">
                 <div className="flex items-center gap-2.5 min-w-0">
                   <ShieldCheck className="w-4 h-4 text-black shrink-0" />
                   <span className="font-bold truncate">{product.warranty || "Genuine Warranty"}</span>
+                </div>
+                <div className="flex items-center gap-2.5 min-w-0 text-emerald-800">
+                  <Store className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <span className="font-bold truncate">Free Store Pickup</span>
                 </div>
                 {product.allow_cod !== false ? (
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -1284,17 +1288,17 @@ export default function ProductDetailClient({
                 ) : product.allow_card !== false ? (
                   <div className="flex items-center gap-2.5 text-blue-700 min-w-0">
                     <CreditCard className="w-4 h-4 text-blue-600 shrink-0" />
-                    <span className="font-bold truncate">Card / Online Payment</span>
+                    <span className="font-bold truncate">Card / Online</span>
                   </div>
                 ) : (
                   <div className="flex items-center gap-2.5 text-emerald-700 min-w-0">
                     <MessageCircle className="w-4 h-4 text-emerald-600 shrink-0" />
-                    <span className="font-bold truncate">WhatsApp Direct Order</span>
+                    <span className="font-bold truncate">WhatsApp Order</span>
                   </div>
                 )}
                 <div className="flex items-center gap-2.5 min-w-0">
                   <Truck className="w-4 h-4 text-black shrink-0" />
-                  <span className="truncate">{product.delivery_info || "Express Delivery Sri Lanka"}</span>
+                  <span className="truncate">{product.delivery_info || "Express Delivery"}</span>
                 </div>
               </div>
 
@@ -1387,11 +1391,37 @@ export default function ProductDetailClient({
                     <p>{product.warranty || "1 Year Company Warranty against manufacturer defects."}</p>
                   </div>
                 </div>
+
+                <div className="flex items-start gap-3 pt-3 border-t border-[#EAEAEA]">
+                  <Store className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h4 className="font-bold text-black">Free In-Store Pickup (Vavuniya Showroom)</h4>
+                      <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
+                        Ready Same Day
+                      </span>
+                    </div>
+                    <p className="text-gray-600 mb-2.5">
+                      Available for all online orders. Choose <strong>Store Pickup</strong> during checkout to collect your items directly from our flagship showroom with zero delivery charges.
+                    </p>
+                    <div className="grid sm:grid-cols-2 gap-2 text-xs text-neutral-600 bg-white p-3 rounded-xl border border-[#EAEAEA]">
+                      <div>
+                        <span className="font-bold text-neutral-900 block">Showroom Address:</span>
+                        <span>163, Kandaswamy Kovil Road, Vavuniya</span>
+                      </div>
+                      <div>
+                        <span className="font-bold text-neutral-900 block">Opening Hours:</span>
+                        <span>Mon - Sat: 9:00 AM - 8:00 PM | Sun: 10:00 AM - 6:00 PM</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="flex items-start gap-3 pt-3 border-t border-[#EAEAEA]">
                   <Truck className="w-5 h-5 text-black shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
-                    <h4 className="font-bold text-black mb-1">Delivery Information</h4>
-                    <p>{product.delivery_info || "Express island-wide delivery in Sri Lanka within 1-3 business days. Cash on delivery available."}</p>
+                    <h4 className="font-bold text-black mb-1">Island-Wide Courier Delivery</h4>
+                    <p>{product.delivery_info || "Express island-wide door-to-door delivery across Sri Lanka within 1-3 business days. Cash on delivery available."}</p>
                   </div>
                 </div>
               </div>

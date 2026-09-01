@@ -233,9 +233,10 @@ export default function CheckoutClient() {
 
   // Payment Allowed Computations
   const isCodAllowed = useMemo(() => {
+    if (deliveryOption === "pickup") return true; // In-store payment is always available for store pickups
     if (!itemsToUse || itemsToUse.length === 0) return true;
     return itemsToUse.every((item) => item.allow_cod !== false);
-  }, [itemsToUse]);
+  }, [itemsToUse, deliveryOption]);
 
   const isCardAllowed = useMemo(() => {
     if (!itemsToUse || itemsToUse.length === 0) return true;
@@ -248,7 +249,7 @@ export default function CheckoutClient() {
   }, [itemsToUse]);
 
   const deliveryFee = deliveryOption === "pickup" ? 0 : standardDeliveryFee;
-  const codFee = paymentMethod === "cod" ? codFeeAmount : 0;
+  const codFee = (paymentMethod === "cod" && deliveryOption !== "pickup") ? codFeeAmount : 0;
   const finalTotal = Math.max(0, subtotal + deliveryFee + codFee - couponDiscount);
 
   // Field Validation
@@ -1170,6 +1171,7 @@ export default function CheckoutClient() {
                   codFee={codFeeAmount}
                   isCodAllowed={isCodAllowed}
                   isCardAllowed={isCardAllowed}
+                  deliveryOption={deliveryOption}
                 />
 
                 {getFieldError("paymentMethod") && (

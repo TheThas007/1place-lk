@@ -160,7 +160,7 @@ export default function ProductsClient({
       });
 
       const q = params.toString();
-      router.push(q ? `${pathname}?${q}` : pathname, { scroll: false });
+      router.replace(q ? `${pathname}?${q}` : pathname, { scroll: false });
     },
     [pathname, router, searchParams]
   );
