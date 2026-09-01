@@ -468,48 +468,60 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 const isWhatsappAllowed = cart.every(item => item.allow_whatsapp !== false);
 
                 return (
-                  <div className="space-y-6 pt-2">
-                    <div className="p-5 rounded-2xl bg-gradient-to-br from-white/10 via-white/5 to-transparent border border-white/15 backdrop-blur-xl shadow-xl flex flex-col gap-3">
+                  <div className="space-y-5 pt-2 pb-6">
+                    {/* Order Summary Card */}
+                    <div className="p-5 rounded-2xl bg-white/[0.04] border border-white/10 shadow-xl flex flex-col gap-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="text-[10px] text-white/40 uppercase tracking-widest font-black">Order Summary</p>
+                          <p className="text-[10px] text-white/50 uppercase tracking-widest font-black">Order Summary</p>
                           <p className="text-3xl font-black text-white tracking-tight mt-1">{formatPrice(total)}</p>
                         </div>
-                        <div className="w-12 h-12 rounded-2xl bg-white/10 border border-white/10 flex items-center justify-center shrink-0 shadow-lg">
-                          <ShoppingBag className="w-6 h-6 text-white" />
+                        <div className="w-11 h-11 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0 text-white shadow-inner">
+                          <ShoppingBag className="w-5 h-5 text-white" />
                         </div>
                       </div>
 
-                      <div className="pt-2 border-t border-white/10 flex flex-col gap-1.5 text-xs">
-                        <div className="flex items-center justify-between text-emerald-400 font-semibold">
-                          <span className="flex items-center gap-1.5"><CheckCircle2 className="w-3.5 h-3.5" /> Delivery Charge</span>
-                          <span className="px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-black text-[10px]">FREE DELIVERY</span>
+                      <div className="pt-3 border-t border-white/10 flex flex-col gap-2 text-xs">
+                        <div className="flex items-center justify-between text-white/80 font-medium">
+                          <span className="flex items-center gap-2 text-white/70">
+                            <CheckCircle2 className="w-3.5 h-3.5 text-white" /> Delivery Charge
+                          </span>
+                          <span className="px-2 py-0.5 bg-white text-black rounded-md font-black text-[9.5px] tracking-wider uppercase">
+                            FREE DELIVERY
+                          </span>
                         </div>
-                        <div className="flex items-center justify-between text-amber-300 font-medium">
-                          <span className="flex items-center gap-1.5"><Truck className="w-3.5 h-3.5 text-amber-400" /> Estimated Delivery</span>
+                        <div className="flex items-center justify-between text-white/80 font-medium">
+                          <span className="flex items-center gap-2 text-white/70">
+                            <Truck className="w-3.5 h-3.5 text-white" /> Estimated Delivery
+                          </span>
                           <span className="font-bold text-white">3 – 7 Working Days</span>
                         </div>
                       </div>
                     </div>
 
-                    <div className="space-y-3.5">
+                    {/* Payment Options (Monochrome Black & White) */}
+                    <div className="space-y-3">
                       {/* Cash on Delivery Option */}
                       {isCodAllowed && (
                         <button
                           onClick={() => setStep("cod-form")}
-                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-blue-950/40 via-slate-900/60 to-blue-950/20 border border-blue-500/30 hover:border-blue-400/80 hover:bg-blue-500/10 transition-all duration-300 group text-left shadow-lg shadow-blue-500/5 hover:shadow-blue-500/20"
+                          className="w-full relative overflow-hidden p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/30 transition-all duration-200 group text-left shadow-lg cursor-pointer"
                         >
-                          <div className="absolute top-0 right-0 px-3 py-1 bg-blue-500/20 border-b border-l border-blue-500/30 text-blue-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
-                            Pay on Delivery
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                              <Truck className="w-5 h-5" />
+                            </div>
+                            <span className="px-2.5 py-0.5 bg-white/10 border border-white/15 text-white text-[9.5px] font-bold uppercase tracking-wider rounded-full">
+                              Pay on Delivery
+                            </span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-blue-500/20 border border-blue-500/40 flex items-center justify-center text-blue-400 shrink-0 group-hover:scale-110 group-hover:bg-blue-500 group-hover:text-white transition-all duration-300 shadow-md">
-                              <Truck className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white text-base group-hover:text-blue-300 transition-colors">Cash on Delivery (COD)</p>
-                              <p className="text-xs text-white/50 mt-0.5">Pay with cash when your parcel arrives</p>
-                            </div>
+                          <div>
+                            <p className="font-bold text-white text-sm group-hover:text-white transition-colors">
+                              Cash on Delivery (COD)
+                            </p>
+                            <p className="text-xs text-white/45 mt-0.5">
+                              Pay with cash when your parcel arrives
+                            </p>
                           </div>
                         </button>
                       )}
@@ -521,19 +533,23 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                             handleClose();
                             router.push("/checkout");
                           }}
-                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-purple-950/40 via-slate-900/60 to-purple-950/20 border border-purple-500/30 hover:border-purple-400/80 hover:bg-purple-500/10 transition-all duration-300 group text-left shadow-lg shadow-purple-500/5 hover:shadow-purple-500/20"
+                          className="w-full relative overflow-hidden p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/30 transition-all duration-200 group text-left shadow-lg cursor-pointer"
                         >
-                          <div className="absolute top-0 right-0 px-3 py-1 bg-purple-500/20 border-b border-l border-purple-500/30 text-purple-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
-                            Instant &amp; Secure
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                              <CreditCard className="w-5 h-5" />
+                            </div>
+                            <span className="px-2.5 py-0.5 bg-white/10 border border-white/15 text-white text-[9.5px] font-bold uppercase tracking-wider rounded-full">
+                              Instant &amp; Secure
+                            </span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-purple-500/20 border border-purple-500/40 flex items-center justify-center text-purple-400 shrink-0 group-hover:scale-110 group-hover:bg-purple-500 group-hover:text-white transition-all duration-300 shadow-md">
-                              <CreditCard className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white text-base group-hover:text-purple-300 transition-colors">Credit / Debit Card (PayHere)</p>
-                              <p className="text-xs text-white/50 mt-0.5">Visa, MasterCard, Amex via PayHere Gateway</p>
-                            </div>
+                          <div>
+                            <p className="font-bold text-white text-sm group-hover:text-white transition-colors">
+                              Credit / Debit Card (PayHere)
+                            </p>
+                            <p className="text-xs text-white/45 mt-0.5">
+                              Visa, MasterCard, Amex via PayHere Gateway
+                            </p>
                           </div>
                         </button>
                       )}
@@ -542,21 +558,32 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       {isWhatsappAllowed && (
                         <button
                           onClick={handleWhatsAppCheckout}
-                          className="w-full relative overflow-hidden p-5 rounded-2xl bg-gradient-to-r from-emerald-950/40 via-slate-900/60 to-emerald-950/20 border border-emerald-500/30 hover:border-emerald-400/80 hover:bg-emerald-500/10 transition-all duration-300 group text-left shadow-lg shadow-emerald-500/5 hover:shadow-emerald-500/20"
+                          className="w-full relative overflow-hidden p-4 rounded-2xl bg-white/[0.03] hover:bg-white/[0.07] border border-white/10 hover:border-white/30 transition-all duration-200 group text-left shadow-lg cursor-pointer"
                         >
-                          <div className="absolute top-0 right-0 px-3 py-1 bg-emerald-500/20 border-b border-l border-emerald-500/30 text-emerald-300 text-[9px] font-black uppercase tracking-wider rounded-bl-xl">
-                            Direct Chat
+                          <div className="flex items-center justify-between mb-2">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-white shrink-0 group-hover:scale-105 transition-transform">
+                              <MessageCircle className="w-5 h-5" />
+                            </div>
+                            <span className="px-2.5 py-0.5 bg-white/10 border border-white/15 text-white text-[9.5px] font-bold uppercase tracking-wider rounded-full">
+                              Direct Chat
+                            </span>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center text-emerald-400 shrink-0 group-hover:scale-110 group-hover:bg-emerald-500 group-hover:text-white transition-all duration-300 shadow-md">
-                              <MessageCircle className="w-6 h-6" />
-                            </div>
-                            <div>
-                              <p className="font-bold text-white text-base group-hover:text-emerald-300 transition-colors">Order via WhatsApp</p>
-                              <p className="text-xs text-white/50 mt-0.5">Instant live chat with store representative</p>
-                            </div>
+                          <div>
+                            <p className="font-bold text-white text-sm group-hover:text-white transition-colors">
+                              Order via WhatsApp
+                            </p>
+                            <p className="text-xs text-white/45 mt-0.5">
+                              Instant live chat with store representative
+                            </p>
                           </div>
                         </button>
+                      )}
+
+                      {!isCodAllowed && (
+                        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 text-white/60 text-xs flex items-start gap-2.5">
+                          <span className="text-white text-sm leading-none mt-0.5">ℹ️</span>
+                          <span className="leading-relaxed">Cash on Delivery is disabled for high-value items in your bag. Please select Card Payment or WhatsApp Order.</span>
+                        </div>
                       )}
                     </div>
                   </div>
@@ -655,11 +682,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
               {/* STEP 4: CARD FORM */}
               {step === "card-form" && (
                 <form onSubmit={handleCardSubmit} className="space-y-6 pt-2">
-                  {/* Glassmorphic Mock Credit Card Preview */}
-                  <div className="w-full aspect-[1.78/1] rounded-2xl bg-gradient-to-tr from-purple-600/30 to-blue-500/30 border border-white/20 p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden backdrop-blur-md">
+                  {/* Sleek Luxury Pure Dark Credit Card Preview */}
+                  <div className="w-full aspect-[1.78/1] rounded-2xl bg-gradient-to-br from-neutral-900 via-black to-neutral-950 border border-white/20 p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden backdrop-blur-md">
                     <div className="flex justify-between items-start">
                       <span className="text-white font-bold tracking-widest text-sm uppercase">Street Pay</span>
-                      <CreditCard className="w-8 h-8 text-white/80" />
+                      <CreditCard className="w-8 h-8 text-white/90" />
                     </div>
                     <div className="space-y-4">
                       <div className="text-white text-lg tracking-[0.25em] font-semibold font-mono">
@@ -791,12 +818,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer */}
             {step === "cart" && cart.length > 0 && (
-              <div className="px-6 pt-4 pb-14 sm:pb-8 border-t border-white/10 shrink-0 space-y-3.5 bg-[#0a0a0a] shadow-2xl">
+              <div className="px-6 pb-8 pt-4 border-t border-white/10 shrink-0 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-white/50 text-sm">Subtotal</span>
                   <span className="text-white font-bold text-lg">{formatPrice(total)}</span>
                 </div>
-                <p className="text-xs text-white/30 -mt-1.5">
+                <p className="text-xs text-white/30 -mt-2">
                   Shipping and taxes calculated at checkout
                 </p>
                 <button
@@ -808,9 +835,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     }
                     setStep("checkout-options");
                   }}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-extrabold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer shadow-lg hover:bg-neutral-100"
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer"
                 >
-                  <span>Proceed to Checkout</span>
+                  Proceed to Checkout
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent skew-x-[-20deg] pointer-events-none"
                     animate={{ x: ["-200%", "200%"] }}
