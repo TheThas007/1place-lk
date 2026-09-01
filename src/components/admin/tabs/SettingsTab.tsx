@@ -16,7 +16,7 @@ export default function SettingsTab({
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
   const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
   const [launchEnabled, setLaunchEnabled] = useState<boolean>(true);
-  const [assistantEnabled, setAssistantEnabled] = useState<boolean>(true);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -28,10 +28,11 @@ export default function SettingsTab({
     // Load independent section states from Firestore
     async function loadSectionStates() {
       try {
-        const [launchDoc, galleryDoc, reviewsDoc] = await Promise.all([
+        const [launchDoc, galleryDoc, reviewsDoc, authDoc] = await Promise.all([
           getDoc(doc(db, "settings", "pre_launch")),
           getDoc(doc(db, "settings", "gallery_animation")),
           getDoc(doc(db, "settings", "google_reviews")),
+          getDoc(doc(db, "settings", "auth")),
         ]);
 
         if (launchDoc.exists()) {
@@ -42,6 +43,9 @@ export default function SettingsTab({
         }
         if (reviewsDoc.exists()) {
           setReviewsEnabled(reviewsDoc.data().enabled !== false);
+        }
+        if (authDoc.exists()) {
+          setGoogleAuthEnabled(Boolean(authDoc.data()?.googleAuthEnabled));
         }
       } catch (e) {
         console.warn("Could not load section visibility states in SettingsTab:", e);
@@ -69,6 +73,10 @@ export default function SettingsTab({
       // 4. Save Reviews setting
       await setDoc(doc(db, "settings", "google_reviews"), { enabled: reviewsEnabled }, { merge: true });
 
+      // 5. Save Google Auth toggle setting
+      await setDoc(doc(db, "settings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(doc(db, "siteSettings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
+
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
     } catch (e) {
@@ -88,10 +96,10 @@ export default function SettingsTab({
           <div>
             <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
               <Settings className="w-5 h-5 text-blue-400" />
-              Homepage &amp; Launch Visibility Center (ON / OFF)
+              Storefront &amp; Auth Control Center (ON / OFF)
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              Master control switches to turn key storefront and experience sections ON or OFF across the website.
+              Master control switches to turn authentication methods, launch features, and homepage sections ON or OFF.
             </p>
           </div>
 
@@ -106,6 +114,30 @@ export default function SettingsTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+          {/* Switch: Google 1-Tap Authentication */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            googleAuthEnabled ? "bg-sky-950/30 border-sky-500/40 shadow-lg shadow-sky-500/5" : "bg-white/5 border-white/10 opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-black text-sky-400">G</span>
+                <span className="font-extrabold text-sm text-white">Continue with Google (One-Tap Sign-In)</span>
+              </div>
+              <p className="text-xs text-white/50">
+                {googleAuthEnabled ? "ENABLED • Google sign-in button is visible" : "DISABLED (Hidden) • Users sign in with Email/Password"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={googleAuthEnabled}
+                onChange={(e) => setGoogleAuthEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-sky-500 shadow-inner"></div>
+            </label>
+          </div>
           
           {/* Switch 1: Launch Countdown Gate */}
           <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${

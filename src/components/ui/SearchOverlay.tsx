@@ -410,25 +410,17 @@ export default function SearchOverlay() {
         className="fixed inset-0 z-[150] bg-black/90 backdrop-blur-2xl flex flex-col text-white select-none w-full h-full overflow-hidden font-outfit"
         ref={overlayRef}
       >
-        {/* ── Top Header Search Bar ── */}
-        <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-3 border-b border-white/10 flex items-center gap-2 sm:gap-3 shrink-0">
-          <div className="relative flex-1 flex items-center bg-white/10 border border-white/20 hover:border-white/35 focus-within:border-amber-400/80 focus-within:ring-2 focus-within:ring-amber-400/20 rounded-2xl px-3.5 sm:px-5 py-2.5 sm:py-3.5 transition-all shadow-inner min-w-0">
-            <button
-              type="button"
-              onClick={() => handleSmartSearchSubmit(query)}
-              className="p-0 mr-2.5 sm:mr-3 text-amber-400 hover:text-amber-300 transition-colors shrink-0 cursor-pointer"
-              title="Search"
-            >
-              <Search className="w-4 h-4 sm:w-5 sm:h-5" />
-            </button>
+        {/* ── Top Header Search Bar (Apple Spotlight Luxury Style) ── */}
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 pt-5 pb-3 border-b border-neutral-800/80 flex items-center gap-3 shrink-0">
+          <div className="relative flex-1 flex items-center bg-[#18181B] border border-neutral-700/70 focus-within:border-neutral-400 focus-within:ring-1 focus-within:ring-white/20 rounded-full px-4 py-2.5 sm:py-3 transition-all min-w-0">
             <input
               ref={inputRef}
               type="text"
-              placeholder="Search iPhone, Samsung, chargers, earbuds, brands..."
+              placeholder="Search products, models, brands..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               onKeyDown={handleKeyDown}
-              className="w-full bg-transparent text-white text-sm sm:text-base md:text-lg placeholder-white/40 focus:outline-none font-medium truncate tracking-tight"
+              className="w-full bg-transparent text-white text-sm sm:text-base placeholder-neutral-500 focus:outline-none font-medium tracking-tight"
             />
             {query && (
               <button
@@ -437,7 +429,7 @@ export default function SearchOverlay() {
                   setQuery("");
                   inputRef.current?.focus();
                 }}
-                className="p-1 rounded-full hover:bg-white/20 text-white/60 hover:text-white transition-colors shrink-0 ml-1.5 cursor-pointer"
+                className="p-1 rounded-full hover:bg-white/10 text-neutral-400 hover:text-white transition-colors shrink-0 ml-1.5 cursor-pointer"
                 aria-label="Clear search input"
               >
                 <X className="w-4 h-4" />
@@ -448,32 +440,32 @@ export default function SearchOverlay() {
           <button
             type="button"
             onClick={handleClose}
-            className="px-3.5 sm:px-5 py-2.5 sm:py-3.5 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 text-xs sm:text-sm font-bold text-white/90 hover:text-white transition-all shrink-0 cursor-pointer active:scale-95"
+            className="px-3 py-2 text-sm font-medium text-neutral-300 hover:text-white transition-colors shrink-0 cursor-pointer active:scale-95"
           >
             Cancel
           </button>
         </div>
 
         {/* ── Main Scrollable Body ── */}
-        <div className="w-full max-w-5xl mx-auto px-3 sm:px-6 py-4 sm:py-6 flex-1 overflow-y-auto custom-scrollbar">
+        <div className="w-full max-w-4xl mx-auto px-4 sm:px-6 py-5 flex-1 overflow-y-auto custom-scrollbar">
           
           {/* ─────────────────────────────────────────────────────────────
-             STATE 1: EMPTY QUERY (Recent Searches & Trending)
+             STATE 1: EMPTY QUERY (Recent Searches & Categories Only)
           ───────────────────────────────────────────────────────────── */}
           {!hasSearchContent && (
-            <div className="space-y-6 sm:space-y-8 animate-in fade-in-0 duration-200 font-sans">
+            <div className="space-y-6 animate-in fade-in-0 duration-150 font-sans">
               
               {/* Recent Searches */}
               {recentSearches.length > 0 && (
                 <div>
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400">
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-400">
                       Recent Searches
                     </h3>
                     <button
                       type="button"
                       onClick={handleClearAllRecents}
-                      className="text-[11px] text-neutral-400 hover:text-red-400 font-medium transition-colors cursor-pointer"
+                      className="text-[11px] text-neutral-500 hover:text-red-400 font-medium transition-colors cursor-pointer"
                     >
                       Clear History
                     </button>
@@ -484,13 +476,13 @@ export default function SearchOverlay() {
                       <div
                         key={term}
                         onClick={() => handleSelectQuery(term)}
-                        className="group flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all cursor-pointer"
+                        className="group flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-[#18181B] hover:bg-[#27272A] border border-neutral-800 hover:border-neutral-700 text-xs sm:text-sm text-neutral-200 hover:text-white transition-all cursor-pointer"
                       >
                         <span className="truncate max-w-[200px]">{term}</span>
                         <button
                           type="button"
                           onClick={(e) => handleDeleteRecent(e, term)}
-                          className="text-neutral-400 hover:text-white p-0.5 rounded-full hover:bg-white/20 transition-colors ml-0.5 cursor-pointer"
+                          className="text-neutral-500 hover:text-white p-0.5 rounded-full transition-colors ml-0.5 cursor-pointer"
                           aria-label={`Remove ${term}`}
                         >
                           <X className="w-3 h-3" />
@@ -501,31 +493,12 @@ export default function SearchOverlay() {
                 </div>
               )}
 
-              {/* Trending & Popular Searches */}
+              {/* Browse Categories (Clean minimal list without icons) */}
               <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
-                  Popular & Trending Searches
-                </h3>
-                <div className="flex flex-wrap gap-2">
-                  {TRENDING_SEARCHES.map((term) => (
-                    <button
-                      key={term}
-                      type="button"
-                      onClick={() => handleSelectQuery(term)}
-                      className="px-4 py-2 rounded-full bg-white/[0.06] hover:bg-white/[0.14] border border-white/10 hover:border-white/25 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all cursor-pointer active:scale-95"
-                    >
-                      {term}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Browse Key Categories */}
-              <div>
-                <h3 className="text-xs font-semibold uppercase tracking-wider text-neutral-400 mb-3">
+                <h3 className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mb-2.5">
                   Browse Categories
                 </h3>
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 sm:gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {[
                     { label: "Smartphones", slug: "smartphones" },
                     { label: "Smart Watches", slug: "smart-watches" },
@@ -540,10 +513,9 @@ export default function SearchOverlay() {
                       key={cat.label}
                       href={cat.slug ? `/products?category=${cat.slug}` : "/products"}
                       onClick={handleClose}
-                      className="flex items-center justify-between px-3.5 py-3 rounded-xl bg-white/[0.05] hover:bg-white/[0.12] border border-white/10 hover:border-white/20 text-xs sm:text-[13px] font-normal text-neutral-200 hover:text-white transition-all group"
+                      className="flex items-center justify-between px-3.5 py-2.5 rounded-xl bg-[#18181B] hover:bg-[#27272A] border border-neutral-800 hover:border-neutral-700 text-xs sm:text-sm text-neutral-300 hover:text-white transition-all"
                     >
-                      <span className="truncate">{cat.label}</span>
-                      <ChevronRight className="w-3.5 h-3.5 text-neutral-500 group-hover:text-white group-hover:translate-x-0.5 transition-all shrink-0" />
+                      <span className="truncate font-medium">{cat.label}</span>
                     </Link>
                   ))}
                 </div>
