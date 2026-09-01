@@ -9,8 +9,8 @@ export default function SettingsTab({
   settings,
   onSave,
 }: {
-  settings: any;
-  onSave: (newSettings: any) => void;
+  settings?: any;
+  onSave?: (newSettings: any) => void;
 }) {
   const [localSettings, setLocalSettings] = useState<any>(settings || {});
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
@@ -59,8 +59,10 @@ export default function SettingsTab({
     setSaving(true);
     setSavedSuccess(false);
     try {
-      // 1. Save UI Settings
-      onSave(localSettings);
+      // 1. Save UI Settings if callback provided
+      if (onSave) {
+        onSave(localSettings);
+      }
 
       // 2. Save Launch setting
       await setDoc(doc(db, "settings", "pre_launch"), { enabled: launchEnabled }, { merge: true });

@@ -70,7 +70,8 @@ const SIDEBAR_ITEMS = [
   { id: "analytics", label: "Analytics", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
   { id: "assistant", label: "Streetla AI Assistant", icon: Bot, href: "/admin/dashboard?tab=assistant" },
   { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
-  { id: "settings", label: "Contact & Store Times", icon: Clock, href: "/admin/dashboard?tab=settings" },
+  { id: "settings", label: "Store & Auth Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
+  { id: "contact-settings", label: "Contact & Store Times", icon: Clock, href: "/admin/dashboard?tab=contact-settings" },
 ];
 
 import { Suspense } from "react";

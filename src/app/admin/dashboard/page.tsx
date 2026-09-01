@@ -86,6 +86,7 @@ import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
 import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
+import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import CouponsTab from "@/components/admin/tabs/CouponsTab";
 import CouponModal from "@/components/admin/CouponModal";
 import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
@@ -1793,9 +1794,16 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 12: STORE CONTACT DETAILS & WORKING HOURS SETTINGS TAB
+          TAB: STORE & AUTH CONTROL SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
-      {(activeTab === "settings" || activeTab === "contact-settings") && (
+      {activeTab === "settings" && (
+        <SettingsTab />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
+          TAB: STORE CONTACT DETAILS & WORKING HOURS SETTINGS TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "contact-settings" && (
         <ContactSettingsTab onRefresh={refreshData} />
       )}
       {/* ════════════════════════════════════════════════════════════════════
