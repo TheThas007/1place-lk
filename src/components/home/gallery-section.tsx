@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { ArrowRight, Images } from "lucide-react";
+import { ArrowRight, Images, ChevronLeft, ChevronRight } from "lucide-react";
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
@@ -424,6 +424,28 @@ export default function GallerySection({
     }
   };
 
+  const handleMobileScrollPrev = () => {
+    if (mobileScrollRef.current) {
+      setIsMobileInteracting(true);
+      mobileScrollRef.current.scrollBy({ left: -280, behavior: "smooth" });
+      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+      mobileResumeTimerRef.current = setTimeout(() => {
+        setIsMobileInteracting(false);
+      }, 4000);
+    }
+  };
+
+  const handleMobileScrollNext = () => {
+    if (mobileScrollRef.current) {
+      setIsMobileInteracting(true);
+      mobileScrollRef.current.scrollBy({ left: 280, behavior: "smooth" });
+      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+      mobileResumeTimerRef.current = setTimeout(() => {
+        setIsMobileInteracting(false);
+      }, 4000);
+    }
+  };
+
   // Pointer drag & touch swipe handlers for desktop
   const handlePointerDown = (e: React.PointerEvent) => {
     if (settings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
@@ -511,17 +533,39 @@ export default function GallerySection({
             <span>Store Highlights</span>
           </div>
 
-          <div className="w-full flex items-baseline justify-between gap-2">
+          <div className="w-full flex items-center justify-between gap-2">
             <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight">
               Life at Street Mobile
             </h2>
-            <Link
-              href="/gallery"
-              className="inline-flex items-center gap-1 text-xs font-bold text-neutral-800 hover:text-black shrink-0 active:scale-95 transition-transform"
-            >
-              <span>View all</span>
-              <ArrowRight className="w-3 h-3" />
-            </Link>
+
+            {/* Mobile Actions: View all + Slide Prev/Next Buttons */}
+            <div className="flex items-center gap-2 shrink-0">
+              <Link
+                href="/gallery"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-white border border-neutral-300 text-neutral-800 hover:text-black shrink-0 active:scale-95 transition-transform"
+              >
+                <span>View all</span>
+                <ArrowRight className="w-3 h-3" />
+              </Link>
+              <div className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={handleMobileScrollPrev}
+                  className="w-7 h-7 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                  aria-label="Previous Photo"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={handleMobileScrollNext}
+                  className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                  aria-label="Next Photo"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
           </div>
 
           <p className="text-xs text-neutral-500 font-normal mt-1 max-w-xs leading-relaxed">
@@ -538,7 +582,16 @@ export default function GallerySection({
           onTouchCancel={handleMobileTouchEnd}
           onPointerDown={() => setIsMobileInteracting(true)}
           onPointerUp={handleMobileTouchEnd}
-          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y cursor-grab active:cursor-grabbing"
+          onScroll={() => {
+            if (!isMobileInteracting) {
+              setIsMobileInteracting(true);
+            }
+            if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+            mobileResumeTimerRef.current = setTimeout(() => {
+              setIsMobileInteracting(false);
+            }, 3500);
+          }}
+          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y snap-x snap-mandatory scroll-smooth cursor-grab active:cursor-grabbing"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {mobileTripledGallery.map((image, idx) => {
@@ -551,7 +604,7 @@ export default function GallerySection({
             return (
               <div
                 key={`mob-gal-${image.id || idx}-${idx}`}
-                className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 bg-neutral-900"
+                className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 snap-center aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 bg-neutral-900"
               >
                 <a
                   href={validPostUrl}

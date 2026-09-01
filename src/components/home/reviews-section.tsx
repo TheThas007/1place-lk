@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useRef, useCallback } from "react";
-import { Star, CheckCircle2, Quote, ExternalLink, Edit3, Sparkles } from "lucide-react";
+import { Star, CheckCircle2, Quote, ExternalLink, Edit3, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
@@ -550,6 +550,28 @@ export default function ReviewsSection({
     }
   };
 
+  const handleMobileScrollPrev = () => {
+    if (mobileScrollRef.current) {
+      setIsMobileInteracting(true);
+      mobileScrollRef.current.scrollBy({ left: -290, behavior: "smooth" });
+      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+      mobileResumeTimerRef.current = setTimeout(() => {
+        setIsMobileInteracting(false);
+      }, 4000);
+    }
+  };
+
+  const handleMobileScrollNext = () => {
+    if (mobileScrollRef.current) {
+      setIsMobileInteracting(true);
+      mobileScrollRef.current.scrollBy({ left: 290, behavior: "smooth" });
+      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+      mobileResumeTimerRef.current = setTimeout(() => {
+        setIsMobileInteracting(false);
+      }, 4000);
+    }
+  };
+
   // Pointer drag & touch swipe handlers for desktop
   const handlePointerDown = (e: React.PointerEvent) => {
     if (currentSettings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
@@ -651,25 +673,47 @@ export default function ReviewsSection({
             </span>
           </div>
 
-          <div className="flex items-center justify-center gap-2.5">
-            <a
-              href={mainViewAllUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-bold bg-neutral-900 text-white active:scale-95 shadow-xs transition-transform"
-            >
-              <span>View All</span>
-              <ExternalLink className="w-3 h-3" />
-            </a>
-            <a
-              href={mainWriteReviewUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 px-3.5 py-1.5 rounded-full text-xs font-medium border border-neutral-300 text-neutral-800 active:scale-95 transition-transform"
-            >
-              <Edit3 className="w-3 h-3" />
-              <span>Write Review</span>
-            </a>
+          <div className="flex items-center justify-between w-full pt-1 px-1">
+            <div className="flex items-center gap-2">
+              <a
+                href={mainViewAllUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-neutral-900 text-white active:scale-95 shadow-xs transition-transform"
+              >
+                <span>View All</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <a
+                href={mainWriteReviewUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium border border-neutral-300 text-neutral-800 active:scale-95 transition-transform"
+              >
+                <Edit3 className="w-3 h-3" />
+                <span>Write Review</span>
+              </a>
+            </div>
+
+            {/* ── Mobile Manual Slide Prev / Next Touch Buttons ── */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <button
+                type="button"
+                onClick={handleMobileScrollPrev}
+                className="w-8 h-8 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                aria-label="Previous Review"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={handleMobileScrollNext}
+                className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                aria-label="Next Review"
+              >
+                <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
           </div>
         </motion.div>
 
@@ -682,7 +726,16 @@ export default function ReviewsSection({
           onTouchCancel={handleMobileTouchEnd}
           onPointerDown={() => setIsMobileInteracting(true)}
           onPointerUp={handleMobileTouchEnd}
-          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y cursor-grab active:cursor-grabbing"
+          onScroll={() => {
+            if (!isMobileInteracting) {
+              setIsMobileInteracting(true);
+            }
+            if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
+            mobileResumeTimerRef.current = setTimeout(() => {
+              setIsMobileInteracting(false);
+            }, 3500);
+          }}
+          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y snap-x snap-mandatory scroll-smooth cursor-grab active:cursor-grabbing"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
         >
           {mobileTripledReviews.map((rev, idx) => {
@@ -693,7 +746,7 @@ export default function ReviewsSection({
             return (
               <div
                 key={`mob-rev-${rev.id || idx}-${idx}`}
-                className="w-[78vw] sm:w-[82vw] max-w-[300px] shrink-0 flex"
+                className="w-[78vw] sm:w-[82vw] max-w-[300px] shrink-0 snap-center flex"
               >
                 <a
                   href={cardTargetUrl}
