@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo, ReactNode } from "react";
 import { usePathname } from "next/navigation";
+import { motion } from "framer-motion";
 import { useLaunchSettings } from "@/hooks/useLaunchSettings";
 import { useServerTime } from "@/hooks/useServerTime";
 import { collection, onSnapshot, query } from "firebase/firestore";
@@ -164,8 +165,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
     }
   }, []);
 
-  // If on admin, unblocked route, or revealed, render children directly
-  if (isBypassedRoute || hasManuallyRevealed) {
+  // If on admin or unblocked route, render children directly without transition
+  if (isBypassedRoute) {
     return <>{children}</>;
   }
 
@@ -207,8 +208,17 @@ export default function LaunchGate({ children }: LaunchGateProps) {
         />
       )}
 
-      {/* ── 3. Normal Website Content (Rendered when revealed or completed) ── */}
-      {hasManuallyRevealed && children}
+      {/* ── 3. Normal Website Content (Cinematic Smooth Blur-to-Clear Reveal) ── */}
+      {hasManuallyRevealed && (
+        <motion.div
+          initial={{ filter: "blur(24px)", opacity: 0, scale: 1.015 }}
+          animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
+          transition={{ duration: 2.0, ease: [0.16, 1, 0.3, 1] }}
+          className="w-full min-h-screen"
+        >
+          {children}
+        </motion.div>
+      )}
     </>
   );
 }

@@ -443,30 +443,24 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         className="fixed inset-0 pointer-events-none z-50 w-full h-full"
       />
 
-      {/* ── Cinematic Shutter Flicker & Web Unveil Flash Wave ── */}
+      {/* ── Cinematic Soft Frosted Blur Curtain & Smooth Unveil ── */}
       <AnimatePresence>
         {isFlashFlickering && (
           <motion.div
-            initial={{ opacity: 0 }}
+            initial={{ opacity: 0, backdropFilter: "blur(0px)" }}
             animate={{
-              opacity: [0, 0.98, 0.25, 0.95, 0.35, 0.9, 0],
+              opacity: [0, 0.95, 0.7, 0],
+              backdropFilter: ["blur(0px)", "blur(32px)", "blur(16px)", "blur(0px)"],
             }}
-            transition={{ duration: 1.4, ease: "easeInOut" }}
-            className="fixed inset-0 pointer-events-none z-[99999999] bg-white flex items-center justify-center"
+            transition={{ duration: 1.8, ease: "easeInOut" }}
+            className="fixed inset-0 pointer-events-none z-[99999999] bg-white/80 flex items-center justify-center"
           >
-            {/* Center Light Aperture Beam */}
+            {/* Center Soft Aurora Radial Glow */}
             <motion.div
-              initial={{ scale: 0.2, opacity: 0 }}
-              animate={{ scale: [0.2, 2.8, 5.0], opacity: [0, 1, 0] }}
-              transition={{ duration: 1.2, ease: "easeOut" }}
-              className="w-[500px] h-[500px] rounded-full bg-gradient-to-r from-sky-400 via-purple-500 to-pink-500 blur-3xl opacity-80"
-            />
-            {/* Laser Scanline Sweep */}
-            <motion.div
-              initial={{ top: "0%", opacity: 0 }}
-              animate={{ top: ["0%", "50%", "100%"], opacity: [0, 1, 0] }}
-              transition={{ duration: 0.85, ease: "easeInOut" }}
-              className="absolute left-0 right-0 h-1.5 bg-gradient-to-r from-transparent via-cyan-400 to-transparent shadow-[0_0_24px_#00E5FF]"
+              initial={{ scale: 0.5, opacity: 0 }}
+              animate={{ scale: [0.5, 2.2, 4.0], opacity: [0, 0.85, 0] }}
+              transition={{ duration: 1.6, ease: "easeOut" }}
+              className="w-[500px] h-[500px] rounded-full bg-gradient-to-r from-sky-300 via-purple-300 to-pink-300 blur-3xl opacity-60"
             />
           </motion.div>
         )}
