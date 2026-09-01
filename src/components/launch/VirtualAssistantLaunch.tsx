@@ -330,7 +330,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       }
     }
 
-    // ── Phase 7: REVEAL AT 0s (STREETLA Introduces Herself FULLY Before Reveal) ──
+    // ── Phase 7: REVEAL AT 0s (STREETLA Introduces Herself FULLY Before Website Reveal) ──
     else if (currentPhase === "REVEAL") {
       setMood("celebrating");
       if (!revealStartedRef.current) {
@@ -343,7 +343,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         // Play full assistant introduction and welcome
         playLaunchVoice(
           "/audio/launch/phase_reveal.mp3",
-          "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
+          "And we are officially live! Welcome to the brand new Street Mobile! I'm STREETLA, your virtual shopping assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner of your screen. Have a wonderful time, and enjoy your shopping!",
           {
             onStart: () => setIsSpeaking(true),
             onEnd: () => {
@@ -384,7 +384,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       case "COUNTDOWN":
         return `LAUNCHING IN ${secondsLeft}... 🔥`;
       case "REVEAL":
-        return "I'M STREETLA, YOUR ASSISTANT 👧🛍️";
+        return "MEET STREETLA, YOUR ASSISTANT 👧✨";
     }
   })();
 
@@ -403,7 +403,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       case "COUNTDOWN":
         return `Get ready! Counting down: ${COUNTDOWN_WORDS[secondsLeft] || secondsLeft}`;
       case "REVEAL":
-        return "Chat with me anytime at the bottom corner for smartphones, accessories, and exclusive deals!";
+        return "And we are officially live! I'm STREETLA, your virtual shopping assistant. Whenever you need help finding anything, simply chat with me right at the bottom corner. Enjoy your shopping!";
     }
   })();
 
@@ -590,15 +590,15 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
       {/* ── Center Stage: Speech Bubble (Left) + STREETLA Avatar (Center) + Waveform (Right) ── */}
       <div className="w-full max-w-6xl flex items-center justify-center relative my-auto py-2 sm:py-4">
-        {/* Left: Floating Speech Bubble */}
+        {/* Left: Floating Speech Bubble (Remains fully visible until glide!) */}
         <AnimatePresence>
-          {!isRevealed && !isGliding && (
+          {!isGliding && (
             <motion.div
               initial={{ opacity: 0, x: -30, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
               exit={{ opacity: 0, x: -20, scale: 0.95 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="hidden md:flex flex-col text-left max-w-[280px] lg:max-w-[340px] p-5 rounded-3xl bg-white border border-neutral-200/90 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] relative mr-4 z-20"
+              className="hidden md:flex flex-col text-left max-w-[280px] lg:max-w-[350px] p-5 rounded-3xl bg-white border border-neutral-200/90 shadow-[0_12px_40px_-8px_rgba(0,0,0,0.12)] relative mr-4 z-20"
             >
               <div className="absolute top-1/2 -right-2.5 -translate-y-1/2 w-0 h-0 border-t-[9px] border-t-transparent border-b-[9px] border-b-transparent border-l-[10px] border-l-white" />
 
@@ -647,9 +647,9 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           />
         </motion.div>
 
-        {/* Right: 20-Bar Purple Waveform Card */}
+        {/* Right: 20-Bar Purple Waveform Card (Remains fully visible until glide!) */}
         <AnimatePresence>
-          {!isRevealed && !isGliding && (
+          {!isGliding && (
             <motion.div
               initial={{ opacity: 0, x: 30, scale: 0.92 }}
               animate={{ opacity: 1, x: 0, scale: 1 }}
@@ -690,15 +690,17 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         </AnimatePresence>
       </div>
 
-      {/* ── Mobile Speech Bubble ── */}
-      <div className="md:hidden w-full max-w-sm px-3 z-30 -mt-2">
-        <div className="p-3.5 rounded-2xl bg-white border border-neutral-200/90 shadow-md text-left">
-          <h5 className="font-extrabold text-xs text-neutral-950">{bubbleTitle}</h5>
-          <p className="text-[11px] text-neutral-700 leading-snug mt-0.5 line-clamp-3">
-            {bubbleBody}
-          </p>
+      {/* ── Mobile Speech Bubble (Remains fully visible until glide!) ── */}
+      {!isGliding && (
+        <div className="md:hidden w-full max-w-sm px-3 z-30 -mt-2">
+          <div className="p-3.5 rounded-2xl bg-white border border-neutral-200/90 shadow-md text-left">
+            <h5 className="font-extrabold text-xs text-neutral-950">{bubbleTitle}</h5>
+            <p className="text-[11px] text-neutral-700 leading-snug mt-0.5 line-clamp-3">
+              {bubbleBody}
+            </p>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Bottom Subtitle Pill Card ── */}
       {!isGliding && (
