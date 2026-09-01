@@ -208,17 +208,8 @@ export default function LaunchGate({ children }: LaunchGateProps) {
         />
       )}
 
-      {/* ── 3. Normal Website Content (Cinematic Smooth Blur-to-Clear Reveal) ── */}
-      {hasManuallyRevealed && (
-        <motion.div
-          initial={{ filter: "blur(24px)", opacity: 0, scale: 1.015 }}
-          animate={{ filter: "blur(0px)", opacity: 1, scale: 1 }}
-          transition={{ duration: 2.0, ease: [0.16, 1, 0.3, 1] }}
-          className="w-full min-h-screen"
-        >
-          {children}
-        </motion.div>
-      )}
+      {/* ── 3. Normal Website Content (Direct Root Layout) ── */}
+      {hasManuallyRevealed && children}
     </>
   );
 }

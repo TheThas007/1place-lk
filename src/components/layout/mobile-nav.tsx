@@ -13,13 +13,8 @@ export default function MobileNav() {
   const { itemCount } = useCart();
   const { user, profile, gender } = useAuth();
 
-  // Hide bottom nav on admin, login, checkout, and product detail pages
-  if (
-    pathname.startsWith("/admin") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/checkout") ||
-    (pathname.startsWith("/products/") && pathname !== "/products")
-  ) {
+  // Hide bottom nav only on admin and checkout pages
+  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) {
     return null;
   }
 
@@ -33,7 +28,7 @@ export default function MobileNav() {
   const isAccount = pathname.startsWith("/orders") || pathname.startsWith("/login");
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 md:hidden bg-[#090909] border-t border-neutral-800/90 shadow-[0_-4px_20px_rgba(0,0,0,0.4)] safe-bottom select-none font-outfit">
+    <nav className="fixed bottom-0 left-0 right-0 z-[70] md:hidden bg-[#090909] border-t border-neutral-800 shadow-[0_-4px_25px_rgba(0,0,0,0.5)] safe-bottom select-none font-outfit">
       <div className="grid grid-cols-5 items-center h-14 px-1 max-w-md mx-auto">
         {/* 1. Home */}
         <Link
