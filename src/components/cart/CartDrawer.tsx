@@ -302,7 +302,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
-            className="fixed inset-0 z-[60] bg-black/70 backdrop-blur-sm"
+            className="fixed inset-0 z-[80] bg-black/75 backdrop-blur-md"
           />
 
           {/* Drawer */}
@@ -312,7 +312,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
             animate={{ x: 0, opacity: 1 }}
             exit={{ x: "100%", opacity: 0 }}
             transition={{ type: "spring", damping: 28, stiffness: 280 }}
-            className="fixed top-0 right-0 bottom-0 z-[70] w-full max-w-[440px] bg-[#0a0a0a] border-l border-white/10 flex flex-col"
+            className="fixed top-0 right-0 bottom-0 z-[90] w-full max-w-[440px] bg-[#0a0a0a] border-l border-white/10 flex flex-col shadow-2xl"
           >
             {/* Header */}
             <div className="flex items-center justify-between px-6 pt-7 pb-5 border-b border-white/10 shrink-0">
@@ -558,12 +558,6 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           </div>
                         </button>
                       )}
-
-                      {!isCodAllowed && (
-                        <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-300 text-xs flex items-center gap-2">
-                          <span>ℹ️ Cash on Delivery is disabled for high-value items in your bag. Please select Card Payment or WhatsApp Order.</span>
-                        </div>
-                      )}
                     </div>
                   </div>
                 );
@@ -797,12 +791,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
 
             {/* Footer */}
             {step === "cart" && cart.length > 0 && (
-              <div className="px-6 pb-8 pt-4 border-t border-white/10 shrink-0 space-y-4">
+              <div className="px-6 pt-4 pb-14 sm:pb-8 border-t border-white/10 shrink-0 space-y-3.5 bg-[#0a0a0a] shadow-2xl">
                 <div className="flex items-center justify-between">
                   <span className="text-white/50 text-sm">Subtotal</span>
                   <span className="text-white font-bold text-lg">{formatPrice(total)}</span>
                 </div>
-                <p className="text-xs text-white/30 -mt-2">
+                <p className="text-xs text-white/30 -mt-1.5">
                   Shipping and taxes calculated at checkout
                 </p>
                 <button
@@ -814,9 +808,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     }
                     setStep("checkout-options");
                   }}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer"
+                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-extrabold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer shadow-lg hover:bg-neutral-100"
                 >
-                  Proceed to Checkout
+                  <span>Proceed to Checkout</span>
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent skew-x-[-20deg] pointer-events-none"
                     animate={{ x: ["-200%", "200%"] }}
