@@ -154,18 +154,27 @@ export default function CategoriesSection({
         qBrands,
         (snapshot) => {
           if (!snapshot.empty) {
-            const brandsList: Brand[] = [];
+            const brandMap = new Map<string, Brand>();
+
             snapshot.docs.forEach((d) => {
               const data = d.data() as Brand;
-              if (data.isDeleted === true || (data as any).status === "deleted") {
+              if (
+                data.isDeleted === true ||
+                (data as any).status === "deleted" ||
+                !data.name ||
+                data.name === "undefined"
+              ) {
                 return;
               }
+
               const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
               const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              
+              const nameLower = (data.name || "").toLowerCase().trim();
+              const normKey = nameLower || slug.toLowerCase();
+
               // Find matching default brand to get preset logo if current logo is empty
               const defaultBrand = DEFAULT_BRANDS.find(
-                (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === (data.name || "").toLowerCase().trim()
+                (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === nameLower
               );
 
               const assigned_departments =
@@ -186,7 +195,7 @@ export default function CategoriesSection({
 
               const orderNum = Number(data.sort_order ?? data.order ?? defaultBrand?.sort_order ?? 999);
 
-              brandsList.push({
+              brandMap.set(normKey, {
                 ...defaultBrand,
                 ...data,
                 id,
@@ -199,7 +208,8 @@ export default function CategoriesSection({
                 show_on_homepage: data.show_on_homepage !== false,
               });
             });
-            setLiveBrands(brandsList);
+
+            setLiveBrands(Array.from(brandMap.values()));
           }
         },
         (err) => console.warn("Firestore brands snapshot warning:", err)
@@ -251,7 +261,8 @@ export default function CategoriesSection({
           b.department_order?.[activeDeptSlug] ??
           (b as any).department_orders?.[activeDeptSlug] ??
           Number(b.sort_order ?? b.order ?? 999);
-        return orderA - orderB;
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.name || "").localeCompare(b.name || "");
       });
   }, [liveBrands, activeDeptSlug]);
 

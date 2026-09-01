@@ -107,59 +107,10 @@ export const getCategories = cache(async (): Promise<Category[]> => {
   return cleanDocs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 });
 
+import { getBrandsFromDb } from "./firestore-brands";
+
 export const getBrands = cache(async (): Promise<Brand[]> => {
-  const brandMap = new Map<string, Brand>();
-  DEFAULT_BRANDS.forEach((b) => {
-    brandMap.set(b.id, b);
-  });
-
-  try {
-    const q = query(collection(db, "brands"));
-    const snapshot = await getDocs(q);
-    snapshot.docs.forEach((d) => {
-      const data = d.data() as Brand;
-      const id = d.id || data.id;
-      const existing =
-        brandMap.get(id) ||
-        (data.slug ? Array.from(brandMap.values()).find((b) => b.slug === data.slug) : undefined) ||
-        (data.name ? Array.from(brandMap.values()).find((b) => b.name.toLowerCase() === data.name.toLowerCase()) : undefined);
-
-      if ((data as any).isDeleted === true || data.status === "deleted") {
-        if (existing) brandMap.delete(existing.id);
-        brandMap.delete(id);
-        for (const [k, b] of Array.from(brandMap.entries())) {
-          if (
-            (data.slug && b.slug?.toLowerCase() === data.slug?.toLowerCase()) ||
-            (data.name && b.name?.toLowerCase().trim() === data.name?.toLowerCase().trim()) ||
-            k === id ||
-            b.id === id
-          ) {
-            brandMap.delete(k);
-          }
-        }
-        return;
-      }
-
-      const logo_url = data.logo_url !== undefined ? data.logo_url : (existing?.logo_url || "");
-
-      const merged: Brand = {
-        ...existing,
-        ...data,
-        id,
-        logo_url,
-      };
-
-      if (existing && existing.id !== id) {
-        brandMap.delete(existing.id);
-      }
-      brandMap.set(id, merged);
-    });
-  } catch (e) {
-    console.warn("Offline/Error fetching brands:", e);
-  }
-
-  const result = Array.from(brandMap.values()).filter((b) => (b as any).isDeleted !== true && b.status !== "deleted");
-  return result.sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
+  return await getBrandsFromDb();
 });
 
 export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {

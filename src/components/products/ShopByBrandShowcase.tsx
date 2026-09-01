@@ -95,12 +95,28 @@ export default function ShopByBrandShowcase({
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const sourceBrands = useMemo(() => {
-    return brands && brands.length > 0 ? brands : DEFAULT_BRANDS;
+    const brandMap = new Map<string, Brand>();
+    (brands && brands.length > 0 ? brands : DEFAULT_BRANDS).forEach((b) => {
+      if (
+        b.isDeleted === true ||
+        (b as any).status === "deleted" ||
+        b.status === "inactive" ||
+        !b.name ||
+        b.name === "undefined"
+      ) {
+        return;
+      }
+      const normKey = b.name.toLowerCase().trim() || b.slug.toLowerCase();
+      if (!brandMap.has(normKey)) {
+        brandMap.set(normKey, b);
+      }
+    });
+    return Array.from(brandMap.values());
   }, [brands]);
 
   const visibleBrands = useMemo(() => {
     return sourceBrands
-      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive")
+      .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false)
       .filter((b) => {
         const group = (b.product_group || "smartphones") as string;
         if (activeTab === "phones") return group === "smartphones" || group === "phones";
@@ -108,7 +124,12 @@ export default function ShopByBrandShowcase({
         if (activeTab === "accessories") return group === "accessories" || group === "audio" || group === "other";
         return true;
       })
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      .sort((a, b) => {
+        const orderA = Number(a.sort_order ?? a.order ?? 999);
+        const orderB = Number(b.sort_order ?? b.order ?? 999);
+        if (orderA !== orderB) return orderA - orderB;
+        return (a.name || "").localeCompare(b.name || "");
+      });
   }, [sourceBrands, activeTab]);
 
   return (
