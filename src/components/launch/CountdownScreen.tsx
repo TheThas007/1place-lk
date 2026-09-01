@@ -2,10 +2,10 @@
 
 import { memo, useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Lock, X, ArrowRight, AlertCircle, Eye, EyeOff } from "lucide-react";
+import { Lock, X, ArrowRight, AlertCircle, Eye, EyeOff, Volume2, VolumeX, Sparkles } from "lucide-react";
 import { LaunchCountdownState, PreLaunchExperienceSettings, Review } from "@/lib/types";
 import RotatingContentShowcase from "./RotatingContentShowcase";
-import { primeAudioAndVoice } from "@/lib/launch/voice-engine";
+import { primeAudioAndVoice, setLaunchSoundEnabled, isLaunchSoundEnabled } from "@/lib/launch/voice-engine";
 
 interface CountdownScreenProps {
   countdown: LaunchCountdownState;
@@ -53,23 +53,35 @@ export const CountdownScreen = memo(function CountdownScreen({
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isSoundPrimed, setIsSoundPrimed] = useState<boolean>(true);
 
   // Prime browser audio permissions on first user touch/interaction
   useEffect(() => {
     const unlockAudio = () => {
       primeAudioAndVoice();
+      setIsSoundPrimed(true);
+      setLaunchSoundEnabled(true);
     };
-    window.addEventListener("pointerdown", unlockAudio, { passive: true, once: true });
-    window.addEventListener("click", unlockAudio, { passive: true, once: true });
-    window.addEventListener("touchstart", unlockAudio, { passive: true, once: true });
-    window.addEventListener("scroll", unlockAudio, { passive: true, once: true });
+    window.addEventListener("pointerdown", unlockAudio, { passive: true });
+    window.addEventListener("click", unlockAudio, { passive: true });
+    window.addEventListener("touchstart", unlockAudio, { passive: true });
+    window.addEventListener("scroll", unlockAudio, { passive: true });
+    window.addEventListener("keydown", unlockAudio, { passive: true });
     return () => {
       window.removeEventListener("pointerdown", unlockAudio);
       window.removeEventListener("click", unlockAudio);
       window.removeEventListener("touchstart", unlockAudio);
       window.removeEventListener("scroll", unlockAudio);
+      window.removeEventListener("keydown", unlockAudio);
     };
   }, []);
+
+  const handleSoundToggle = () => {
+    primeAudioAndVoice();
+    const next = !isSoundPrimed;
+    setIsSoundPrimed(next);
+    setLaunchSoundEnabled(next);
+  };
 
   const timeUnits = [
     { value: days, label: "DAYS" },
@@ -158,20 +170,59 @@ export const CountdownScreen = memo(function CountdownScreen({
           </span>
         </div>
 
-        {/* Clickable SRI LANKA trigger for secret admin preview access */}
-        <button
-          type="button"
-          onClick={() => {
-            setError("");
-            setPassword("");
-            setIsSecretModalOpen(true);
-          }}
-          className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer outline-none group"
-          title="Sri Lanka"
-        >
-          <span className="group-hover:tracking-[0.3em] transition-all">SRI LANKA</span>
-        </button>
+        {/* Right Area: Sound Button & SRI LANKA trigger */}
+        <div className="flex items-center gap-3 sm:gap-5">
+          <button
+            type="button"
+            onClick={handleSoundToggle}
+            className="px-3 py-1.5 rounded-full bg-neutral-100/90 hover:bg-neutral-200/90 border border-neutral-300/80 text-xs font-bold text-neutral-800 flex items-center gap-1.5 transition-all cursor-pointer shadow-xs active:scale-95"
+            title="Toggle Experience Audio & Voice"
+          >
+            {isSoundPrimed ? (
+              <>
+                <Volume2 className="w-3.5 h-3.5 text-purple-600 animate-pulse" />
+                <span className="text-[11px]">Sound Ready 🔊</span>
+              </>
+            ) : (
+              <>
+                <VolumeX className="w-3.5 h-3.5 text-neutral-500" />
+                <span className="text-[11px]">Enable Sound 🔇</span>
+              </>
+            )}
+          </button>
+
+          {/* Clickable SRI LANKA trigger for secret admin preview access */}
+          <button
+            type="button"
+            onClick={() => {
+              setError("");
+              setPassword("");
+              setIsSecretModalOpen(true);
+            }}
+            className="flex items-center gap-1.5 text-[11px] sm:text-xs font-semibold tracking-[0.25em] text-[#6B7280] hover:text-[#090909] uppercase transition-colors cursor-pointer outline-none group"
+            title="Sri Lanka"
+          >
+            <span className="group-hover:tracking-[0.3em] transition-all">SRI LANKA</span>
+          </button>
+        </div>
       </motion.div>
+
+      {/* ── 2-Minute Pre-Launch Sound Notice Banner (≤ 120s) ── */}
+      {countdown.totalSeconds <= 120 && countdown.totalSeconds > 60 && (
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="absolute top-16 sm:top-20 left-1/2 -translate-x-1/2 z-30 pointer-events-auto"
+        >
+          <div
+            onClick={handleSoundToggle}
+            className="px-4 py-1.5 rounded-full bg-purple-600 text-white font-bold text-[11px] sm:text-xs flex items-center gap-2 shadow-lg shadow-purple-600/30 cursor-pointer animate-bounce active:scale-95"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-yellow-300" />
+            <span>Virtual Assistant Launch in {countdown.totalSeconds - 60}s • Tap anywhere to enable voice 🔊</span>
+          </div>
+        </motion.div>
+      )}
 
       {/* ── Center Container: Bold Branding + Substantial Countdown + Large Showcase (1400px) ── */}
       <div className="w-full max-w-[1400px] flex flex-col items-center justify-center my-auto -translate-y-6 sm:-translate-y-12 md:-translate-y-16 text-center px-2 py-4 sm:py-8 space-y-6 sm:space-y-8">

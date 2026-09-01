@@ -12,6 +12,7 @@ import {
   setLaunchSoundEnabled,
   primeAudioAndVoice,
   stopAllAudioAndSpeech,
+  onAutoplayBlockedChange,
 } from "@/lib/launch/voice-engine";
 import {
   VirtualAssistantLaunchAvatar,
@@ -70,6 +71,14 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
 
   // Sound state
   const [soundActive, setSoundActive] = useState<boolean>(true);
+  const [isAutoplayBlocked, setIsAutoplayBlocked] = useState<boolean>(false);
+
+  useEffect(() => {
+    const unsub = onAutoplayBlockedChange((blocked) => {
+      setIsAutoplayBlocked(blocked);
+    });
+    return unsub;
+  }, []);
 
   // Avatar & Speaking state
   const [mood, setMood] = useState<AssistantMood>("intro");
@@ -640,6 +649,29 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           </span>
         </div>
       </div>
+
+      {/* ── Floating Voice Unlock Banner if Browser Blocked Autoplay ── */}
+      <AnimatePresence>
+        {isAutoplayBlocked && (
+          <motion.div
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="z-50 -mt-1"
+          >
+            <button
+              onClick={() => {
+                primeAudioAndVoice();
+                startAmbientAuraMusic();
+              }}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-purple-600 via-indigo-600 to-purple-700 text-white text-xs font-black tracking-wide shadow-lg shadow-purple-500/30 border border-purple-300/40 flex items-center gap-2 animate-bounce cursor-pointer hover:scale-105 transition-transform"
+            >
+              <Volume2 className="w-4 h-4 text-amber-300 animate-pulse" />
+              <span>Tap anywhere to enable Voice 🔊</span>
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* ── Middle Top: Street Mobile Logo + Tagline + Countdown Boxes ── */}
       <div className="w-full max-w-4xl flex flex-col items-center justify-center text-center space-y-3 sm:space-y-4 pt-1 sm:pt-2">

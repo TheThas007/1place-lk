@@ -393,6 +393,58 @@ export function playCelebrationFanfare() {
  * Plays pre-rendered studio neural MP3 audio with cached elements
  * to guarantee 100% identical voice on all mobile and desktop devices.
  */
+// Global tracking for pending voice if autoplay is temporarily blocked by browser
+let pendingVoiceRequest: {
+  audioPath: string;
+  fallbackText: string;
+  options?: {
+    rate?: number;
+    pitch?: number;
+    onStart?: () => void;
+    onEnd?: () => void;
+  };
+} | null = null;
+
+let isAutoplayBlocked = false;
+const autoplayBlockListeners = new Set<(blocked: boolean) => void>();
+
+export function isLaunchVoiceAutoplayBlocked(): boolean {
+  return isAutoplayBlocked;
+}
+
+export function onAutoplayBlockedChange(callback: (blocked: boolean) => void): () => void {
+  autoplayBlockListeners.add(callback);
+  callback(isAutoplayBlocked);
+  return () => {
+    autoplayBlockListeners.delete(callback);
+  };
+}
+
+function notifyAutoplayBlocked(blocked: boolean) {
+  if (isAutoplayBlocked !== blocked) {
+    isAutoplayBlocked = blocked;
+    autoplayBlockListeners.forEach((cb) => cb(blocked));
+  }
+}
+
+// Auto-unlock listener on any window interaction
+if (typeof window !== "undefined") {
+  const autoUnlockOnGesture = () => {
+    primeAudioAndVoice();
+    notifyAutoplayBlocked(false);
+    if (pendingVoiceRequest && soundEnabled) {
+      const req = pendingVoiceRequest;
+      pendingVoiceRequest = null;
+      playLaunchVoice(req.audioPath, req.fallbackText, req.options);
+    }
+  };
+
+  window.addEventListener("pointerdown", autoUnlockOnGesture, { passive: true });
+  window.addEventListener("click", autoUnlockOnGesture, { passive: true });
+  window.addEventListener("touchstart", autoUnlockOnGesture, { passive: true });
+  window.addEventListener("keydown", autoUnlockOnGesture, { passive: true });
+}
+
 export function playLaunchVoice(
   audioPath: string,
   fallbackText: string,
@@ -431,6 +483,9 @@ export function playLaunchVoice(
     }
 
     try {
+      // Store as active pending voice request so any gesture can seamlessly play it
+      pendingVoiceRequest = { audioPath, fallbackText, options };
+
       // Retrieve preloaded audio or create new
       let audio = launchAudioCache.get(audioPath);
       if (!audio) {
@@ -447,6 +502,9 @@ export function playLaunchVoice(
       const finish = () => {
         if (hasResolved) return;
         hasResolved = true;
+        if (pendingVoiceRequest?.audioPath === audioPath) {
+          pendingVoiceRequest = null;
+        }
         currentActiveAudio = null;
         restoreAmbientMusic();
         if (options?.onEnd) options.onEnd();
@@ -454,6 +512,8 @@ export function playLaunchVoice(
       };
 
       audio.onplay = () => {
+        notifyAutoplayBlocked(false);
+        pendingVoiceRequest = null;
         if (options?.onStart) options.onStart();
       };
 
@@ -465,16 +525,22 @@ export function playLaunchVoice(
 
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
-          console.warn("Audio play prevented, attempting speech synthesis fallback:", err);
-          if (fallbackText && typeof window !== "undefined" && "speechSynthesis" in window) {
-            speakLaunchText(fallbackText, options)
-              .then(() => finish())
-              .catch(() => finish());
-          } else {
-            finish();
-          }
-        });
+        playPromise
+          .then(() => {
+            notifyAutoplayBlocked(false);
+          })
+          .catch((err) => {
+            console.warn("Audio autoplay blocked by browser policy, awaiting user interaction:", err);
+            notifyAutoplayBlocked(true);
+            // If user interacts, the global gesture listener will immediately play pendingVoiceRequest
+            if (fallbackText && typeof window !== "undefined" && "speechSynthesis" in window) {
+              speakLaunchText(fallbackText, options)
+                .then(() => finish())
+                .catch(() => {
+                  // Leave pendingVoiceRequest alive for gesture unlock
+                });
+            }
+          });
       }
     } catch (err) {
       console.warn("Audio element error:", err);
