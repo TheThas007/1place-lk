@@ -407,11 +407,6 @@ export default function DepartmentBrandPage({
     config.productSectionDescription ||
     `Explore genuine ${brand.name} ${department.name.toLowerCase()} models available at Street Mobile.`;
 
-  // Related Products Showcase
-  const relatedProducts = useMemo(() => {
-    return products.slice(0, 4);
-  }, [products]);
-
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">
       {/* ── Top Breadcrumbs & Back Navigation ── */}
@@ -625,30 +620,6 @@ export default function DepartmentBrandPage({
             </div>
           )}
         </div>
-
-        {/* ── Related Showcase at Bottom ── */}
-        {relatedProducts.length > 0 && (
-          <div className="mt-16 pt-10 border-t border-neutral-200">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl sm:text-2xl font-extrabold text-neutral-900 tracking-tight">
-                {brand.name} Accessories
-              </h3>
-              <Link
-                href={`/shop-by-brand/accessories/${brand.slug}`}
-                className="text-xs font-extrabold text-[#ED0712] hover:text-red-700 flex items-center gap-1 transition-colors"
-              >
-                <span>View All</span>
-                <ChevronRight className="w-3.5 h-3.5" />
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-              {relatedProducts.map((p) => (
-                <BrandProductCard key={`rel-${p.id}`} product={p} />
-              ))}
-            </div>
-          </div>
-        )}
 
       </div>
     </div>
