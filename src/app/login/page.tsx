@@ -9,14 +9,12 @@ import {
   Loader2,
   AlertCircle,
   CheckCircle2,
-  ShoppingBag,
   ArrowRight,
   User as UserIcon,
   Mail,
   Lock,
   ArrowLeft,
   ShieldCheck,
-  Sparkles,
 } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
@@ -35,7 +33,6 @@ function LoginFormContent() {
   const { addToCart } = useCart();
 
   const redirectParam = searchParams.get("redirect");
-  const intentParam = searchParams.get("intent");
 
   const [tab, setTab] = useState<"signin" | "signup">("signin");
   const [name, setName] = useState("");
@@ -49,16 +46,6 @@ function LoginFormContent() {
   const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
-
-  // Check if there is an active purchase/checkout intent
-  const [hasPurchaseIntent, setHasPurchaseIntent] = useState(false);
-
-  useEffect(() => {
-    const intent = getPendingPurchaseIntent();
-    if (intent || redirectParam?.includes("checkout") || intentParam) {
-      setHasPurchaseIntent(true);
-    }
-  }, [redirectParam, intentParam]);
 
   // If already authenticated, execute pending intent or redirect
   useEffect(() => {
@@ -196,9 +183,9 @@ function LoginFormContent() {
   };
 
   return (
-    <div className="min-h-screen w-full bg-[#0A0A0A] sm:bg-[#F4F4F5] flex flex-col justify-between items-center selection:bg-black selection:text-white font-outfit">
-      {/* ── Top Bar Navigation (Desktop) ── */}
-      <div className="hidden sm:flex w-full max-w-5xl items-center justify-between py-4 px-6 shrink-0">
+    <div className="min-h-screen w-full bg-[#FAFAFA] sm:bg-[#F4F4F5] flex flex-col justify-between items-center selection:bg-black selection:text-white font-outfit px-3 py-4 sm:px-6 sm:py-6">
+      {/* ── Top Navigation Bar (Desktop) ── */}
+      <div className="hidden sm:flex w-full max-w-4xl items-center justify-between py-2 px-2 shrink-0">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-xs sm:text-sm font-semibold text-neutral-600 hover:text-black transition-colors group"
@@ -206,126 +193,89 @@ function LoginFormContent() {
           <ArrowLeft className="w-4 h-4 transition-transform group-hover:-translate-x-1" />
           <span>Back to Street Mobile</span>
         </Link>
-        <div className="flex items-center gap-2 text-xs text-neutral-500 font-bold uppercase tracking-wider">
+        <div className="flex items-center gap-1.5 text-xs text-neutral-500 font-bold uppercase tracking-wider">
           <ShieldCheck className="w-4 h-4 text-emerald-600" />
-          <span>100% Secure Checkout &amp; Account</span>
+          <span>100% Genuine Care &amp; Warranty</span>
         </div>
       </div>
 
-      {/* ── Main Authentication Box ── */}
-      <div className="w-full max-w-5xl sm:my-auto bg-white rounded-none sm:rounded-[32px] sm:border sm:border-neutral-200/80 shadow-[0_20px_60px_-15px_rgba(0,0,0,0.1)] overflow-hidden grid grid-cols-1 md:grid-cols-12 min-h-screen sm:min-h-[640px]">
+      {/* ── Main Authentication Card (Perfect compact mobile size) ── */}
+      <div className="w-full max-w-[420px] sm:max-w-4xl bg-white rounded-3xl sm:rounded-[32px] border border-neutral-200/90 shadow-[0_12px_45px_-10px_rgba(0,0,0,0.08)] overflow-hidden my-auto grid grid-cols-1 sm:grid-cols-12">
         {/* ══════════════════════════════════════════════════════
-            MOBILE LUXURY BRAND HEADER (< 768px)
+            DESKTOP BRAND LEFT PANEL (>= 640px)
            ══════════════════════════════════════════════════════ */}
-        <div className="md:hidden bg-[#090909] text-white px-5 pt-7 pb-6 relative overflow-hidden border-b border-neutral-800">
-          {/* Ambient Glow */}
-          <div className="absolute top-0 right-0 w-64 h-64 bg-sky-500/10 rounded-full blur-3xl pointer-events-none -z-0" />
-          <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/10 rounded-full blur-3xl pointer-events-none -z-0" />
+        <div className="hidden sm:flex sm:col-span-5 bg-[#090909] text-white p-8 lg:p-10 flex-col justify-between relative overflow-hidden border-r border-neutral-800">
+          <div className="absolute inset-0 bg-gradient-to-b from-sky-500/10 via-transparent to-purple-500/10 pointer-events-none" />
 
-          <div className="flex items-center justify-between relative z-10">
-            <Link href="/" className="inline-flex items-center">
-              <img
-                src="/logo.png"
-                alt="STREET MOBILE"
-                className="h-9 w-auto object-contain drop-shadow-[0_2px_10px_rgba(255,255,255,0.15)]"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/logo.svg";
-                }}
-              />
-            </Link>
-            <Link
-              href="/"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white text-xs font-semibold backdrop-blur-md transition-all cursor-pointer border border-white/10"
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Back</span>
-            </Link>
-          </div>
-
-          <div className="mt-5 relative z-10">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-white/[0.08] border border-white/10 text-[10px] font-bold text-neutral-300 uppercase tracking-wider mb-2">
-              <Sparkles className="w-3 h-3 text-sky-400" />
-              Official Street Mobile Portal
-            </div>
-            <h2 className="text-xl font-extrabold text-white tracking-tight">
-              {tab === "signin" ? "Welcome back 👋" : "Create your account ✨"}
-            </h2>
-            <p className="mt-1 text-xs text-neutral-400 font-medium">
-              {tab === "signin"
-                ? "Sign in to track orders, wishlist, and warranty."
-                : "Join Street Mobile for exclusive launch deals and island-wide delivery."}
-            </p>
-          </div>
-        </div>
-
-        {/* ══════════════════════════════════════════════════════
-            DESKTOP BRAND EXPERIENCE LEFT PANEL (>= 768px)
-           ══════════════════════════════════════════════════════ */}
-        <div className="hidden md:flex md:col-span-5 bg-[#090909] text-white p-8 lg:p-12 flex-col justify-between relative overflow-hidden border-r border-neutral-800">
-          <div className="absolute inset-0 bg-gradient-to-b from-sky-500/5 via-transparent to-purple-500/5 pointer-events-none" />
-
-          {/* Top Brand Stack */}
+          {/* Brand Stack */}
           <div className="relative z-10">
             <Link href="/" className="inline-block">
               <img
                 src="/logo.png"
                 alt="STREET MOBILE"
-                className="h-24 lg:h-28 w-auto object-contain max-w-[280px]"
+                className="h-20 lg:h-24 w-auto object-contain max-w-[240px]"
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/logo.svg";
                 }}
               />
             </Link>
 
-            <div className="mt-10">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 text-white/90 text-xs font-bold uppercase tracking-wider mb-3 border border-white/10">
-                <Sparkles className="w-3.5 h-3.5 text-sky-400" />
-                Vavuniya • Sri Lanka
-              </div>
-              <h2 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-white leading-tight">
+            <div className="mt-8">
+              <span className="text-[11px] font-bold text-neutral-400 tracking-[0.25em] uppercase">
+                VAVUNIYA • SRI LANKA
+              </span>
+              <h2 className="text-xl lg:text-2xl font-black tracking-tight text-white leading-tight mt-2">
                 Your destination for genuine tech.
               </h2>
-              <p className="mt-3 text-xs lg:text-sm text-neutral-400 font-medium leading-relaxed">
-                Experience Sri Lanka&apos;s premier mobile store with official company warranty, island-wide express delivery, and friendly care.
+              <p className="mt-2.5 text-xs lg:text-sm text-neutral-400 font-medium leading-relaxed">
+                Official company warranty, island-wide express delivery, and friendly customer care.
               </p>
             </div>
           </div>
 
           {/* Bottom Trust Badges */}
-          <div className="relative z-10 pt-6 border-t border-neutral-800/80 space-y-2">
+          <div className="relative z-10 pt-6 border-t border-neutral-800/80">
             <div className="flex items-center gap-2 text-xs text-neutral-300 font-semibold">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              <span>100% Genuine Devices &amp; Warranty</span>
-            </div>
-            <div className="flex items-center gap-2 text-xs text-neutral-400">
-              <span>Need help? Call +94 77 414 1118</span>
+              <span>100% Genuine Devices &amp; Care</span>
             </div>
           </div>
         </div>
 
         {/* ══════════════════════════════════════════════════════
-            RIGHT PANEL — MOBILE & DESKTOP AUTH FORM
+            AUTH FORM (MOBILE + DESKTOP)
            ══════════════════════════════════════════════════════ */}
-        <div className="md:col-span-7 bg-white p-5 sm:p-8 lg:p-12 flex flex-col justify-center">
-          <div className="w-full max-w-[420px] mx-auto">
-            {/* Purchase Intent Notice */}
-            {hasPurchaseIntent && (
-              <div className="mb-4 p-3.5 bg-neutral-950 text-white rounded-2xl flex items-center gap-3 text-xs shadow-md">
-                <ShoppingBag className="w-4 h-4 text-white shrink-0" />
-                <span className="font-semibold leading-snug">
-                  Sign in to restore your bag items and complete your checkout seamlessly.
-                </span>
-              </div>
-            )}
+        <div className="sm:col-span-7 bg-white p-5 sm:p-8 lg:p-10 flex flex-col justify-center">
+          <div className="w-full max-w-[360px] sm:max-w-[380px] mx-auto">
+            {/* Mobile Header: Street Mobile Logo + Back Button */}
+            <div className="flex sm:hidden items-center justify-between pb-4 mb-2 border-b border-neutral-100">
+              <Link href="/" className="inline-flex items-center">
+                <img
+                  src="/logo.png"
+                  alt="STREET MOBILE"
+                  className="h-8 w-auto object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/logo.svg";
+                  }}
+                />
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-700 text-xs font-semibold transition-all cursor-pointer"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back</span>
+              </Link>
+            </div>
 
             {/* Segmented Pill Tabs */}
-            <div className="grid grid-cols-2 p-1 bg-neutral-100 rounded-2xl mb-5 h-12 items-center border border-neutral-200/80 shadow-inner">
+            <div className="grid grid-cols-2 p-1 bg-neutral-100 rounded-2xl mb-4 h-11 items-center border border-neutral-200/80 shadow-inner">
               <button
                 type="button"
                 onClick={() => handleTab("signin")}
-                className={`h-10 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                className={`h-9 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
                   tab === "signin"
-                    ? "bg-white text-black shadow-sm"
+                    ? "bg-white text-black shadow-xs"
                     : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -334,9 +284,9 @@ function LoginFormContent() {
               <button
                 type="button"
                 onClick={() => handleTab("signup")}
-                className={`h-10 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
+                className={`h-9 text-xs sm:text-sm font-bold rounded-xl transition-all duration-200 flex items-center justify-center cursor-pointer ${
                   tab === "signup"
-                    ? "bg-white text-black shadow-sm"
+                    ? "bg-white text-black shadow-xs"
                     : "text-neutral-500 hover:text-black"
                 }`}
               >
@@ -344,14 +294,14 @@ function LoginFormContent() {
               </button>
             </div>
 
-            {/* One-Tap Google Sign-In Button (High-Priority Top Placement for Mobile) */}
+            {/* One-Tap Google Sign-In Button */}
             <button
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-3 h-12 px-4 rounded-2xl bg-white border-2 border-neutral-200 hover:border-neutral-950 hover:bg-neutral-50 text-neutral-900 font-bold text-sm transition-all duration-150 active:scale-[0.98] disabled:opacity-60 shadow-xs cursor-pointer mb-4"
+              className="w-full flex items-center justify-center gap-2.5 h-11 px-4 rounded-2xl bg-white border border-neutral-300 hover:border-neutral-900 hover:bg-neutral-50 text-neutral-900 font-bold text-xs sm:text-sm transition-all duration-150 active:scale-[0.98] disabled:opacity-60 shadow-2xs cursor-pointer mb-3.5"
             >
-              <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24">
+              <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
                 <path
                   fill="#4285F4"
                   d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -373,9 +323,9 @@ function LoginFormContent() {
             </button>
 
             {/* Divider */}
-            <div className="relative py-2 flex items-center justify-center mb-4">
+            <div className="relative py-1 flex items-center justify-center mb-3">
               <div className="border-t border-neutral-200 w-full" />
-              <span className="absolute bg-white px-3 text-[10px] tracking-widest text-neutral-400 uppercase font-black">
+              <span className="absolute bg-white px-2.5 text-[9.5px] tracking-widest text-neutral-400 uppercase font-extrabold">
                 OR WITH EMAIL
               </span>
             </div>
@@ -387,7 +337,7 @@ function LoginFormContent() {
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="mb-4 p-3.5 bg-red-50 border border-red-200 text-red-700 rounded-2xl text-xs font-semibold flex items-start gap-2.5"
+                  className="mb-3 p-3 bg-red-50 border border-red-200 text-red-700 rounded-xl text-xs font-semibold flex items-start gap-2"
                 >
                   <AlertCircle className="w-4 h-4 shrink-0 mt-0.5 text-red-600" />
                   <span>{error}</span>
@@ -398,7 +348,7 @@ function LoginFormContent() {
                   initial={{ opacity: 0, y: -4 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  className="mb-4 p-3.5 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-2xl text-xs font-semibold flex items-start gap-2.5"
+                  className="mb-3 p-3 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-xl text-xs font-semibold flex items-start gap-2"
                 >
                   <CheckCircle2 className="w-4 h-4 shrink-0 mt-0.5 text-emerald-600" />
                   <span>{success}</span>
@@ -407,12 +357,12 @@ function LoginFormContent() {
             </AnimatePresence>
 
             {/* Form Inputs */}
-            <form onSubmit={handleSubmit} className="space-y-3.5">
+            <form onSubmit={handleSubmit} className="space-y-3">
               {/* Full Name & Gender (Sign Up mode) */}
               {tab === "signup" && (
                 <>
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider">
+                    <label className="block text-[10.5px] font-extrabold text-neutral-700 uppercase tracking-wider">
                       Full Name
                     </label>
                     <div className="relative">
@@ -423,38 +373,38 @@ function LoginFormContent() {
                         onChange={(e) => setName(e.target.value)}
                         placeholder="Enter your full name"
                         required
-                        className="w-full h-12 pl-10 pr-4 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-2xl text-neutral-900 placeholder:text-neutral-400 text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
+                        className="w-full h-11 pl-10 pr-3.5 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-xl text-neutral-900 placeholder:text-neutral-400 text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-black/5 transition-all"
                       />
                     </div>
                   </div>
 
                   {/* Gender Selector with Visual Avatars */}
                   <div className="space-y-1">
-                    <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider">
-                      Account Avatar Gender
+                    <label className="block text-[10.5px] font-extrabold text-neutral-700 uppercase tracking-wider">
+                      Avatar Gender
                     </label>
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         type="button"
                         onClick={() => setSignupGender("male")}
-                        className={`h-11 px-3 text-xs font-bold rounded-2xl border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                        className={`h-10 px-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           signupGender === "male"
-                            ? "bg-black text-white border-black shadow-sm"
+                            ? "bg-black text-white border-black shadow-2xs"
                             : "bg-neutral-50 text-neutral-700 border-neutral-200 hover:border-neutral-400"
                         }`}
                       >
-                        <span>👨 Male Avatar</span>
+                        <span>👨 Male</span>
                       </button>
                       <button
                         type="button"
                         onClick={() => setSignupGender("female")}
-                        className={`h-11 px-3 text-xs font-bold rounded-2xl border transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                        className={`h-10 px-2 text-xs font-bold rounded-xl border transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
                           signupGender === "female"
-                            ? "bg-black text-white border-black shadow-sm"
+                            ? "bg-black text-white border-black shadow-2xs"
                             : "bg-neutral-50 text-neutral-700 border-neutral-200 hover:border-neutral-400"
                         }`}
                       >
-                        <span>👩 Female Avatar</span>
+                        <span>👩 Female</span>
                       </button>
                     </div>
                   </div>
@@ -463,7 +413,7 @@ function LoginFormContent() {
 
               {/* Email Address */}
               <div className="space-y-1">
-                <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider">
+                <label className="block text-[10.5px] font-extrabold text-neutral-700 uppercase tracking-wider">
                   Email Address
                 </label>
                 <div className="relative">
@@ -474,7 +424,7 @@ function LoginFormContent() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="name@example.com"
                     required
-                    className="w-full h-12 pl-10 pr-4 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-2xl text-neutral-900 placeholder:text-neutral-400 text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
+                    className="w-full h-11 pl-10 pr-3.5 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-xl text-neutral-900 placeholder:text-neutral-400 text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-black/5 transition-all"
                   />
                 </div>
               </div>
@@ -482,7 +432,7 @@ function LoginFormContent() {
               {/* Password */}
               <div className="space-y-1">
                 <div className="flex items-center justify-between">
-                  <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider">
+                  <label className="block text-[10.5px] font-extrabold text-neutral-700 uppercase tracking-wider">
                     Password
                   </label>
                   {tab === "signin" && (
@@ -490,7 +440,7 @@ function LoginFormContent() {
                       type="button"
                       onClick={handleForgotPassword}
                       disabled={resetLoading}
-                      className="text-xs text-neutral-500 hover:text-black font-semibold transition-colors cursor-pointer"
+                      className="text-[11px] text-neutral-500 hover:text-black font-semibold transition-colors cursor-pointer"
                     >
                       {resetLoading ? "Sending..." : "Forgot password?"}
                     </button>
@@ -504,13 +454,13 @@ function LoginFormContent() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full h-12 pl-10 pr-11 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-2xl text-neutral-900 placeholder:text-neutral-400 text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
+                    className="w-full h-11 pl-10 pr-10 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-xl text-neutral-900 placeholder:text-neutral-400 text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-black/5 transition-all"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? "Hide password" : "Show password"}
-                    className="absolute right-3.5 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black p-1 transition-colors cursor-pointer"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 hover:text-black p-1 transition-colors cursor-pointer"
                   >
                     {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
@@ -520,7 +470,7 @@ function LoginFormContent() {
               {/* Confirm Password (Sign Up mode) */}
               {tab === "signup" && (
                 <div className="space-y-1">
-                  <label className="block text-[11px] font-extrabold text-neutral-700 uppercase tracking-wider">
+                  <label className="block text-[10.5px] font-extrabold text-neutral-700 uppercase tracking-wider">
                     Confirm Password
                   </label>
                   <div className="relative">
@@ -531,7 +481,7 @@ function LoginFormContent() {
                       onChange={(e) => setConfirm(e.target.value)}
                       placeholder="••••••••"
                       required
-                      className="w-full h-12 pl-10 pr-4 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-2xl text-neutral-900 placeholder:text-neutral-400 text-sm font-medium outline-none focus:ring-4 focus:ring-black/5 transition-all"
+                      className="w-full h-11 pl-10 pr-3.5 bg-neutral-50 focus:bg-white border border-neutral-200 focus:border-black rounded-xl text-neutral-900 placeholder:text-neutral-400 text-xs sm:text-sm font-medium outline-none focus:ring-2 focus:ring-black/5 transition-all"
                     />
                   </div>
                 </div>
@@ -540,24 +490,24 @@ function LoginFormContent() {
               {/* Remember Me Toggle */}
               {tab === "signin" && (
                 <div className="pt-0.5">
-                  <label className="inline-flex items-center gap-2.5 cursor-pointer select-none">
+                  <label className="inline-flex items-center gap-2 cursor-pointer select-none">
                     <input
                       type="checkbox"
                       checked={rememberMe}
                       onChange={(e) => setRememberMe(e.target.checked)}
-                      className="w-4 h-4 rounded border-neutral-300 text-black focus:ring-black accent-black cursor-pointer"
+                      className="w-3.5 h-3.5 rounded border-neutral-300 text-black focus:ring-black accent-black cursor-pointer"
                     />
                     <span className="text-xs text-neutral-600 font-medium">Keep me signed in</span>
                   </label>
                 </div>
               )}
 
-              {/* Big High-Contrast Primary CTA Button */}
-              <div className="pt-2">
+              {/* Primary CTA Button */}
+              <div className="pt-1.5">
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-13 px-5 rounded-2xl bg-black hover:bg-neutral-800 text-white font-extrabold text-sm transition-all duration-150 shadow-md active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 group cursor-pointer"
+                  className="w-full h-11 sm:h-12 px-4 rounded-xl sm:rounded-2xl bg-black hover:bg-neutral-800 text-white font-extrabold text-xs sm:text-sm transition-all duration-150 shadow-md active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2 group cursor-pointer"
                 >
                   {loading ? (
                     <>
@@ -566,22 +516,22 @@ function LoginFormContent() {
                     </>
                   ) : (
                     <>
-                      <span>{tab === "signin" ? "Sign In to Account" : "Create Account"}</span>
-                      <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+                      <span>{tab === "signin" ? "Sign In" : "Create Account"}</span>
+                      <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
                     </>
                   )}
                 </button>
               </div>
 
-              {/* Mobile Bottom Switcher Hint */}
-              <p className="text-center text-xs text-neutral-500 pt-3">
+              {/* Bottom Switcher */}
+              <p className="text-center text-xs text-neutral-500 pt-2">
                 {tab === "signin" ? "Don't have an account? " : "Already have an account? "}
                 <button
                   type="button"
                   onClick={() => handleTab(tab === "signin" ? "signup" : "signin")}
                   className="text-black font-extrabold underline underline-offset-2 hover:text-neutral-700 cursor-pointer"
                 >
-                  {tab === "signin" ? "Create one now" : "Sign in here"}
+                  {tab === "signin" ? "Create account" : "Sign in"}
                 </button>
               </p>
             </form>
@@ -590,7 +540,7 @@ function LoginFormContent() {
       </div>
 
       {/* ── Footer ── */}
-      <div className="w-full py-4 text-center text-neutral-400 text-xs font-medium">
+      <div className="w-full py-2 text-center text-neutral-400 text-[11px] font-medium">
         &copy; {new Date().getFullYear()} STREET MOBILE LK • Vavuniya, Sri Lanka
       </div>
     </div>
