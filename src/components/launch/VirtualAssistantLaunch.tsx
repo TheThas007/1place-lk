@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback, memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Volume2, VolumeX, Sparkles } from "lucide-react";
+import { Volume2, VolumeX, Sparkles, Zap, Gift, ShieldCheck, Heart, Star } from "lucide-react";
 import {
   playLaunchVoice,
   playCountdownTick,
@@ -48,6 +48,15 @@ const COUNTDOWN_WORDS: Record<number, string> = {
   1: "One!",
 };
 
+// Celebration floating badges for grand reveal
+const CELEBRATION_POPS = [
+  { text: "GRAND STORE LAUNCH 🎉", icon: Sparkles, color: "from-amber-400 to-orange-500", x: "-32%", y: "-36%", delay: 0.2 },
+  { text: "100% GENUINE CARE 🛡️", icon: ShieldCheck, color: "from-emerald-400 to-teal-500", x: "34%", y: "-32%", delay: 0.5 },
+  { text: "EXCLUSIVE LAUNCH DEALS 🎁", icon: Gift, color: "from-purple-500 to-pink-500", x: "-36%", y: "28%", delay: 0.8 },
+  { text: "FAST ISLANDWIDE DELIVERY 🚚", icon: Zap, color: "from-blue-500 to-cyan-400", x: "36%", y: "30%", delay: 1.1 },
+  { text: "WELCOME TO STREET MOBILE 💙", icon: Heart, color: "from-rose-500 to-red-500", x: "0%", y: "-44%", delay: 1.4 },
+];
+
 export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   totalRemainingSeconds = 60,
   title = "STREET MOBILE",
@@ -70,6 +79,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
   const [isRevealed, setIsRevealed] = useState<boolean>(false);
   const [isGliding, setIsGliding] = useState<boolean>(false);
   const [isFlashFlickering, setIsFlashFlickering] = useState<boolean>(false);
+  const [showCelebrationPops, setShowCelebrationPops] = useState<boolean>(false);
 
   // Confetti Canvas Ref
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -127,7 +137,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     };
   }, [soundActive]);
 
-  // Canvas Confetti Particle System for 0s Reveal
+  // ── Triple-Canon Celebration Confetti Engine ──
   const triggerConfetti = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -138,7 +148,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
 
-    const particles: Array<{
+    type Particle = {
       x: number;
       y: number;
       vx: number;
@@ -148,55 +158,142 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       rotation: number;
       rotSpeed: number;
       opacity: number;
-    }> = [];
+      shape: "rect" | "circle" | "ribbon" | "star";
+      wobble: number;
+      wobbleSpeed: number;
+    };
 
-    const colors = ["#A855F7", "#EC4899", "#00E676", "#38BDF8", "#FBBF24", "#ED0712", "#FFFFFF"];
+    const particles: Particle[] = [];
+    const colors = [
+      "#FFD700", // Gold
+      "#FF6B00", // Bright Orange
+      "#A855F7", // Neon Purple
+      "#EC4899", // Hot Pink
+      "#00E676", // Emerald Green
+      "#00D2FF", // Electric Cyan
+      "#38BDF8", // Sky Blue
+      "#ED0712", // Street Mobile Red
+      "#FFFFFF", // Pure White Sparkle
+      "#FDE047", // Champagne
+    ];
 
-    for (let i = 0; i < 280; i++) {
+    const shapes: Array<"rect" | "circle" | "ribbon" | "star"> = ["rect", "circle", "ribbon", "star"];
+
+    // 1. Left Canon (Shooting up-right)
+    for (let i = 0; i < 180; i++) {
       particles.push({
-        x: canvas.width / 2 + (Math.random() - 0.5) * 380,
-        y: canvas.height * 0.38,
-        vx: (Math.random() - 0.5) * 32,
-        vy: -Math.random() * 28 - 6,
-        size: Math.random() * 12 + 6,
+        x: Math.random() * 80,
+        y: canvas.height * 0.9,
+        vx: Math.random() * 22 + 8,
+        vy: -Math.random() * 32 - 12,
+        size: Math.random() * 14 + 6,
         color: colors[Math.floor(Math.random() * colors.length)],
         rotation: Math.random() * 360,
-        rotSpeed: (Math.random() - 0.5) * 14,
+        rotSpeed: (Math.random() - 0.5) * 16,
         opacity: 1,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 0.15 + 0.05,
+      });
+    }
+
+    // 2. Right Canon (Shooting up-left)
+    for (let i = 0; i < 180; i++) {
+      particles.push({
+        x: canvas.width - Math.random() * 80,
+        y: canvas.height * 0.9,
+        vx: -Math.random() * 22 - 8,
+        vy: -Math.random() * 32 - 12,
+        size: Math.random() * 14 + 6,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 16,
+        opacity: 1,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 0.15 + 0.05,
+      });
+    }
+
+    // 3. Center Climax Air Burst (360 degrees outward)
+    for (let i = 0; i < 260; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 28 + 6;
+      particles.push({
+        x: canvas.width / 2 + (Math.random() - 0.5) * 120,
+        y: canvas.height * 0.38,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 6,
+        size: Math.random() * 14 + 5,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        rotation: Math.random() * 360,
+        rotSpeed: (Math.random() - 0.5) * 18,
+        opacity: 1,
+        shape: shapes[Math.floor(Math.random() * shapes.length)],
+        wobble: Math.random() * Math.PI * 2,
+        wobbleSpeed: Math.random() * 0.15 + 0.05,
       });
     }
 
     let animationFrame: number;
-    const render = () => {
+    const startTime = performance.now();
+
+    const render = (time: number) => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       let alive = false;
       particles.forEach((p) => {
-        p.x += p.vx;
+        p.x += p.vx + Math.sin(p.wobble) * 1.5;
         p.y += p.vy;
-        p.vy += 0.45;
-        p.vx *= 0.98;
+        p.vy += 0.38; // gravity
+        p.vx *= 0.985; // air resistance
         p.rotation += p.rotSpeed;
-        p.opacity -= 0.007;
+        p.wobble += p.wobbleSpeed;
+        p.opacity -= 0.0035;
 
-        if (p.opacity > 0) {
+        if (p.opacity > 0 && p.y < canvas.height + 50) {
           alive = true;
           ctx.save();
           ctx.translate(p.x, p.y);
           ctx.rotate((p.rotation * Math.PI) / 180);
           ctx.fillStyle = p.color;
           ctx.globalAlpha = Math.max(0, p.opacity);
-          ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+
+          if (p.shape === "circle") {
+            ctx.beginPath();
+            ctx.arc(0, 0, p.size / 2, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (p.shape === "ribbon") {
+            ctx.fillRect(-p.size / 2, -p.size / 6, p.size * 1.6, p.size / 3);
+          } else if (p.shape === "star") {
+            // Draw 5-pointed sparkle star
+            ctx.beginPath();
+            for (let s = 0; s < 5; s++) {
+              ctx.lineTo(
+                Math.cos(((18 + s * 72) * Math.PI) / 180) * (p.size / 2),
+                -Math.sin(((18 + s * 72) * Math.PI) / 180) * (p.size / 2)
+              );
+              ctx.lineTo(
+                Math.cos(((54 + s * 72) * Math.PI) / 180) * (p.size / 4),
+                -Math.sin(((54 + s * 72) * Math.PI) / 180) * (p.size / 4)
+              );
+            }
+            ctx.closePath();
+            ctx.fill();
+          } else {
+            ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+          }
+
           ctx.restore();
         }
       });
 
-      if (alive) {
+      if (alive && performance.now() - startTime < 12000) {
         animationFrame = requestAnimationFrame(render);
       }
     };
 
-    render();
+    animationFrame = requestAnimationFrame(render);
   }, []);
 
   // ── MASTER 1-SECOND INTERVAL TIMER ──
@@ -330,15 +427,21 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       }
     }
 
-    // ── Phase 7: REVEAL AT 0s (STREETLA Introduces Herself FULLY Before Website Reveal) ──
+    // ── Phase 7: REVEAL AT 0s (GRAND POP & COMPLETE INTRODUCTION) ──
     else if (currentPhase === "REVEAL") {
       setMood("celebrating");
       if (!revealStartedRef.current) {
         revealStartedRef.current = true;
         setIsRevealed(true);
+        setShowCelebrationPops(true);
         stopAmbientAuraMusic();
         playCelebrationFanfare();
         triggerConfetti();
+
+        // Second wave of canon pops at 2 seconds
+        setTimeout(() => {
+          triggerConfetti();
+        }, 2200);
 
         // Play full assistant introduction and welcome
         playLaunchVoice(
@@ -437,7 +540,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
       className="fixed inset-0 w-screen h-screen z-[9999999] bg-[#FFFFFF] text-[#090909] flex flex-col justify-between items-center px-4 sm:px-8 py-5 sm:py-7 select-none overflow-hidden font-outfit"
       style={{ backgroundColor: "#FFFFFF", touchAction: "none" }}
     >
-      {/* Canvas for Full-screen Confetti Explosion */}
+      {/* Canvas for Triple-Canon Confetti Explosion */}
       <canvas
         ref={canvasRef}
         className="fixed inset-0 pointer-events-none z-50 w-full h-full"
@@ -466,7 +569,7 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         )}
       </AnimatePresence>
 
-      {/* ── Dynamic Ambient Glow Mesh ── */}
+      {/* ── Dynamic Ambient Glow Mesh & Pulsing Ripple Rings at Reveal ── */}
       <div
         className="fixed inset-0 pointer-events-none -z-10"
         style={{
@@ -477,6 +580,26 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
         className="fixed -bottom-32 left-1/2 -translate-x-1/2 w-[700px] h-[400px] rounded-full blur-3xl pointer-events-none -z-10 opacity-30"
         style={{ backgroundColor: glowColor }}
       />
+
+      {/* Radial Celebration Shockwave Waves (At 0s Reveal) */}
+      <AnimatePresence>
+        {isRevealed && !isGliding && (
+          <>
+            <motion.div
+              initial={{ scale: 0.2, opacity: 0.9 }}
+              animate={{ scale: 3.2, opacity: 0 }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeOut" }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full border-4 border-amber-400/40 pointer-events-none z-10"
+            />
+            <motion.div
+              initial={{ scale: 0.2, opacity: 0.9 }}
+              animate={{ scale: 3.2, opacity: 0 }}
+              transition={{ duration: 2.2, delay: 0.7, repeat: Infinity, ease: "easeOut" }}
+              className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full border-4 border-purple-500/40 pointer-events-none z-10"
+            />
+          </>
+        )}
+      </AnimatePresence>
 
       {/* ── Top Header ── */}
       <div className="w-full max-w-[1400px] flex items-center justify-between z-40">
@@ -574,16 +697,55 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
           </div>
         ) : (
           <div className="pt-2 sm:pt-3 flex flex-col items-center">
-            <div className="inline-flex items-center gap-2 px-6 py-2 rounded-full bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-widest shadow-lg shadow-emerald-500/25">
-              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+            <motion.div
+              initial={{ scale: 0.6, rotate: -5 }}
+              animate={{ scale: [0.6, 1.15, 1], rotate: [ -5, 3, 0] }}
+              transition={{ duration: 0.6, ease: "backOut" }}
+              className="inline-flex items-center gap-2.5 px-7 py-2.5 rounded-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-black text-xs sm:text-sm md:text-base uppercase tracking-widest shadow-xl shadow-emerald-500/30 border border-white/40"
+            >
+              <span className="w-2.5 h-2.5 rounded-full bg-white animate-ping" />
               <span>WE ARE OFFICIALLY LIVE! 🎉</span>
-            </div>
+            </motion.div>
           </div>
         )}
       </div>
 
-      {/* ── Center Stage: Speech Bubble (Left) + STREETLA Avatar (Center) + Waveform (Right) ── */}
+      {/* ── Center Stage: Speech Bubble (Left) + STREETLA Avatar (Center) + Waveform (Right) + Celebration Pops ── */}
       <div className="w-full max-w-6xl flex items-center justify-center relative my-auto py-2 sm:py-4">
+        {/* Floating Grand Celebration Pop Badges around the Avatar at 0s Reveal */}
+        <AnimatePresence>
+          {showCelebrationPops && !isGliding && (
+            <div className="absolute inset-0 pointer-events-none z-40 hidden md:block">
+              {CELEBRATION_POPS.map((pop, idx) => (
+                <motion.div
+                  key={pop.text}
+                  initial={{ scale: 0, opacity: 0, y: 30 }}
+                  animate={{
+                    scale: [0, 1.15, 1],
+                    opacity: 1,
+                    y: [30, -5, 0],
+                  }}
+                  transition={{
+                    duration: 0.6,
+                    delay: pop.delay,
+                    ease: [0.34, 1.56, 0.64, 1],
+                  }}
+                  style={{
+                    position: "absolute",
+                    top: "50%",
+                    left: "50%",
+                    transform: `translate(${pop.x}, ${pop.y})`,
+                  }}
+                  className={`inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r ${pop.color} text-white font-black text-xs shadow-xl shadow-black/15 border border-white/40 backdrop-blur-md animate-bounce`}
+                >
+                  <pop.icon className="w-4 h-4 text-white" />
+                  <span className="tracking-wide">{pop.text}</span>
+                </motion.div>
+              ))}
+            </div>
+          )}
+        </AnimatePresence>
+
         {/* Left: Floating Speech Bubble (Remains fully visible until glide!) */}
         <AnimatePresence>
           {!isGliding && (
@@ -717,20 +879,35 @@ export const VirtualAssistantLaunch = memo(function VirtualAssistantLaunch({
             animate={{ scale: 1, opacity: 1, y: 0 }}
             exit={{ scale: 0.9, opacity: 0 }}
             transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-            className="fixed inset-0 z-40 flex flex-col items-center justify-center p-4 text-center pointer-events-none bg-white/60 backdrop-blur-xs"
+            className="fixed inset-0 z-40 flex flex-col items-center justify-center p-4 text-center pointer-events-none bg-white/50 backdrop-blur-xs"
           >
-            <div className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-md">
-              <Sparkles className="w-4 h-4 text-emerald-600" />
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: [0, 1.2, 1] }}
+              transition={{ duration: 0.5, delay: 0.1 }}
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-800 text-xs sm:text-sm font-extrabold uppercase tracking-widest shadow-lg"
+            >
+              <Sparkles className="w-4 h-4 text-emerald-600 animate-spin" />
               STREET MOBILE OFFICIALLY LAUNCHED
-            </div>
+            </motion.div>
 
-            <h2 className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-neutral-950 uppercase mt-3 drop-shadow-[0_4px_20px_rgba(0,0,0,0.1)]">
+            <motion.h2
+              initial={{ scale: 0.8, y: 20 }}
+              animate={{ scale: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.2, ease: "backOut" }}
+              className="text-4xl sm:text-6xl md:text-7xl font-black tracking-tight text-neutral-950 uppercase mt-3 drop-shadow-[0_4px_24px_rgba(0,0,0,0.12)] bg-gradient-to-r from-neutral-950 via-purple-900 to-neutral-950 bg-clip-text text-transparent"
+            >
               WE ARE LIVE! 🚀
-            </h2>
+            </motion.h2>
 
-            <p className="text-xs sm:text-base font-semibold text-neutral-700 max-w-md mx-auto mt-2">
+            <motion.p
+              initial={{ opacity: 0, y: 15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, delay: 0.4 }}
+              className="text-xs sm:text-base font-semibold text-neutral-700 max-w-md mx-auto mt-2"
+            >
               Welcome to the all-new Street Mobile. I&apos;m STREETLA, and I&apos;m always here to help you!
-            </p>
+            </motion.p>
           </motion.div>
         )}
       </AnimatePresence>
