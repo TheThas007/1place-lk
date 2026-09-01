@@ -671,6 +671,34 @@ export default function ProductDetailClient({
 
   const selectedStorageVariant = selectedVariant || availableVariantsForColor[0];
 
+  const handleBack = () => {
+    if (typeof window !== "undefined") {
+      const lastBrowse = sessionStorage.getItem("last_browse_page");
+      if (lastBrowse && !lastBrowse.includes(product.slug)) {
+        router.push(lastBrowse);
+        return;
+      }
+      if (document.referrer && document.referrer.includes(window.location.host) && !document.referrer.includes(product.slug)) {
+        window.location.href = document.referrer;
+        return;
+      }
+      if (window.history.length > 1) {
+        window.history.back();
+        return;
+      }
+    }
+    
+    // Fallback: If this is an Apple / Samsung / etc product, return directly to its department brand page
+    if (product.brand_slug || product.brand_name || product.brand) {
+      const brandSlug = product.brand_slug || product.brandSlug || (product.brand_name || product.brand || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const dept = isPhoneSegment(product) ? "phones" : isLaptopTabletSegment(product) ? "laptops-tablets" : "accessories";
+      router.push(`/shop-by-brand/${dept}/${brandSlug}`);
+      return;
+    }
+
+    router.push("/products");
+  };
+
   return (
     <div className="bg-white min-h-screen text-black pb-32 sm:pb-36 w-full max-w-full overflow-x-hidden">
       {/* ── 1. Top Breadcrumbs with Functional Back Button ── */}
@@ -679,13 +707,7 @@ export default function ProductDetailClient({
           <div className="flex items-center gap-2 text-xs sm:text-sm text-gray-500 font-medium overflow-x-auto no-scrollbar">
             <button
               type="button"
-              onClick={() => {
-                if (typeof window !== "undefined" && window.history.length > 1) {
-                  router.back();
-                } else {
-                  router.push("/products");
-                }
-              }}
+              onClick={handleBack}
               className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-neutral-100 hover:bg-neutral-200 text-neutral-800 font-bold text-xs transition-all shrink-0 cursor-pointer mr-1 active:scale-95 shadow-2xs"
               title="Go back to previous page"
             >
@@ -726,6 +748,15 @@ export default function ProductDetailClient({
         <div className="lg:hidden mb-4">
           <div className="flex items-center justify-between gap-2 mb-2">
             <div className="flex items-center gap-1.5 flex-wrap">
+              <button
+                type="button"
+                onClick={handleBack}
+                className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-neutral-100 hover:bg-neutral-200 text-neutral-800 text-[10px] font-bold transition-all shadow-2xs shrink-0 active:scale-95 cursor-pointer"
+                title="Go back"
+              >
+                <ArrowLeft className="w-3 h-3" />
+                <span>Back</span>
+              </button>
               <span className="inline-block px-2.5 py-0.5 rounded-full bg-neutral-100 text-[10px] font-bold text-neutral-700 uppercase tracking-widest">
                 {product.category_name || "Smartphones"}
               </span>

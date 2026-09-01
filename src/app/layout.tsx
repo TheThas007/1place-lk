@@ -17,6 +17,7 @@ import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import DisableNumberScroll from "@/components/providers/DisableNumberScroll";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
 import LaunchGate from "@/components/launch/LaunchGate";
+import BrowseHistoryTracker from "@/components/navigation/BrowseHistoryTracker";
 import Script from "next/script";
 
 const inter = Inter({
@@ -251,6 +252,7 @@ export default function RootLayout({
                     <StreetAssistant />
                     <SearchOverlay />
                     <CampaignPopup />
+                    <BrowseHistoryTracker />
                   </SmoothScrollProvider>
                 </LaunchGate>
               </ToastProvider>
