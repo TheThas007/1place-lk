@@ -112,31 +112,45 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
       }`}
       style={{ borderRadius: 0 }}
     >
-      {/* ── Outer Height / Aspect Ratio Container ── */}
-      <div
-        style={
-          banner.bannerSizeRatio === "1080x1080"
-            ? { aspectRatio: "1 / 1" }
-            : banner.bannerSizeRatio === "860x270"
-            ? { aspectRatio: "860 / 270" }
-            : banner.bannerSizeRatio === "1920x850"
-            ? { aspectRatio: "1920 / 850" }
-            : banner.bannerSizeRatio === "1080x1440"
-            ? { aspectRatio: "1080 / 1440" }
-            : undefined
-        }
-        className={`relative w-full flex items-end md:items-center ${
-          banner.bannerSizeRatio === "1080x1080"
-            ? "aspect-square min-h-[420px]"
-            : banner.bannerSizeRatio === "860x270"
-            ? "aspect-[860/270] min-h-[220px] md:min-h-[280px]"
-            : banner.bannerSizeRatio === "1920x850"
-            ? "aspect-[1920/850] min-h-[360px] md:min-h-[480px]"
-            : banner.bannerSizeRatio === "1080x1440"
-            ? "aspect-[1080/1440] min-h-[480px] md:min-h-[640px]"
-            : "h-[380px] sm:h-[460px] md:h-[clamp(480px,60vh,580px)]"
-        }`}
-      >
+      {/* ── Outer Height / Aspect Ratio Container (Desktop & Mobile Independent) ── */}
+      {(() => {
+        const desktopRatio = banner.bannerSizeRatio || banner.banner_size_ratio || "default";
+        const mobileRatio = banner.bannerSizeRatioMobile || banner.banner_size_ratio_mobile || desktopRatio;
+
+        const getMobileClass = () => {
+          switch (mobileRatio) {
+            case "1080x1080":
+              return "max-md:aspect-square max-md:min-h-[360px]";
+            case "860x270":
+              return "max-md:aspect-[860/270] max-md:min-h-[160px]";
+            case "1920x850":
+              return "max-md:aspect-[1920/850] max-md:min-h-[200px]";
+            case "1080x1440":
+              return "max-md:aspect-[1080/1440] max-md:min-h-[440px]";
+            default:
+              return "max-md:h-[360px]";
+          }
+        };
+
+        const getDesktopClass = () => {
+          switch (desktopRatio) {
+            case "1080x1080":
+              return "md:aspect-square md:min-h-[500px]";
+            case "860x270":
+              return "md:aspect-[860/270] md:min-h-[260px]";
+            case "1920x850":
+              return "md:aspect-[1920/850] md:min-h-[420px]";
+            case "1080x1440":
+              return "md:aspect-[1080/1440] md:min-h-[600px]";
+            default:
+              return "md:h-[clamp(480px,60vh,580px)]";
+          }
+        };
+
+        return (
+          <div
+            className={`relative w-full flex items-end md:items-center ${getMobileClass()} ${getDesktopClass()}`}
+          >
         {/* ── 1. Full-Frame Background Image with Subtle Entrance Scaling ── */}
         <motion.div
           initial={{ scale: 1.02 }}
@@ -264,6 +278,8 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
           </motion.div>
         </div>
       </div>
-    </section>
-  );
+    );
+  })()}
+</section>
+);
 }

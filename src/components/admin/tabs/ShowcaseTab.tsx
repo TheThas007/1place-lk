@@ -631,48 +631,92 @@ export default function ShowcaseTab({
                       </div>
                     </div>
 
-                    {/* ── BANNER SIZE / ASPECT RATIO SELECTOR ── */}
-                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-2.5">
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-white/90 text-xs uppercase tracking-wider flex items-center gap-1.5">
-                          <Maximize2 className="w-4 h-4 text-purple-400" /> Showcase Banner Size &amp; Ratio
-                        </span>
-                        <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">
-                          {slide.banner_size_ratio || "default"}
-                        </span>
+                    {/* ── BANNER SIZE / ASPECT RATIO SELECTOR (DESKTOP & MOBILE INDEPENDENT) ── */}
+                    <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-4">
+                      {/* 1. Desktop Ratio */}
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white/90 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                            <Monitor className="w-4 h-4 text-purple-400" /> 🖥️ Desktop Banner Size &amp; Ratio
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono text-[10px] font-bold">
+                            {slide.banner_size_ratio || "default"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {[
+                            { id: "default", label: "Default", badge: "Auto Fit", desc: "Standard ~600px" },
+                            { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Box" },
+                            { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Compact Strip" },
+                            { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Wide" },
+                            { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Poster" },
+                          ].map((preset) => {
+                            const isSelected = (slide.banner_size_ratio || "default") === preset.id;
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => updateSlide(idx, { banner_size_ratio: preset.id as any })}
+                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                  isSelected
+                                    ? "bg-purple-600/20 border-purple-500 text-white shadow-md ring-1 ring-purple-500"
+                                    : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-extrabold text-xs text-white">{preset.label}</span>
+                                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-purple-500 text-white" : "bg-white/10 text-white/50"}`}>
+                                    {preset.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] leading-tight text-white/50 line-clamp-1">{preset.desc}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 pt-1">
-                        {[
-                          { id: "default", label: "Default", badge: "Auto Fit", desc: "Full Width ~600px Standard" },
-                          { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Social Format" },
-                          { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Compact Strip Format" },
-                          { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic" },
-                          { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Poster / Story" },
-                        ].map((preset) => {
-                          const isSelected = (slide.banner_size_ratio || "default") === preset.id;
-                          return (
-                            <button
-                              key={preset.id}
-                              type="button"
-                              onClick={() => updateSlide(idx, { banner_size_ratio: preset.id as any })}
-                              className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
-                                isSelected
-                                  ? "bg-purple-600/20 border-purple-500 text-white shadow-md ring-1 ring-purple-500"
-                                  : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
-                              }`}
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-extrabold text-xs text-white">{preset.label}</span>
-                                <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-purple-500 text-white" : "bg-white/10 text-white/50"}`}>
-                                  {preset.badge}
-                                </span>
-                              </div>
-                              <p className="text-[10px] leading-tight text-white/50 line-clamp-2">
-                                {preset.desc}
-                              </p>
-                            </button>
-                          );
-                        })}
+
+                      {/* 2. Mobile Ratio */}
+                      <div className="space-y-2 pt-3 border-t border-white/10">
+                        <div className="flex items-center justify-between">
+                          <span className="font-bold text-white/90 text-xs uppercase tracking-wider flex items-center gap-1.5">
+                            <Smartphone className="w-4 h-4 text-emerald-400" /> 📱 Mobile Banner Size &amp; Ratio (Independent)
+                          </span>
+                          <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-mono text-[10px] font-bold">
+                            {slide.banner_size_ratio_mobile || "default"}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+                          {[
+                            { id: "default", label: "Auto (Match Desktop)", badge: "Auto", desc: "Responsive Flow" },
+                            { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Mobile Square" },
+                            { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Slim Mobile Strip" },
+                            { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Wide Banner" },
+                            { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Story", desc: "Full Mobile Poster" },
+                          ].map((preset) => {
+                            const isSelected = (slide.banner_size_ratio_mobile || "default") === preset.id;
+                            return (
+                              <button
+                                key={preset.id}
+                                type="button"
+                                onClick={() => updateSlide(idx, { banner_size_ratio_mobile: preset.id as any })}
+                                className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                                  isSelected
+                                    ? "bg-emerald-600/20 border-emerald-500 text-white shadow-md ring-1 ring-emerald-500"
+                                    : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                                }`}
+                              >
+                                <div className="flex items-center justify-between">
+                                  <span className="font-extrabold text-xs text-white">{preset.label}</span>
+                                  <span className={`text-[9px] font-black px-1.5 py-0.5 rounded ${isSelected ? "bg-emerald-500 text-white" : "bg-white/10 text-white/50"}`}>
+                                    {preset.badge}
+                                  </span>
+                                </div>
+                                <p className="text-[10px] leading-tight text-white/50 line-clamp-1">{preset.desc}</p>
+                              </button>
+                            );
+                          })}
+                        </div>
                       </div>
                     </div>
 

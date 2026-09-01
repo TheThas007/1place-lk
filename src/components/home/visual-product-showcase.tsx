@@ -196,21 +196,24 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
         )}
 
         {/* ── Slide Frame / Container ── */}
-        <div
-          className={`relative w-full ${
-            currentSlide.banner_size_ratio === "1080x1080"
-              ? "aspect-square min-h-[440px] justify-center"
-              : currentSlide.banner_size_ratio === "860x270"
-              ? "aspect-[860/270] min-h-[220px] md:min-h-[280px] justify-center"
-              : currentSlide.banner_size_ratio === "1920x850"
-              ? "aspect-[1920/850] min-h-[360px] md:min-h-[480px] justify-center"
-              : currentSlide.banner_size_ratio === "1080x1440"
-              ? "aspect-[1080/1440] min-h-[480px] md:min-h-[640px] justify-center"
-              : hasForegroundImage
-              ? "min-h-[500px] sm:min-h-[540px] justify-between"
-              : "min-h-[420px] sm:min-h-[480px] justify-center"
-          } border-0 rounded-none shadow-none flex flex-col items-center pt-8 sm:pt-10 px-4 pb-4 z-10`}
-        >
+        {(() => {
+          const mobileRatio = currentSlide.banner_size_ratio_mobile || (currentSlide as any).bannerSizeRatioMobile || currentSlide.banner_size_ratio || "default";
+          return (
+            <div
+              className={`relative w-full ${
+                mobileRatio === "1080x1080"
+                  ? "aspect-square min-h-[380px] justify-center"
+                  : mobileRatio === "860x270"
+                  ? "aspect-[860/270] min-h-[180px] justify-center"
+                  : mobileRatio === "1920x850"
+                  ? "aspect-[1920/850] min-h-[220px] justify-center"
+                  : mobileRatio === "1080x1440"
+                  ? "aspect-[1080/1440] min-h-[440px] justify-center"
+                  : hasForegroundImage
+                  ? "min-h-[420px] justify-between"
+                  : "min-h-[340px] justify-center"
+              } border-0 rounded-none shadow-none flex flex-col items-center pt-6 px-4 pb-4 z-10`}
+            >
           {/* Top Content Block: Badge -> Heading -> Subtitle -> Action CTAs */}
           <div className={`relative z-10 w-full flex flex-col max-w-md mx-auto space-y-2 ${alignClass}`}>
             {/* 1. Eyebrow / Campaign Badge */}
@@ -302,26 +305,28 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
             </div>
           )}
 
-          {/* Mobile Pagination Indicator Dots (if > 1 slide) */}
-          {totalSlides > 1 && (
-            <div className="flex items-center justify-center gap-1.5 pt-3 pb-1 z-20">
-              {activeSlides.map((_, idx) => (
-                <button
-                  key={idx}
-                  type="button"
-                  onClick={() => setCurrentIndex(idx)}
-                  className={`transition-all rounded-full ${
-                    idx === currentIndex
-                      ? isImageBg ? "w-4 h-1.5 bg-white" : "w-4 h-1.5 bg-neutral-900"
-                      : isImageBg ? "w-1.5 h-1.5 bg-white/40" : "w-1.5 h-1.5 bg-neutral-400/60"
-                  }`}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
-        </div>
-      </section>
+            {/* Mobile Pagination Indicator Dots (if > 1 slide) */}
+            {totalSlides > 1 && (
+              <div className="flex items-center justify-center gap-1.5 pt-3 pb-1 z-20">
+                {activeSlides.map((_, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentIndex(idx)}
+                    className={`transition-all rounded-full ${
+                      idx === currentIndex
+                        ? isImageBg ? "w-4 h-1.5 bg-white" : "w-4 h-1.5 bg-neutral-900"
+                        : isImageBg ? "w-1.5 h-1.5 bg-white/40" : "w-1.5 h-1.5 bg-neutral-400/60"
+                    }`}
+                    aria-label={`Go to slide ${idx + 1}`}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+    </section>
 
       {/* ── Desktop Layout (>= 768px) ── */}
       <section

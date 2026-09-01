@@ -717,6 +717,9 @@ export interface OfferBanner {
   cornerRadius?: number;
   bannerHeightDesktop?: number;
   bannerSizeRatio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
+  banner_size_ratio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
+  bannerSizeRatioMobile?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
+  banner_size_ratio_mobile?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
   sectionSpacing?: number;
 
   additionalImages?: string[];
@@ -944,6 +947,7 @@ export interface VisualShowcaseSlide {
   placement?: ShowcasePlacement; // Per-slide placement position on homepage
   enable_animation?: boolean;    // Toggle floating image animation on/off
   banner_size_ratio?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
+  banner_size_ratio_mobile?: "default" | "1080x1080" | "860x270" | "1920x850" | "1080x1440";
   product_id?: string;
   category_id?: string;
 }
