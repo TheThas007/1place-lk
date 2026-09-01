@@ -6,7 +6,6 @@ import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import { motion } from "framer-motion";
 import { db } from "@/lib/firebase";
 import { doc, onSnapshot } from "firebase/firestore";
 
@@ -114,6 +113,7 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
   const safeRating = Math.min(5, Math.max(1, review.rating || 5));
   const displayDate = review.review_date || "Verified Google Review";
   const cardTargetUrl = validateUrl(review.google_url, mainViewAllUrl);
+  const authorInitial = (review.author_name || "G").charAt(0).toUpperCase();
 
   return (
     <a
@@ -122,13 +122,13 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
       rel="noopener noreferrer"
       onClick={onLinkClick}
       aria-label={`Read Google review by ${review.author_name}`}
-      className="w-[86vw] sm:w-[380px] lg:w-[410px] shrink-0 min-h-[290px] bg-neutral-50/80 hover:bg-white border border-neutral-200/90 hover:border-neutral-300 rounded-[12px] p-6 sm:p-7 shadow-[0_8px_28px_rgba(0,0,0,0.055)] transition-all duration-300 ease-out hover:-translate-y-[3px] flex flex-col justify-between group relative overflow-hidden cursor-pointer select-none"
+      className="w-[80vw] sm:w-[380px] lg:w-[410px] max-w-[340px] sm:max-w-none shrink-0 min-h-[230px] sm:min-h-[280px] bg-neutral-50/90 hover:bg-white border border-neutral-200/90 hover:border-neutral-300 rounded-[14px] sm:rounded-[16px] p-5 sm:p-7 shadow-[0_4px_20px_rgba(0,0,0,0.04)] transition-all duration-300 ease-out hover:-translate-y-[2px] sm:hover:-translate-y-[3px] flex flex-col justify-between group relative overflow-hidden cursor-pointer select-none"
     >
-      {/* 1. Top Area: Star Rating & Verified Google Badge */}
+      {/* 1. Top Area: Star Rating & Badges */}
       <div>
-        <div className="flex items-center justify-between gap-2 mb-3.5 pointer-events-none">
+        <div className="flex items-center justify-between gap-2 mb-3 pointer-events-none">
           {/* Star Rating */}
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-0.5 sm:gap-1">
             {[...Array(safeRating)].map((_, i) => (
               <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
             ))}
@@ -137,12 +137,12 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
           {/* Badges */}
           <div className="flex items-center gap-1.5">
             {review.featured && (
-              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9.5px] sm:text-[10px] font-extrabold uppercase tracking-wider bg-amber-100 text-amber-800 border border-amber-200">
                 <Sparkles className="w-3 h-3 text-amber-600" />
                 <span>Featured</span>
               </span>
             )}
-            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-[5px] text-[9.5px] sm:text-[10px] font-bold tracking-wider uppercase bg-emerald-100 text-emerald-800 border border-emerald-200">
               <CheckCircle2 className="w-3 h-3 text-emerald-600" />
               <span>Google Review</span>
             </span>
@@ -152,7 +152,7 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
         {/* 2. Review Content */}
         <div className="relative mb-2 pointer-events-none">
           <Quote className="w-3.5 h-3.5 text-neutral-300/80 inline-block mr-1.5 -mt-1 rotate-180 select-none" />
-          <span className="text-neutral-700 text-[14px] sm:text-[15px] leading-[1.65] font-normal line-clamp-4">
+          <span className="text-neutral-700 text-xs sm:text-[15px] leading-relaxed sm:leading-[1.65] font-normal line-clamp-3 sm:line-clamp-4">
             {review.text}
           </span>
         </div>
@@ -161,11 +161,11 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
       {/* 3. Flexible Spacer */}
       <div className="flex-1 min-h-2 pointer-events-none" />
 
-      {/* 4. Reviewer Profile (Aligned at Bottom) */}
-      <div className="pt-4 border-t border-neutral-200/80 flex items-center justify-between gap-3 pointer-events-none">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* 4. Reviewer Profile (Bottom Row) */}
+      <div className="pt-3 sm:pt-4 border-t border-neutral-200/80 flex items-center justify-between gap-3 pointer-events-none">
+        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
           {/* Avatar */}
-          <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs font-bold text-xs">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden shadow-2xs font-bold text-xs">
             {review.author_photo ? (
               <img
                 src={review.author_photo}
@@ -174,29 +174,29 @@ function ReviewCard({ review, mainViewAllUrl, onLinkClick }: ReviewCardProps) {
                 draggable={false}
               />
             ) : (
-              <span>{review.author_name ? review.author_name.charAt(0).toUpperCase() : "G"}</span>
+              <span>{authorInitial}</span>
             )}
           </div>
 
           {/* Name & Date */}
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
-              <h4 className="font-[650] text-sm text-neutral-900 truncate group-hover:text-amber-600 transition-colors m-0">
+              <h4 className="font-bold text-xs sm:text-sm text-neutral-900 truncate group-hover:text-amber-600 transition-colors m-0">
                 {review.author_name}
               </h4>
-              <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
+              <GoogleIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             </div>
-            <p className="text-xs text-neutral-400 m-0 mt-0.5">{displayDate}</p>
+            <p className="text-[10.5px] sm:text-xs text-neutral-400 m-0 mt-0.5">{displayDate}</p>
           </div>
         </div>
 
-        <ExternalLink className="w-4 h-4 text-neutral-400 group-hover:text-amber-600 transition-colors shrink-0" />
+        <ExternalLink className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-neutral-400 group-hover:text-amber-600 transition-colors shrink-0" />
       </div>
     </a>
   );
 }
 
-/* ─── Main Reviews Section with Continuous Endless Opposite Scrolling Rail ─── */
+/* ─── Main Reviews Section (Silky-Smooth GPU Touch Swipe & Counter-Autoplay Engine) ─── */
 export default function ReviewsSection({
   reviews,
   settings,
@@ -241,8 +241,7 @@ export default function ReviewsSection({
   const overallRating = currentSettings.overall_rating || 4.9;
   const totalReviewsCount = currentSettings.total_reviews_count || 285;
 
-  // Determine counter-scrolling direction:
-  // If gallery moves 'left', reviews moves 'right'. If gallery moves 'right', reviews moves 'left'.
+  // Opposite counter-scrolling direction
   const effectiveDirection: "left" | "right" = useMemo(() => {
     if (currentSettings.direction === "left") return "left";
     if (currentSettings.direction === "right") return "right";
@@ -263,7 +262,7 @@ export default function ReviewsSection({
       : [...filtered, ...DEFAULT_REVIEWS.filter((r) => !seen.has(r.id))];
   }, [reviews]);
 
-  // Expand sequence to ensure seamless loop without gaps
+  // Expand sequence for seamless infinite loop
   const baseItems = useMemo(() => {
     if (displayReviews.length === 0) return [];
     if (displayReviews.length >= 6) return displayReviews;
@@ -294,6 +293,7 @@ export default function ReviewsSection({
   const animFrameIdRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stepAnimRef = useRef<number | null>(null);
 
   // State flags for interactive pausing
   const isHoveredRef = useRef(false);
@@ -303,10 +303,15 @@ export default function ReviewsSection({
   const isVisibleRef = useRef(true);
   const wasDraggingRef = useRef(false);
 
-  // Drag physics tracking
+  // Touch & Drag Physics Tracking
   const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
   const dragStartOffsetRef = useRef(0);
   const dragMovedRef = useRef(0);
+  const isHorizontalGestureRef = useRef<boolean | null>(null);
+  const lastPointerXRef = useRef(0);
+  const lastPointerTimeRef = useRef(0);
+  const pointerVelocityRef = useRef(0);
 
   // Measure sequence width dynamically
   const measureSequence = useCallback(() => {
@@ -363,7 +368,17 @@ export default function ReviewsSection({
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Main 60fps RequestAnimationFrame Loop
+  // Helper to wrap offset within [-sequenceWidth, 0]
+  const normalizeOffset = useCallback((val: number) => {
+    const seqWidth = sequenceWidthRef.current;
+    if (seqWidth <= 0) return val;
+    let n = val;
+    while (n <= -seqWidth) n += seqWidth;
+    while (n >= 0) n -= seqWidth;
+    return n;
+  }, []);
+
+  // Main 60fps/120fps RequestAnimationFrame Loop
   useEffect(() => {
     const endlessEnabled = currentSettings.endlessScrollEnabled !== false;
     const autoplayEnabled = currentSettings.autoplayEnabled !== false;
@@ -391,13 +406,13 @@ export default function ReviewsSection({
         isPausedRef.current;
 
       if (!shouldPause && seqWidth > 0 && dt > 0 && dt < 0.25) {
-        // Responsive gentle slow speed
+        // Responsive speed
         let speed = currentSettings.desktopSpeed ? Math.min(currentSettings.desktopSpeed, 24) : 22;
         if (typeof window !== "undefined") {
           if (window.innerWidth < 768) {
-            speed = currentSettings.mobileSpeed ? Math.min(currentSettings.mobileSpeed, 18) : 16;
+            speed = currentSettings.mobileSpeed ? Math.min(currentSettings.mobileSpeed, 20) : 18;
           } else if (window.innerWidth < 1024) {
-            speed = currentSettings.tabletSpeed ? Math.min(currentSettings.tabletSpeed, 20) : 18;
+            speed = currentSettings.tabletSpeed ? Math.min(currentSettings.tabletSpeed, 22) : 20;
           }
         }
 
@@ -427,198 +442,155 @@ export default function ReviewsSection({
     };
   }, [currentSettings, effectiveDirection, isReducedMotion, baseItems]);
 
-  // Mobile Continuous Auto-Scroll + Touch/Finger Swipe Engine
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-  const [isMobileInteracting, setIsMobileInteracting] = useState(false);
-  const [isInViewport, setIsInViewport] = useState(true);
-  const mobileResumeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isDraggingMobileRef = useRef(false);
-  const mobileDragStartXRef = useRef(0);
-  const mobileDragMovedRef = useRef(0);
+  // Smooth Animated Step (Prev / Next Buttons)
+  const smoothStep = useCallback(
+    (delta: number) => {
+      if (stepAnimRef.current) cancelAnimationFrame(stepAnimRef.current);
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
 
-  const mobileReviews = useMemo(() => {
-    if (displayReviews.length === 0) return [];
-    if (displayReviews.length >= 4) return displayReviews;
-    const repeated: Review[] = [];
-    while (repeated.length < 4) {
-      repeated.push(...displayReviews);
-    }
-    return repeated;
-  }, [displayReviews]);
+      isPausedRef.current = true;
+      lastTimeRef.current = null;
 
-  // Tripled list for seamless infinite loop
-  const mobileTripledReviews = useMemo(() => {
-    if (mobileReviews.length === 0) return [];
-    return [...mobileReviews, ...mobileReviews, ...mobileReviews];
-  }, [mobileReviews]);
+      const startOffset = offsetRef.current;
+      const startTime = performance.now();
+      const duration = 400; // ms
 
-  // Set initial scroll to center set for bidirectional seamless swiping
-  useEffect(() => {
-    if (mobileScrollRef.current) {
-      const container = mobileScrollRef.current;
-      const singleSetWidth = container.scrollWidth / 3;
-      if (singleSetWidth > 0 && container.scrollLeft === 0) {
-        container.scrollLeft = singleSetWidth;
-      }
-    }
-  }, [mobileTripledReviews]);
+      const stepTick = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease Out Cubic curve
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = startOffset + delta * ease;
 
-  // Mobile IntersectionObserver
-  useEffect(() => {
-    const el = mobileScrollRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-
-    const handleVisibility = () => {
-      setIsInViewport(!document.hidden);
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  // ── Mobile Auto-Scroll Loop (requestAnimationFrame) ──
-  useEffect(() => {
-    if (isReducedMotion || mobileTripledReviews.length <= 1) return;
-
-    let animId: number;
-
-    const tick = () => {
-      if (mobileScrollRef.current && !isMobileInteracting && isInViewport) {
-        const container = mobileScrollRef.current;
-        // Direction: opposite movement or right-to-left
-        const speed = effectiveDirection === "left" ? 0.75 : -0.75;
-        container.scrollLeft += speed;
-
-        const singleSetWidth = container.scrollWidth / 3;
-        if (singleSetWidth > 0) {
-          if (container.scrollLeft >= singleSetWidth * 2) {
-            container.scrollLeft -= singleSetWidth;
-          } else if (container.scrollLeft <= 0) {
-            container.scrollLeft += singleSetWidth;
-          }
+        offsetRef.current = normalizeOffset(current);
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
         }
-      }
-      animId = requestAnimationFrame(tick);
-    };
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, [isMobileInteracting, isInViewport, isReducedMotion, mobileTripledReviews.length, effectiveDirection]);
+        if (progress < 1) {
+          stepAnimRef.current = requestAnimationFrame(stepTick);
+        } else {
+          // Resume autoplay after 2.5 seconds
+          if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+          resumeTimeoutRef.current = setTimeout(() => {
+            isPausedRef.current = false;
+            lastTimeRef.current = null;
+          }, 2500);
+        }
+      };
 
-  // Touch handlers for mobile reviews
-  const handleMobileTouchStart = (e: React.TouchEvent) => {
-    setIsMobileInteracting(true);
-    mobileDragStartXRef.current = e.touches[0].clientX;
-    mobileDragMovedRef.current = 0;
-    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-  };
+      stepAnimRef.current = requestAnimationFrame(stepTick);
+    },
+    [normalizeOffset]
+  );
 
-  const handleMobileTouchMove = (e: React.TouchEvent) => {
-    const dx = Math.abs(e.touches[0].clientX - mobileDragStartXRef.current);
-    mobileDragMovedRef.current = dx;
-  };
+  const handlePrev = useCallback(() => {
+    const cardStep = typeof window !== "undefined" && window.innerWidth < 768 ? 320 : 400;
+    smoothStep(cardStep);
+  }, [smoothStep]);
 
-  const handleMobileTouchEnd = () => {
-    if (mobileDragMovedRef.current > 8) {
-      isDraggingMobileRef.current = true;
-      setTimeout(() => {
-        isDraggingMobileRef.current = false;
-      }, 250);
-    }
-    // Resume auto-scroll smoothly after 2 seconds
-    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-    mobileResumeTimerRef.current = setTimeout(() => {
-      setIsMobileInteracting(false);
-    }, 2000);
-  };
+  const handleNext = useCallback(() => {
+    const cardStep = typeof window !== "undefined" && window.innerWidth < 768 ? 320 : 400;
+    smoothStep(-cardStep);
+  }, [smoothStep]);
 
-  const handleMobileCardClick = (e: React.MouseEvent) => {
-    if (isDraggingMobileRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
-
-  const handleMobileScrollPrev = () => {
-    if (mobileScrollRef.current) {
-      setIsMobileInteracting(true);
-      mobileScrollRef.current.scrollBy({ left: -290, behavior: "smooth" });
-      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-      mobileResumeTimerRef.current = setTimeout(() => {
-        setIsMobileInteracting(false);
-      }, 4000);
-    }
-  };
-
-  const handleMobileScrollNext = () => {
-    if (mobileScrollRef.current) {
-      setIsMobileInteracting(true);
-      mobileScrollRef.current.scrollBy({ left: 290, behavior: "smooth" });
-      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-      mobileResumeTimerRef.current = setTimeout(() => {
-        setIsMobileInteracting(false);
-      }, 4000);
-    }
-  };
-
-  // Pointer drag & touch swipe handlers for desktop
+  // ── Touch & Pointer Gestures for Fluid 1:1 Swiping ──
   const handlePointerDown = (e: React.PointerEvent) => {
     if (currentSettings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
+    if (stepAnimRef.current) cancelAnimationFrame(stepAnimRef.current);
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+
     isDraggingRef.current = true;
+    isPausedRef.current = true;
     dragStartXRef.current = e.clientX;
+    dragStartYRef.current = e.clientY;
     dragStartOffsetRef.current = offsetRef.current;
     dragMovedRef.current = 0;
+    isHorizontalGestureRef.current = null;
+    lastPointerXRef.current = e.clientX;
+    lastPointerTimeRef.current = performance.now();
+    pointerVelocityRef.current = 0;
     lastTimeRef.current = null;
-    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
+
     const dx = e.clientX - dragStartXRef.current;
-    dragMovedRef.current = Math.abs(dx);
+    const dy = e.clientY - dragStartYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
-    const seqWidth = sequenceWidthRef.current || 1;
-    let newOffset = dragStartOffsetRef.current + dx;
+    // Detect gesture direction on initial movement
+    if (isHorizontalGestureRef.current === null) {
+      if (absDx > 6 || absDy > 6) {
+        if (absDy > absDx) {
+          // Vertical scroll - release drag
+          isHorizontalGestureRef.current = false;
+          isDraggingRef.current = false;
+          isPausedRef.current = false;
+          return;
+        } else {
+          isHorizontalGestureRef.current = true;
+        }
+      }
+    }
 
-    while (newOffset <= -seqWidth) newOffset += seqWidth;
-    while (newOffset >= 0) newOffset -= seqWidth;
+    if (isHorizontalGestureRef.current === false) return;
 
+    dragMovedRef.current = absDx;
+
+    // Track velocity
+    const now = performance.now();
+    const dt = now - lastPointerTimeRef.current;
+    if (dt > 0) {
+      pointerVelocityRef.current = (e.clientX - lastPointerXRef.current) / dt;
+      lastPointerXRef.current = e.clientX;
+      lastPointerTimeRef.current = now;
+    }
+
+    // Direct 1:1 hardware transform
+    const newOffset = normalizeOffset(dragStartOffsetRef.current + dx);
     offsetRef.current = newOffset;
+
     if (trackRef.current) {
       trackRef.current.style.transform = `translate3d(${newOffset}px, 0, 0)`;
     }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     lastTimeRef.current = null;
 
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    // Suppress card link clicks if user dragged
     if (dragMovedRef.current > 6) {
       wasDraggingRef.current = true;
       setTimeout(() => {
         wasDraggingRef.current = false;
-      }, 250);
+      }, 200);
     }
 
-    if (currentSettings.pauseOnInteraction !== false) {
-      isPausedRef.current = true;
+    // Inertial fling momentum if flicked
+    const velocity = pointerVelocityRef.current;
+    if (Math.abs(velocity) > 0.35) {
+      const flingDistance = velocity * 180;
+      smoothStep(flingDistance);
+    } else {
+      // Resume autoplay after brief delay
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
       resumeTimeoutRef.current = setTimeout(() => {
         isPausedRef.current = false;
         lastTimeRef.current = null;
-      }, currentSettings.resumeDelay || 1500);
+      }, currentSettings.resumeDelay || 1800);
     }
   };
 
@@ -633,20 +605,17 @@ export default function ReviewsSection({
     currentSettings.endlessScrollEnabled !== false && !isReducedMotion && baseItems.length > 1;
 
   return (
-    <>
-      {/* ── Mobile Layout (< 768px): Continuous Auto-Scroll + Touch/Finger Swipe Reviews ── */}
-      <section
-        className="md:hidden w-full bg-white py-6 select-none overflow-hidden"
-        aria-label="Customer Reviews"
-      >
-        {/* Section Header */}
-        <motion.div
-          initial={{ opacity: 0, y: isReducedMotion ? 0 : 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.15 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="text-center px-4 mb-5 max-w-sm mx-auto flex flex-col items-center"
-        >
+    <ScrollReveal
+      as="section"
+      id="reviews-section"
+      stagger={0.06}
+      yOffset={20}
+      className="py-8 sm:py-14 lg:py-[72px] bg-white border-b border-neutral-200/80 relative overflow-hidden font-sans select-none"
+    >
+      {/* ── Centred Content Container (1240px max-width) ── */}
+      <div className="max-w-[1240px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto relative z-10">
+        {/* Mobile Header (< 768px) */}
+        <div data-reveal-item className="md:hidden flex flex-col items-center text-center mb-5">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-2 select-none">
             <GoogleIcon className="w-3 h-3 shrink-0" />
             <span>Google Reviews</span>
@@ -658,12 +627,12 @@ export default function ReviewsSection({
 
           <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold mb-3 flex-wrap">
             <div className="flex items-center gap-1">
-              <span className="text-neutral-900 font-black text-base leading-none">
+              <span className="text-amber-500 font-black text-base leading-none">
                 {overallRating.toFixed(1)}
               </span>
               <div className="flex items-center">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3.5 h-3.5 fill-neutral-900 text-neutral-900" />
+                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
                 ))}
               </div>
             </div>
@@ -695,208 +664,114 @@ export default function ReviewsSection({
               </a>
             </div>
 
-            {/* ── Mobile Manual Slide Prev / Next Touch Buttons ── */}
+            {/* Mobile Touch Navigation Buttons */}
             <div className="flex items-center gap-1.5 shrink-0">
               <button
                 type="button"
-                onClick={handleMobileScrollPrev}
-                className="w-8 h-8 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                onClick={handlePrev}
+                className="w-7 h-7 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Previous Review"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
               <button
                 type="button"
-                onClick={handleMobileScrollNext}
-                className="w-8 h-8 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
+                onClick={handleNext}
+                className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Next Review"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
             </div>
           </div>
-        </motion.div>
-
-        {/* Interactive Scroll & Touch Swipe Container */}
-        <div
-          ref={mobileScrollRef}
-          onTouchStart={handleMobileTouchStart}
-          onTouchMove={handleMobileTouchMove}
-          onTouchEnd={handleMobileTouchEnd}
-          onTouchCancel={handleMobileTouchEnd}
-          onPointerDown={() => setIsMobileInteracting(true)}
-          onPointerUp={handleMobileTouchEnd}
-          onScroll={() => {
-            if (!isMobileInteracting) {
-              setIsMobileInteracting(true);
-            }
-            if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-            mobileResumeTimerRef.current = setTimeout(() => {
-              setIsMobileInteracting(false);
-            }, 3500);
-          }}
-          className="flex items-stretch gap-3.5 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y snap-x snap-mandatory scroll-smooth cursor-grab active:cursor-grabbing"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-        >
-          {mobileTripledReviews.map((rev, idx) => {
-            const safeRating = Math.min(5, Math.max(1, rev.rating || 5));
-            const authorInitial = (rev.author_name || "G").charAt(0).toUpperCase();
-            const cardTargetUrl = validateUrl(rev.google_url, mainViewAllUrl);
-
-            return (
-              <div
-                key={`mob-rev-${rev.id || idx}-${idx}`}
-                className="w-[78vw] sm:w-[82vw] max-w-[300px] shrink-0 snap-center flex"
-              >
-                <a
-                  href={cardTargetUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={handleMobileCardClick}
-                  aria-label={`Google review by ${rev.author_name}`}
-                  className="w-full bg-neutral-50/90 hover:bg-white border border-neutral-200/90 rounded-2xl p-4 sm:p-5 flex flex-col justify-between shadow-xs transition-all duration-200 select-none block"
-                >
-                  {/* Top Badges & Stars */}
-                  <div>
-                    <div className="flex items-center justify-between gap-2 mb-2.5 pointer-events-none">
-                      <div className="flex items-center gap-0.5">
-                        {[...Array(safeRating)].map((_, i) => (
-                          <Star key={i} className="w-3 h-3 fill-neutral-900 text-neutral-900" />
-                        ))}
-                      </div>
-
-                      <div className="flex items-center gap-1">
-                        {rev.featured && (
-                          <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold uppercase tracking-wider bg-neutral-900 text-white border border-neutral-900">
-                            <Sparkles className="w-2.5 h-2.5 text-white" />
-                            <span>Featured</span>
-                          </span>
-                        )}
-                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-[4px] text-[8.5px] font-bold tracking-wider uppercase bg-neutral-100 text-neutral-900 border border-neutral-300">
-                          <CheckCircle2 className="w-2.5 h-2.5 text-neutral-900" />
-                          <span>Verified</span>
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Review Text */}
-                    <div className="relative mb-1 pointer-events-none">
-                      <Quote className="w-2.5 h-2.5 text-neutral-300 inline-block mr-1 -mt-1 rotate-180 select-none" />
-                      <p className="text-neutral-700 text-xs leading-snug font-normal line-clamp-3 inline">
-                        {rev.text}
-                      </p>
-                    </div>
-                  </div>
-
-                  {/* Reviewer Profile */}
-                  <div className="pt-2.5 mt-2.5 border-t border-neutral-200/80 flex items-center justify-between gap-2 pointer-events-none">
-                    <div className="flex items-center gap-2 min-w-0">
-                      <div className="w-7 h-7 rounded-full bg-neutral-200 text-neutral-800 border border-neutral-300 flex items-center justify-center shrink-0 overflow-hidden font-bold text-[10px]">
-                        {rev.author_photo ? (
-                          <img
-                            src={rev.author_photo}
-                            alt={rev.author_name}
-                            className="w-full h-full object-cover"
-                            draggable={false}
-                          />
-                        ) : (
-                          <span>{authorInitial}</span>
-                        )}
-                      </div>
-                      <div className="min-w-0">
-                        <div className="flex items-center gap-1">
-                          <h4 className="font-bold text-xs text-neutral-900 truncate m-0">
-                            {rev.author_name}
-                          </h4>
-                          <GoogleIcon className="w-3 h-3 shrink-0" />
-                        </div>
-                        <p className="text-[10px] text-neutral-400 m-0">
-                          {rev.review_date || "Verified Google Review"}
-                        </p>
-                      </div>
-                    </div>
-
-                    <ExternalLink className="w-3.5 h-3.5 text-neutral-400 group-hover:text-amber-600 transition-colors shrink-0" />
-                  </div>
-                </a>
-              </div>
-            );
-          })}
         </div>
-      </section>
 
-      {/* ── Desktop Layout ── */}
-      <div className="hidden md:block">
-        <ScrollReveal
-          as="section"
-          id="reviews-section"
-          stagger={0.06}
-          yOffset={20}
-          className="py-12 sm:py-16 lg:py-[72px] bg-white border-b border-neutral-200/80 relative overflow-hidden font-sans select-none"
-        >
-      {/* ── Centred Content Container (1240px max-width, width: calc(100% - 48px)) ── */}
-      <div className="max-w-[1240px] w-[calc(100%-48px)] mx-auto relative z-10">
-        {/* ── Section Title Header ── */}
-        <div data-reveal-item className="text-center max-w-3xl mx-auto flex flex-col items-center">
-          {/* 1. Google Eyebrow Label */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-neutral-100 border border-neutral-200 text-neutral-800 text-[11px] sm:text-xs font-bold uppercase tracking-[0.09em] mb-4 select-none">
+        {/* Desktop Header (>= 768px) */}
+        <div data-reveal-item className="hidden md:flex flex-col items-center text-center max-w-3xl mx-auto mb-8 sm:mb-10">
+          {/* Eyebrow */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-neutral-100 border border-neutral-200 text-neutral-800 text-[11px] sm:text-xs font-bold uppercase tracking-[0.09em] mb-3.5 select-none">
             <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
             <span>Reviews from Google</span>
           </div>
 
-          {/* 2. Main Heading */}
+          {/* Heading */}
           <h2
             className="text-neutral-900 font-bold tracking-[-0.04em] leading-[1.05] mb-3.5 m-0 p-0"
-            style={{ fontSize: "clamp(36px, 3vw, 50px)" }}
+            style={{ fontSize: "clamp(34px, 3vw, 50px)" }}
           >
             Loved by Customers Across Sri Lanka
           </h2>
 
-          {/* 3. Overall Rating Summary */}
-          <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-neutral-600 mb-6 flex-wrap">
+          {/* Rating Summary */}
+          <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-neutral-600 mb-5 flex-wrap">
             <div className="flex items-center gap-1">
               <span className="text-amber-500 font-black text-xl leading-none">
                 {overallRating.toFixed(1)}
               </span>
-              <Star className="w-4 h-4 fill-amber-400 text-amber-400 -mt-0.5" />
+              <div className="flex items-center gap-0.5">
+                {[...Array(5)].map((_, i) => (
+                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                ))}
+              </div>
             </div>
-            <span className="text-neutral-300 select-none">•</span>
-            <span className="font-medium text-neutral-600">
-              Based on {totalReviewsCount}+ Verified Google Reviews
+            <span className="text-neutral-300">•</span>
+            <span className="text-neutral-500 font-normal">
+              Based on{" "}
+              <strong className="text-neutral-900 font-semibold">{totalReviewsCount}+</strong>{" "}
+              verified reviews
             </span>
           </div>
 
-          {/* 4. Action CTA Buttons */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-10 sm:mb-12">
+          {/* Action Links & Controls */}
+          <div className="flex items-center justify-center gap-3 flex-wrap">
             <a
               href={mainViewAllUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-[46px] px-6 rounded-[8px] border border-neutral-300 bg-white hover:bg-neutral-900 hover:text-white text-neutral-800 text-xs sm:text-sm font-semibold transition-all duration-200 shadow-2xs hover:-translate-y-[2px] active:scale-[0.98] group"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-[0.98]"
             >
-              <GoogleIcon className="w-4 h-4" />
               <span>View All Google Reviews</span>
-              <ExternalLink className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+              <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
             <a
               href={mainWriteReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center justify-center gap-2 h-[46px] px-6 rounded-[8px] border border-amber-400/40 bg-amber-50 hover:bg-amber-500 hover:text-white text-amber-800 text-xs sm:text-sm font-semibold transition-all duration-200 shadow-2xs hover:-translate-y-[2px] active:scale-[0.98] group"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-[8px] bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 text-xs sm:text-sm font-semibold transition-all shadow-2xs active:scale-[0.98]"
             >
-              <Edit3 className="w-4 h-4" />
+              <Edit3 className="w-3.5 h-3.5 text-neutral-600" />
               <span>Write a Review</span>
             </a>
+
+            <div className="flex items-center gap-1.5 ml-2">
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="w-10 h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                aria-label="Previous Review"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-10 h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                aria-label="Next Review"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* ── Continuous Endless Reviews Rail (Moving in Opposite Direction) ── */}
+      {/* ── Moving Reviews Rail (Hardware Accelerated 60fps) ── */}
       <div
         ref={sectionRef}
         data-reveal-item
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden select-none"
+        style={{ touchAction: "pan-y" }}
         onMouseEnter={() => {
           isHoveredRef.current = true;
         }}
@@ -910,7 +785,7 @@ export default function ReviewsSection({
           isFocusedRef.current = false;
         }}
       >
-        {/* Soft Edge Fade Masks */}
+        {/* Edge Fade Gradients */}
         {currentSettings.edgeFadeEnabled !== false && (
           <>
             <div
@@ -918,34 +793,34 @@ export default function ReviewsSection({
                 width: `${currentSettings.edgeFadeWidth || 60}px`,
                 background: `linear-gradient(to right, ${currentSettings.edgeFadeColor || "#FFFFFF"}, transparent)`,
               }}
-              className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none"
+              className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none hidden sm:block"
             />
             <div
               style={{
                 width: `${currentSettings.edgeFadeWidth || 60}px`,
                 background: `linear-gradient(to left, ${currentSettings.edgeFadeColor || "#FFFFFF"}, transparent)`,
               }}
-              className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none"
+              className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none hidden sm:block"
             />
           </>
         )}
 
         {isContinuous ? (
-          /* Moving Endless Track */
+          /* Continuous Endless Moving Track with 1:1 Pointer & Touch Drag */
           <div
             ref={trackRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="flex items-center gap-5 cursor-grab active:cursor-grabbing will-change-transform touch-pan-y py-2"
-            style={{ width: "max-content" }}
+            className="flex items-stretch gap-3.5 sm:gap-5 cursor-grab active:cursor-grabbing will-change-transform touch-pan-y pl-4 sm:pl-6"
+            style={{ width: "max-content", touchAction: "pan-y" }}
           >
-            {/* Sequence A (Primary) */}
-            <div ref={singleSeqRef} className="flex items-center gap-5 shrink-0">
+            {/* Sequence A */}
+            <div ref={singleSeqRef} className="flex items-stretch gap-3.5 sm:gap-5 shrink-0">
               {baseItems.map((rev, idx) => (
                 <ReviewCard
-                  key={`rev-a-${rev.id}-${idx}`}
+                  key={`seq-a-${rev.id || idx}-${idx}`}
                   review={rev}
                   mainViewAllUrl={mainViewAllUrl}
                   onLinkClick={handleLinkClick}
@@ -953,11 +828,11 @@ export default function ReviewsSection({
               ))}
             </div>
 
-            {/* Sequence B (Clone for seamless continuous loop) */}
-            <div className="flex items-center gap-5 shrink-0" aria-hidden="true">
+            {/* Sequence B (Cloned for seamless infinite loop) */}
+            <div className="flex items-stretch gap-3.5 sm:gap-5 shrink-0" aria-hidden="true">
               {baseItems.map((rev, idx) => (
                 <ReviewCard
-                  key={`rev-b-${rev.id}-${idx}`}
+                  key={`seq-b-${rev.id || idx}-${idx}`}
                   review={rev}
                   mainViewAllUrl={mainViewAllUrl}
                   onLinkClick={handleLinkClick}
@@ -966,12 +841,12 @@ export default function ReviewsSection({
             </div>
           </div>
         ) : (
-          /* Manual Scrollable Fallback */
-          <div className="max-w-[1240px] w-[calc(100%-48px)] mx-auto">
-            <div className="flex gap-5 overflow-x-auto pb-2 no-scrollbar scroll-smooth">
-              {displayReviews.map((rev) => (
+          /* Fallback Static / Manual Scroll Rail */
+          <div className="max-w-[1240px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto">
+            <div className="flex overflow-x-auto gap-3.5 sm:gap-5 pb-2 no-scrollbar scroll-smooth">
+              {displayReviews.map((rev, idx) => (
                 <ReviewCard
-                  key={`static-${rev.id}`}
+                  key={`static-${rev.id || idx}`}
                   review={rev}
                   mainViewAllUrl={mainViewAllUrl}
                 />
@@ -981,7 +856,5 @@ export default function ReviewsSection({
         )}
       </div>
     </ScrollReveal>
-    </div>
-  </>
   );
 }

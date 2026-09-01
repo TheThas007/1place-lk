@@ -6,7 +6,6 @@ import { ArrowRight, Images, ChevronLeft, ChevronRight } from "lucide-react";
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import { motion } from "framer-motion";
 
 function InstagramIcon({ className = "w-3 h-3" }: { className?: string }) {
   return (
@@ -37,7 +36,7 @@ function validateUrl(url?: string): string | null {
   return null;
 }
 
-/* ─── Refined Editorial Gallery Card (Exact 4:5 Aspect Ratio & Dimensions) ─── */
+/* ─── Refined Editorial Gallery Card ─── */
 interface GalleryCardProps {
   image: GalleryImage;
   index: number;
@@ -52,7 +51,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
   const titleText = image.caption || image.title || "Life at Street Mobile";
 
   const CardContent = (
-    <div className="relative w-full h-full overflow-hidden bg-neutral-100 select-none">
+    <div className="relative w-full h-full overflow-hidden bg-neutral-100 select-none rounded-[12px] sm:rounded-[14px]">
       {/* 1. Edge-to-Edge Image with Smooth Subtle Scale */}
       <img
         src={image.image_url}
@@ -60,26 +59,29 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
         loading={index < 4 ? "eager" : "lazy"}
         decoding="async"
         draggable={false}
-        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.025] pointer-events-none select-none"
+        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03] pointer-events-none select-none"
+        onError={(e) => {
+          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+        }}
       />
 
-      {/* 2. Top-Left Category Badge (12px offset, compact 5px radius) */}
+      {/* 2. Top-Left Category Badge */}
       {image.category && (
-        <div className="absolute top-3 left-3 px-2 py-0.5 rounded-[5px] text-[10px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none pointer-events-none">
+        <div className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 px-2 py-0.5 rounded-[5px] text-[9.5px] sm:text-[10px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none pointer-events-none">
           {image.category}
         </div>
       )}
 
-      {/* 3. Top-Right Social Badge (Compact indicator) */}
+      {/* 3. Top-Right Social Badge */}
       {isInstagram && (
-        <div className="absolute top-3 right-3 px-2 py-0.5 rounded-[5px] text-[10px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none pointer-events-none">
+        <div className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 px-2 py-0.5 rounded-[5px] text-[9.5px] sm:text-[10px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none pointer-events-none">
           <InstagramIcon className="w-3 h-3 text-pink-400" />
           <span>Instagram</span>
         </div>
       )}
 
-      {/* 4. Compact Bottom Gradient Overlay & Typography */}
-      <div className="absolute inset-x-0 bottom-0 pt-12 pb-3.5 px-3.5 bg-gradient-to-t from-black/85 via-black/40 to-transparent flex items-end z-10 pointer-events-none">
+      {/* 4. Bottom Transparent Gradient & Typography */}
+      <div className="absolute inset-x-0 bottom-0 pt-12 sm:pt-14 pb-3 sm:pb-3.5 px-3 sm:px-3.5 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex items-end z-10 pointer-events-none">
         <p className="text-white text-xs sm:text-[13px] font-semibold leading-snug line-clamp-2 drop-shadow-xs m-0 select-none">
           {titleText}
         </p>
@@ -89,7 +91,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
 
   return (
     <div
-      className="relative group aspect-[4/5] rounded-[11px] overflow-hidden border border-neutral-200/80 hover:border-neutral-300 transition-all duration-300 hover:-translate-y-[3px] shadow-[0_8px_24px_rgba(0,0,0,0.08)] shrink-0 w-[78vw] sm:w-[280px] lg:w-[298px] select-none"
+      className="relative group aspect-[4/5] rounded-[12px] sm:rounded-[14px] overflow-hidden border border-neutral-200/80 hover:border-neutral-300 transition-all duration-300 hover:-translate-y-[2px] sm:hover:-translate-y-[3px] shadow-[0_4px_20px_rgba(0,0,0,0.06)] shrink-0 w-[74vw] sm:w-[280px] lg:w-[298px] max-w-[310px] select-none"
     >
       {validPostUrl ? (
         <a
@@ -98,7 +100,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
           rel="noopener noreferrer"
           onClick={onLinkClick}
           aria-label={`View on Social Media: ${titleText}`}
-          className="block w-full h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[11px]"
+          className="block w-full h-full cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[12px] sm:rounded-[14px]"
         >
           {CardContent}
         </a>
@@ -107,7 +109,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
           href="/gallery"
           onClick={onLinkClick}
           aria-label={`View Gallery: ${titleText}`}
-          className="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[11px]"
+          className="block w-full h-full focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 rounded-[12px] sm:rounded-[14px]"
         >
           {CardContent}
         </Link>
@@ -116,7 +118,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
   );
 }
 
-/* ─── Main Gallery Section (Continuous Endless Marquee Engine) ─── */
+/* ─── Main Gallery Section (Silky-Smooth GPU Touch Swipe & Autoplay Engine) ─── */
 export default function GallerySection({
   images,
   animationSettings,
@@ -139,7 +141,6 @@ export default function GallerySection({
   const baseItems = useMemo(() => {
     if (visibleImages.length === 0) return [];
     if (visibleImages.length >= 6) return visibleImages;
-    // Repeat items so single sequence is wide enough
     const repeated: GalleryImage[] = [];
     while (repeated.length < 6) {
       repeated.push(...visibleImages);
@@ -167,6 +168,7 @@ export default function GallerySection({
   const animFrameIdRef = useRef<number | null>(null);
   const lastTimeRef = useRef<number | null>(null);
   const resumeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const stepAnimRef = useRef<number | null>(null);
 
   // State flags for interactive pausing
   const isHoveredRef = useRef(false);
@@ -176,10 +178,15 @@ export default function GallerySection({
   const isVisibleRef = useRef(true);
   const wasDraggingRef = useRef(false);
 
-  // Drag physics tracking
+  // Touch & Drag Physics Tracking
   const dragStartXRef = useRef(0);
+  const dragStartYRef = useRef(0);
   const dragStartOffsetRef = useRef(0);
   const dragMovedRef = useRef(0);
+  const isHorizontalGestureRef = useRef<boolean | null>(null);
+  const lastPointerXRef = useRef(0);
+  const lastPointerTimeRef = useRef(0);
+  const pointerVelocityRef = useRef(0);
 
   // Measure sequence width dynamically with ResizeObserver
   const measureSequence = useCallback(() => {
@@ -236,7 +243,17 @@ export default function GallerySection({
     return () => document.removeEventListener("visibilitychange", handleVisibility);
   }, []);
 
-  // Main 60fps RequestAnimationFrame Loop
+  // Helper to wrap offset within [-sequenceWidth, 0]
+  const normalizeOffset = useCallback((val: number) => {
+    const seqWidth = sequenceWidthRef.current;
+    if (seqWidth <= 0) return val;
+    let n = val;
+    while (n <= -seqWidth) n += seqWidth;
+    while (n >= 0) n -= seqWidth;
+    return n;
+  }, []);
+
+  // Main 60fps/120fps RequestAnimationFrame Loop
   useEffect(() => {
     const enabled =
       settings.endlessScrollEnabled &&
@@ -266,13 +283,13 @@ export default function GallerySection({
         isPausedRef.current;
 
       if (!shouldPause && seqWidth > 0 && dt > 0 && dt < 0.25) {
-        // Calculate responsive slow speed
+        // Calculate responsive speed
         let speed = settings.desktopSpeed ? Math.min(settings.desktopSpeed, 24) : 22;
         if (typeof window !== "undefined") {
           if (window.innerWidth < 768) {
-            speed = settings.mobileSpeed ? Math.min(settings.mobileSpeed, 18) : 16;
+            speed = settings.mobileSpeed ? Math.min(settings.mobileSpeed, 20) : 18;
           } else if (window.innerWidth < 1024) {
-            speed = settings.tabletSpeed ? Math.min(settings.tabletSpeed, 20) : 18;
+            speed = settings.tabletSpeed ? Math.min(settings.tabletSpeed, 22) : 20;
           }
         }
 
@@ -301,198 +318,155 @@ export default function GallerySection({
     };
   }, [settings, isReducedMotion, baseItems]);
 
-  // Mobile Continuous Auto-Scroll + Touch/Finger Swipe Engine
-  const mobileScrollRef = useRef<HTMLDivElement>(null);
-  const [isMobileInteracting, setIsMobileInteracting] = useState(false);
-  const [isInViewport, setIsInViewport] = useState(true);
-  const mobileResumeTimerRef = useRef<NodeJS.Timeout | null>(null);
-  const isDraggingMobileRef = useRef(false);
-  const mobileDragStartXRef = useRef(0);
-  const mobileDragMovedRef = useRef(0);
+  // Smooth Animated Step (Prev / Next Buttons)
+  const smoothStep = useCallback(
+    (delta: number) => {
+      if (stepAnimRef.current) cancelAnimationFrame(stepAnimRef.current);
+      if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
 
-  const mobileGalleryItems = useMemo(() => {
-    if (visibleImages.length === 0) return [];
-    if (visibleImages.length >= 4) return visibleImages;
-    const rep: GalleryImage[] = [];
-    while (rep.length < 4) {
-      rep.push(...visibleImages);
-    }
-    return rep;
-  }, [visibleImages]);
+      isPausedRef.current = true;
+      lastTimeRef.current = null;
 
-  // Tripled list for seamless infinite loop
-  const mobileTripledGallery = useMemo(() => {
-    if (mobileGalleryItems.length === 0) return [];
-    return [...mobileGalleryItems, ...mobileGalleryItems, ...mobileGalleryItems];
-  }, [mobileGalleryItems]);
+      const startOffset = offsetRef.current;
+      const startTime = performance.now();
+      const duration = 400; // ms
 
-  // Set initial scroll to center set for bidirectional seamless swiping
-  useEffect(() => {
-    if (mobileScrollRef.current) {
-      const container = mobileScrollRef.current;
-      const singleSetWidth = container.scrollWidth / 3;
-      if (singleSetWidth > 0 && container.scrollLeft === 0) {
-        container.scrollLeft = singleSetWidth;
-      }
-    }
-  }, [mobileTripledGallery]);
+      const stepTick = (now: number) => {
+        const elapsed = now - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease Out Cubic curve
+        const ease = 1 - Math.pow(1 - progress, 3);
+        const current = startOffset + delta * ease;
 
-  // Mobile IntersectionObserver
-  useEffect(() => {
-    const el = mobileScrollRef.current;
-    if (!el || typeof IntersectionObserver === "undefined") return;
-
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setIsInViewport(entry.isIntersecting);
-      },
-      { threshold: 0.05 }
-    );
-    observer.observe(el);
-
-    const handleVisibility = () => {
-      setIsInViewport(!document.hidden);
-    };
-    document.addEventListener("visibilitychange", handleVisibility);
-
-    return () => {
-      observer.disconnect();
-      document.removeEventListener("visibilitychange", handleVisibility);
-    };
-  }, []);
-
-  // ── Mobile Auto-Scroll Loop (requestAnimationFrame) ──
-  useEffect(() => {
-    if (isReducedMotion || mobileTripledGallery.length <= 1) return;
-
-    let animId: number;
-
-    const tick = () => {
-      if (mobileScrollRef.current && !isMobileInteracting && isInViewport) {
-        const container = mobileScrollRef.current;
-        // Direction: moving right or left
-        const speed = settings.direction === "right" ? -0.85 : 0.85;
-        container.scrollLeft += speed;
-
-        const singleSetWidth = container.scrollWidth / 3;
-        if (singleSetWidth > 0) {
-          if (container.scrollLeft >= singleSetWidth * 2) {
-            container.scrollLeft -= singleSetWidth;
-          } else if (container.scrollLeft <= 0) {
-            container.scrollLeft += singleSetWidth;
-          }
+        offsetRef.current = normalizeOffset(current);
+        if (trackRef.current) {
+          trackRef.current.style.transform = `translate3d(${offsetRef.current}px, 0, 0)`;
         }
-      }
-      animId = requestAnimationFrame(tick);
-    };
 
-    animId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(animId);
-  }, [isMobileInteracting, isInViewport, isReducedMotion, mobileTripledGallery.length, settings.direction]);
+        if (progress < 1) {
+          stepAnimRef.current = requestAnimationFrame(stepTick);
+        } else {
+          // Resume autoplay after 2.5 seconds
+          if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+          resumeTimeoutRef.current = setTimeout(() => {
+            isPausedRef.current = false;
+            lastTimeRef.current = null;
+          }, 2500);
+        }
+      };
 
-  // Touch handlers for mobile gallery
-  const handleMobileTouchStart = (e: React.TouchEvent) => {
-    setIsMobileInteracting(true);
-    mobileDragStartXRef.current = e.touches[0].clientX;
-    mobileDragMovedRef.current = 0;
-    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-  };
+      stepAnimRef.current = requestAnimationFrame(stepTick);
+    },
+    [normalizeOffset]
+  );
 
-  const handleMobileTouchMove = (e: React.TouchEvent) => {
-    const dx = Math.abs(e.touches[0].clientX - mobileDragStartXRef.current);
-    mobileDragMovedRef.current = dx;
-  };
+  const handlePrev = useCallback(() => {
+    const cardStep = typeof window !== "undefined" && window.innerWidth < 768 ? 290 : 315;
+    smoothStep(cardStep);
+  }, [smoothStep]);
 
-  const handleMobileTouchEnd = () => {
-    if (mobileDragMovedRef.current > 8) {
-      isDraggingMobileRef.current = true;
-      setTimeout(() => {
-        isDraggingMobileRef.current = false;
-      }, 250);
-    }
-    // Resume auto-scroll smoothly after 2 seconds
-    if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-    mobileResumeTimerRef.current = setTimeout(() => {
-      setIsMobileInteracting(false);
-    }, 2000);
-  };
+  const handleNext = useCallback(() => {
+    const cardStep = typeof window !== "undefined" && window.innerWidth < 768 ? 290 : 315;
+    smoothStep(-cardStep);
+  }, [smoothStep]);
 
-  const handleMobileCardClick = (e: React.MouseEvent) => {
-    if (isDraggingMobileRef.current) {
-      e.preventDefault();
-      e.stopPropagation();
-    }
-  };
-
-  const handleMobileScrollPrev = () => {
-    if (mobileScrollRef.current) {
-      setIsMobileInteracting(true);
-      mobileScrollRef.current.scrollBy({ left: -280, behavior: "smooth" });
-      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-      mobileResumeTimerRef.current = setTimeout(() => {
-        setIsMobileInteracting(false);
-      }, 4000);
-    }
-  };
-
-  const handleMobileScrollNext = () => {
-    if (mobileScrollRef.current) {
-      setIsMobileInteracting(true);
-      mobileScrollRef.current.scrollBy({ left: 280, behavior: "smooth" });
-      if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-      mobileResumeTimerRef.current = setTimeout(() => {
-        setIsMobileInteracting(false);
-      }, 4000);
-    }
-  };
-
-  // Pointer drag & touch swipe handlers for desktop
+  // ── Touch & Pointer Gestures for Fluid 1:1 Swiping ──
   const handlePointerDown = (e: React.PointerEvent) => {
     if (settings.dragEnabled === false || isReducedMotion || baseItems.length <= 1) return;
+    if (stepAnimRef.current) cancelAnimationFrame(stepAnimRef.current);
+    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+
     isDraggingRef.current = true;
+    isPausedRef.current = true;
     dragStartXRef.current = e.clientX;
+    dragStartYRef.current = e.clientY;
     dragStartOffsetRef.current = offsetRef.current;
     dragMovedRef.current = 0;
+    isHorizontalGestureRef.current = null;
+    lastPointerXRef.current = e.clientX;
+    lastPointerTimeRef.current = performance.now();
+    pointerVelocityRef.current = 0;
     lastTimeRef.current = null;
-    if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
+
+    try {
+      (e.target as HTMLElement).setPointerCapture(e.pointerId);
+    } catch {}
   };
 
   const handlePointerMove = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
+
     const dx = e.clientX - dragStartXRef.current;
-    dragMovedRef.current = Math.abs(dx);
+    const dy = e.clientY - dragStartYRef.current;
+    const absDx = Math.abs(dx);
+    const absDy = Math.abs(dy);
 
-    const seqWidth = sequenceWidthRef.current || 1;
-    let newOffset = dragStartOffsetRef.current + dx;
+    // Detect gesture direction on initial movement
+    if (isHorizontalGestureRef.current === null) {
+      if (absDx > 6 || absDy > 6) {
+        if (absDy > absDx) {
+          // Vertical scroll - release drag
+          isHorizontalGestureRef.current = false;
+          isDraggingRef.current = false;
+          isPausedRef.current = false;
+          return;
+        } else {
+          isHorizontalGestureRef.current = true;
+        }
+      }
+    }
 
-    while (newOffset <= -seqWidth) newOffset += seqWidth;
-    while (newOffset >= 0) newOffset -= seqWidth;
+    if (isHorizontalGestureRef.current === false) return;
 
+    dragMovedRef.current = absDx;
+
+    // Track velocity
+    const now = performance.now();
+    const dt = now - lastPointerTimeRef.current;
+    if (dt > 0) {
+      pointerVelocityRef.current = (e.clientX - lastPointerXRef.current) / dt;
+      lastPointerXRef.current = e.clientX;
+      lastPointerTimeRef.current = now;
+    }
+
+    // Direct 1:1 hardware transform
+    const newOffset = normalizeOffset(dragStartOffsetRef.current + dx);
     offsetRef.current = newOffset;
+
     if (trackRef.current) {
       trackRef.current.style.transform = `translate3d(${newOffset}px, 0, 0)`;
     }
   };
 
-  const handlePointerUp = () => {
+  const handlePointerUp = (e: React.PointerEvent) => {
     if (!isDraggingRef.current) return;
     isDraggingRef.current = false;
     lastTimeRef.current = null;
 
+    try {
+      (e.target as HTMLElement).releasePointerCapture(e.pointerId);
+    } catch {}
+
+    // Suppress card link clicks if user dragged
     if (dragMovedRef.current > 6) {
       wasDraggingRef.current = true;
       setTimeout(() => {
         wasDraggingRef.current = false;
-      }, 100);
+      }, 200);
     }
 
-    if (settings.pauseOnInteraction) {
-      isPausedRef.current = true;
+    // Inertial fling momentum if flicked
+    const velocity = pointerVelocityRef.current;
+    if (Math.abs(velocity) > 0.35) {
+      const flingDistance = velocity * 180;
+      smoothStep(flingDistance);
+    } else {
+      // Resume autoplay after brief delay
       if (resumeTimeoutRef.current) clearTimeout(resumeTimeoutRef.current);
       resumeTimeoutRef.current = setTimeout(() => {
         isPausedRef.current = false;
         lastTimeRef.current = null;
-      }, settings.resumeDelay || 1500);
+      }, settings.resumeDelay || 1800);
     }
   };
 
@@ -514,31 +488,28 @@ export default function GallerySection({
   }
 
   return (
-    <>
-      {/* ── Mobile Layout (< 768px): Continuous Auto-Scroll + Touch/Finger Swipe Gallery ── */}
-      <section
-        className="md:hidden w-full bg-[#F2F2F2] py-6 select-none overflow-hidden border-y border-neutral-200/80"
-        aria-label="Life at Street Mobile Mobile Gallery"
-      >
-        {/* Mobile Header Row */}
-        <motion.div
-          initial={{ opacity: 0, y: isReducedMotion ? 0 : 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.15 }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-          className="px-4 mb-4 flex flex-col items-start"
-        >
-          <div className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-1.5 shadow-2xs select-none">
-            <Images className="w-3 h-3 text-neutral-900 shrink-0" />
+    <ScrollReveal
+      as="section"
+      id="gallery-section"
+      stagger={0.06}
+      yOffset={20}
+      className="relative py-8 sm:py-14 lg:py-[72px] bg-[#F2F2F2] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
+    >
+      {/* ── Content Header Container (Responsive 1320px Max-Width) ── */}
+      <div className="relative max-w-[1320px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto">
+        {/* Mobile Header (< 768px) */}
+        <div data-reveal-item className="md:hidden flex flex-col items-start mb-4 sm:mb-5">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-2 shadow-2xs select-none">
+            <Images className="w-3.5 h-3.5 text-blue-600 shrink-0" />
             <span>Store Highlights</span>
           </div>
 
           <div className="w-full flex items-center justify-between gap-2">
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight">
+            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight m-0">
               Life at Street Mobile
             </h2>
 
-            {/* Mobile Actions: View all + Slide Prev/Next Buttons */}
+            {/* Mobile Actions: View all + Prev/Next Touch Buttons */}
             <div className="flex items-center gap-2 shrink-0">
               <Link
                 href="/gallery"
@@ -550,7 +521,7 @@ export default function GallerySection({
               <div className="flex items-center gap-1">
                 <button
                   type="button"
-                  onClick={handleMobileScrollPrev}
+                  onClick={handlePrev}
                   className="w-7 h-7 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                   aria-label="Previous Photo"
                 >
@@ -558,7 +529,7 @@ export default function GallerySection({
                 </button>
                 <button
                   type="button"
-                  onClick={handleMobileScrollNext}
+                  onClick={handleNext}
                   className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                   aria-label="Next Photo"
                 >
@@ -568,106 +539,15 @@ export default function GallerySection({
             </div>
           </div>
 
-          <p className="text-xs text-neutral-500 font-normal mt-1 max-w-xs leading-relaxed">
+          <p className="text-xs text-neutral-500 font-normal mt-1.5 max-w-xs leading-relaxed m-0">
             Moments from our showroom, repair lab, and customer deliveries.
           </p>
-        </motion.div>
-
-        {/* Interactive Scroll & Touch Swipe Container */}
-        <div
-          ref={mobileScrollRef}
-          onTouchStart={handleMobileTouchStart}
-          onTouchMove={handleMobileTouchMove}
-          onTouchEnd={handleMobileTouchEnd}
-          onTouchCancel={handleMobileTouchEnd}
-          onPointerDown={() => setIsMobileInteracting(true)}
-          onPointerUp={handleMobileTouchEnd}
-          onScroll={() => {
-            if (!isMobileInteracting) {
-              setIsMobileInteracting(true);
-            }
-            if (mobileResumeTimerRef.current) clearTimeout(mobileResumeTimerRef.current);
-            mobileResumeTimerRef.current = setTimeout(() => {
-              setIsMobileInteracting(false);
-            }, 3500);
-          }}
-          className="flex items-center gap-3.5 sm:gap-4 overflow-x-auto scrollbar-none px-4 py-2 touch-pan-y snap-x snap-mandatory scroll-smooth cursor-grab active:cursor-grabbing"
-          style={{ scrollbarWidth: "none", msOverflowStyle: "none", WebkitOverflowScrolling: "touch", touchAction: "pan-y" }}
-        >
-          {mobileTripledGallery.map((image, idx) => {
-            const titleText = image.caption || image.title || "Life at Street Mobile";
-            const validPostUrl = validateUrl(image.post_url) || "/gallery";
-            const isInstagram =
-              image.platform === "instagram" ||
-              (validPostUrl && validPostUrl.includes("instagram.com"));
-
-            return (
-              <div
-                key={`mob-gal-${image.id || idx}-${idx}`}
-                className="w-[76vw] sm:w-[80vw] max-w-[310px] shrink-0 snap-center aspect-[4/5] rounded-2xl overflow-hidden relative shadow-sm border border-neutral-200/80 bg-neutral-900"
-              >
-                <a
-                  href={validPostUrl}
-                  target={validPostUrl.startsWith("http") ? "_blank" : "_self"}
-                  rel="noopener noreferrer"
-                  onClick={handleMobileCardClick}
-                  aria-label={`Gallery photo: ${titleText}`}
-                  className="block w-full h-full relative select-none"
-                >
-                  {/* 1. Full-Card Image */}
-                  <img
-                    src={image.image_url}
-                    alt={titleText}
-                    loading={idx < 3 ? "eager" : "lazy"}
-                    className="w-full h-full object-cover object-center transition-transform duration-500 hover:scale-[1.03]"
-                    onError={(e) => {
-                      (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-                    }}
-                  />
-
-                  {/* 2. Top-Left Category Badge */}
-                  {image.category && (
-                    <div className="absolute top-3 left-3 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider text-neutral-800 bg-white/90 backdrop-blur-md border border-neutral-200/60 shadow-2xs z-10 select-none">
-                      {image.category}
-                    </div>
-                  )}
-
-                  {/* 3. Top-Right Social Badge */}
-                  {isInstagram && (
-                    <div className="absolute top-3 right-3 px-2 py-0.5 rounded-full text-[9px] font-semibold text-white bg-black/60 backdrop-blur-md border border-white/10 flex items-center gap-1 z-10 select-none">
-                      <InstagramIcon className="w-2.5 h-2.5 text-white/90" />
-                      <span>Instagram</span>
-                    </div>
-                  )}
-
-                  {/* 4. Bottom Transparent Gradient & Caption */}
-                  <div className="absolute inset-x-0 bottom-0 pt-16 pb-4 px-4 bg-gradient-to-t from-black/90 via-black/40 via-60% to-transparent flex items-end z-10">
-                    <p className="text-white text-xs sm:text-sm font-bold leading-snug line-clamp-2 drop-shadow-xs m-0">
-                      {titleText}
-                    </p>
-                  </div>
-                </a>
-              </div>
-            );
-          })}
         </div>
-      </section>
 
-      {/* ── Desktop Layout ── */}
-      <div className="hidden md:block">
-        <ScrollReveal
-          as="section"
-          id="gallery-section"
-          stagger={0.06}
-          yOffset={20}
-          className="relative py-12 sm:py-16 lg:py-[72px] bg-[#F2F2F2] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
-        >
-      {/* ── Content Container (1320px Max-Width, Width: calc(100% - 48px)) ── */}
-      <div className="relative max-w-[1320px] w-[calc(100%-48px)] mx-auto">
-        {/* ── Header Row (2-Column Alignment with Action Button) ── */}
+        {/* Desktop Header (>= 768px) */}
         <div
           data-reveal-item
-          className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 sm:mb-10"
+          className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 sm:mb-10"
         >
           <div className="flex flex-col items-start text-left">
             {/* Eyebrow */}
@@ -679,33 +559,55 @@ export default function GallerySection({
             {/* Main Heading */}
             <h2
               className="text-neutral-900 font-bold tracking-[-0.035em] leading-[1.0] m-0 p-0"
-              style={{ fontSize: "clamp(38px, 3vw, 52px)" }}
+              style={{ fontSize: "clamp(34px, 3vw, 50px)" }}
             >
               Life at Street Mobile
             </h2>
 
             {/* Supporting Description */}
-            <p className="text-[15px] sm:text-[17px] leading-[1.55] text-neutral-600 mt-2 max-w-[560px] font-normal m-0">
+            <p className="text-[15px] sm:text-[16px] leading-[1.55] text-neutral-600 mt-2 max-w-[560px] font-normal m-0">
               Explore recent moments from our Vavuniya showroom, repair lab, and customer deliveries.
             </p>
           </div>
 
-          {/* Action Button */}
-          <Link
-            href="/gallery"
-            className="group inline-flex items-center justify-center gap-2 h-[46px] sm:h-[48px] px-6 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold transition-all shrink-0 self-start md:self-auto shadow-sm active:scale-[0.98]"
-          >
-            <span>View Complete Gallery</span>
-            <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
-          </Link>
+          {/* Action Buttons & Manual Controls */}
+          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
+            <Link
+              href="/gallery"
+              className="group inline-flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-[0.98]"
+            >
+              <span>View Complete Gallery</span>
+              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
+            </Link>
+
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={handlePrev}
+                className="w-10 h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                aria-label="Previous Photo"
+              >
+                <ChevronLeft className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={handleNext}
+                className="w-10 h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                aria-label="Next Photo"
+              >
+                <ChevronRight className="w-5 h-5" />
+              </button>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* ── Moving Gallery Viewport Rail ── */}
+      {/* ── Moving Gallery Viewport Rail (Hardware Accelerated 60fps) ── */}
       <div
         ref={sectionRef as React.RefObject<HTMLDivElement>}
         data-reveal-item
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden select-none"
+        style={{ touchAction: "pan-y" }}
         onMouseEnter={() => {
           isHoveredRef.current = true;
         }}
@@ -724,37 +626,37 @@ export default function GallerySection({
           <>
             <div
               style={{
-                width: `${settings.edgeFadeWidth}px`,
+                width: `${settings.edgeFadeWidth || 60}px`,
                 background: `linear-gradient(to right, ${settings.edgeFadeColor || "#F2F2F2"}, transparent)`,
               }}
-              className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none"
+              className="absolute left-0 top-0 bottom-0 z-20 pointer-events-none hidden sm:block"
             />
             <div
               style={{
-                width: `${settings.edgeFadeWidth}px`,
+                width: `${settings.edgeFadeWidth || 60}px`,
                 background: `linear-gradient(to left, ${settings.edgeFadeColor || "#F2F2F2"}, transparent)`,
               }}
-              className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none"
+              className="absolute right-0 top-0 bottom-0 z-20 pointer-events-none hidden sm:block"
             />
           </>
         )}
 
         {isContinuous ? (
-          /* Continuous Endless Moving Track with Pointer Drag */
+          /* Continuous Endless Moving Track with 1:1 Pointer & Touch Drag */
           <div
             ref={trackRef}
             onPointerDown={handlePointerDown}
             onPointerMove={handlePointerMove}
             onPointerUp={handlePointerUp}
             onPointerCancel={handlePointerUp}
-            className="flex items-center gap-4 sm:gap-5 cursor-grab active:cursor-grabbing will-change-transform touch-pan-y"
-            style={{ width: "max-content" }}
+            className="flex items-center gap-3.5 sm:gap-5 cursor-grab active:cursor-grabbing will-change-transform touch-pan-y pl-4 sm:pl-6"
+            style={{ width: "max-content", touchAction: "pan-y" }}
           >
             {/* Sequence A (Primary) */}
-            <div ref={singleSeqRef} className="flex items-center gap-4 sm:gap-5 shrink-0">
+            <div ref={singleSeqRef} className="flex items-center gap-3.5 sm:gap-5 shrink-0">
               {baseItems.map((img, idx) => (
                 <GalleryCard
-                  key={`seq-a-${img.id || idx}`}
+                  key={`seq-a-${img.id || idx}-${idx}`}
                   image={img}
                   index={idx}
                   onLinkClick={handleLinkClick}
@@ -762,11 +664,11 @@ export default function GallerySection({
               ))}
             </div>
 
-            {/* Sequence B (Identical clone for seamless loop) */}
-            <div className="flex items-center gap-4 sm:gap-5 shrink-0" aria-hidden="true">
+            {/* Sequence B (Identical clone for seamless infinite loop) */}
+            <div className="flex items-center gap-3.5 sm:gap-5 shrink-0" aria-hidden="true">
               {baseItems.map((img, idx) => (
                 <GalleryCard
-                  key={`seq-b-${img.id || idx}`}
+                  key={`seq-b-${img.id || idx}-${idx}`}
                   image={img}
                   index={idx}
                   onLinkClick={handleLinkClick}
@@ -775,9 +677,9 @@ export default function GallerySection({
             </div>
           </div>
         ) : (
-          /* Fallback Static / Manual Scroll Rail (1 Item or Reduced Motion) */
-          <div className="max-w-[1320px] w-[calc(100%-48px)] mx-auto">
-            <div className="flex overflow-x-auto gap-4 sm:gap-5 pb-2 no-scrollbar scroll-smooth">
+          /* Fallback Static / Manual Scroll Rail */
+          <div className="max-w-[1320px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto">
+            <div className="flex overflow-x-auto gap-3.5 sm:gap-5 pb-2 no-scrollbar scroll-smooth">
               {visibleImages.map((img, idx) => (
                 <GalleryCard
                   key={`static-${img.id || idx}`}
@@ -790,7 +692,5 @@ export default function GallerySection({
         )}
       </div>
     </ScrollReveal>
-    </div>
-  </>
   );
 }
