@@ -90,12 +90,10 @@ import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import CouponsTab from "@/components/admin/tabs/CouponsTab";
 import CouponModal from "@/components/admin/CouponModal";
 import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
-import LaunchControlTab from "@/components/admin/tabs/LaunchControlTab";
 import { Coupon } from "@/lib/types";
 
 type Tab =
   | "overview"
-  | "launch"
   | "products"
   | "categories"
   | "mega-menu"
@@ -1297,11 +1295,6 @@ function DashboardContent() {
           </div>
         </div>
       )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: LAUNCH CONTROL TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "launch" && <LaunchControlTab />}
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB 2: PRODUCTS TAB

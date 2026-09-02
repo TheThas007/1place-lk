@@ -20,7 +20,6 @@ import {
   MegaMenuSettings,
   TodayDealSettings,
   GalleryAnimationSettings,
-  LaunchSettings,
 } from "./types";
 import {
   products as fallbackProducts,
@@ -38,7 +37,6 @@ import {
   DEFAULT_MEGA_MENU_SETTINGS,
   DEFAULT_TODAY_DEAL_SETTINGS,
   DEFAULT_GALLERY_ANIMATION_SETTINGS,
-  DEFAULT_LAUNCH_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
 import { cache } from "react";
@@ -466,23 +464,6 @@ export const getGalleryAnimationSettings = cache(async (): Promise<GalleryAnimat
     console.warn("Offline/Error fetching gallery animation settings:", e);
   }
   return DEFAULT_GALLERY_ANIMATION_SETTINGS;
-});
-
-export const getLaunchSettings = cache(async (): Promise<LaunchSettings> => {
-  try {
-    const docRef = doc(db, "settings", "launch");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as Partial<LaunchSettings>;
-      return {
-        ...DEFAULT_LAUNCH_SETTINGS,
-        ...data,
-      };
-    }
-  } catch (e) {
-    console.warn("Offline/Error fetching launch settings:", e);
-  }
-  return DEFAULT_LAUNCH_SETTINGS;
 });
 
 

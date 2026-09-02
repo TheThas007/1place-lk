@@ -16,7 +16,6 @@ import CampaignPopup from "@/components/ui/CampaignPopup";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import DisableNumberScroll from "@/components/providers/DisableNumberScroll";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
-import LaunchGate from "@/components/launch/LaunchGate";
 import BrowseHistoryTracker from "@/components/navigation/BrowseHistoryTracker";
 import Script from "next/script";
 
@@ -237,24 +236,22 @@ export default function RootLayout({
           <CartProvider>
             <WishlistProvider>
               <ToastProvider>
-                <LaunchGate>
-                  <AppLoadingScreen />
-                  <SmoothScrollProvider>
-                    {/* Screen reader live region for cart announcements */}
-                    <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
-                    <AnnouncementBar />
-                    <Header />
-                    <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
-                      {children}
-                    </main>
-                    <Footer />
-                    <MobileNav />
-                    <StreetAssistant />
-                    <SearchOverlay />
-                    <CampaignPopup />
-                    <BrowseHistoryTracker />
-                  </SmoothScrollProvider>
-                </LaunchGate>
+                <AppLoadingScreen />
+                <SmoothScrollProvider>
+                  {/* Screen reader live region for cart announcements */}
+                  <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
+                  <AnnouncementBar />
+                  <Header />
+                  <main className="flex-1 pb-16 lg:pb-0" style={{ paddingTop: "var(--navbar-height)", marginTop: 0 }}>
+                    {children}
+                  </main>
+                  <Footer />
+                  <MobileNav />
+                  <StreetAssistant />
+                  <SearchOverlay />
+                  <CampaignPopup />
+                  <BrowseHistoryTracker />
+                </SmoothScrollProvider>
               </ToastProvider>
             </WishlistProvider>
           </CartProvider>

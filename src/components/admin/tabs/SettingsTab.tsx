@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { Settings, Sparkles, Rocket, Star, Image as ImageIcon, Bot, Save, Check } from "lucide-react";
+import { Settings, Sparkles, Star, Image as ImageIcon, Bot, Save, Check } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
@@ -15,7 +15,6 @@ export default function SettingsTab({
   const [localSettings, setLocalSettings] = useState<any>(settings || {});
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
   const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
-  const [launchEnabled, setLaunchEnabled] = useState<boolean>(true);
   const [googleAuthEnabled, setGoogleAuthEnabled] = useState<boolean>(false);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
@@ -28,16 +27,12 @@ export default function SettingsTab({
     // Load independent section states from Firestore
     async function loadSectionStates() {
       try {
-        const [launchDoc, galleryDoc, reviewsDoc, authDoc] = await Promise.all([
-          getDoc(doc(db, "settings", "pre_launch")),
+        const [galleryDoc, reviewsDoc, authDoc] = await Promise.all([
           getDoc(doc(db, "settings", "gallery_animation")),
           getDoc(doc(db, "settings", "google_reviews")),
           getDoc(doc(db, "settings", "auth")),
         ]);
 
-        if (launchDoc.exists()) {
-          setLaunchEnabled(launchDoc.data().enabled !== false);
-        }
         if (galleryDoc.exists()) {
           setGalleryEnabled(galleryDoc.data().enabled !== false);
         }
@@ -64,18 +59,14 @@ export default function SettingsTab({
         onSave(localSettings);
       }
 
-      // 2. Save Launch setting
-      await setDoc(doc(db, "settings", "pre_launch"), { enabled: launchEnabled }, { merge: true });
-      await setDoc(doc(db, "siteSettings", "launch"), { enabled: launchEnabled }, { merge: true });
-
-      // 3. Save Gallery setting
+      // 2. Save Gallery setting
       await setDoc(doc(db, "settings", "gallery_animation"), { enabled: galleryEnabled, updatedAt: new Date().toISOString() }, { merge: true });
       await setDoc(doc(db, "siteSettings", "galleryAnimation"), { enabled: galleryEnabled, updatedAt: new Date().toISOString() }, { merge: true });
 
-      // 4. Save Reviews setting
+      // 3. Save Reviews setting
       await setDoc(doc(db, "settings", "google_reviews"), { enabled: reviewsEnabled }, { merge: true });
 
-      // 5. Save Google Auth toggle setting
+      // 4. Save Google Auth toggle setting
       await setDoc(doc(db, "settings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
       await setDoc(doc(db, "siteSettings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
 
@@ -101,7 +92,7 @@ export default function SettingsTab({
               Storefront &amp; Auth Control Center (ON / OFF)
             </h3>
             <p className="text-xs text-white/50 mt-1">
-              Master control switches to turn authentication methods, launch features, and homepage sections ON or OFF.
+              Master control switches to turn authentication methods and homepage sections ON or OFF.
             </p>
           </div>
 
@@ -138,30 +129,6 @@ export default function SettingsTab({
                 className="sr-only peer"
               />
               <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-sky-500 shadow-inner"></div>
-            </label>
-          </div>
-          
-          {/* Switch 1: Launch Countdown Gate */}
-          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-            launchEnabled ? "bg-purple-950/30 border-purple-500/40 shadow-lg shadow-purple-500/5" : "bg-white/5 border-white/10 opacity-70"
-          }`}>
-            <div className="space-y-1">
-              <div className="flex items-center gap-2">
-                <Rocket className={`w-4 h-4 ${launchEnabled ? "text-purple-400" : "text-white/40"}`} />
-                <span className="font-extrabold text-sm text-white">Pre-Launch Countdown Gate</span>
-              </div>
-              <p className="text-xs text-white/50">
-                {launchEnabled ? "ENABLED • Visitors see 30s launch assistant" : "DISABLED • Visitors enter website directly"}
-              </p>
-            </div>
-            <label className="relative inline-flex items-center cursor-pointer shrink-0">
-              <input
-                type="checkbox"
-                checked={launchEnabled}
-                onChange={(e) => setLaunchEnabled(e.target.checked)}
-                className="sr-only peer"
-              />
-              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-purple-600 shadow-inner"></div>
             </label>
           </div>
 
