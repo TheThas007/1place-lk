@@ -147,3 +147,22 @@ export function parseDeptOrderNumber(input: string | number): number {
   const val = parseInt(cleaned, 10);
   return isNaN(val) ? 1 : val;
 }
+
+/**
+ * Generate a clean, SEO-friendly, unique product slug that distinguishes "+" (Plus) models from standard models.
+ * E.g., "Redmi Note 15+ Pro 5G" -> "redmi-note-15-plus-pro-5g"
+ *       "Redmi Note 15 Pro 5G"  -> "redmi-note-15-pro-5g"
+ *       "Galaxy S25+"          -> "galaxy-s25-plus"
+ */
+export function generateProductSlug(name: string): string {
+  if (!name) return "";
+  return name
+    .toLowerCase()
+    .trim()
+    .replace(/\+/g, "-plus-")
+    .replace(/&/g, "-and-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+

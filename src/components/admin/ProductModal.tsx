@@ -38,6 +38,7 @@ import { getBrands, getCategories } from "@/lib/firestore-client";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
+import { generateProductSlug } from "@/lib/utils";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -720,12 +721,7 @@ export default function ProductModal({
     setName(val);
     setHasUnsavedChanges(true);
     if (!initialData) {
-      setSlug(
-        val
-          .toLowerCase()
-          .replace(/[^a-z0-9]+/g, "-")
-          .replace(/^-|-$/g, "")
-      );
+      setSlug(generateProductSlug(val));
     }
   };
 
@@ -1003,7 +999,7 @@ export default function ProductModal({
 
       const productPayload: Partial<Product> = {
         name: name.trim(),
-        slug: slug.trim() || name.toLowerCase().replace(/[^a-z0-9]+/g, "-"),
+        slug: slug.trim() ? generateProductSlug(slug) : generateProductSlug(name),
         code: code.trim(),
         
         productType: productType,

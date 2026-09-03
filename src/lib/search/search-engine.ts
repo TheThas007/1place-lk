@@ -14,6 +14,16 @@ export const SYNONYM_MAP: Record<string, string[]> = {
   redmi: ["xiaomi redmi", "xiaomi", "poco", "smartphone"],
   pixel: ["google pixel", "google phone", "smartphone"],
 
+  // Redmi Note Models & Shorthands
+  "note 15": ["redmi note 15", "note15"],
+  "note 15 pro": ["redmi note 15 pro", "note15 pro", "note 15 pro 5g"],
+  "note 15 plus": ["redmi note 15 plus", "redmi note 15+"],
+  "note 15 pro plus": ["redmi note 15 pro+", "redmi note 15+ pro", "redmi note 15 pro plus 5g", "note 15 pro+ 5g"],
+  "note 15+ pro": ["redmi note 15 pro+", "redmi note 15 pro plus", "redmi note 15+ pro 5g", "note 15 pro+ 5g"],
+  "note 15 pro+": ["redmi note 15 pro plus", "redmi note 15+ pro", "redmi note 15 pro+ 5g"],
+  "note 14 pro+": ["redmi note 14 pro plus", "redmi note 14+ pro", "redmi note 14 pro+ 5g"],
+  "note 13 pro+": ["redmi note 13 pro plus", "redmi note 13+ pro", "redmi note 13 pro+ 5g"],
+
   // Shorthand Model Specifics
   s26: ["samsung galaxy s26", "galaxy s26", "samsung s26", "s26 ultra", "s26 plus", "galaxy s26 ultra"],
   "s26 ultra": ["samsung galaxy s26 ultra", "galaxy s26 ultra", "s26 ultra"],
@@ -185,6 +195,10 @@ export function normalizeText(text: string): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "") // remove accents
     .replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "") // remove emojis
+    .replace(/\+/g, " plus ") // convert + to plus so 15+ / Pro+ is distinguished from 15 / Pro
+    .replace(/&/g, " and ")
+    .replace(/([a-z]+)(\d+)/gi, "$1 $2") // e.g. note15 -> note 15
+    .replace(/(\d+)(pro|plus|max|ultra|mini|lite)/gi, "$1 $2") // e.g. 15pro -> 15 pro
     .replace(/[^a-z0-9\s]/g, " ") // replace special chars with spaces
     .replace(/\s+/g, " ")
     .trim();

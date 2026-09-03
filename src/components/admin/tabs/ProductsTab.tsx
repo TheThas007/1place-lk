@@ -146,11 +146,15 @@ export default function ProductsTab({
       }
 
       // Robust Multi-Keyword Search across all product attributes
-      const queryWords = searchQuery
-        .toLowerCase()
-        .trim()
-        .split(/\s+/)
-        .filter(Boolean);
+      const rawQ = searchQuery.toLowerCase().trim();
+      const normQ = rawQ
+        .replace(/\+/g, " plus ")
+        .replace(/([a-z]+)(\d+)/gi, "$1 $2")
+        .replace(/(\d+)(pro|plus|max|ultra|mini|lite)/gi, "$1 $2");
+
+      const queryWords = Array.from(
+        new Set([...rawQ.split(/\s+/), ...normQ.split(/\s+/)])
+      ).filter(Boolean);
 
       if (queryWords.length === 0) {
         return matchesCat && matchesBrand && matchesShowcase;
@@ -176,7 +180,15 @@ export default function ProductsTab({
         .join(" ")
         .toLowerCase();
 
-      const matchesSearch = queryWords.every((word) => productSearchText.includes(word));
+      const normProductText = productSearchText
+        .replace(/\+/g, " plus ")
+        .replace(/([a-z]+)(\d+)/gi, "$1 $2")
+        .replace(/(\d+)(pro|plus|max|ultra|mini|lite)/gi, "$1 $2");
+
+      const matchesSearch =
+        productSearchText.includes(rawQ) ||
+        normProductText.includes(normQ) ||
+        rawQ.split(/\s+/).every((w) => productSearchText.includes(w) || normProductText.includes(w));
 
       return matchesCat && matchesBrand && matchesShowcase && matchesSearch;
     });

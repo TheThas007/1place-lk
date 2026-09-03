@@ -39,6 +39,7 @@ import {
   DEFAULT_GALLERY_ANIMATION_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
+import { generateProductSlug } from "./utils";
 import { cache } from "react";
 
 export const getProductBanners = cache(async (): Promise<ProductBanner[]> => {
@@ -244,15 +245,94 @@ export const getGalleryImages = cache(async (): Promise<any[]> => {
   return DEFAULT_GALLERY_IMAGES;
 });
 
-export const getProductBySlug = cache(async (slug: string): Promise<Product | null> => {
+export const getProductBySlug = cache(async (rawSlug: string): Promise<Product | null> => {
+  if (!rawSlug) return null;
+  const decoded = decodeURIComponent(rawSlug).trim();
+  const lowerSlug = decoded.toLowerCase();
+  const plusConvertedSlug = lowerSlug.replace(/\+/g, "-plus-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  const dashedSlug = lowerSlug.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+
   try {
-    const q = query(collection(db, "products"), where("slug", "==", slug), limit(1));
-    const snapshot = await getDocs(q);
+    // 1. Direct query with raw/decoded slug
+    let q = query(collection(db, "products"), where("slug", "==", decoded), limit(1));
+    let snapshot = await getDocs(q);
     if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+
+    // 2. Query with lowercase slug if different
+    if (lowerSlug !== decoded) {
+      q = query(collection(db, "products"), where("slug", "==", lowerSlug), limit(1));
+      snapshot = await getDocs(q);
+      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+    }
+
+    // 3. Query with plusConvertedSlug (e.g., "redmi-note-15-plus-pro-5g")
+    if (plusConvertedSlug !== decoded && plusConvertedSlug !== lowerSlug) {
+      q = query(collection(db, "products"), where("slug", "==", plusConvertedSlug), limit(1));
+      snapshot = await getDocs(q);
+      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+    }
+
+    // 4. Query with dashedSlug
+    if (dashedSlug !== decoded && dashedSlug !== lowerSlug && dashedSlug !== plusConvertedSlug) {
+      q = query(collection(db, "products"), where("slug", "==", dashedSlug), limit(1));
+      snapshot = await getDocs(q);
+      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+    }
+
+    // 5. Query by document ID
+    const docRef = doc(db, "products", decoded);
+    const docSnap = await getDoc(docRef);
+    if (docSnap.exists()) return docSnap.data() as Product;
+
+    // 6. Query by product code / SKU
+    const qCode = query(collection(db, "products"), where("code", "==", decoded), limit(1));
+    const codeSnap = await getDocs(qCode);
+    if (!codeSnap.empty) return codeSnap.docs[0].data() as Product;
+
+    // 7. Full catalog fallback lookup to handle legacy or edge case slug mismatches
+    const allProducts = await getProducts();
+    const matched = allProducts.find((p) => {
+      const pSlug = (p.slug || "").toLowerCase();
+      const pId = (p.id || "").toLowerCase();
+      const pCode = (p.code || "").toLowerCase();
+      const pNameSlug = generateProductSlug(p.name || "");
+
+      return (
+        pSlug === lowerSlug ||
+        pSlug === plusConvertedSlug ||
+        pSlug === dashedSlug ||
+        pId === lowerSlug ||
+        pCode === lowerSlug ||
+        pNameSlug === lowerSlug ||
+        pNameSlug === plusConvertedSlug ||
+        pNameSlug === dashedSlug
+      );
+    });
+
+    if (matched) return matched;
   } catch (e) {
     console.warn("Offline/Error fetching product by slug:", e);
   }
-  return fallbackProducts.find((p) => p.slug === slug) || null;
+
+  return (
+    fallbackProducts.find((p) => {
+      const pSlug = (p.slug || "").toLowerCase();
+      const pId = (p.id || "").toLowerCase();
+      const pCode = (p.code || "").toLowerCase();
+      const pNameSlug = generateProductSlug(p.name || "");
+
+      return (
+        pSlug === lowerSlug ||
+        pSlug === plusConvertedSlug ||
+        pSlug === dashedSlug ||
+        pId === lowerSlug ||
+        pCode === lowerSlug ||
+        pNameSlug === lowerSlug ||
+        pNameSlug === plusConvertedSlug ||
+        pNameSlug === dashedSlug
+      );
+    }) || null
+  );
 });
 
 export const getCategoryBySlug = cache(async (slug: string): Promise<Category | null> => {

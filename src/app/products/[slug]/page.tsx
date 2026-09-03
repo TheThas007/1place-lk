@@ -54,7 +54,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       ? `${product.name} price in Sri Lanka is ${priceStr}. ${stockText} with ${warranty}. Buy genuine ${brand} products at Street Mobile Vavuniya with islandwide delivery.`
       : `Buy original ${product.name} (${brand}) in Sri Lanka at Street Mobile. Best price ${priceStr}, ${warranty}, and express islandwide delivery.`;
 
-  const canonicalUrl = `https://www.streetmobile.lk/products/${slug}`;
+  const canonicalUrl = `https://www.streetmobile.lk/products/${product.slug || slug}`;
   const images = product.images && product.images.length > 0
     ? product.images.map((img) => ({ url: img, alt: `${product.name} - Street Mobile Sri Lanka` }))
     : [{ url: "https://www.streetmobile.lk/logo.png", alt: product.name }];
@@ -104,7 +104,7 @@ export default async function ProductDetailPage({
   const productJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "@id": `https://www.streetmobile.lk/products/${slug}#product`,
+    "@id": `https://www.streetmobile.lk/products/${product.slug || slug}#product`,
     "name": product.name,
     "image": product.images && product.images.length > 0 ? product.images : ["https://www.streetmobile.lk/logo.png"],
     "description": product.description || `Buy ${product.name} at Street Mobile in Sri Lanka with warranty and islandwide delivery.`,
@@ -116,7 +116,7 @@ export default async function ProductDetailPage({
     },
     "offers": {
       "@type": "Offer",
-      "url": `https://www.streetmobile.lk/products/${slug}`,
+      "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
       "priceCurrency": "LKR",
       "price": product.price,
       "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -159,7 +159,7 @@ export default async function ProductDetailPage({
         "@type": "ListItem",
         "position": 4,
         "name": product.name,
-        "item": `https://www.streetmobile.lk/products/${slug}`
+        "item": `https://www.streetmobile.lk/products/${product.slug || slug}`
       }
     ]
   };
