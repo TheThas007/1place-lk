@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import { MapPin, Phone, Clock, Mail, MessageSquare, Navigation, ExternalLink, Send, Sparkles } from "lucide-react";
 import { siteSettings as defaultSettings } from "@/lib/data";
 import { SiteSettings } from "@/lib/types";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getSiteSettings } from "@/lib/firestore-client";
 
 export default function ContactPage() {
   const [settings, setSettings] = useState<SiteSettings>(defaultSettings);
@@ -18,9 +17,8 @@ export default function ContactPage() {
   const [sentSuccess, setSentSuccess] = useState(false);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "site"), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as Partial<SiteSettings>;
+    getSiteSettings().then((data) => {
+      if (data) {
         setSettings((prev) => ({
           ...prev,
           ...data,
@@ -30,8 +28,7 @@ export default function ContactPage() {
           },
         }));
       }
-    });
-    return () => unsub();
+    }).catch(() => {});
   }, []);
 
   const handleSendMessage = (e: React.FormEvent) => {

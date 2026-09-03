@@ -5,8 +5,7 @@ import Link from "next/link";
 import { ArrowRight, Clock } from "lucide-react";
 import { TodayDealSettings } from "@/lib/types";
 import { DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getTodayDealSettings } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 
 interface TodayDealSectionProps {
@@ -34,33 +33,12 @@ export default function TodayDealSection({
   useEffect(() => {
     if (settings) {
       setLiveSettings((prev) => ({ ...prev, ...settings }));
+    } else {
+      getTodayDealSettings().then((cached) => {
+        if (cached) setLiveSettings(cached);
+      }).catch(() => {});
     }
   }, [settings]);
-
-  // Real-time Firestore subscription on public page
-  useEffect(() => {
-    if (isLivePreview) return;
-    try {
-      const unsub = onSnapshot(
-        doc(db, "settings", "today_deal"),
-        (snap) => {
-          if (snap.exists()) {
-            setLiveSettings((prev) => ({
-              ...DEFAULT_TODAY_DEAL_SETTINGS,
-              ...prev,
-              ...snap.data(),
-            } as TodayDealSettings));
-          }
-        },
-        (err) => {
-          console.warn("Firestore today_deal live sync:", err);
-        }
-      );
-      return () => unsub();
-    } catch {
-      // Offline fallback
-    }
-  }, [isLivePreview]);
 
   const deal = liveSettings;
 

@@ -130,18 +130,19 @@ export default function OrderHistoryPage() {
       setLoading(true);
       const fetchedMap = new Map<string, Order>();
 
-      // 1. Fetch from server API store
-      try {
-        const url = user ? `/api/orders?userId=${user.uid}` : "/api/orders";
-        const res = await fetch(url);
-        const data = await res.json();
-        if (Array.isArray(data?.orders)) {
-          data.orders.forEach((o: Order) => {
-            if (o && o.id) fetchedMap.set(o.id, o);
-          });
+      // 1. Fetch from server API store if user is authenticated
+      if (user) {
+        try {
+          const res = await fetch(`/api/orders?userId=${user.uid}`);
+          const data = await res.json();
+          if (Array.isArray(data?.orders)) {
+            data.orders.forEach((o: Order) => {
+              if (o && o.id) fetchedMap.set(o.id, o);
+            });
+          }
+        } catch (e) {
+          console.warn("API orders fetch warning:", e);
         }
-      } catch (e) {
-        console.warn("API orders fetch warning:", e);
       }
 
       // 2. Fetch orders from localStorage (recent orders placed in this browser)

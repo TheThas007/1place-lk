@@ -6,9 +6,8 @@ import { ArrowRight } from "lucide-react";
 import { products as fallbackProducts } from "@/lib/data";
 import ProductCard from "@/components/products/ProductCard";
 import { motion } from "framer-motion";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
 import { Product } from "@/lib/types";
+import { getUiSettings } from "@/lib/firestore-client";
 
 const containerVariants = {
   hidden: { opacity: 0 },
@@ -39,29 +38,9 @@ export default function FeaturedProducts({
   const [isVisible, setIsVisible] = useState(initialVisible);
   const [allProducts] = useState<Product[]>(initialProducts || []);
 
-  // Real-time Firestore sync on settings/ui
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "ui");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data();
-            if (data.showFeaturedProducts !== undefined) {
-              setIsVisible(data.showFeaturedProducts !== false);
-            }
-          }
-        },
-        () => {
-          setIsVisible(true);
-        }
-      );
-      return () => unsubscribe();
-    } catch {
-      setIsVisible(true);
-    }
-  }, []);
+    setIsVisible(initialVisible);
+  }, [initialVisible]);
 
   // When disabled or empty, completely remove from the DOM with zero empty space or margin
   if (!isVisible || !allProducts || allProducts.length === 0) {

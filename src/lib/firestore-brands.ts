@@ -2,6 +2,7 @@ import { db } from "./firebase";
 import { collection, getDocs, doc, setDoc, getDoc, deleteDoc, query, where } from "firebase/firestore";
 import { Brand, Department, DepartmentBrandPageConfig, DepartmentBrandCategoryTab, Product } from "./types";
 import { DEFAULT_BRANDS, BRAND_DEFAULT_CAMPAIGN_BANNERS } from "./data";
+import { cachedFetch, clearDataCache, CACHE_TTL } from "./data-cache";
 
 // ── Initial Primary Departments ──
 export const DEFAULT_DEPARTMENTS: Department[] = [
@@ -31,21 +32,23 @@ export function getDefaultBrandDepartments(slug: string, productGroup?: string):
 
 // ── 1. Departments Firestore API ──
 export async function getDepartmentsFromDb(): Promise<Department[]> {
-  const deptMap = new Map<string, Department>();
-  DEFAULT_DEPARTMENTS.forEach((d) => deptMap.set(d.slug, d));
+  return cachedFetch("departments:all", async () => {
+    const deptMap = new Map<string, Department>();
+    DEFAULT_DEPARTMENTS.forEach((d) => deptMap.set(d.slug, d));
 
-  try {
-    const snap = await getDocs(collection(db, "departments"));
-    snap.docs.forEach((d) => {
-      const data = d.data() as Department;
-      const slug = data.slug || d.id;
-      deptMap.set(slug, { ...data, id: d.id, slug });
-    });
-  } catch (err) {
-    console.warn("Error fetching departments from Firestore, using defaults:", err);
-  }
+    try {
+      const snap = await getDocs(collection(db, "departments"));
+      snap.docs.forEach((d) => {
+        const data = d.data() as Department;
+        const slug = data.slug || d.id;
+        deptMap.set(slug, { ...data, id: d.id, slug });
+      });
+    } catch (err) {
+      console.warn("Error fetching departments from Firestore, using defaults:", err);
+    }
 
-  return Array.from(deptMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+    return Array.from(deptMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0));
+  }, CACHE_TTL.BRANDS);
 }
 
 export async function saveDepartmentToDb(dept: Partial<Department>): Promise<void> {
@@ -63,72 +66,86 @@ export async function saveDepartmentToDb(dept: Partial<Department>): Promise<voi
     },
     { merge: true }
   );
+  clearDataCache("departments");
+  clearDataCache("brands");
 }
 
 // ── 2. Brands Firestore API ──
 export async function getBrandsFromDb(): Promise<Brand[]> {
-  const brandMap = new Map<string, Brand>();
+  return cachedFetch("brands:all", async () => {
+    const brandMap = new Map<string, Brand>();
 
-  try {
-    const snapshot = await getDocs(collection(db, "brands"));
-    
-    if (!snapshot.empty) {
-      // 1. Load exclusively from Firestore when docs exist
-      snapshot.docs.forEach((d) => {
-        const data = d.data() as Brand;
-        if (
-          data.isDeleted === true ||
-          (data as any).status === "deleted" ||
-          !data.name ||
-          data.name === "undefined"
-        ) {
-          return;
-        }
+    try {
+      const snapshot = await getDocs(collection(db, "brands"));
+      
+      if (!snapshot.empty) {
+        // 1. Load exclusively from Firestore when docs exist
+        snapshot.docs.forEach((d) => {
+          const data = d.data() as Brand;
+          if (
+            data.isDeleted === true ||
+            (data as any).status === "deleted" ||
+            !data.name ||
+            data.name === "undefined"
+          ) {
+            return;
+          }
 
-        const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-        const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-        const nameLower = (data.name || "").toLowerCase().trim();
-        const normKey = nameLower || slug.toLowerCase();
+          const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
+          const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+          const nameLower = (data.name || "").toLowerCase().trim();
+          const normKey = nameLower || slug.toLowerCase();
 
-        // Check if matching preset exists for logo fallback
-        const defaultBrand = DEFAULT_BRANDS.find(
-          (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === nameLower
-        );
+          // Check if matching preset exists for logo fallback
+          const defaultBrand = DEFAULT_BRANDS.find(
+            (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === nameLower
+          );
 
-        const assigned_departments =
-          data.assigned_departments && data.assigned_departments.length > 0
-            ? data.assigned_departments
-            : getDefaultBrandDepartments(slug, data.product_group);
+          const assigned_departments =
+            data.assigned_departments && data.assigned_departments.length > 0
+              ? data.assigned_departments
+              : getDefaultBrandDepartments(slug, data.product_group);
 
-        const rawLogo =
-          data.logo_url ||
-          (data as any).logo ||
-          (data as any).image_url ||
-          (data as any).imageUrl ||
-          (data as any).icon_url ||
-          (data as any).iconUrl ||
-          (data as any).image ||
-          defaultBrand?.logo_url ||
-          "";
+          const rawLogo =
+            data.logo_url ||
+            (data as any).logo ||
+            (data as any).image_url ||
+            (data as any).imageUrl ||
+            (data as any).icon_url ||
+            (data as any).iconUrl ||
+            (data as any).image ||
+            defaultBrand?.logo_url ||
+            "";
 
-        const orderNum = Number(data.sort_order ?? data.order ?? defaultBrand?.sort_order ?? 999);
+          const orderNum = Number(data.sort_order ?? data.order ?? defaultBrand?.sort_order ?? 999);
 
-        // Deduplicate: Keep latest/most complete doc per normalized brand name
-        brandMap.set(normKey, {
-          ...defaultBrand,
-          ...data,
-          id,
-          slug,
-          logo_url: rawLogo,
-          order: orderNum,
-          sort_order: orderNum,
-          assigned_departments,
-          enabled: data.enabled !== false && data.status !== "inactive",
-          show_on_homepage: data.show_on_homepage !== false,
+          // Deduplicate: Keep latest/most complete doc per normalized brand name
+          brandMap.set(normKey, {
+            ...defaultBrand,
+            ...data,
+            id,
+            slug,
+            logo_url: rawLogo,
+            order: orderNum,
+            sort_order: orderNum,
+            assigned_departments,
+            enabled: data.enabled !== false && data.status !== "inactive",
+            show_on_homepage: data.show_on_homepage !== false,
+          });
         });
-      });
-    } else {
-      // 2. Fallback to default presets only if database is completely empty
+      } else {
+        // 2. Fallback to default presets only if database is completely empty
+        DEFAULT_BRANDS.forEach((b) => {
+          const assigned_departments = getDefaultBrandDepartments(b.slug, b.product_group);
+          brandMap.set(b.name.toLowerCase().trim(), {
+            ...b,
+            assigned_departments,
+            enabled: b.status !== "inactive",
+          });
+        });
+      }
+    } catch (err) {
+      console.warn("Error fetching brands from Firestore, using defaults:", err);
       DEFAULT_BRANDS.forEach((b) => {
         const assigned_departments = getDefaultBrandDepartments(b.slug, b.product_group);
         brandMap.set(b.name.toLowerCase().trim(), {
@@ -138,22 +155,12 @@ export async function getBrandsFromDb(): Promise<Brand[]> {
         });
       });
     }
-  } catch (err) {
-    console.warn("Error fetching brands from Firestore, using defaults:", err);
-    DEFAULT_BRANDS.forEach((b) => {
-      const assigned_departments = getDefaultBrandDepartments(b.slug, b.product_group);
-      brandMap.set(b.name.toLowerCase().trim(), {
-        ...b,
-        assigned_departments,
-        enabled: b.status !== "inactive",
-      });
-    });
-  }
 
-  const result = Array.from(brandMap.values()).filter(
-    (b) => (b as any).isDeleted !== true && b.status !== "deleted"
-  );
-  return result.sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
+    const result = Array.from(brandMap.values()).filter(
+      (b) => (b as any).isDeleted !== true && b.status !== "deleted"
+    );
+    return result.sort((a, b) => Number(a.sort_order ?? a.order ?? 999) - Number(b.sort_order ?? b.order ?? 999));
+  }, CACHE_TTL.BRANDS);
 }
 
 export async function saveBrandToDb(brand: Partial<Brand>): Promise<void> {
@@ -190,6 +197,7 @@ export async function saveBrandToDb(brand: Partial<Brand>): Promise<void> {
   };
 
   await setDoc(docRef, cleanData, { merge: true });
+  clearDataCache("brands");
 }
 
 export async function deleteBrandFromDb(id: string, brandInfo?: Partial<Brand>): Promise<void> {
@@ -210,6 +218,7 @@ export async function deleteBrandFromDb(id: string, brandInfo?: Partial<Brand>):
       },
       { merge: true }
     );
+    clearDataCache("brands");
   } catch (e) {
     console.warn("Error deleting brand from Firestore:", e);
   }

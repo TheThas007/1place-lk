@@ -2,8 +2,7 @@
 
 import React, { useState, useEffect } from "react";
 import { Tag, Check, Copy } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { getOfferBanners } from "@/lib/firestore-client";
 import { OfferBanner } from "@/lib/types";
 import { useToast } from "@/components/ui/ToastProvider";
 
@@ -15,48 +14,22 @@ export default function MobileVoucherStrip() {
   useEffect(() => {
     let isSubscribed = true;
 
-    try {
-      const q = query(collection(db, "offer_banners"));
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          if (!isSubscribed) return;
+    getOfferBanners()
+      .then((banners) => {
+        if (!isSubscribed) return;
+        const activeVouchers = (banners || []).filter(
+          (b) => b.couponCode && b.couponCode.trim().length > 0
+        );
+        setVouchers(activeVouchers);
+      })
+      .catch((err) => {
+        console.warn("Voucher load error:", err);
+        if (isSubscribed) setVouchers([]);
+      });
 
-          const now = new Date();
-          const activeVouchers = snapshot.docs
-            .map((doc) => ({ ...doc.data(), id: doc.id } as OfferBanner))
-            .filter((b) => {
-              if (!b.couponCode || !b.couponCode.trim()) return false;
-              if (b.status && b.status !== "active") return false;
-              
-              // Validate date range if provided
-              if (b.startAt) {
-                const s = new Date(b.startAt);
-                if (!isNaN(s.getTime()) && now < s) return false;
-              }
-              if (b.endAt && !b.noExpiry) {
-                const e = new Date(b.endAt);
-                if (!isNaN(e.getTime()) && now > e) return false;
-              }
-              return true;
-            })
-            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-          setVouchers(activeVouchers);
-        },
-        (err) => {
-          console.warn("Voucher snapshot offline/error:", err);
-          setVouchers([]);
-        }
-      );
-
-      return () => {
-        isSubscribed = false;
-        unsubscribe();
-      };
-    } catch {
-      setVouchers([]);
-    }
+    return () => {
+      isSubscribed = false;
+    };
   }, []);
 
   // Auto-hide when no active vouchers exist in Firestore

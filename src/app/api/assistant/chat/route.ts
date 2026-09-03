@@ -14,6 +14,7 @@ import {
   AssistantLanguage,
   AssistantProductSummary,
 } from "@/lib/types";
+import { getProducts } from "@/lib/firestore-client";
 import { formatPrice } from "@/lib/utils";
 import { siteSettings } from "@/lib/data";
 import { detectWritingStyle, getBaseLanguage, WritingStyle } from "@/lib/assistant/language-detector";
@@ -52,11 +53,10 @@ export async function POST(req: Request) {
     const style: WritingStyle = detectWritingStyle(cleanMsg, language);
     const baseLang: AssistantLanguage = getBaseLanguage(style);
 
-    // 1. Fetch live products from Firestore for 100% accurate, live catalog knowledge
+    // 1. Fetch live products from Firestore (using server-side in-memory cache)
     let allProducts: Product[] = [];
     try {
-      const snap = await getDocs(collection(db, "products"));
-      allProducts = snap.docs.map((d) => ({ ...d.data(), id: d.id } as Product));
+      allProducts = await getProducts();
     } catch (e) {
       console.warn("Error fetching products for assistant:", e);
     }

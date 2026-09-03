@@ -2,24 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getFeaturedGridBannerSettings, NewArrivalsPromotionalBannerData } from "@/lib/firestore-client";
 
-export interface NewArrivalsPromotionalBannerData {
-  enabled: boolean;
-  title?: string;
-  desktop_banner_url?: string;
-  mobile_banner_url?: string;
-  destination_type?: "product" | "category" | "external" | "none";
-  destination_id?: string;
-  destination_url?: string;
-  start_date?: string;
-  expiry_date?: string;
-
-  // Legacy fields fallback
-  customImage?: string;
-  buttonUrl?: string;
-}
+export type { NewArrivalsPromotionalBannerData };
 
 function validateUrl(url?: string): string | null {
   if (!url || typeof url !== "string" || !url.trim()) return null;
@@ -37,36 +22,16 @@ export default function NewArrivalsGridBanner() {
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    let unsubscribe: () => void;
-
-    try {
-      const bannerRef = doc(db, "settings", "featured_grid_banner");
-      unsubscribe = onSnapshot(
-        bannerRef,
-        (snap) => {
-          setLoaded(true);
-          if (snap.exists()) {
-            const data = snap.data() as NewArrivalsPromotionalBannerData;
-            setBanner(data);
-          } else {
-            setBanner({ enabled: false });
-          }
-        },
-        (err) => {
-          console.warn("NewArrivalsGridBanner Firestore read error:", err);
-          setLoaded(true);
-          setBanner({ enabled: false });
-        }
-      );
-    } catch (e) {
-      console.warn("NewArrivalsGridBanner setup error:", e);
-      setLoaded(true);
-      setBanner({ enabled: false });
-    }
-
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    getFeaturedGridBannerSettings()
+      .then((data) => {
+        setLoaded(true);
+        setBanner(data || { enabled: false });
+      })
+      .catch((err) => {
+        console.warn("NewArrivalsGridBanner load error:", err);
+        setLoaded(true);
+        setBanner({ enabled: false });
+      });
   }, []);
 
   if (!loaded) {

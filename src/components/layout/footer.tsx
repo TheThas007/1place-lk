@@ -3,8 +3,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getFooterSettings } from "@/lib/firestore-client";
 import { DEFAULT_FOOTER_SETTINGS } from "@/lib/data";
 import { FooterSettings } from "@/lib/types";
 import ScrollReveal from "@/components/ui/ScrollReveal";
@@ -96,23 +95,11 @@ function HomePageFooter() {
   };
 
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "footer");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            setSettings({ ...DEFAULT_FOOTER_SETTINGS, ...snap.data() } as FooterSettings);
-          }
-        },
-        () => {
-          setSettings(DEFAULT_FOOTER_SETTINGS);
-        }
-      );
-      return () => unsubscribe();
-    } catch {
+    getFooterSettings().then((res) => {
+      if (res) setSettings(res);
+    }).catch(() => {
       setSettings(DEFAULT_FOOTER_SETTINGS);
-    }
+    });
   }, []);
 
   // ── Scroll Reveal from Outside Screen via GSAP ScrollTrigger ──

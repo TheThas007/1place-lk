@@ -27,11 +27,9 @@ import AuthModal from "@/components/auth/AuthModal";
 import CartDrawer from "@/components/cart/CartDrawer";
 import MegaMenu from "@/components/layout/MegaMenu";
 import { categories as fallbackCategories, DEFAULT_MEGA_MENU_SETTINGS } from "@/lib/data";
-import { getCategories } from "@/lib/firestore-client";
+import { getCategories, getMegaMenuSettings } from "@/lib/firestore-client";
 import { Category, MegaMenuSettings } from "@/lib/types";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
 import UserAvatar from "@/components/ui/UserAvatar";
 
 export default function Header() {
@@ -53,8 +51,6 @@ export default function Header() {
   const { user, profile, gender, updateGender, signOut } = useAuth();
   const { itemCount } = useCart();
   const { wishlist } = useWishlist();
-
-
 
   // ── ResizeObserver: dynamically update --navbar-height CSS variable ──
   useEffect(() => {
@@ -108,21 +104,17 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(doc(db, "settings", "mega_menu"), (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as MegaMenuSettings;
-          setMegaMenuSettings((prev) => ({
-            ...prev,
-            ...data,
-            columns: data.columns && data.columns.length > 0 ? data.columns : prev.columns,
-          }));
-        }
-      });
-      return () => unsub();
-    } catch (e) {
-      console.warn("Could not listen to mega menu settings:", e);
-    }
+    getMegaMenuSettings().then((settings) => {
+      if (settings) {
+        setMegaMenuSettings((prev) => ({
+          ...prev,
+          ...settings,
+          columns: settings.columns && settings.columns.length > 0 ? settings.columns : prev.columns,
+        }));
+      }
+    }).catch((e) => {
+      console.warn("Could not load mega menu settings:", e);
+    });
   }, []);
 
   useEffect(() => {

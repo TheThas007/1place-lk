@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLocalOrders, saveLocalOrder, updateLocalOrderStatus, deleteLocalOrder, OrderRecord } from "@/lib/orders-store";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, doc, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, query, where, limit, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
 import { deductProductStock } from "@/lib/stock-deduction";
 
 // GET /api/orders - returns all orders
@@ -16,11 +16,35 @@ export async function GET(req: Request) {
     // 1. Read local persistent orders
     let localList = getLocalOrders();
 
-    // 2. Read Firestore orders
+    // 2. Read Firestore orders with targeted queries
     let firestoreList: OrderRecord[] = [];
     try {
-      const snap = await getDocs(collection(db, "orders"));
-      firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+      if (orderId) {
+        const directDoc = await getDoc(doc(db, "orders", orderId));
+        if (directDoc.exists()) {
+          firestoreList = [{ ...directDoc.data(), id: directDoc.id } as OrderRecord];
+        } else {
+          // Fallback query by suffix
+          const snap = await getDocs(query(collection(db, "orders"), limit(100)));
+          firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+        }
+      } else if (userId) {
+        const q = query(collection(db, "orders"), where("userId", "==", userId), limit(50));
+        const snap = await getDocs(q);
+        firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+      } else if (phone) {
+        const q = query(collection(db, "orders"), where("primaryPhone", "==", phone), limit(20));
+        const snap = await getDocs(q);
+        if (!snap.empty) {
+          firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+        } else {
+          const generalSnap = await getDocs(query(collection(db, "orders"), limit(100)));
+          firestoreList = generalSnap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+        }
+      } else {
+        const snap = await getDocs(query(collection(db, "orders"), limit(200)));
+        firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
+      }
     } catch (e) {
       console.warn("API GET orders Firestore read error (using local store):", e);
     }

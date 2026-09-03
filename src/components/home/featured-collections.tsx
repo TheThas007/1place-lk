@@ -6,8 +6,7 @@ import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { FeaturedCollectionsSettings, FeaturedCollectionCard } from "@/lib/types";
 import { DEFAULT_FEATURED_COLLECTIONS } from "@/lib/data";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getFeaturedCollections } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 
 interface FeaturedCollectionsProps {
@@ -258,25 +257,17 @@ export default function FeaturedCollections({ settings }: FeaturedCollectionsPro
     settings || DEFAULT_FEATURED_COLLECTIONS
   );
 
-  // Real-time Firestore sync on settings/featured_collections
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "featured_collections");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data() as FeaturedCollectionsSettings;
-            if (data && data.cards && data.cards.length > 0) {
-              setLiveSettings(data);
-            }
-          }
-        },
-        () => {}
-      );
-      return () => unsubscribe();
-    } catch {}
-  }, []);
+    if (settings) {
+      setLiveSettings(settings);
+    } else {
+      getFeaturedCollections().then((data) => {
+        if (data && data.cards && data.cards.length > 0) {
+          setLiveSettings(data);
+        }
+      }).catch(() => {});
+    }
+  }, [settings]);
 
   // Filter active and non-expired cards
   const activeCards = useMemo(() => {

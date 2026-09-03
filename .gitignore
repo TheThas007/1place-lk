@@ -36,7 +36,7 @@ yarn-error.log*
 # vercel
 .vercel
 
-# typescript
 .vercel
+.vercel_team_backup/
 .env*
 scratch/

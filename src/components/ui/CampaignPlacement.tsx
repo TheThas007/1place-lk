@@ -4,8 +4,7 @@ import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { ArrowRight, Check, Copy } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, query, onSnapshot } from "firebase/firestore";
+import { getOfferBanners } from "@/lib/firestore-client";
 import { fallbackOfferBanners } from "@/lib/data";
 import { OfferBanner, BannerPlacement } from "@/lib/types";
 import { useToast } from "@/components/ui/ToastProvider";
@@ -23,65 +22,30 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
   useEffect(() => {
     let isSubscribed = true;
 
-    try {
-      const q = query(collection(db, "offer_banners"));
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          if (!isSubscribed) return;
-
-          const now = Date.now();
-          // Derive active and unexpired banner from Firestore
-          const activeDocs = snapshot.docs
-            .map((doc) => {
-              const data = doc.data();
-              return {
-                ...data,
-                id: doc.id,
-                status: data.status || "active",
-                placement: data.placement || "homepage_after_categories",
-              } as OfferBanner;
-            })
-            .filter((b) => {
-              if (b.status !== "active" && b.status) return false;
-              if (b.placement !== placement) return false;
-              if (b.startAt && new Date(b.startAt).getTime() > now) return false;
-              if (!b.noExpiry && b.endAt && new Date(b.endAt).getTime() <= now) return false;
-              if (b.countdownEnabled && b.countdownEndAt && new Date(b.countdownEndAt).getTime() <= now) return false;
-              return true;
-            })
-            .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-          if (activeDocs.length > 0) {
-            setBanner(activeDocs[0]);
-          } else {
-            const fallback = fallbackOfferBanners.find(
-              (f) => f.placement === placement && f.status === "active"
-            );
-            setBanner(fallback || null);
-          }
-        },
-        (err) => {
-          console.warn("Firestore banner snapshot error:", err);
-          if (!isSubscribed) return;
+    getOfferBanners(placement)
+      .then((activeBanners) => {
+        if (!isSubscribed) return;
+        if (activeBanners && activeBanners.length > 0) {
+          setBanner(activeBanners[0]);
+        } else {
           const fallback = fallbackOfferBanners.find(
             (f) => f.placement === placement && f.status === "active"
           );
           setBanner(fallback || null);
         }
-      );
+      })
+      .catch((err) => {
+        console.warn("Error loading campaign banner:", err);
+        if (!isSubscribed) return;
+        const fallback = fallbackOfferBanners.find(
+          (f) => f.placement === placement && f.status === "active"
+        );
+        setBanner(fallback || null);
+      });
 
-      return () => {
-        isSubscribed = false;
-        unsubscribe();
-      };
-    } catch (err) {
-      console.warn("Failed to subscribe to banner snapshot:", err);
-      const fallback = fallbackOfferBanners.find(
-        (f) => f.placement === placement && f.status === "active"
-      );
-      setBanner(fallback || null);
-    }
+    return () => {
+      isSubscribed = false;
+    };
   }, [placement]);
 
   const handleCopyCoupon = (code: string, e: React.MouseEvent | React.KeyboardEvent) => {

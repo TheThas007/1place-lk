@@ -20,6 +20,8 @@ import {
   MegaMenuSettings,
   TodayDealSettings,
   GalleryAnimationSettings,
+  MotionSettings,
+  SiteSettings,
 } from "./types";
 import {
   products as fallbackProducts,
@@ -37,81 +39,95 @@ import {
   DEFAULT_MEGA_MENU_SETTINGS,
   DEFAULT_TODAY_DEAL_SETTINGS,
   DEFAULT_GALLERY_ANIMATION_SETTINGS,
+  DEFAULT_MOTION_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
 import { generateProductSlug } from "./utils";
-import { cache } from "react";
+import { cachedFetch, getCachedData, setCachedData, clearDataCache, CACHE_TTL } from "./data-cache";
 
-export const getProductBanners = cache(async (): Promise<ProductBanner[]> => {
-  try {
-    const q = query(collection(db, "product_banners"));
-    const snapshot = await getDocs(q);
-    const banners = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as ProductBanner));
-    return banners.filter((b) => b.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-  } catch (e) {
-    console.warn("Offline/Error fetching product banners:", e);
-    return [];
-  }
-});
+export { clearDataCache } from "./data-cache";
 
-export const getProducts = cache(async (): Promise<Product[]> => {
-  try {
-    const q = query(collection(db, "products"));
-    const snapshot = await getDocs(q);
-    const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Product));
-    if (docs.length > 0) return docs;
-  } catch (e) {
-    console.warn("Offline/Error fetching products:", e);
-  }
-  return [];
-});
+// ── 1. Product Banners ──
+export async function getProductBanners(): Promise<ProductBanner[]> {
+  return cachedFetch("product_banners:all", async () => {
+    try {
+      const q = query(collection(db, "product_banners"));
+      const snapshot = await getDocs(q);
+      const banners = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as ProductBanner));
+      return banners.filter((b) => b.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    } catch (e) {
+      console.warn("Offline/Error fetching product banners:", e);
+      return [];
+    }
+  }, CACHE_TTL.BANNERS);
+}
 
-export const getCategories = cache(async (): Promise<Category[]> => {
-  const catMap = new Map<string, Category>();
-  fallbackCategories.forEach((c) => {
-    catMap.set(c.id || c.slug, c);
-  });
+// ── 2. Products Catalog ──
+export async function getProducts(): Promise<Product[]> {
+  return cachedFetch("products:all", async () => {
+    try {
+      const q = query(collection(db, "products"));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Product));
+      if (docs.length > 0) return docs;
+    } catch (e) {
+      console.warn("Offline/Error fetching products:", e);
+    }
+    return fallbackProducts;
+  }, CACHE_TTL.PRODUCTS);
+}
 
-  try {
-    const q = query(collection(db, "categories"));
-    const snapshot = await getDocs(q);
-    snapshot.docs.forEach((d) => {
-      const data = d.data() as Category;
-      const id = d.id;
-      const key = id || data.slug || data.name;
-      const existing = catMap.get(key) || catMap.get(id);
-
-      if ((data as any).isDeleted === true || data.status === "deleted") {
-        catMap.delete(key);
-        catMap.delete(id);
-        if (data.slug) catMap.delete(data.slug);
-        return;
-      }
-
-      const image_url = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
-
-      catMap.set(key, { ...existing, ...data, id, image_url });
+// ── 3. Categories ──
+export async function getCategories(): Promise<Category[]> {
+  return cachedFetch("categories:all", async () => {
+    const catMap = new Map<string, Category>();
+    fallbackCategories.forEach((c) => {
+      catMap.set(c.id || c.slug, c);
     });
-  } catch (e) {
-    console.warn("Offline/Error fetching categories:", e);
-  }
 
-  const docs = Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted");
-  const cleanDocs = docs.filter((c) => {
-    const cName = (c.name || "").toLowerCase();
-    const cSlug = (c.slug || "").toLowerCase();
-    return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
-  });
+    try {
+      const q = query(collection(db, "categories"));
+      const snapshot = await getDocs(q);
+      snapshot.docs.forEach((d) => {
+        const data = d.data() as Category;
+        const id = d.id;
+        const key = id || data.slug || data.name;
+        const existing = catMap.get(key) || catMap.get(id);
 
-  return cleanDocs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-});
+        if ((data as any).isDeleted === true || data.status === "deleted") {
+          catMap.delete(key);
+          catMap.delete(id);
+          if (data.slug) catMap.delete(data.slug);
+          return;
+        }
 
+        const image_url = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
+
+        catMap.set(key, { ...existing, ...data, id, image_url });
+      });
+    } catch (e) {
+      console.warn("Offline/Error fetching categories:", e);
+    }
+
+    const docs = Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted");
+    const cleanDocs = docs.filter((c) => {
+      const cName = (c.name || "").toLowerCase();
+      const cSlug = (c.slug || "").toLowerCase();
+      return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+    });
+
+    return cleanDocs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  }, CACHE_TTL.CATEGORIES);
+}
+
+// ── 4. Brands ──
 import { getBrandsFromDb } from "./firestore-brands";
 
-export const getBrands = cache(async (): Promise<Brand[]> => {
+export async function getBrands(): Promise<Brand[]> {
   return await getBrandsFromDb();
-});
+}
 
+// ── 5. Google Reviews Settings ──
 export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {
   overall_rating: 4.9,
   total_reviews_count: 250,
@@ -119,7 +135,7 @@ export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {
   view_all_reviews_url: "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
   endlessScrollEnabled: true,
   autoplayEnabled: true,
-  direction: "right", // Opposite to Gallery's leftward scroll
+  direction: "right",
   desktopSpeed: 36,
   tabletSpeed: 28,
   mobileSpeed: 20,
@@ -133,209 +149,249 @@ export const DEFAULT_GOOGLE_REVIEWS_SETTINGS: GoogleReviewsSettings = {
   edgeFadeColor: "#FFFFFF",
 };
 
-export const getGoogleReviewsSettings = cache(async (): Promise<GoogleReviewsSettings> => {
-  try {
-    const docRef = doc(db, "settings", "google_reviews");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...docSnap.data() } as GoogleReviewsSettings;
+export async function getGoogleReviewsSettings(): Promise<GoogleReviewsSettings> {
+  return cachedFetch("settings:google_reviews", async () => {
+    try {
+      const docRef = doc(db, "settings", "google_reviews");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { ...DEFAULT_GOOGLE_REVIEWS_SETTINGS, ...docSnap.data() } as GoogleReviewsSettings;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching google reviews settings:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching google reviews settings:", e);
-  }
-  return DEFAULT_GOOGLE_REVIEWS_SETTINGS;
-});
+    return DEFAULT_GOOGLE_REVIEWS_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getReviews = cache(async (): Promise<Review[]> => {
-  try {
-    const q = query(collection(db, "reviews"));
-    const snapshot = await getDocs(q);
-    const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Review));
-    if (docs.length > 0) {
-      return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+// ── 6. Reviews ──
+export async function getReviews(): Promise<Review[]> {
+  return cachedFetch("reviews:all", async () => {
+    try {
+      const q = query(collection(db, "reviews"));
+      const snapshot = await getDocs(q);
+      const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Review));
+      if (docs.length > 0) {
+        return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
-  }
-  return fallbackReviews;
-});
+    return fallbackReviews;
+  }, CACHE_TTL.REVIEWS);
+}
 
-export const getBanners = cache(async (): Promise<Banner[]> => {
-  try {
-    const q = query(collection(db, "banners"));
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Banner));
-  } catch (e) {
-    console.warn("Offline/Error fetching banners:", e);
-    return [];
-  }
-});
-
-export const getOfferBanners = cache(async (placement?: string): Promise<OfferBanner[]> => {
-  try {
-    const q = query(collection(db, "offer_banners"));
-    const snapshot = await getDocs(q);
-    let docs = snapshot.docs.map((d) => {
-      const data = d.data();
-      return {
-        ...data,
-        id: d.id,
-        status: data.status || "active",
-        placement: data.placement || "homepage_after_categories",
-        contentMode: data.contentMode || "image_only",
-      } as OfferBanner;
-    });
-
-    if (docs.length === 0) {
-      docs = fallbackOfferBanners;
+// ── 7. Legacy Banners ──
+export async function getBanners(): Promise<Banner[]> {
+  return cachedFetch("banners:legacy", async () => {
+    try {
+      const q = query(collection(db, "banners"));
+      const snapshot = await getDocs(q);
+      return snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Banner));
+    } catch (e) {
+      console.warn("Offline/Error fetching banners:", e);
+      return [];
     }
-    const now = new Date();
+  }, CACHE_TTL.BANNERS);
+}
 
-    const activeBanners = docs
-      .filter((b) => {
-        const status = b.status || "active";
-        if (status === "archived" || status === "draft" || status === "paused") return false;
-        if (placement && b.placement !== placement) return false;
+// ── 8. Offer Banners ──
+export async function getOfferBanners(placement?: string): Promise<OfferBanner[]> {
+  const allBanners = await cachedFetch("offer_banners:all", async () => {
+    try {
+      const q = query(collection(db, "offer_banners"));
+      const snapshot = await getDocs(q);
+      let docs = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          status: data.status || "active",
+          placement: data.placement || "homepage_after_categories",
+          contentMode: data.contentMode || "image_only",
+        } as OfferBanner;
+      });
 
-        // Schedule check
-        if (b.startAt && new Date(b.startAt) > now) return false;
-        if (!b.noExpiry && b.endAt && new Date(b.endAt) < now) return false;
-
-        return true;
-      })
-      .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-
-    if (activeBanners.length === 0 && placement) {
-      return fallbackOfferBanners.filter((b) => b.placement === placement && b.status === "active");
+      if (docs.length === 0) {
+        docs = fallbackOfferBanners;
+      }
+      return docs;
+    } catch (e) {
+      console.warn("Offline/Error fetching offer banners, returning fallbacks:", e);
+      return fallbackOfferBanners;
     }
+  }, CACHE_TTL.BANNERS);
 
-    return activeBanners;
-  } catch (e) {
-    console.warn("Offline/Error fetching offer banners, returning fallbacks:", e);
-    return placement ? fallbackOfferBanners.filter((b) => b.placement === placement) : fallbackOfferBanners;
+  const now = new Date();
+  const activeBanners = allBanners
+    .filter((b) => {
+      const status = b.status || "active";
+      if (status === "archived" || status === "draft" || status === "paused") return false;
+      if (placement && b.placement !== placement) return false;
+
+      // Schedule check
+      if (b.startAt && new Date(b.startAt) > now) return false;
+      if (!b.noExpiry && b.endAt && new Date(b.endAt) < now) return false;
+
+      return true;
+    })
+    .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+  if (activeBanners.length === 0 && placement) {
+    return fallbackOfferBanners.filter((b) => b.placement === placement && b.status === "active");
   }
-});
 
-export const getHeroSlides = cache(async (): Promise<HeroSlide[]> => {
-  try {
-    const q = query(collection(db, "hero_slides"));
-    const snapshot = await getDocs(q);
-    const slides = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as HeroSlide));
-    const activeSlides = slides.filter((s) => s.active !== false);
-    if (activeSlides.length > 0) {
-      return activeSlides.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+  return activeBanners;
+}
+
+// ── 9. Hero Slides ──
+export async function getHeroSlides(): Promise<HeroSlide[]> {
+  return cachedFetch("hero_slides:all", async () => {
+    try {
+      const q = query(collection(db, "hero_slides"));
+      const snapshot = await getDocs(q);
+      const slides = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as HeroSlide));
+      const activeSlides = slides.filter((s) => s.active !== false);
+      if (activeSlides.length > 0) {
+        return activeSlides.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching hero slides:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching hero slides:", e);
-  }
-  return DEFAULT_HERO_SLIDES;
-});
+    return DEFAULT_HERO_SLIDES;
+  }, CACHE_TTL.BANNERS);
+}
 
-export const getGalleryImages = cache(async (): Promise<any[]> => {
-  try {
-    const q = query(collection(db, "gallery"));
-    const snapshot = await getDocs(q);
-    const images = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
-    if (images.length > 0) {
-      return images;
+// ── 10. Gallery Images ──
+export async function getGalleryImages(): Promise<any[]> {
+  return cachedFetch("gallery:all", async () => {
+    try {
+      const q = query(collection(db, "gallery"));
+      const snapshot = await getDocs(q);
+      const images = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+      if (images.length > 0) {
+        return images;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching gallery images:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching gallery images:", e);
-  }
-  return DEFAULT_GALLERY_IMAGES;
-});
+    return DEFAULT_GALLERY_IMAGES;
+  }, CACHE_TTL.GALLERY);
+}
 
-export const getProductBySlug = cache(async (rawSlug: string): Promise<Product | null> => {
+// ── 11. Optimized Product Lookup by Slug / ID ──
+export async function getProductBySlug(rawSlug: string): Promise<Product | null> {
   if (!rawSlug) return null;
   const decoded = decodeURIComponent(rawSlug).trim();
   const lowerSlug = decoded.toLowerCase();
   const plusConvertedSlug = lowerSlug.replace(/\+/g, "-plus-").replace(/-+/g, "-").replace(/^-|-$/g, "");
   const dashedSlug = lowerSlug.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
 
-  try {
-    // 1. Direct query with raw/decoded slug
-    let q = query(collection(db, "products"), where("slug", "==", decoded), limit(1));
-    let snapshot = await getDocs(q);
-    if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+  const cacheKey = `product:slug:${lowerSlug}`;
 
-    // 2. Query with lowercase slug if different
-    if (lowerSlug !== decoded) {
-      q = query(collection(db, "products"), where("slug", "==", lowerSlug), limit(1));
-      snapshot = await getDocs(q);
-      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
+  return cachedFetch(cacheKey, async () => {
+    // 1. Fast check in already loaded memory cache
+    const cachedProducts = getCachedData<Product[]>("products:all");
+    if (cachedProducts && cachedProducts.length > 0) {
+      const match = cachedProducts.find((p) => {
+        const pSlug = (p.slug || "").toLowerCase();
+        const pId = (p.id || "").toLowerCase();
+        const pCode = (p.code || "").toLowerCase();
+        const pNameSlug = generateProductSlug(p.name || "");
+        return (
+          pSlug === lowerSlug ||
+          pSlug === plusConvertedSlug ||
+          pSlug === dashedSlug ||
+          pId === lowerSlug ||
+          pCode === lowerSlug ||
+          pNameSlug === lowerSlug
+        );
+      });
+      if (match) return match;
     }
 
-    // 3. Query with plusConvertedSlug (e.g., "redmi-note-15-plus-pro-5g")
-    if (plusConvertedSlug !== decoded && plusConvertedSlug !== lowerSlug) {
-      q = query(collection(db, "products"), where("slug", "==", plusConvertedSlug), limit(1));
-      snapshot = await getDocs(q);
-      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
-    }
+    try {
+      // 2. Single direct Firestore query with candidate slugs using 'in' operator (Max 1 read)
+      const slugCandidates = Array.from(
+        new Set([decoded, lowerSlug, plusConvertedSlug, dashedSlug].filter(Boolean))
+      ).slice(0, 10);
 
-    // 4. Query with dashedSlug
-    if (dashedSlug !== decoded && dashedSlug !== lowerSlug && dashedSlug !== plusConvertedSlug) {
-      q = query(collection(db, "products"), where("slug", "==", dashedSlug), limit(1));
-      snapshot = await getDocs(q);
-      if (!snapshot.empty) return snapshot.docs[0].data() as Product;
-    }
-
-    // 5. Query by document ID
-    const docRef = doc(db, "products", decoded);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) return docSnap.data() as Product;
-
-    // 6. Query by product code / SKU
-    const qCode = query(collection(db, "products"), where("code", "==", decoded), limit(1));
-    const codeSnap = await getDocs(qCode);
-    if (!codeSnap.empty) return codeSnap.docs[0].data() as Product;
-
-    // 7. Full catalog fallback lookup to handle legacy or edge case slug mismatches
-    const allProducts = await getProducts();
-    const matched = allProducts.find((p) => {
-      const pSlug = (p.slug || "").toLowerCase();
-      const pId = (p.id || "").toLowerCase();
-      const pCode = (p.code || "").toLowerCase();
-      const pNameSlug = generateProductSlug(p.name || "");
-
-      return (
-        pSlug === lowerSlug ||
-        pSlug === plusConvertedSlug ||
-        pSlug === dashedSlug ||
-        pId === lowerSlug ||
-        pCode === lowerSlug ||
-        pNameSlug === lowerSlug ||
-        pNameSlug === plusConvertedSlug ||
-        pNameSlug === dashedSlug
+      const q = query(
+        collection(db, "products"),
+        where("slug", "in", slugCandidates),
+        limit(1)
       );
-    });
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        return snapshot.docs[0].data() as Product;
+      }
 
-    if (matched) return matched;
-  } catch (e) {
-    console.warn("Offline/Error fetching product by slug:", e);
+      // 3. Try Document ID lookup
+      const docRef = doc(db, "products", decoded);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { ...docSnap.data(), id: docSnap.id } as Product;
+      }
+
+      // 4. Try SKU / Product Code lookup
+      const qCode = query(collection(db, "products"), where("code", "==", decoded), limit(1));
+      const codeSnap = await getDocs(qCode);
+      if (!codeSnap.empty) {
+        return codeSnap.docs[0].data() as Product;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching product by slug:", e);
+    }
+
+    // 5. Fallback list lookup
+    return (
+      fallbackProducts.find((p) => {
+        const pSlug = (p.slug || "").toLowerCase();
+        const pId = (p.id || "").toLowerCase();
+        const pCode = (p.code || "").toLowerCase();
+        const pNameSlug = generateProductSlug(p.name || "");
+        return (
+          pSlug === lowerSlug ||
+          pSlug === plusConvertedSlug ||
+          pSlug === dashedSlug ||
+          pId === lowerSlug ||
+          pCode === lowerSlug ||
+          pNameSlug === lowerSlug
+        );
+      }) || null
+    );
+  }, CACHE_TTL.PRODUCTS);
+}
+
+// ── 12. Related Products Helper (Zero full catalog scan) ──
+export async function getRelatedProducts(
+  categoryId: string,
+  currentProductId: string,
+  limitCount: number = 4
+): Promise<Product[]> {
+  const allProducts = await getProducts();
+  if (allProducts && allProducts.length > 0) {
+    const matching = allProducts.filter(
+      (p) =>
+        p.id !== currentProductId &&
+        (p.category_id === categoryId ||
+          p.category_slug === categoryId ||
+          p.categorySlug === categoryId)
+    );
+    if (matching.length > 0) {
+      return matching.slice(0, limitCount);
+    }
+    return allProducts.filter((p) => p.id !== currentProductId).slice(0, limitCount);
   }
+  return [];
+}
 
-  return (
-    fallbackProducts.find((p) => {
-      const pSlug = (p.slug || "").toLowerCase();
-      const pId = (p.id || "").toLowerCase();
-      const pCode = (p.code || "").toLowerCase();
-      const pNameSlug = generateProductSlug(p.name || "");
+// ── 13. Category By Slug ──
+export async function getCategoryBySlug(slug: string): Promise<Category | null> {
+  const allCats = await getCategories();
+  const found = allCats.find((c) => c.slug === slug || c.id === slug);
+  if (found) return found;
 
-      return (
-        pSlug === lowerSlug ||
-        pSlug === plusConvertedSlug ||
-        pSlug === dashedSlug ||
-        pId === lowerSlug ||
-        pCode === lowerSlug ||
-        pNameSlug === lowerSlug ||
-        pNameSlug === plusConvertedSlug ||
-        pNameSlug === dashedSlug
-      );
-    }) || null
-  );
-});
-
-export const getCategoryBySlug = cache(async (slug: string): Promise<Category | null> => {
   try {
     const q = query(collection(db, "categories"), where("slug", "==", slug), limit(1));
     const snapshot = await getDocs(q);
@@ -344,23 +400,27 @@ export const getCategoryBySlug = cache(async (slug: string): Promise<Category | 
     console.warn("Offline/Error fetching category by slug:", e);
   }
   return fallbackCategories.find((c) => c.slug === slug) || null;
-});
+}
 
 export { siteSettings } from "./data";
 
-export const getUiSettings = cache(async (): Promise<UiSettings> => {
-  try {
-    const docRef = doc(db, "settings", "ui");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { showFeaturedProducts: true, ...docSnap.data() } as UiSettings;
+// ── 14. UI Settings ──
+export async function getUiSettings(): Promise<UiSettings> {
+  return cachedFetch("settings:ui", async () => {
+    try {
+      const docRef = doc(db, "settings", "ui");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { showFeaturedProducts: true, ...docSnap.data() } as UiSettings;
+      }
+    } catch {
+      // Fallback
     }
-  } catch {
-    // Return empty fallback silently when offline or reconnecting
-  }
-  return { showFeaturedProducts: true };
-});
+    return { showFeaturedProducts: true };
+  }, CACHE_TTL.SETTINGS);
+}
 
+// ── 15. Ticker Settings ──
 const DEFAULT_TICKER: TickerSettings = {
   enabled: true,
   messages: [
@@ -377,176 +437,324 @@ const DEFAULT_TICKER: TickerSettings = {
   pause_on_hover: true,
 };
 
-export const getTickerSettings = cache(async (): Promise<TickerSettings> => {
-  try {
-    const docRef = doc(db, "settings", "ticker");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      return { ...DEFAULT_TICKER, ...docSnap.data() } as TickerSettings;
+export async function getTickerSettings(): Promise<TickerSettings> {
+  return cachedFetch("settings:ticker", async () => {
+    try {
+      const docRef = doc(db, "settings", "ticker");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return { ...DEFAULT_TICKER, ...docSnap.data() } as TickerSettings;
+      }
+    } catch {
+      // Fallback
     }
-  } catch {
-    // Silent fallback
-  }
-  return DEFAULT_TICKER;
-});
+    return DEFAULT_TICKER;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getShowcaseSettings = cache(async (): Promise<VisualShowcaseSettings> => {
-  try {
-    const docRef = doc(db, "settings", "visual_product_showcase");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as VisualShowcaseSettings;
-      return {
-        ...DEFAULT_SHOWCASE_SETTINGS,
-        ...data,
-        slides: data.slides && data.slides.length > 0 ? data.slides : DEFAULT_SHOWCASE_SETTINGS.slides,
-      };
+// ── 16. Showcase Settings ──
+export async function getShowcaseSettings(): Promise<VisualShowcaseSettings> {
+  return cachedFetch("settings:showcase", async () => {
+    try {
+      const docRef = doc(db, "settings", "visual_product_showcase");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as VisualShowcaseSettings;
+        return {
+          ...DEFAULT_SHOWCASE_SETTINGS,
+          ...data,
+          slides: data.slides && data.slides.length > 0 ? data.slides : DEFAULT_SHOWCASE_SETTINGS.slides,
+        };
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching visual showcase settings:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching visual showcase settings:", e);
-  }
-  return DEFAULT_SHOWCASE_SETTINGS;
-});
+    return DEFAULT_SHOWCASE_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getFeaturedCollections = cache(async (): Promise<FeaturedCollectionsSettings> => {
-  try {
-    const docRef = doc(db, "settings", "featured_collections");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as FeaturedCollectionsSettings;
-      return {
-        ...DEFAULT_FEATURED_COLLECTIONS,
-        ...data,
-        cards: data.cards && data.cards.length > 0 ? data.cards : DEFAULT_FEATURED_COLLECTIONS.cards,
-      };
+// ── 17. Featured Collections Settings ──
+export async function getFeaturedCollections(): Promise<FeaturedCollectionsSettings> {
+  return cachedFetch("settings:featured_collections", async () => {
+    try {
+      const docRef = doc(db, "settings", "featured_collections");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as FeaturedCollectionsSettings;
+        return {
+          ...DEFAULT_FEATURED_COLLECTIONS,
+          ...data,
+          cards: data.cards && data.cards.length > 0 ? data.cards : DEFAULT_FEATURED_COLLECTIONS.cards,
+        };
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching featured collections:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching featured collections:", e);
-  }
-  return DEFAULT_FEATURED_COLLECTIONS;
-});
+    return DEFAULT_FEATURED_COLLECTIONS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getFooterSettings = cache(async (): Promise<FooterSettings> => {
-  try {
-    const docRef = doc(db, "settings", "footer");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as FooterSettings;
-      return {
-        ...DEFAULT_FOOTER_SETTINGS,
-        ...data,
-      };
+// ── 18. Footer Settings ──
+export async function getFooterSettings(): Promise<FooterSettings> {
+  return cachedFetch("settings:footer", async () => {
+    try {
+      const docRef = doc(db, "settings", "footer");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return {
+          ...DEFAULT_FOOTER_SETTINGS,
+          ...docSnap.data(),
+        } as FooterSettings;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching footer settings:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching footer settings:", e);
-  }
-  return DEFAULT_FOOTER_SETTINGS;
-});
+    return DEFAULT_FOOTER_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getNewArrivalsSettings = cache(async (): Promise<NewArrivalsSettings> => {
-  try {
-    const docRef = doc(db, "settings", "new_arrivals");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as NewArrivalsSettings;
-      return {
-        ...DEFAULT_NEW_ARRIVALS_SETTINGS,
-        ...data,
-      };
+// ── 19. New Arrivals Settings ──
+export async function getNewArrivalsSettings(): Promise<NewArrivalsSettings> {
+  return cachedFetch("settings:new_arrivals", async () => {
+    try {
+      const docRef = doc(db, "settings", "new_arrivals");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return {
+          ...DEFAULT_NEW_ARRIVALS_SETTINGS,
+          ...docSnap.data(),
+        } as NewArrivalsSettings;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching new arrivals settings:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching new arrivals settings:", e);
-  }
-  return DEFAULT_NEW_ARRIVALS_SETTINGS;
-});
+    return DEFAULT_NEW_ARRIVALS_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getMegaMenuSettings = cache(async (): Promise<MegaMenuSettings> => {
-  try {
-    const docRef = doc(db, "settings", "mega_menu");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as MegaMenuSettings;
-      return {
-        ...DEFAULT_MEGA_MENU_SETTINGS,
-        ...data,
-        columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
-      };
+// ── 20. Mega Menu Settings ──
+export async function getMegaMenuSettings(): Promise<MegaMenuSettings> {
+  return cachedFetch("settings:mega_menu", async () => {
+    try {
+      const docRef = doc(db, "settings", "mega_menu");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const data = docSnap.data() as MegaMenuSettings;
+        return {
+          ...DEFAULT_MEGA_MENU_SETTINGS,
+          ...data,
+          columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
+        };
+      }
+
+      // Try alternate siteSettings/categoryMegaMenu location
+      const altDocRef = doc(db, "siteSettings", "categoryMegaMenu");
+      const altSnap = await getDoc(altDocRef);
+      if (altSnap.exists()) {
+        const data = altSnap.data() as MegaMenuSettings;
+        return {
+          ...DEFAULT_MEGA_MENU_SETTINGS,
+          ...data,
+          columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
+        };
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching mega menu settings:", e);
     }
+    return DEFAULT_MEGA_MENU_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-    // Try alternate siteSettings/categoryMegaMenu location
-    const altDocRef = doc(db, "siteSettings", "categoryMegaMenu");
-    const altSnap = await getDoc(altDocRef);
-    if (altSnap.exists()) {
-      const data = altSnap.data() as MegaMenuSettings;
-      return {
-        ...DEFAULT_MEGA_MENU_SETTINGS,
-        ...data,
-        columns: data.columns && data.columns.length > 0 ? data.columns : DEFAULT_MEGA_MENU_SETTINGS.columns,
-      };
+// ── 21. Today Deal Settings ──
+export async function getTodayDealSettings(): Promise<TodayDealSettings> {
+  return cachedFetch("settings:today_deal", async () => {
+    try {
+      const docRef = doc(db, "settings", "today_deal");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return {
+          ...DEFAULT_TODAY_DEAL_SETTINGS,
+          ...docSnap.data(),
+        } as TodayDealSettings;
+      }
+
+      const altDocRef = doc(db, "siteSettings", "todayDeal");
+      const altSnap = await getDoc(altDocRef);
+      if (altSnap.exists()) {
+        return {
+          ...DEFAULT_TODAY_DEAL_SETTINGS,
+          ...altSnap.data(),
+        } as TodayDealSettings;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching Today's Deal settings:", e);
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching mega menu settings:", e);
-  }
-  return DEFAULT_MEGA_MENU_SETTINGS;
-});
+    return DEFAULT_TODAY_DEAL_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getTodayDealSettings = cache(async (): Promise<TodayDealSettings> => {
-  try {
-    const docRef = doc(db, "settings", "today_deal");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as TodayDealSettings;
-      return {
-        ...DEFAULT_TODAY_DEAL_SETTINGS,
-        ...data,
-      };
+// ── 22. Gallery Animation Settings ──
+export async function getGalleryAnimationSettings(): Promise<GalleryAnimationSettings> {
+  return cachedFetch("settings:gallery_animation", async () => {
+    try {
+      const docRef = doc(db, "settings", "gallery_animation");
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        return {
+          ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
+          ...docSnap.data(),
+        } as GalleryAnimationSettings;
+      }
+
+      const altDocRef = doc(db, "siteSettings", "galleryAnimation");
+      const altSnap = await getDoc(altDocRef);
+      if (altSnap.exists()) {
+        return {
+          ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
+          ...altSnap.data(),
+        } as GalleryAnimationSettings;
+      }
+    } catch (e) {
+      console.warn("Offline/Error fetching gallery animation settings:", e);
     }
+    return DEFAULT_GALLERY_ANIMATION_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-    // Try alternate siteSettings/todayDeal location if exists
-    const altDocRef = doc(db, "siteSettings", "todayDeal");
-    const altSnap = await getDoc(altDocRef);
-    if (altSnap.exists()) {
-      const data = altSnap.data() as TodayDealSettings;
-      return {
-        ...DEFAULT_TODAY_DEAL_SETTINGS,
-        ...data,
-      };
+// ── 23. Motion Settings ──
+export async function getMotionSettings(): Promise<MotionSettings> {
+  return cachedFetch("settings:motion", async () => {
+    try {
+      const docRef = doc(db, "settings", "motion");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return { ...DEFAULT_MOTION_SETTINGS, ...snap.data() } as MotionSettings;
+      }
+    } catch {
+      // Fallback
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching Today's Deal settings:", e);
-  }
-  return DEFAULT_TODAY_DEAL_SETTINGS;
-});
+    return DEFAULT_MOTION_SETTINGS;
+  }, CACHE_TTL.SETTINGS);
+}
 
-export const getGalleryAnimationSettings = cache(async (): Promise<GalleryAnimationSettings> => {
-  try {
-    const docRef = doc(db, "settings", "gallery_animation");
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const data = docSnap.data() as GalleryAnimationSettings;
-      return {
-        ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
-        ...data,
-      };
+// ── 24. Auth Settings (Google Sign-in Enabled etc.) ──
+export interface AuthSettings {
+  googleAuthEnabled: boolean;
+}
+
+export async function getAuthSettings(): Promise<AuthSettings> {
+  return cachedFetch("settings:auth", async () => {
+    try {
+      const snap = await getDoc(doc(db, "settings", "auth"));
+      if (snap.exists()) {
+        return { googleAuthEnabled: Boolean(snap.data()?.googleAuthEnabled) };
+      }
+    } catch {
+      // Fallback
     }
+    return { googleAuthEnabled: false };
+  }, CACHE_TTL.SETTINGS);
+}
 
-    // Try alternate siteSettings/galleryAnimation location if exists
-    const altDocRef = doc(db, "siteSettings", "galleryAnimation");
-    const altSnap = await getDoc(altDocRef);
-    if (altSnap.exists()) {
-      const data = altSnap.data() as GalleryAnimationSettings;
-      return {
-        ...DEFAULT_GALLERY_ANIMATION_SETTINGS,
-        ...data,
-      };
+// ── 25. Campaign Popup Settings ──
+export interface CampaignPopupSettings {
+  enabled: boolean;
+  pageTargeting: "all" | "homepage" | "products";
+  frequency: "once_per_session" | "once_per_day" | "every_visit";
+  delaySeconds: number;
+  imageUrl?: string;
+  badgeText?: string;
+  headline?: string;
+  highlightText?: string;
+  description?: string;
+  couponCode?: string;
+  discountText?: string;
+  buttonText?: string;
+  buttonUrl?: string;
+  colorTheme?: "luxury_dark" | "gold_glow" | "clean_white" | "deep_purple";
+  startDate?: string;
+  endDate?: string;
+}
+
+export const DEFAULT_CAMPAIGN_POPUP: CampaignPopupSettings = {
+  enabled: false,
+  pageTargeting: "all",
+  frequency: "once_per_session",
+  delaySeconds: 7,
+  imageUrl: "https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1000&auto=format&fit=crop",
+  badgeText: "SPECIAL PROMO",
+  headline: "GET LKR 1,500 OFF",
+  highlightText: "YOUR FIRST ORDER!",
+  description: "Exclusive discount on genuine smartphones & accessories.",
+  couponCode: "",
+  discountText: "LKR 1,500 OFF",
+  buttonText: "Claim Discount Now",
+  buttonUrl: "/products",
+  colorTheme: "luxury_dark",
+};
+
+export async function getCampaignPopupSettings(): Promise<CampaignPopupSettings> {
+  return cachedFetch("settings:campaign_popup", async () => {
+    try {
+      const docRef = doc(db, "settings", "campaign_popup");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return { ...DEFAULT_CAMPAIGN_POPUP, ...snap.data() } as CampaignPopupSettings;
+      }
+    } catch {
+      // Fallback
     }
-  } catch (e) {
-    console.warn("Offline/Error fetching gallery animation settings:", e);
-  }
-  return DEFAULT_GALLERY_ANIMATION_SETTINGS;
-});
+    return DEFAULT_CAMPAIGN_POPUP;
+  }, CACHE_TTL.SETTINGS);
+}
 
+// ── 26. Site Settings ──
+export async function getSiteSettings(): Promise<SiteSettings> {
+  return cachedFetch("settings:site", async () => {
+    try {
+      const docRef = doc(db, "settings", "site");
+      const snap = await getDoc(docRef);
+      if (snap.exists()) {
+        return { ...siteSettings, ...snap.data() } as SiteSettings;
+      }
+    } catch {
+      // Fallback
+    }
+    return siteSettings as SiteSettings;
+  }, CACHE_TTL.SETTINGS);
+}
 
+// ── 27. Featured Grid Banner Settings ──
+export interface NewArrivalsPromotionalBannerData {
+  enabled: boolean;
+  title?: string;
+  desktop_banner_url?: string;
+  mobile_banner_url?: string;
+  destination_type?: "product" | "category" | "external" | "none";
+  destination_id?: string;
+  destination_url?: string;
+  start_date?: string;
+  expiry_date?: string;
+  image?: string;
+  alt?: string;
+  href?: string;
+  aspectRatio?: string;
+  placement?: string;
+  customImage?: string;
+  buttonUrl?: string;
+}
 
-
-
+export async function getFeaturedGridBannerSettings(): Promise<NewArrivalsPromotionalBannerData> {
+  return cachedFetch("settings:featured_grid_banner", async () => {
+    try {
+      const bannerRef = doc(db, "settings", "featured_grid_banner");
+      const snap = await getDoc(bannerRef);
+      if (snap.exists()) {
+        return snap.data() as NewArrivalsPromotionalBannerData;
+      }
+    } catch {
+      // Fallback
+    }
+    return { enabled: false };
+  }, CACHE_TTL.SETTINGS);
+}

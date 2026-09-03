@@ -6,8 +6,7 @@ import Link from "next/link";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { getHeroSlides } from "@/lib/firestore-client";
 import { DEFAULT_HERO_SLIDES } from "@/lib/data";
 import { HeroSlide } from "@/lib/types";
 import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
@@ -98,32 +97,15 @@ export default function HeroSection() {
     return () => ctx.revert();
   }, [isReducedMotion, motionSettings.enableHeroParallax]);
 
-  // Real-time Firestore synchronization with fallback
+  // Load cached hero slides
   useEffect(() => {
-    try {
-      const q = query(collection(db, "hero_slides"));
-      const unsubscribe = onSnapshot(
-        q,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const fetched = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as HeroSlide));
-            const activeOnly = fetched.filter((s) => s.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
-            if (activeOnly.length > 0) {
-              setSlides(activeOnly);
-              return;
-            }
-          }
-          setSlides(DEFAULT_HERO_SLIDES);
-        },
-        (err) => {
-          console.warn("Firestore hero_slides listener fallback:", err);
-          setSlides(DEFAULT_HERO_SLIDES);
-        }
-      );
-      return () => unsubscribe();
-    } catch {
-      setSlides(DEFAULT_HERO_SLIDES);
-    }
+    getHeroSlides()
+      .then((res) => {
+        if (res && res.length > 0) setSlides(res);
+      })
+      .catch(() => {
+        setSlides(DEFAULT_HERO_SLIDES);
+      });
   }, []);
 
   // Continuous auto-swipe rotation every 4.0 seconds (plays continuously even when hovering with cursor!)

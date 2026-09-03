@@ -5,8 +5,7 @@ import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getMotionSettings } from "@/lib/firestore-client";
 import { DEFAULT_MOTION_SETTINGS } from "@/lib/data";
 import { MotionSettings } from "@/lib/types";
 
@@ -36,25 +35,13 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
   const [isReducedMotion, setIsReducedMotion] = useState(false);
   const lenisRef = useRef<Lenis | null>(null);
 
-  // 1. Fetch real-time motion settings from Firestore
+  // 1. Fetch cached motion settings
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "motion");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            setMotionSettings({ ...DEFAULT_MOTION_SETTINGS, ...snap.data() } as MotionSettings);
-          } else {
-            setMotionSettings(DEFAULT_MOTION_SETTINGS);
-          }
-        },
-        () => setMotionSettings(DEFAULT_MOTION_SETTINGS)
-      );
-      return () => unsubscribe();
-    } catch {
+    getMotionSettings().then((settings) => {
+      if (settings) setMotionSettings(settings);
+    }).catch(() => {
       setMotionSettings(DEFAULT_MOTION_SETTINGS);
-    }
+    });
   }, []);
 
   // 2. Check prefers-reduced-motion

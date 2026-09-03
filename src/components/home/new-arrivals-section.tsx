@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { ShoppingBag, Eye, Heart, Check, Star } from "lucide-react";
 import { Product, NewArrivalsSettings } from "@/lib/types";
-import { getProducts } from "@/lib/firestore-client";
+import { getProducts, getNewArrivalsSettings } from "@/lib/firestore-client";
 import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
 import { formatPrice, announceToScreenReader } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
@@ -13,8 +13,6 @@ import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 import QuickViewModal from "@/components/ui/QuickViewModal";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 import NewArrivalsGridBanner from "./NewArrivalsGridBanner";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
 
 export default function NewArrivalsSection({
   initialProducts,
@@ -42,31 +40,22 @@ export default function NewArrivalsSection({
     }
   }, [initialProducts]);
 
-  // Real-time Firestore sync for New Arrivals Settings
+  // Load settings if initialSettings not supplied
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "new_arrivals");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            const data = snap.data() as NewArrivalsSettings;
-            setSettings((prev) => ({
-              ...DEFAULT_NEW_ARRIVALS_SETTINGS,
-              ...data,
-              custom_product_ids: Array.isArray(data.custom_product_ids)
-                ? data.custom_product_ids
-                : [],
-            }));
-          }
-        },
-        (err) => {
-          console.warn("New Arrivals settings real-time listener error:", err);
+    if (!initialSettings) {
+      getNewArrivalsSettings().then((data) => {
+        if (data) {
+          setSettings({
+            ...DEFAULT_NEW_ARRIVALS_SETTINGS,
+            ...data,
+            custom_product_ids: Array.isArray(data.custom_product_ids)
+              ? data.custom_product_ids
+              : [],
+          });
         }
-      );
-      return () => unsubscribe();
-    } catch {}
-  }, []);
+      }).catch(() => {});
+    }
+  }, [initialSettings]);
 
   // Compute New Arrivals list:
   // Mode 1: Custom curated list in exact admin specified order

@@ -3,6 +3,8 @@ import { db } from "@/lib/firebase";
 import { collection, getDocs } from "firebase/firestore";
 import { fallbackOfferBanners } from "@/lib/data";
 import { OfferBanner } from "@/lib/types";
+import { cachedFetch, CACHE_TTL } from "@/lib/data-cache";
+import { getOfferBanners } from "@/lib/firestore-client";
 
 export async function POST(req: Request) {
   try {
@@ -27,12 +29,15 @@ export async function POST(req: Request) {
 
     const orderSubtotal = Math.max(0, Number(subtotal) || 0);
 
-    // 1. First check dedicated 'coupons' collection
+    // 1. First check dedicated 'coupons' collection with in-memory caching
     try {
-      const couponSnap = await getDocs(collection(db, "coupons"));
-      const allCoupons = couponSnap.docs.map((d) => ({ ...d.data(), id: d.id } as any));
-      const matchedCoupon = allCoupons.find(
-        (c) => c.code && c.code.trim().toUpperCase() === cleanCode
+      const allCoupons = await cachedFetch("coupons:all", async () => {
+        const couponSnap = await getDocs(collection(db, "coupons"));
+        return couponSnap.docs.map((d) => ({ ...d.data(), id: d.id } as any));
+      }, CACHE_TTL.SETTINGS);
+
+      const matchedCoupon = (allCoupons || []).find(
+        (c: any) => c.code && c.code.trim().toUpperCase() === cleanCode
       );
 
       if (matchedCoupon) {
@@ -116,13 +121,12 @@ export async function POST(req: Request) {
       console.warn("Error checking coupons collection:", couponErr);
     }
 
-    // 2. Fallback: Fetch active offer banners from Firestore
+    // 2. Fallback: Fetch active offer banners from cached store
     let allBanners: OfferBanner[] = [];
     try {
-      const snap = await getDocs(collection(db, "offer_banners"));
-      allBanners = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OfferBanner));
+      allBanners = await getOfferBanners();
     } catch (err) {
-      console.warn("Firestore coupon fetch error (using fallback offer banners):", err);
+      console.warn("Coupon fallback offer banners error:", err);
       allBanners = fallbackOfferBanners;
     }
 

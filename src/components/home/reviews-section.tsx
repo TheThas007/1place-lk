@@ -4,10 +4,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { Star, CheckCircle2, Quote, ExternalLink, Edit3, Sparkles, ChevronLeft, ChevronRight } from "lucide-react";
 import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
-import { DEFAULT_GOOGLE_REVIEWS_SETTINGS } from "@/lib/firestore-client";
+import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getGoogleReviewsSettings } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
 
 const DEFAULT_MAPS_URL =
   "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D";
@@ -208,22 +206,15 @@ export default function ReviewsSection({
 }) {
   const [liveSettings, setLiveSettings] = useState<GoogleReviewsSettings | undefined>(settings);
 
-  // Real-time Firestore sync on settings/google_reviews
   useEffect(() => {
-    try {
-      const docRef = doc(db, "settings", "google_reviews");
-      const unsubscribe = onSnapshot(
-        docRef,
-        (snap) => {
-          if (snap.exists()) {
-            setLiveSettings(snap.data() as GoogleReviewsSettings);
-          }
-        },
-        () => {}
-      );
-      return () => unsubscribe();
-    } catch {}
-  }, []);
+    if (settings) {
+      setLiveSettings(settings);
+    } else {
+      getGoogleReviewsSettings().then((res) => {
+        if (res) setLiveSettings(res);
+      }).catch(() => {});
+    }
+  }, [settings]);
 
   const currentSettings: GoogleReviewsSettings = {
     ...DEFAULT_GOOGLE_REVIEWS_SETTINGS,

@@ -6,9 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Category, Brand, Department } from "@/lib/types";
 import { DEFAULT_BRANDS } from "@/lib/data";
-import { DEFAULT_DEPARTMENTS, getDefaultBrandDepartments } from "@/lib/firestore-brands";
-import { db } from "@/lib/firebase";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import { DEFAULT_DEPARTMENTS, getDefaultBrandDepartments, getBrandsFromDb, getDepartmentsFromDb } from "@/lib/firestore-brands";
 import ScrollReveal from "@/components/ui/ScrollReveal";
 
 interface CategoriesSectionProps {
@@ -146,103 +144,36 @@ export default function CategoriesSection({
     departments && departments.length > 0 ? departments : DEFAULT_DEPARTMENTS
   );
 
-  // Real-time Firestore sync for Brands and Departments
+  // Sync with props or fetch cached
   useEffect(() => {
-    try {
-      const qBrands = query(collection(db, "brands"));
-      const unsubBrands = onSnapshot(
-        qBrands,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const brandMap = new Map<string, Brand>();
-
-            snapshot.docs.forEach((d) => {
-              const data = d.data() as Brand;
-              if (
-                data.isDeleted === true ||
-                (data as any).status === "deleted" ||
-                !data.name ||
-                data.name === "undefined"
-              ) {
-                return;
-              }
-
-              const id = d.id || data.id || `brand-${(data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
-              const slug = data.slug || (data.name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-");
-              const nameLower = (data.name || "").toLowerCase().trim();
-              const normKey = nameLower || slug.toLowerCase();
-
-              // Find matching default brand to get preset logo if current logo is empty
-              const defaultBrand = DEFAULT_BRANDS.find(
-                (b) => b.id === id || b.slug.toLowerCase() === slug.toLowerCase() || b.name.toLowerCase().trim() === nameLower
-              );
-
-              const assigned_departments =
-                data.assigned_departments && data.assigned_departments.length > 0
-                  ? data.assigned_departments
-                  : getDefaultBrandDepartments(slug, data.product_group);
-
-              const rawLogo =
-                data.logo_url ||
-                (data as any).logo ||
-                (data as any).image_url ||
-                (data as any).imageUrl ||
-                (data as any).icon_url ||
-                (data as any).iconUrl ||
-                (data as any).image ||
-                defaultBrand?.logo_url ||
-                "";
-
-              const orderNum = Number(data.sort_order ?? data.order ?? defaultBrand?.sort_order ?? 999);
-
-              brandMap.set(normKey, {
-                ...defaultBrand,
-                ...data,
-                id,
-                slug,
-                logo_url: rawLogo,
-                order: orderNum,
-                sort_order: orderNum,
-                assigned_departments,
-                enabled: data.enabled !== false && data.status !== "inactive",
-                show_on_homepage: data.show_on_homepage !== false,
-              });
-            });
-
-            setLiveBrands(Array.from(brandMap.values()));
-          }
-        },
-        (err) => console.warn("Firestore brands snapshot warning:", err)
+    if (brands && brands.length > 0) {
+      setLiveBrands(
+        brands.map((b) => ({
+          ...b,
+          assigned_departments:
+            b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group),
+        }))
       );
-
-      const qDepts = query(collection(db, "departments"));
-      const unsubDepts = onSnapshot(
-        qDepts,
-        (snapshot) => {
-          if (!snapshot.empty) {
-            const deptMap = new Map<string, Department>();
-            DEFAULT_DEPARTMENTS.forEach((d) => deptMap.set(d.slug, d));
-            snapshot.docs.forEach((d) => {
-              const data = d.data() as Department;
-              const slug = data.slug || d.id;
-              deptMap.set(slug, { ...data, id: d.id, slug });
-            });
-            setLiveDepts(
-              Array.from(deptMap.values()).sort((a, b) => (a.order || 0) - (b.order || 0))
-            );
-          }
-        },
-        (err) => console.warn("Firestore departments snapshot warning:", err)
-      );
-
-      return () => {
-        unsubBrands();
-        unsubDepts();
-      };
-    } catch (e) {
-      console.warn("Failed to subscribe to brands/departments:", e);
+    } else {
+      getBrandsFromDb().then((bList) => {
+        if (bList && bList.length > 0) {
+          setLiveBrands(bList);
+        }
+      }).catch(() => {});
     }
-  }, []);
+  }, [brands]);
+
+  useEffect(() => {
+    if (departments && departments.length > 0) {
+      setLiveDepts(departments);
+    } else {
+      getDepartmentsFromDb().then((dList) => {
+        if (dList && dList.length > 0) {
+          setLiveDepts(dList);
+        }
+      }).catch(() => {});
+    }
+  }, [departments]);
 
   const visibleBrands = useMemo(() => {
     return liveBrands

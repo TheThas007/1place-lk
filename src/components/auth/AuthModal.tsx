@@ -19,8 +19,8 @@ import { useAuth } from "@/lib/auth-context";
 import { useCart } from "@/lib/cart-context";
 import { getPendingPurchaseIntent, executePendingPurchaseIntent } from "@/lib/auth-intent";
 import { motion, AnimatePresence } from "framer-motion";
-import { auth, db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { auth } from "@/lib/firebase";
+import { getAuthSettings } from "@/lib/firestore-client";
 import { sendPasswordResetEmail, OAuthProvider, signInWithPopup } from "firebase/auth";
 
 interface AuthModalProps {
@@ -43,19 +43,15 @@ export default function AuthModal({ isOpen, onClose }: AuthModalProps) {
   const [rememberMe, setRememberMe] = useState(true);
   const [googleAuthEnabled, setGoogleAuthEnabled] = useState<boolean>(false);
 
-  // Subscribe to Admin Auth Settings (Google Sign-In Toggle)
+  // Load cached Auth Settings
   useEffect(() => {
-    try {
-      const unsub = onSnapshot(doc(db, "settings", "auth"), (snapshot) => {
-        if (snapshot.exists()) {
-          setGoogleAuthEnabled(Boolean(snapshot.data()?.googleAuthEnabled));
-        }
-      });
-      return () => unsub();
-    } catch (e) {
-      console.warn("Could not subscribe to auth settings in modal:", e);
-    }
-  }, []);
+    if (!isOpen) return;
+    getAuthSettings().then((settings) => {
+      if (settings) {
+        setGoogleAuthEnabled(Boolean(settings.googleAuthEnabled));
+      }
+    }).catch(() => {});
+  }, [isOpen]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

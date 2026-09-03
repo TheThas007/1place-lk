@@ -5,8 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Tag, ArrowRight, Check } from "lucide-react";
-import { doc, onSnapshot } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { getCampaignPopupSettings } from "@/lib/firestore-client";
 import { useToast } from "@/components/ui/ToastProvider";
 
 export interface CampaignPopupSettings {
@@ -52,32 +51,13 @@ export default function CampaignPopup() {
   const pathname = usePathname();
   const { showToast } = useToast();
 
-  // Listen to Firestore real-time settings
+  // Load cached settings
   useEffect(() => {
-    let unsubscribe: () => void;
-    try {
-      const popupRef = doc(db, "settings", "campaign_popup");
-      unsubscribe = onSnapshot(
-        popupRef,
-        (snap) => {
-          if (snap.exists()) {
-            setPopup(snap.data() as CampaignPopupSettings);
-          } else {
-            setPopup(DEFAULT_POPUP);
-          }
-        },
-        (err) => {
-          console.warn("CampaignPopup Firestore error:", err);
-          setPopup(DEFAULT_POPUP);
-        }
-      );
-    } catch (e) {
-      console.warn("CampaignPopup setup error:", e);
+    getCampaignPopupSettings().then((res) => {
+      setPopup(res || DEFAULT_POPUP);
+    }).catch(() => {
       setPopup(DEFAULT_POPUP);
-    }
-    return () => {
-      if (unsubscribe) unsubscribe();
-    };
+    });
   }, []);
 
   // Evaluate trigger conditions when popup settings load or pathname changes

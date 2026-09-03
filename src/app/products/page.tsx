@@ -3,8 +3,7 @@ import { Metadata } from "next";
 import { getProducts, getCategories, getBrands } from "@/lib/firestore-client";
 import ProductsClient from "./products-client";
 
-export const dynamic = "force-dynamic";
-export const fetchCache = "force-no-store";
+export const revalidate = 60;
 
 export const metadata: Metadata = {
   title: "Buy Mobile Phones & Accessories Online in Sri Lanka | Street Mobile",

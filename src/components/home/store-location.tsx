@@ -4,8 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { MapPin, Phone, Clock } from "lucide-react";
 import { siteSettings } from "@/lib/data";
 import { SiteSettings } from "@/lib/types";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getSiteSettings } from "@/lib/firestore-client";
 import { motion } from "framer-motion";
 
 export default function StoreLocation() {
@@ -14,9 +13,8 @@ export default function StoreLocation() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsub = onSnapshot(doc(db, "settings", "site"), (snap) => {
-      if (snap.exists()) {
-        const data = snap.data() as Partial<SiteSettings>;
+    getSiteSettings().then((data) => {
+      if (data) {
         setSettings((prev) => ({
           ...prev,
           ...data,
@@ -26,8 +24,7 @@ export default function StoreLocation() {
           },
         }));
       }
-    });
-    return () => unsub();
+    }).catch(() => {});
   }, []);
 
   useEffect(() => {

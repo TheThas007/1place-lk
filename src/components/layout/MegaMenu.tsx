@@ -5,8 +5,7 @@ import Link from "next/link";
 import { motion, AnimatePresence } from "framer-motion";
 import { Category, MegaMenuSettings, MegaMenuColumn, MegaMenuItem } from "@/lib/types";
 import { DEFAULT_MEGA_MENU_SETTINGS } from "@/lib/data";
-import { db } from "@/lib/firebase";
-import { doc, onSnapshot } from "firebase/firestore";
+import { getMegaMenuSettings } from "@/lib/firestore-client";
 
 interface MegaMenuProps {
   isOpen: boolean;
@@ -52,25 +51,19 @@ export default function MegaMenu({
     }
   }, [initialSettings]);
 
-  // Real-time Firestore Listener for Mega Menu Settings (Live Storefront only)
+  // If no initialSettings passed on client, load from cached getter
   useEffect(() => {
-    if (isPreview) return;
-    try {
-      const unsub = onSnapshot(doc(db, "settings", "mega_menu"), (snap) => {
-        if (snap.exists()) {
-          const data = snap.data() as MegaMenuSettings;
-          setSettings((prev) => ({
-            ...prev,
-            ...data,
-            columns: data.columns && data.columns.length > 0 ? data.columns : prev.columns,
-          }));
-        }
-      });
-      return () => unsub();
-    } catch (e) {
-      console.warn("Realtime mega menu sync unavailable:", e);
-    }
-  }, [isPreview]);
+    if (isPreview || initialSettings) return;
+    getMegaMenuSettings().then((cached) => {
+      if (cached) {
+        setSettings((prev) => ({
+          ...prev,
+          ...cached,
+          columns: cached.columns && cached.columns.length > 0 ? cached.columns : prev.columns,
+        }));
+      }
+    }).catch(() => {});
+  }, [isPreview, initialSettings]);
 
   // Close on Escape key
   const handleKeyDown = useCallback(
