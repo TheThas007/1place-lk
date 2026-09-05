@@ -5,13 +5,26 @@ import { getProductSearchClickBoost } from "./search-history";
 // 1. SYNONYMS & EXPANSION DICTIONARY
 // ─────────────────────────────────────────────────────────────
 export const SYNONYM_MAP: Record<string, string[]> = {
+  // Brand Names & Aliases
+  samsung: ["galaxy", "samsung galaxy", "samsung phone", "samsung mobile", "smartphone", "android"],
+  apple: ["iphone", "apple phone", "ios", "macbook", "ipad", "airpods"],
+  xiaomi: ["redmi", "poco", "xiaomi phone", "xiaomi mobile", "smartphone"],
+  redmi: ["xiaomi redmi", "xiaomi", "poco", "smartphone", "redmi note"],
+  google: ["pixel", "google pixel", "google phone", "smartphone"],
+  oneplus: ["1+", "one plus", "smartphone"],
+  anker: ["soundcore", "charger", "powerbank"],
+  baseus: ["charger", "cable", "powerbank", "adapter"],
+  ugreen: ["charger", "cable", "hub", "adapter"],
+  sony: ["playstation", "headphones", "audio", "camera"],
+  jbl: ["speaker", "audio", "sound", "headphones", "earbuds"],
+
   // Mobile Phones & Models
-  phone: ["mobile", "smartphone", "cellphone", "ios phone", "android", "handset", "device", "cellular"],
-  mobile: ["phone", "smartphone", "cellphone", "handset"],
-  smartphone: ["phone", "mobile", "cellphone", "handset"],
+  phone: ["mobile", "smartphone", "smartphones", "cellphone", "ios phone", "android", "handset", "device", "cellular"],
+  mobile: ["phone", "smartphone", "smartphones", "cellphone", "handset", "android"],
+  smartphone: ["phone", "mobile", "smartphones", "cellphone", "handset", "android"],
+  smartphones: ["phone", "mobile", "smartphone", "cellphone", "handset"],
   iphone: ["apple phone", "ios phone", "apple mobile", "smartphone", "iphone pro", "iphone pro max", "iphone plus"],
-  galaxy: ["samsung phone", "samsung galaxy", "smartphone", "galaxy ultra", "galaxy plus"],
-  redmi: ["xiaomi redmi", "xiaomi", "poco", "smartphone"],
+  galaxy: ["samsung phone", "samsung galaxy", "smartphone", "galaxy ultra", "galaxy plus", "samsung"],
   pixel: ["google pixel", "google phone", "smartphone"],
 
   // Redmi Note Models & Shorthands
@@ -374,7 +387,30 @@ export interface SearchableProductIndex {
 
 export function indexProduct(p: Product): SearchableProductIndex {
   const cleanName = normalizeText(p.name || "");
-  const cleanBrand = normalizeText(p.brand_name || p.brandName || p.brand || "");
+  const rawBrand = (p.brand_name || p.brandName || p.brand || "").trim();
+  
+  // Auto-detect brand if missing or generic
+  let detectedBrand = rawBrand;
+  if (!detectedBrand || detectedBrand.toLowerCase() === "other" || detectedBrand.toLowerCase() === "standard") {
+    if (cleanName.includes("samsung") || cleanName.includes("galaxy")) detectedBrand = "Samsung";
+    else if (cleanName.includes("apple") || cleanName.includes("iphone") || cleanName.includes("macbook") || cleanName.includes("ipad") || cleanName.includes("airpods")) detectedBrand = "Apple";
+    else if (cleanName.includes("xiaomi") || cleanName.includes("redmi") || cleanName.includes("poco")) detectedBrand = "Xiaomi";
+    else if (cleanName.includes("google") || cleanName.includes("pixel")) detectedBrand = "Google";
+    else if (cleanName.includes("oneplus")) detectedBrand = "OnePlus";
+    else if (cleanName.includes("anker") || cleanName.includes("soundcore")) detectedBrand = "Anker";
+    else if (cleanName.includes("baseus")) detectedBrand = "Baseus";
+    else if (cleanName.includes("ugreen")) detectedBrand = "UGREEN";
+    else if (cleanName.includes("oraimo")) detectedBrand = "Oraimo";
+    else if (cleanName.includes("jbl")) detectedBrand = "JBL";
+    else if (cleanName.includes("sony")) detectedBrand = "Sony";
+    else if (cleanName.includes("hoco")) detectedBrand = "Hoco";
+    else if (cleanName.includes("remax")) detectedBrand = "REMAX";
+    else if (cleanName.includes("ldnio")) detectedBrand = "LDNIO";
+    else if (cleanName.includes("lenyes")) detectedBrand = "Lenyes";
+    else if (cleanName.includes("joyroom")) detectedBrand = "Joyroom";
+  }
+
+  const cleanBrand = normalizeText(detectedBrand);
   const cleanCategory = normalizeText(p.category_name || p.categoryName || "");
   const cleanSubcategory = normalizeText(p.subcategory_name || p.subcategoryName || p.subcategory_slug || p.subcategorySlug || p.subcategory_id || p.subcategoryId || "");
   const cleanTags = (p.tags || []).map((t) => normalizeText(t)).filter(Boolean);
@@ -496,14 +532,27 @@ export function scoreProductForQuery(
 
     // Brand word check
     if (cleanBrand.includes(token)) {
-      score += 25;
+      score += 30;
       tokenMatched = true;
     }
 
     // Category check
     if (cleanCategory.includes(token)) {
-      score += 20;
+      score += 25;
       tokenMatched = true;
+    }
+
+    // Token Synonym check (e.g. "mobile" -> "phone" / "smartphones", "galaxy" -> "samsung")
+    if (!tokenMatched) {
+      const tokenSyns = SYNONYM_MAP[token] || [];
+      for (const syn of tokenSyns) {
+        if (cleanName.includes(syn) || cleanBrand.includes(syn) || cleanCategory.includes(syn) || fullBlob.includes(syn)) {
+          score += 25;
+          tokenMatched = true;
+          matchReasons.push(`token_syn_${token}_${syn}`);
+          break;
+        }
+      }
     }
 
     // Tags check

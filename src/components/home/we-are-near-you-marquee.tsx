@@ -176,26 +176,27 @@ export default function WeAreNearYouMarquee({
   );
 
   const renderPhraseSequence = (keyPrefix: string) => (
-    <div className="flex items-center gap-8 sm:gap-14 shrink-0 select-none py-2">
-      {phrases.map((phrase, idx) => (
-        <div key={`${keyPrefix}-${idx}`} className="flex items-center gap-8 sm:gap-14 shrink-0 group/item">
-          <span
-            className="text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black uppercase tracking-[0.14em] sm:tracking-[0.18em] transition-all duration-300 select-none cursor-default font-sans leading-none whitespace-nowrap drop-shadow-2xs group-hover/item:opacity-80"
-            style={{
-              WebkitTextFillColor: "transparent",
-              WebkitTextStrokeWidth: "1.5px",
-              WebkitTextStrokeColor: "rgba(0, 0, 0, 0.16)",
-              letterSpacing: "0.16em",
-            }}
-          >
-            {phrase}
-          </span>
-          <span
-            className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 rounded-full border border-neutral-400/40 bg-neutral-300/30 shrink-0 select-none"
-            aria-hidden="true"
-          />
-        </div>
-      ))}
+    <div className="flex items-center gap-8 sm:gap-14 shrink-0 select-none py-3">
+      {phrases.map((phrase, idx) => {
+        const isMain = phrase === "WE ARE NEAR YOU";
+        return (
+          <div key={`${keyPrefix}-${idx}`} className="flex items-center gap-8 sm:gap-14 shrink-0 group/item">
+            <span
+              className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-[0.06em] sm:tracking-[0.10em] transition-all duration-300 select-none cursor-default font-sans leading-none whitespace-nowrap ${
+                isMain
+                  ? "text-[#0A0A0A] group-hover/item:text-neutral-700"
+                  : "text-neutral-900 group-hover/item:text-black"
+              }`}
+            >
+              {phrase}
+            </span>
+            <span
+              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-600 shadow-xs shrink-0 select-none ring-2 ring-red-600/20"
+              aria-hidden="true"
+            />
+          </div>
+        );
+      })}
     </div>
   );
 

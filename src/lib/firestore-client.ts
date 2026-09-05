@@ -284,8 +284,13 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
   if (!rawSlug) return null;
   const decoded = decodeURIComponent(rawSlug).trim();
   const lowerSlug = decoded.toLowerCase();
-  const plusConvertedSlug = lowerSlug.replace(/\+/g, "-plus-").replace(/-+/g, "-").replace(/^-|-$/g, "");
-  const dashedSlug = lowerSlug.replace(/[^a-z0-9]+/g, "-").replace(/-+/g, "-").replace(/^-|-$/g, "");
+  
+  // Normalization: Always map '+' to 'plus' so Plus/Pro+ variants are strictly preserved
+  const plusConvertedSlug = lowerSlug
+    .replace(/\+/g, "-plus-")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
 
   const cacheKey = `product:slug:${lowerSlug}`;
 
@@ -293,32 +298,37 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
     // 1. Fast check in already loaded memory cache
     const cachedProducts = getCachedData<Product[]>("products:all");
     if (cachedProducts && cachedProducts.length > 0) {
-      const match = cachedProducts.find((p) => {
+      // Step A: Check EXACT match on slug, id, or code
+      const exactMatch = cachedProducts.find((p) => {
         const pSlug = (p.slug || "").toLowerCase();
         const pId = (p.id || "").toLowerCase();
         const pCode = (p.code || "").toLowerCase();
+        return pSlug === lowerSlug || pId === lowerSlug || pCode === lowerSlug;
+      });
+      if (exactMatch) return exactMatch;
+
+      // Step B: Check plus-converted slug match (only when lowerSlug has '+' or 'plus')
+      const plusMatch = cachedProducts.find((p) => {
+        const pSlug = (p.slug || "").toLowerCase();
         const pNameSlug = generateProductSlug(p.name || "");
         return (
-          pSlug === lowerSlug ||
           pSlug === plusConvertedSlug ||
-          pSlug === dashedSlug ||
-          pId === lowerSlug ||
-          pCode === lowerSlug ||
-          pNameSlug === lowerSlug
+          pNameSlug === lowerSlug ||
+          pNameSlug === plusConvertedSlug
         );
       });
-      if (match) return match;
+      if (plusMatch) return plusMatch;
     }
 
     try {
-      // 2. Single direct Firestore query with candidate slugs using 'in' operator (Max 1 read)
-      const slugCandidates = Array.from(
-        new Set([decoded, lowerSlug, plusConvertedSlug, dashedSlug].filter(Boolean))
-      ).slice(0, 10);
+      // 2. Direct Firestore query with exact candidates first
+      const exactCandidates = Array.from(
+        new Set([decoded, lowerSlug, plusConvertedSlug].filter(Boolean))
+      ).slice(0, 5);
 
       const q = query(
         collection(db, "products"),
-        where("slug", "in", slugCandidates),
+        where("slug", "in", exactCandidates),
         limit(1)
       );
       const snapshot = await getDocs(q);
@@ -343,20 +353,23 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
       console.warn("Offline/Error fetching product by slug:", e);
     }
 
-    // 5. Fallback list lookup
+    // 5. Fallback list lookup (ordered with exact match priority)
+    const exactFallback = fallbackProducts.find((p) => {
+      const pSlug = (p.slug || "").toLowerCase();
+      const pId = (p.id || "").toLowerCase();
+      const pCode = (p.code || "").toLowerCase();
+      return pSlug === lowerSlug || pId === lowerSlug || pCode === lowerSlug;
+    });
+    if (exactFallback) return exactFallback;
+
     return (
       fallbackProducts.find((p) => {
         const pSlug = (p.slug || "").toLowerCase();
-        const pId = (p.id || "").toLowerCase();
-        const pCode = (p.code || "").toLowerCase();
         const pNameSlug = generateProductSlug(p.name || "");
         return (
-          pSlug === lowerSlug ||
           pSlug === plusConvertedSlug ||
-          pSlug === dashedSlug ||
-          pId === lowerSlug ||
-          pCode === lowerSlug ||
-          pNameSlug === lowerSlug
+          pNameSlug === lowerSlug ||
+          pNameSlug === plusConvertedSlug
         );
       }) || null
     );

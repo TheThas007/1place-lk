@@ -29,7 +29,7 @@ interface ProductsClientProps {
 
 const PRIMARY_CATEGORY_TABS = [
   { id: "all", label: "All" },
-  { id: "phones", label: "Phones", filterKeywords: ["phone", "smartphone", "iphone", "galaxy", "redmi", "pixel"] },
+  { id: "phones", label: "Phones", filterKeywords: ["phone", "smartphone", "smartphones", "iphone", "samsung", "galaxy", "redmi", "xiaomi", "pixel", "oneplus", "oppo", "vivo", "realme", "honor", "mobile", "handset"] },
   { id: "laptops-tablets", label: "Laptop & Tab", filterKeywords: ["laptop", "macbook", "tablet", "tab", "ipad"] },
   { id: "audio", label: "Audio", filterKeywords: ["audio", "headphone", "earphone", "speaker", "airpod", "buds"] },
   { id: "wearables", label: "Wearables", filterKeywords: ["watch", "band", "wearable"] },
@@ -268,9 +268,10 @@ export default function ProductsClient({
           const pName = (p.name || "").toLowerCase();
           const pCat = (p.category_name || p.categoryName || "").toLowerCase();
           const pGroup = (p.productType || "").toLowerCase();
+          const pBrand = (p.brand_name || p.brandName || p.brand || detectProductBrand(p) || "").toLowerCase();
 
           const matchesTab = tabObj.filterKeywords.some(
-            (kw) => pName.includes(kw) || pCat.includes(kw) || pGroup.includes(kw)
+            (kw) => pName.includes(kw) || pCat.includes(kw) || pGroup.includes(kw) || pBrand.includes(kw)
           );
           if (!matchesTab) return false;
         }
@@ -346,10 +347,22 @@ export default function ProductsClient({
         if (!matchesCategory) return false;
       }
 
-      // 3. Brand
+      // 3. Brand (Case-Insensitive & Normalized check)
       if (selectedBrands.length > 0) {
-        const brand = detectProductBrand(p);
-        if (!selectedBrands.includes(brand)) return false;
+        const brand = detectProductBrand(p).toLowerCase();
+        const pBrandName = (p.brand_name || p.brandName || p.brand || "").toLowerCase();
+        const pName = (p.name || "").toLowerCase();
+
+        const matchesBrand = selectedBrands.some((sb) => {
+          const cleanSb = sb.toLowerCase().trim().replace(/^brand-/, "");
+          return (
+            brand === cleanSb ||
+            pBrandName === cleanSb ||
+            pBrandName.includes(cleanSb) ||
+            pName.includes(cleanSb)
+          );
+        });
+        if (!matchesBrand) return false;
       }
 
       // 4. In Stock Only

@@ -195,17 +195,43 @@ export function getColorCSS(colorName: string): string {
 
 /**
  * Extracts and resolves actual color swatches for a product card or details page.
+ * Returns an empty array if no genuine colors are defined on the product.
  */
 export function resolveProductSwatches(product: any): Array<{ name: string; hex: string }> {
   if (!product) return [];
 
+  // If product explicitly marked as having no color variants
+  if (product.hasColorVariants === false) return [];
+
   const seen = new Set<string>();
   const swatches: Array<{ name: string; hex: string }> = [];
 
+  const isInvalidColorName = (name: string): boolean => {
+    if (!name || typeof name !== "string") return true;
+    const clean = name.trim().toLowerCase();
+    if (!clean) return true;
+    if (
+      clean === "standard" ||
+      clean === "default" ||
+      clean === "standard black" ||
+      clean === "option 1" ||
+      clean === "none" ||
+      clean === "n/a" ||
+      clean === "na" ||
+      clean === "null" ||
+      clean === "undefined" ||
+      clean === "no color" ||
+      clean === "single"
+    ) {
+      return true;
+    }
+    return false;
+  };
+
   const addSwatch = (name: string, hexHint?: string) => {
-    if (!name || typeof name !== "string") return;
+    if (isInvalidColorName(name)) return;
     const cleanName = name.trim();
-    if (!cleanName || seen.has(cleanName.toLowerCase())) return;
+    if (seen.has(cleanName.toLowerCase())) return;
     seen.add(cleanName.toLowerCase());
 
     const hex = hexHint && hexHint.startsWith("#") ? hexHint : resolveColorHex(cleanName);
@@ -223,7 +249,7 @@ export function resolveProductSwatches(product: any): Array<{ name: string; hex:
   // 2. Check variant_combos
   if (Array.isArray(product.variant_combos) && product.variant_combos.length > 0) {
     product.variant_combos.forEach((combo: any) => {
-      if (combo && combo.color_name) addSwatch(combo.color_name);
+      if (combo && combo.color_name) addSwatch(combo.color_name, combo.color_hex);
     });
   }
 
@@ -233,16 +259,6 @@ export function resolveProductSwatches(product: any): Array<{ name: string; hex:
       if (typeof c === "string") addSwatch(c);
       else if (c && typeof c === "object") addSwatch(c.name || c.color || "", c.hex || c.colorHex);
     });
-  }
-
-  // Fallback defaults if no colors defined
-  if (swatches.length === 0) {
-    return [
-      { name: "Space Black", hex: "#1F2022" },
-      { name: "Natural Titanium", hex: "#9F9B93" },
-      { name: "White Titanium", hex: "#ECEAE4" },
-      { name: "Desert Titanium", hex: "#C5A582" },
-    ];
   }
 
   return swatches;

@@ -101,30 +101,53 @@ export default function ProductDetailClient({
   // 1. Color Variants
   const colorVariants: ProductColor[] = useMemo(() => {
     if (product.hasColorVariants === false) return [];
+    const isInvalidColorName = (name: string): boolean => {
+      if (!name || typeof name !== "string") return true;
+      const clean = name.trim().toLowerCase();
+      if (!clean) return true;
+      return (
+        clean === "standard" ||
+        clean === "default" ||
+        clean === "standard black" ||
+        clean === "option 1" ||
+        clean === "none" ||
+        clean === "n/a" ||
+        clean === "na" ||
+        clean === "null" ||
+        clean === "undefined" ||
+        clean === "no color" ||
+        clean === "single"
+      );
+    };
+
     if (product.color_variants && product.color_variants.length > 0) {
-      return product.color_variants.map((cv, i) => {
-        const name = cv.name || (cv as any).color || `Color ${i + 1}`;
-        const hex = cv.hex && cv.hex.startsWith("#") ? cv.hex : getColorCSS(name);
-        return {
-          ...cv,
-          id: cv.id || `c-${i}`,
-          name,
-          hex,
-          images: cv.images && cv.images.length > 0 ? cv.images : product.images || [],
-        };
-      });
+      return product.color_variants
+        .filter((cv: any) => !isInvalidColorName(cv?.name || cv?.color || ""))
+        .map((cv, i) => {
+          const name = (cv.name || (cv as any).color || `Color ${i + 1}`).trim();
+          const hex = cv.hex && cv.hex.startsWith("#") ? cv.hex : getColorCSS(name);
+          return {
+            ...cv,
+            id: cv.id || `c-${i}`,
+            name,
+            hex,
+            images: cv.images && cv.images.length > 0 ? cv.images : product.images || [],
+          };
+        });
     }
     if (product.colors && product.colors.length > 0) {
-      return product.colors.map((c, i) => {
-        const name = typeof c === "string" ? c : (c as any)?.name || `Color ${i + 1}`;
-        const hex = typeof c === "string" ? getColorCSS(c) : ((c as any)?.hex || getColorCSS(name));
-        return {
-          id: `c-${i}`,
-          name,
-          hex,
-          images: product.images || [],
-        };
-      });
+      return product.colors
+        .filter((c: any) => !isInvalidColorName(typeof c === "string" ? c : (c as any)?.name || ""))
+        .map((c, i) => {
+          const name = (typeof c === "string" ? c : (c as any)?.name || `Color ${i + 1}`).trim();
+          const hex = typeof c === "string" ? getColorCSS(c) : ((c as any)?.hex || getColorCSS(name));
+          return {
+            id: `c-${i}`,
+            name,
+            hex,
+            images: product.images || [],
+          };
+        });
     }
     return [];
   }, [product]);

@@ -66,6 +66,47 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
 
   if (!isOpen || !product) return null;
 
+  const isInvalidColorName = (name: string): boolean => {
+    if (!name || typeof name !== "string") return true;
+    const clean = name.trim().toLowerCase();
+    if (!clean) return true;
+    return (
+      clean === "standard" ||
+      clean === "default" ||
+      clean === "standard black" ||
+      clean === "option 1" ||
+      clean === "none" ||
+      clean === "n/a" ||
+      clean === "na" ||
+      clean === "null" ||
+      clean === "undefined" ||
+      clean === "no color" ||
+      clean === "single"
+    );
+  };
+
+  const validColors: string[] = useMemo(() => {
+    if (!product || product.hasColorVariants === false) return [];
+    const set = new Set<string>();
+    if (Array.isArray(product.colors)) {
+      product.colors.forEach((c) => {
+        const name = typeof c === "string" ? c : (c as any)?.name;
+        if (name && !isInvalidColorName(name)) {
+          set.add(name.trim());
+        }
+      });
+    }
+    if (Array.isArray(product.color_variants)) {
+      product.color_variants.forEach((cv) => {
+        const name = cv?.name || (cv as any)?.color;
+        if (name && !isInvalidColorName(name)) {
+          set.add(name.trim());
+        }
+      });
+    }
+    return Array.from(set);
+  }, [product]);
+
   // Filter storage options available for selected color
   const availableStorageForColor = (() => {
     if (!product.variant_combos || product.variant_combos.length === 0) {
@@ -139,7 +180,7 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
   };
 
   const handleAddToCart = () => {
-    if (product.colors && product.colors.length > 0 && !selectedColor) {
+    if (validColors.length > 0 && !selectedColor) {
       setErrorMsg("Please select a color.");
       return;
     }
@@ -288,13 +329,13 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
             </p>
 
             {/* Variant Selector 1: Color */}
-            {product.colors && product.colors.length > 0 && (
+            {validColors.length > 0 && (
               <div className="mb-5">
                 <label className="block text-xs font-bold uppercase tracking-wider text-neutral-700 mb-2">
                   Select Color: <span className="text-black font-extrabold">{selectedColor || "Select"}</span>
                 </label>
                 <div className="flex flex-wrap items-center gap-2">
-                  {product.colors.map((color) => {
+                  {validColors.map((color) => {
                     const isSelected = selectedColor === color;
                     const hexColor = getColorCSS(color);
                     return (

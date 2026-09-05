@@ -252,7 +252,11 @@ export default function ShopFilterSidebar({
         {openSections.brand && (
           <div className="mt-2.5 space-y-2">
             {visibleBrands.map((b) => {
-              const isSelected = selectedBrands.includes(b.name);
+              const isSelected = selectedBrands.some(
+                (sb) =>
+                  sb.toLowerCase() === b.name.toLowerCase() ||
+                  sb.toLowerCase().replace(/^brand-/, "") === b.name.toLowerCase()
+              );
               return (
                 <label
                   key={b.name}
