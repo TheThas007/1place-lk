@@ -22,7 +22,7 @@ if (typeof window !== "undefined") {
 /* ─── Data ─── */
 const features = [
   {
-    number: "01",
+    id: "delivery",
     icon: Truck,
     title: "Island-wide Delivery",
     description: "Fast & secure shipping across Sri Lanka",
@@ -30,7 +30,7 @@ const features = [
       "We partner with top courier services to ensure your orders reach you safely and swiftly anywhere in Sri Lanka. Track your package in real-time and enjoy peace of mind with our fully insured shipping.",
   },
   {
-    number: "02",
+    id: "genuine",
     icon: ShieldCheck,
     title: "Genuine Products",
     description: "100% authentic with official warranty",
@@ -38,7 +38,7 @@ const features = [
       "Every device we sell is 100% authentic, sourced directly from authorized distributors. All our products come with an official company warranty, guaranteeing you the highest quality and support.",
   },
   {
-    number: "03",
+    id: "repairs",
     icon: Wrench,
     title: "Repair Services",
     description: "Professional repairs by certified technicians",
@@ -46,7 +46,7 @@ const features = [
       "Our certified technicians use only original parts to repair your devices. From screen replacements to complex motherboard repairs, we ensure your device is restored to its perfect condition with a service warranty.",
   },
   {
-    number: "04",
+    id: "payments",
     icon: CreditCard,
     title: "Secure Payments",
     description: "Safe and encrypted transaction methods",
@@ -159,15 +159,6 @@ function FeatureCard({
             aria-hidden="true"
           />
 
-          {/* Minimal Number Indicator with 3D Z-lift */}
-          <span
-            style={{ transform: "translateZ(20px)" }}
-            className="absolute top-5 right-5 text-[11px] font-mono font-bold text-neutral-400 group-hover:text-black transition-colors select-none tracking-widest"
-            aria-hidden="true"
-          >
-            {feature.number}
-          </span>
-
           {/* ── 60×60 Icon Container with Physical 3D Z-lift (30px) ── */}
           <div
             style={{ transform: "translateZ(30px)" }}
@@ -269,9 +260,9 @@ function MobileScrollDrivenTrack({
           touchAction: "auto",
         }}
       >
-        {features.map((feature, idx) => (
+        {features.map((feature) => (
           <div
-            key={`mob-feat-${feature.number}`}
+            key={`mob-feat-${feature.id}`}
             className="w-[78vw] sm:w-[80vw] max-w-[300px] shrink-0 snap-center"
           >
             <div className="silver-glow-wrapper h-full">
@@ -290,14 +281,6 @@ function MobileScrollDrivenTrack({
                   active:scale-[0.98]
                   transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
               >
-                {/* Number Indicator */}
-                <span
-                  className="absolute top-4 right-5 text-[11px] font-mono font-medium text-gray-900/30 tracking-widest select-none"
-                  aria-hidden="true"
-                >
-                  {feature.number}
-                </span>
-
                 {/* Icon Container */}
                 <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
                   <feature.icon className="w-5 h-5 text-gray-900" />
@@ -413,7 +396,7 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
             >
               {features.map((feature) => (
                 <FeatureCard
-                  key={feature.number}
+                  key={feature.id}
                   feature={feature}
                   onClick={setSelectedFeature}
                   prefersReducedMotion={prefersReducedMotion}
