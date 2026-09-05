@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Heart, Check, Star } from "lucide-react";
 import { Product } from "@/lib/types";
-import { formatPrice, announceToScreenReader } from "@/lib/utils";
+import { formatPrice, announceToScreenReader, getProductSlug } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { resolveProductSwatches } from "@/lib/color-utils";
@@ -108,7 +108,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     >
       {/* ── Clickable Link Body ── */}
       <Link
-        href={`/products/${product.slug}`}
+        href={`/products/${getProductSlug(product)}`}
         className="block flex-1 flex flex-col h-full focus:outline-none cursor-pointer"
       >
         {/* ── 1. Image Container (Equal responsive height, pure white background) ── */}
@@ -264,7 +264,7 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </button>
         ) : isPreOrder ? (
           <Link
-            href={`/products/${product.slug}?book=true`}
+            href={`/products/${getProductSlug(product)}?book=true`}
             className="w-full min-h-[44px] py-2.5 rounded-xl font-bold text-xs flex items-center justify-center gap-2 bg-[#090909] hover:bg-neutral-800 text-white shadow-xs transition-all active:scale-[0.98] cursor-pointer"
           >
             <ShoppingBag className="w-3.5 h-3.5" />

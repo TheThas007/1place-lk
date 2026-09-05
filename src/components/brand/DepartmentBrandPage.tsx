@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { DepartmentBrandPageConfig, Brand, Department, Product, Category } from "@/lib/types";
 import DepartmentBrandHero from "./DepartmentBrandHero";
-import { formatPrice, announceToScreenReader } from "@/lib/utils";
+import { formatPrice, announceToScreenReader, getProductSlug } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { resolveProductSwatches } from "@/lib/color-utils";
@@ -118,7 +118,7 @@ function BrandProductCard({ product }: { product: Product }) {
 
   return (
     <div className="group relative bg-white border border-neutral-200/90 rounded-xl overflow-hidden hover:shadow-md hover:border-neutral-300 transition-all flex flex-col justify-between h-full">
-      <Link href={`/products/${product.slug}`} className="block flex-1 flex flex-col focus:outline-none">
+      <Link href={`/products/${getProductSlug(product)}`} className="block flex-1 flex flex-col focus:outline-none">
 
         {/* ── Top Badges & Image Box (Equal responsive height, pure white background, seamless blend) ── */}
         <div className="product-image-container relative w-full h-[180px] sm:h-[220px] md:h-[240px] aspect-square bg-white flex items-center justify-center overflow-hidden border-b border-neutral-100/80">

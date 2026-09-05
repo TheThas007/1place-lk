@@ -295,33 +295,68 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
   const cacheKey = `product:slug:${lowerSlug}`;
 
   return cachedFetch(cacheKey, async () => {
-    // 1. Fast check in already loaded memory cache
-    const cachedProducts = getCachedData<Product[]>("products:all");
-    if (cachedProducts && cachedProducts.length > 0) {
-      // Step A: Check EXACT match on slug, id, or code
-      const exactMatch = cachedProducts.find((p) => {
+    // 1. Fetch all products so we have the full catalog in memory
+    const allProducts = await getProducts();
+    if (allProducts && allProducts.length > 0) {
+      const queryHasPlus = lowerSlug.includes("plus") || lowerSlug.includes("+");
+
+      // Step A: If query has plus, look for product whose name or slug has plus
+      if (queryHasPlus) {
+        const plusMatch = allProducts.find((p) => {
+          const pName = (p.name || "").toLowerCase();
+          const pSlug = (p.slug || "").toLowerCase();
+          const pNameSlug = generateProductSlug(p.name || "");
+          const nameHasPlus = pName.includes("+") || pName.includes("plus");
+          
+          if (!nameHasPlus && !pSlug.includes("plus")) return false;
+
+          return (
+            pSlug === lowerSlug ||
+            pSlug === plusConvertedSlug ||
+            pNameSlug === lowerSlug ||
+            pNameSlug === plusConvertedSlug ||
+            pNameSlug.replace(/-5g$/, "") === lowerSlug.replace(/-5g$/, "") ||
+            pNameSlug.replace(/-5g$/, "") === plusConvertedSlug.replace(/-5g$/, "")
+          );
+        });
+        if (plusMatch) return plusMatch;
+      }
+
+      // Step B: Exact slug, ID, or SKU match
+      const exactMatch = allProducts.find((p) => {
         const pSlug = (p.slug || "").toLowerCase();
         const pId = (p.id || "").toLowerCase();
         const pCode = (p.code || "").toLowerCase();
+        const pName = (p.name || "").toLowerCase();
+        const nameHasPlus = pName.includes("+") || pName.includes("plus");
+        
+        // Don't mistakenly match non-plus product if query asked for plus
+        if (queryHasPlus && !nameHasPlus) return false;
+
         return pSlug === lowerSlug || pId === lowerSlug || pCode === lowerSlug;
       });
       if (exactMatch) return exactMatch;
 
-      // Step B: Check plus-converted slug match (only when lowerSlug has '+' or 'plus')
-      const plusMatch = cachedProducts.find((p) => {
-        const pSlug = (p.slug || "").toLowerCase();
+      // Step C: Name generated slug match
+      const nameMatch = allProducts.find((p) => {
         const pNameSlug = generateProductSlug(p.name || "");
+        const pName = (p.name || "").toLowerCase();
+        const nameHasPlus = pName.includes("+") || pName.includes("plus");
+
+        if (queryHasPlus && !nameHasPlus) return false;
+
         return (
-          pSlug === plusConvertedSlug ||
           pNameSlug === lowerSlug ||
-          pNameSlug === plusConvertedSlug
+          pNameSlug === plusConvertedSlug ||
+          pNameSlug.replace(/-5g$/, "") === lowerSlug.replace(/-5g$/, "") ||
+          pNameSlug.replace(/-5g$/, "") === plusConvertedSlug.replace(/-5g$/, "")
         );
       });
-      if (plusMatch) return plusMatch;
+      if (nameMatch) return nameMatch;
     }
 
     try {
-      // 2. Direct Firestore query with exact candidates first
+      // 2. Direct Firestore query with exact candidates
       const exactCandidates = Array.from(
         new Set([decoded, lowerSlug, plusConvertedSlug].filter(Boolean))
       ).slice(0, 5);
@@ -329,11 +364,18 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
       const q = query(
         collection(db, "products"),
         where("slug", "in", exactCandidates),
-        limit(1)
+        limit(5)
       );
       const snapshot = await getDocs(q);
       if (!snapshot.empty) {
-        return snapshot.docs[0].data() as Product;
+        const queryHasPlus = lowerSlug.includes("plus") || lowerSlug.includes("+");
+        const docs = snapshot.docs.map((d) => d.data() as Product);
+        const bestDoc = docs.find((p) => {
+          const nameHasPlus = (p.name || "").includes("+") || (p.name || "").toLowerCase().includes("plus");
+          return queryHasPlus ? nameHasPlus : !nameHasPlus;
+        }) || docs[0];
+
+        return bestDoc;
       }
 
       // 3. Try Document ID lookup
@@ -353,26 +395,27 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
       console.warn("Offline/Error fetching product by slug:", e);
     }
 
-    // 5. Fallback list lookup (ordered with exact match priority)
-    const exactFallback = fallbackProducts.find((p) => {
+    // 5. Fallback list lookup
+    const queryHasPlus = lowerSlug.includes("plus") || lowerSlug.includes("+");
+    const fallbackMatch = fallbackProducts.find((p) => {
       const pSlug = (p.slug || "").toLowerCase();
-      const pId = (p.id || "").toLowerCase();
-      const pCode = (p.code || "").toLowerCase();
-      return pSlug === lowerSlug || pId === lowerSlug || pCode === lowerSlug;
-    });
-    if (exactFallback) return exactFallback;
+      const pName = (p.name || "").toLowerCase();
+      const pNameSlug = generateProductSlug(p.name || "");
+      const nameHasPlus = pName.includes("+") || pName.includes("plus");
 
-    return (
-      fallbackProducts.find((p) => {
-        const pSlug = (p.slug || "").toLowerCase();
-        const pNameSlug = generateProductSlug(p.name || "");
-        return (
-          pSlug === plusConvertedSlug ||
-          pNameSlug === lowerSlug ||
-          pNameSlug === plusConvertedSlug
-        );
-      }) || null
-    );
+      if (queryHasPlus && !nameHasPlus) return false;
+      if (!queryHasPlus && nameHasPlus) return false;
+
+      return (
+        pSlug === lowerSlug ||
+        pSlug === plusConvertedSlug ||
+        pNameSlug === lowerSlug ||
+        pNameSlug === plusConvertedSlug
+      );
+    });
+    if (fallbackMatch) return fallbackMatch;
+
+    return null;
   }, CACHE_TTL.PRODUCTS);
 }
 

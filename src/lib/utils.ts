@@ -166,3 +166,21 @@ export function generateProductSlug(name: string): string {
     .replace(/^-|-$/g, "");
 }
 
+/**
+ * Returns the correct, distinct slug for any product.
+ * If a product has a "+" or "plus" in its name but the stored slug lacks "plus" (a collision),
+ * it generates the proper distinctive slug based on the product name.
+ */
+export function getProductSlug(product?: Partial<Product> | null): string {
+  if (!product) return "";
+  const name = product.name || "";
+  const nameHasPlus = name.includes("+") || name.toLowerCase().includes("plus");
+  const storedSlug = (product.slug || "").toLowerCase().trim();
+
+  if (nameHasPlus && !storedSlug.includes("plus")) {
+    return generateProductSlug(name);
+  }
+
+  return storedSlug || generateProductSlug(name);
+}
+
