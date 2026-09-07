@@ -902,157 +902,163 @@ function DashboardContent() {
   return (
     <div className="space-y-8">
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 1: OVERVIEW DASHBOARD (Full Black Dark Theme)
+          TAB 1: OVERVIEW DASHBOARD (POS & SaaS Command Center)
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "overview" && (
-        <div className="space-y-8">
+        <div className="space-y-6 animate-in fade-in duration-150">
           {/* Header Title */}
-          <div>
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Overview Dashboard
-            </h1>
-            <p className="text-xs sm:text-sm text-white/50 font-medium mt-1">
-              Here's what's happening with your store today.
-            </p>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
+            <div>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                Dashboard Overview
+              </h1>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Real-time operational metrics, sales summary, and fulfillment status
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={period}
+                onChange={(e) => setPeriod(e.target.value as any)}
+                className="px-3 py-1.5 bg-[#0F172A] border border-white/10 rounded-xl text-xs font-semibold text-slate-200 outline-none hover:border-white/20 transition-colors"
+              >
+                <option value="month" className="bg-[#0F172A] text-white">This Month</option>
+                <option value="week" className="bg-[#0F172A] text-white">Last 7 Days</option>
+                <option value="today" className="bg-[#0F172A] text-white">Today</option>
+              </select>
+            </div>
           </div>
 
           {/* Live Low Stock Warning Alert Banner */}
           {lowStockItems.length > 0 && (
-            <div className="p-4 bg-amber-500/10 border-2 border-amber-500/30 rounded-2xl flex items-center justify-between gap-4 animate-pulse">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
-                  <AlertCircle className="w-5 h-5" />
+            <div className="p-3.5 bg-amber-500/10 border border-amber-500/25 rounded-xl flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center shrink-0">
+                  <AlertCircle className="w-4 h-4" />
                 </div>
-                <div>
-                  <h4 className="text-sm font-extrabold text-amber-300">
-                    ⚠️ Live Stock Alert: {lowStockItems.length} Products Low or Out of Stock!
+                <div className="min-w-0">
+                  <h4 className="text-xs font-bold text-amber-300">
+                    Live Stock Alert: {lowStockItems.length} Products Low or Depleted
                   </h4>
-                  <p className="text-xs text-amber-200/70 mt-0.5">
-                    Restock items immediately to prevent lost sales on the website.
+                  <p className="text-[11px] text-amber-200/70 truncate mt-0.5">
+                    Restock items promptly to prevent lost sales on the web store.
                   </p>
                 </div>
               </div>
               <Link
                 href="/admin/dashboard?tab=inventory"
-                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-black font-extrabold text-xs rounded-xl transition-all shadow-md shrink-0"
+                className="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-black font-bold text-xs rounded-lg transition-all shadow-xs shrink-0"
               >
                 Update Stock Now
               </Link>
             </div>
           )}
 
-
           {/* 4 Top KPI Summary Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {/* 1. Total Revenue */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-4 sm:p-5 shadow-xs space-y-3 transition-all hover:border-white/20">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold">
-                  $
+                <div className="w-8 h-8 rounded-lg bg-emerald-500/15 text-emerald-400 flex items-center justify-center font-bold text-sm">
+                  Rs
                 </div>
-                <span className="text-[11px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> ↑ 18.6%
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Total Revenue</p>
-                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Total Revenue</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mt-0.5 tracking-tight font-mono">
                   LKR {(metrics.totalRev / 1000000).toFixed(2)}M
                 </h3>
               </div>
-              <p className="text-[11px] text-white/40">vs last 7 days</p>
+              <p className="text-[11px] text-slate-400">vs last 7 days</p>
             </div>
 
             {/* 2. Orders */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-4 sm:p-5 shadow-xs space-y-3 transition-all hover:border-white/20">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
-                  <ShoppingBag className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-blue-500/15 text-blue-400 flex items-center justify-center font-bold">
+                  <ShoppingBag className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-extrabold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-blue-400 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> ↑ 12.4%
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Orders</p>
-                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Orders</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mt-0.5 tracking-tight font-mono">
                   {metrics.totalOrd.toLocaleString()}
                 </h3>
               </div>
-              <p className="text-[11px] text-white/40">vs last 7 days</p>
+              <p className="text-[11px] text-slate-400">vs last 7 days</p>
             </div>
 
             {/* 3. Products */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-4 sm:p-5 shadow-xs space-y-3 transition-all hover:border-white/20">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold">
-                  <Package className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-purple-500/15 text-purple-400 flex items-center justify-center font-bold">
+                  <Package className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-extrabold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-purple-400 bg-purple-500/10 border border-purple-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> ↑ 7.3%
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Products</p>
-                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Products</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mt-0.5 tracking-tight font-mono">
                   {metrics.totalProd}
                 </h3>
               </div>
-              <p className="text-[11px] text-white/40">vs last 7 days</p>
+              <p className="text-[11px] text-slate-400">vs last 7 days</p>
             </div>
 
             {/* 4. Customers */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-2xl p-5 shadow-lg space-y-3">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-4 sm:p-5 shadow-xs space-y-3 transition-all hover:border-white/20">
               <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-full bg-orange-500/20 text-orange-400 flex items-center justify-center font-bold">
-                  <Users className="w-5 h-5" />
+                <div className="w-8 h-8 rounded-lg bg-orange-500/15 text-orange-400 flex items-center justify-center font-bold">
+                  <Users className="w-4 h-4" />
                 </div>
-                <span className="text-[11px] font-extrabold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
+                <span className="text-[11px] font-semibold text-orange-400 bg-orange-500/10 border border-orange-500/20 px-2 py-0.5 rounded-md flex items-center gap-1">
                   <TrendingUp className="w-3 h-3" /> ↑ 15.8%
                 </span>
               </div>
               <div>
-                <p className="text-xs font-bold text-white/40 uppercase tracking-wider">Customers</p>
-                <h3 className="text-xl sm:text-2xl font-black text-white mt-1">
+                <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Customers</p>
+                <h3 className="text-xl sm:text-2xl font-bold text-white mt-0.5 tracking-tight font-mono">
                   {metrics.totalCust.toLocaleString()}
                 </h3>
               </div>
-              <p className="text-[11px] text-white/40">vs last 7 days</p>
+              <p className="text-[11px] text-slate-400">vs last 7 days</p>
             </div>
           </div>
 
           {/* Charts Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Left: Revenue Overview Line Chart (Col 8) */}
-            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-6">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3.5">
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Revenue Overview</h3>
-                  <p className="text-xs text-white/40">Monthly sales performance & revenue trend</p>
+                  <h3 className="text-sm font-bold text-white">Revenue Trend</h3>
+                  <p className="text-xs text-slate-400">Sales curve across monthly intervals</p>
                 </div>
-                <select
-                  value={period}
-                  onChange={(e) => setPeriod(e.target.value as any)}
-                  className="px-3 py-1.5 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white outline-none"
-                >
-                  <option value="month" className="bg-slate-900 text-white">This Month</option>
-                  <option value="week" className="bg-slate-900 text-white">Last 7 Days</option>
-                  <option value="today" className="bg-slate-900 text-white">Today</option>
-                </select>
+                <span className="text-xs font-semibold text-blue-400 bg-blue-500/10 px-2.5 py-1 rounded-md border border-blue-500/20">
+                  LKR Inflow
+                </span>
               </div>
 
-              <div className="h-64 w-full flex flex-col justify-between pt-2">
-                <svg className="w-full h-48 overflow-visible" viewBox="0 0 500 150">
+              <div className="h-60 w-full flex flex-col justify-between pt-2">
+                <svg className="w-full h-44 overflow-visible" viewBox="0 0 500 150">
                   <defs>
                     <linearGradient id="blueGradientDark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.4" />
+                      <stop offset="0%" stopColor="#3B82F6" stopOpacity="0.35" />
                       <stop offset="100%" stopColor="#3B82F6" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
 
-                  <line x1="0" y1="30" x2="500" y2="30" stroke="#1E293B" strokeWidth="1" />
-                  <line x1="0" y1="70" x2="500" y2="70" stroke="#1E293B" strokeWidth="1" />
-                  <line x1="0" y1="110" x2="500" y2="110" stroke="#1E293B" strokeWidth="1" />
+                  <line x1="0" y1="30" x2="500" y2="30" stroke="#1E293B" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="70" x2="500" y2="70" stroke="#1E293B" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="0" y1="110" x2="500" y2="110" stroke="#1E293B" strokeWidth="1" strokeDasharray="3 3" />
 
                   <polygon
                     points="0,120 40,105 80,85 120,95 160,70 200,80 240,60 280,40 320,55 360,35 400,30 440,45 480,35 500,40 500,150 0,150"
@@ -1062,7 +1068,7 @@ function DashboardContent() {
                   <polyline
                     fill="none"
                     stroke="#3B82F6"
-                    strokeWidth="3"
+                    strokeWidth="2.5"
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     points="0,120 40,105 80,85 120,95 160,70 200,80 240,60 280,40 320,55 360,35 400,30 440,45 480,35 500,40"
@@ -1072,11 +1078,11 @@ function DashboardContent() {
                     [0, 120], [40, 105], [80, 85], [120, 95], [160, 70], [200, 80],
                     [240, 60], [280, 40], [320, 55], [360, 35], [400, 30], [440, 45], [480, 35], [500, 40]
                   ].map(([x, y], idx) => (
-                    <circle key={idx} cx={x} cy={y} r="4" fill="#0F172A" stroke="#3B82F6" strokeWidth="2.5" />
+                    <circle key={idx} cx={x} cy={y} r="3.5" fill="#0F172A" stroke="#3B82F6" strokeWidth="2" />
                   ))}
                 </svg>
 
-                <div className="flex justify-between text-[11px] font-bold text-white/40 px-2 border-t border-white/10 pt-2">
+                <div className="flex justify-between text-[11px] font-medium text-slate-400 px-2 border-t border-white/10 pt-2 font-mono">
                   <span>1 May</span>
                   <span>5 May</span>
                   <span>9 May</span>
@@ -1091,74 +1097,74 @@ function DashboardContent() {
             </div>
 
             {/* Right: Order Status Donut Chart (Col 4) */}
-            <div className="lg:col-span-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-6">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <h3 className="text-base font-extrabold text-white">Order Status</h3>
-                <span className="text-xs font-bold text-white/40">This Month</span>
+            <div className="lg:col-span-4 bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="text-sm font-bold text-white">Order Status</h3>
+                <span className="text-xs text-slate-400 font-medium">Distribution</span>
               </div>
 
               <div className="flex flex-col items-center justify-center py-2">
-                <div className="relative w-44 h-44 flex items-center justify-center">
+                <div className="relative w-36 h-36 flex items-center justify-center">
                   <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                    <path className="text-emerald-500" strokeDasharray="47.7, 100" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-blue-500" strokeDasharray="24.3, 100" strokeDashoffset="-47.7" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-amber-500" strokeDasharray="18.4, 100" strokeDashoffset="-72" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                    <path className="text-purple-500" strokeDasharray="9.6, 100" strokeDashoffset="-90.4" strokeWidth="3.8" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-emerald-500" strokeDasharray="47.7, 100" strokeWidth="3.6" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-blue-500" strokeDasharray="24.3, 100" strokeDashoffset="-47.7" strokeWidth="3.6" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-amber-500" strokeDasharray="18.4, 100" strokeDashoffset="-72" strokeWidth="3.6" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+                    <path className="text-purple-500" strokeDasharray="9.6, 100" strokeDashoffset="-90.4" strokeWidth="3.6" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
                   </svg>
 
                   <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                    <span className="text-xl font-black text-white">{metrics.totalOrd.toLocaleString()}</span>
-                    <span className="text-[10px] font-bold text-white/40 uppercase">Total Orders</span>
+                    <span className="text-lg font-bold text-white font-mono">{metrics.totalOrd.toLocaleString()}</span>
+                    <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider">Total</span>
                   </div>
                 </div>
               </div>
 
-              <div className="space-y-2 text-xs pt-2 border-t border-white/10">
+              <div className="space-y-1.5 text-xs pt-2 border-t border-white/10">
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                    <span className="text-white/80 font-medium">Delivered</span>
+                    <span className="w-2 h-2 rounded-full bg-emerald-500" />
+                    <span className="text-slate-300 font-medium">Delivered</span>
                   </span>
-                  <span className="font-bold text-white">{metrics.deliveredCount} (47.7%)</span>
+                  <span className="font-semibold text-white font-mono">{metrics.deliveredCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-blue-500" />
-                    <span className="text-white/80 font-medium">Processing</span>
+                    <span className="w-2 h-2 rounded-full bg-blue-500" />
+                    <span className="text-slate-300 font-medium">Processing</span>
                   </span>
-                  <span className="font-bold text-white">{metrics.processingCount} (24.3%)</span>
+                  <span className="font-semibold text-white font-mono">{metrics.processingCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-amber-500" />
-                    <span className="text-white/80 font-medium">COD Pending</span>
+                    <span className="w-2 h-2 rounded-full bg-amber-500" />
+                    <span className="text-slate-300 font-medium">COD Pending</span>
                   </span>
-                  <span className="font-bold text-white">{metrics.codPendingCount} (18.4%)</span>
+                  <span className="font-semibold text-white font-mono">{metrics.codPendingCount}</span>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="flex items-center gap-2">
-                    <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-                    <span className="text-white/80 font-medium">Cancelled</span>
+                    <span className="w-2 h-2 rounded-full bg-purple-500" />
+                    <span className="text-slate-300 font-medium">Cancelled</span>
                   </span>
-                  <span className="font-bold text-white">{metrics.cancelledCount} (9.6%)</span>
+                  <span className="font-semibold text-white font-mono">{metrics.cancelledCount}</span>
                 </div>
               </div>
             </div>
           </div>
 
           {/* Bottom Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
             {/* Recent Orders Table (Col 8) */}
-            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+            <div className="lg:col-span-8 bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Recent Orders</h3>
-                  <p className="text-xs text-white/40">Latest customer purchases and status</p>
+                  <h3 className="text-sm font-bold text-white">Recent Purchases</h3>
+                  <p className="text-xs text-slate-400">Incoming online orders and customer status</p>
                 </div>
                 <button
                   type="button"
                   onClick={() => router.push("/admin/dashboard?tab=orders")}
-                  className="px-3 py-1.5 bg-blue-600/20 border border-blue-500/30 text-blue-400 rounded-xl text-xs font-bold hover:bg-blue-600/30 transition-colors"
+                  className="px-3 py-1.5 bg-blue-600/15 border border-blue-500/25 text-blue-400 rounded-lg text-xs font-semibold hover:bg-blue-600/25 transition-colors"
                 >
                   View All Orders
                 </button>
@@ -1167,24 +1173,24 @@ function DashboardContent() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs text-left">
                   <thead>
-                    <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
-                      <th className="pb-3">Order ID</th>
-                      <th className="pb-3">Customer</th>
-                      <th className="pb-3">Product</th>
-                      <th className="pb-3">Payment</th>
-                      <th className="pb-3">Status</th>
-                      <th className="pb-3 text-right">Total</th>
+                    <tr className="text-slate-400 font-semibold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                      <th className="pb-2.5">Order ID</th>
+                      <th className="pb-2.5">Customer</th>
+                      <th className="pb-2.5">Product</th>
+                      <th className="pb-2.5">Payment</th>
+                      <th className="pb-2.5">Status</th>
+                      <th className="pb-2.5 text-right">Total</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5">
                     {orders.slice(0, 5).map((ord, idx) => (
-                      <tr key={ord.id || idx} className="hover:bg-white/[0.02] transition-colors">
-                        <td className="py-3 font-mono font-bold text-white">
+                      <tr key={ord.id || idx} className="hover:bg-white/[0.03] transition-colors">
+                        <td className="py-3 font-mono font-semibold text-white">
                           #{ord.id?.slice(0, 8).toUpperCase() || `SM1258${4 - idx}`}
                         </td>
-                        <td className="py-3 font-medium text-white">
+                        <td className="py-3 font-medium text-slate-200">
                           {ord.customerName || ord.deliveryAddress?.firstName || "Customer"}
-                          <span className="block text-[11px] text-white/40 font-normal">
+                          <span className="block text-[11px] text-slate-400 font-normal">
                             {ord.phone || ord.deliveryAddress?.phone || "077 123 4567"}
                           </span>
                         </td>
@@ -1193,27 +1199,28 @@ function DashboardContent() {
                             <img
                               src={ord.items?.[0]?.image || "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200"}
                               alt="product"
-                              className="w-7 h-7 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0"
+                              className="w-7 h-7 rounded-md object-contain bg-white/5 border border-white/10 shrink-0"
                             />
-                            <span className="truncate font-semibold text-white/90">
+                            <span className="truncate font-medium text-slate-200">
                               {ord.items?.[0]?.name || "iPhone 16 Pro Max"}
                             </span>
                           </div>
                         </td>
-                        <td className="py-3 font-bold text-white/80">
-                          {ord.paymentMethod === "payhere" ? "PayHere Online" : ord.paymentMethod === "cod" ? "Cash on Delivery" : "VISA **** 4242"}
+                        <td className="py-3 font-medium text-slate-300">
+                          {ord.paymentMethod === "payhere" ? "PayHere Online" : ord.paymentMethod === "cod" ? "COD" : "VISA Card"}
                         </td>
                         <td className="py-3">
                           <span
-                            className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider ${ord.status === "paid" || ord.status === "completed" || idx % 2 === 0
+                            className={`px-2 py-0.5 rounded-md text-[10px] font-semibold uppercase tracking-wider ${
+                              ord.status === "paid" || ord.status === "completed" || idx % 2 === 0
                                 ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                                 : "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                              }`}
+                            }`}
                           >
                             {ord.status || (idx % 2 === 0 ? "Paid" : "Processing")}
                           </span>
                         </td>
-                        <td className="py-3 text-right font-black text-white">
+                        <td className="py-3 text-right font-mono font-bold text-white">
                           {formatPrice(ord.finalTotal || ord.totalPrice || 359990)}
                         </td>
                       </tr>
@@ -1224,70 +1231,57 @@ function DashboardContent() {
             </div>
 
             {/* Low Stock Alert & PayHere Status (Col 4) */}
-            <div className="lg:col-span-4 space-y-6">
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
-                <div className="flex items-center justify-between border-b border-white/10 pb-3">
-                  <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500" /> Low Stock Alert
+            <div className="lg:col-span-4 space-y-4">
+              <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                  <h3 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400" /> Low Stock Warning
                   </h3>
-                  <Link href="/admin/dashboard?tab=inventory" className="text-xs font-bold text-blue-400 hover:underline">
+                  <Link href="/admin/dashboard?tab=inventory" className="text-[11px] font-semibold text-blue-400 hover:underline">
                     View All
                   </Link>
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   {lowStockItems.length > 0 ? (
                     lowStockItems.map((p) => (
-                      <div key={p.id} className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img src={p.images?.[0]} alt={p.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
+                      <div key={p.id} className="flex items-center justify-between p-2 bg-white/5 border border-white/5 rounded-lg text-xs">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <img src={p.images?.[0]} alt={p.name} className="w-7 h-7 rounded-md object-contain bg-white/5 border border-white/10 shrink-0" />
                           <div className="truncate">
-                            <p className="font-bold text-white truncate">{p.name}</p>
-                            <p className="text-[10px] text-white/40">{p.storage_options?.[0] || "Standard Variant"}</p>
+                            <p className="font-semibold text-white truncate">{p.name}</p>
+                            <p className="text-[10px] text-slate-400">{p.storage_options?.[0] || "Standard"}</p>
                           </div>
                         </div>
-                        <span className="font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md shrink-0">
+                        <span className="font-mono text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md shrink-0">
                           Stock 3
                         </span>
                       </div>
                     ))
                   ) : (
-                    <>
-                      <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200" alt="S24" className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
-                          <div className="truncate">
-                            <p className="font-bold text-white truncate">Samsung Galaxy S24 FE</p>
-                            <p className="text-[10px] text-white/40">128GB, Graphite</p>
-                          </div>
+                    <div className="flex items-center justify-between p-2 bg-white/5 border border-white/5 rounded-lg text-xs">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <img src="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=200" alt="S24" className="w-7 h-7 rounded-md object-contain bg-white/5 border border-white/10 shrink-0" />
+                        <div className="truncate">
+                          <p className="font-semibold text-white truncate">Samsung Galaxy S24 FE</p>
+                          <p className="text-[10px] text-slate-400">128GB, Graphite</p>
                         </div>
-                        <span className="font-black text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-1 rounded-md shrink-0">Stock 3</span>
                       </div>
-
-                      <div className="flex items-center justify-between p-2.5 bg-white/5 border border-white/10 rounded-2xl text-xs">
-                        <div className="flex items-center gap-2.5 min-w-0">
-                          <img src="https://images.unsplash.com/photo-1598327105666-5b89351aff97?q=80&w=200" alt="Note 13" className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10 shrink-0" />
-                          <div className="truncate">
-                            <p className="font-bold text-white truncate">Redmi Note 13 Pro+ 5G</p>
-                            <p className="text-[10px] text-white/40">12GB + 512GB, Purple</p>
-                          </div>
-                        </div>
-                        <span className="font-black text-amber-400 bg-amber-500/10 border border-amber-500/20 px-2 py-1 rounded-md shrink-0">Stock 5</span>
-                      </div>
-                    </>
+                      <span className="font-mono text-xs font-bold text-red-400 bg-red-500/10 border border-red-500/20 px-2 py-0.5 rounded-md shrink-0">Stock 3</span>
+                    </div>
                   )}
                 </div>
               </div>
 
               {/* PayHere Status Card */}
-              <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 shadow-lg flex items-center justify-between">
+              <div className="bg-[#0F172A] border border-white/10 rounded-xl p-4 shadow-xs flex items-center justify-between">
                 <div>
-                  <h4 className="text-xs font-black text-white flex items-center gap-1.5">
-                    <CreditCard className="w-4 h-4 text-blue-400" /> PayHere Payment Gateway
+                  <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                    <CreditCard className="w-3.5 h-3.5 text-blue-400" /> PayHere Gateway
                   </h4>
-                  <p className="text-[11px] text-white/40 mt-0.5">All systems operational</p>
+                  <p className="text-[11px] text-slate-400 mt-0.5">Sandbox & Production Active</p>
                 </div>
-                <span className="text-[11px] font-extrabold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-3 py-1 rounded-full flex items-center gap-1 shrink-0">
+                <span className="text-[11px] font-semibold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1 rounded-full flex items-center gap-1 shrink-0">
                   <Check className="w-3 h-3" /> Connected
                 </span>
               </div>
@@ -1511,41 +1505,45 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 6: CUSTOMERS TAB
+          TAB 6: CUSTOMERS TAB (CRM Style Directory)
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "users" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
             <div>
-              <h1 className="text-2xl font-extrabold text-white">Customers Management ({metrics.totalCust})</h1>
-              <p className="text-xs text-white/50">Registered customer accounts and saved profile data</p>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                Customer Directory ({metrics.totalCust})
+              </h1>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Registered store accounts, saved profiles, and guest customer details
+              </p>
             </div>
 
             <div className="flex items-center gap-2">
               <button
                 onClick={downloadCustomersPDF}
-                className="px-3.5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2"
+                className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center gap-2"
               >
-                <Download className="w-4 h-4" /> Download PDF
+                <Download className="w-3.5 h-3.5" /> Download PDF
               </button>
               <button
                 onClick={exportCustomersCSV}
-                className="px-3.5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-emerald-600/30 flex items-center gap-2"
+                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs rounded-xl transition-all shadow-xs flex items-center gap-2"
               >
-                <Download className="w-4 h-4" /> Export Excel / CSV
+                <Download className="w-3.5 h-3.5" /> Export CSV
               </button>
             </div>
           </div>
 
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg overflow-x-auto">
+          <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs overflow-x-auto">
             <table className="w-full text-xs text-left">
               <thead>
-                <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                <tr className="text-slate-400 font-semibold border-b border-white/10 uppercase tracking-wider text-[10px]">
                   <th className="pb-3">Customer</th>
                   <th className="pb-3">Contact Email</th>
                   <th className="pb-3">Phone</th>
                   <th className="pb-3">Orders</th>
-                  <th className="pb-3">Customer Tag</th>
+                  <th className="pb-3">Account Tag</th>
                   <th className="pb-3 text-right">Actions</th>
                 </tr>
               </thead>
@@ -1556,42 +1554,42 @@ function DashboardContent() {
                   ).length;
 
                   return (
-                    <tr key={c.id || i} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 font-bold text-white flex items-center gap-2.5">
-                        <div className={`w-7 h-7 rounded-full flex items-center justify-center font-bold text-xs ${c.isGuest ? "bg-purple-600/20 text-purple-400" : "bg-blue-600/20 text-blue-400"
-                          }`}>
+                    <tr key={c.id || i} className="hover:bg-white/[0.03] transition-colors">
+                      <td className="py-3 font-semibold text-white flex items-center gap-2.5">
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center font-bold text-xs ${
+                          c.isGuest ? "bg-purple-600/20 text-purple-400" : "bg-blue-600/20 text-blue-400"
+                        }`}>
                           {(c.displayName || c.customerName || "C").charAt(0).toUpperCase()}
                         </div>
-                        <span>{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
+                        <span className="truncate">{c.displayName || c.customerName || `Customer #${i + 1}`}</span>
                       </td>
-                      <td className="py-3.5 text-white/70">{c.email || "—"}</td>
-                      <td className="py-3.5 font-mono text-white/70">{c.phoneNumber || c.phone || "—"}</td>
-                      <td className="py-3.5 font-bold text-white font-mono">
+                      <td className="py-3 text-slate-300 font-medium">{c.email || "—"}</td>
+                      <td className="py-3 font-mono text-slate-300 font-medium">{c.phoneNumber || c.phone || "—"}</td>
+                      <td className="py-3 font-semibold text-white font-mono">
                         {customerOrdersCount} {customerOrdersCount === 1 ? "Order" : "Orders"}
                       </td>
-                      <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] border ${c.isGuest
+                      <td className="py-3">
+                        <span className={`px-2.5 py-0.5 rounded-md font-semibold text-[10px] border ${
+                          c.isGuest
                             ? "bg-purple-500/10 border-purple-500/20 text-purple-400"
                             : "bg-emerald-500/10 border-emerald-500/20 text-emerald-400"
-                          }`}>
+                        }`}>
                           {c.isGuest ? "Guest Customer" : "Registered User"}
                         </span>
                       </td>
-                      <td className="py-3.5 text-right flex items-center justify-end gap-3">
+                      <td className="py-3 text-right flex items-center justify-end gap-2.5">
                         <button
-                          onClick={() => {
-                            router.push("/admin/dashboard?tab=orders");
-                          }}
-                          className="text-blue-400 hover:underline font-bold text-xs"
+                          onClick={() => router.push("/admin/dashboard?tab=orders")}
+                          className="text-blue-400 hover:underline font-semibold text-xs"
                         >
                           View Orders
                         </button>
                         <button
                           onClick={() => handleDeleteCustomer(c.id)}
-                          className="text-red-400 hover:text-red-300 font-bold text-xs flex items-center gap-1 bg-red-500/10 px-2.5 py-1 rounded-lg border border-red-500/20 transition-colors"
-                          title="Delete Customer Record"
+                          className="text-red-400 hover:text-red-300 font-semibold text-xs flex items-center gap-1 bg-red-500/10 px-2 py-1 rounded-md border border-red-500/20 transition-colors"
+                          title="Delete Customer Profile"
                         >
-                          <Trash2 className="w-3.5 h-3.5" /> Delete
+                          <Trash2 className="w-3 h-3" /> Delete
                         </button>
                       </td>
                     </tr>
@@ -1604,66 +1602,77 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 7: INVENTORY TAB
+          TAB 7: INVENTORY TAB (POS Speed Warehouse Stock)
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "inventory" && (
-        <div className="space-y-6">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-2 border-b border-white/5">
             <div>
-              <h1 className="text-2xl font-extrabold text-white">Inventory Management</h1>
-              <p className="text-xs text-white/50">Track stock levels, variants, SKUs and low-stock warnings</p>
+              <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+                Warehouse Inventory
+              </h1>
+              <p className="text-xs text-slate-400 font-medium mt-0.5">
+                Track SKU units, variants, stock depletion warnings and rapid restock
+              </p>
             </div>
           </div>
 
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
-            <div className="flex items-center gap-3">
-              <Search className="w-4 h-4 text-white/40" />
+          <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-4">
+            <div className="flex items-center gap-2.5">
+              <Search className="w-4 h-4 text-slate-400" />
               <input
                 type="text"
                 value={inventorySearch}
                 onChange={(e) => setInventorySearch(e.target.value)}
-                placeholder="Filter stock by name or SKU..."
-                className="w-full max-w-sm bg-white/5 border border-white/10 px-4 py-2 rounded-xl text-xs text-white outline-none"
+                placeholder="Search stock by product name or SKU..."
+                className="w-full max-w-sm bg-white/5 border border-white/10 px-3.5 py-1.5 rounded-xl text-xs text-white placeholder-slate-400 outline-none focus:border-blue-500"
               />
             </div>
 
             <div className="overflow-x-auto">
               <table className="w-full text-xs text-left">
                 <thead>
-                  <tr className="text-white/40 font-bold border-b border-white/10 uppercase tracking-wider text-[10px]">
-                    <th className="pb-3">Product Name</th>
-                    <th className="pb-3">Category</th>
-                    <th className="pb-3">Variants</th>
-                    <th className="pb-3">Status</th>
-                    <th className="pb-3 text-right">Actions</th>
+                  <tr className="text-slate-400 font-semibold border-b border-white/10 uppercase tracking-wider text-[10px]">
+                    <th className="pb-2.5">Product Name</th>
+                    <th className="pb-2.5">Category</th>
+                    <th className="pb-2.5">Variants</th>
+                    <th className="pb-2.5">Stock Status</th>
+                    <th className="pb-2.5 text-right">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {products.map((p) => (
-                    <tr key={p.id} className="hover:bg-white/[0.02]">
-                      <td className="py-3.5 font-bold text-white flex items-center gap-3">
-                        <img src={p.images?.[0]} alt={p.name} className="w-8 h-8 rounded-lg object-contain bg-white/10 border border-white/10" />
-                        <span>{p.name}</span>
+                  {products
+                    .filter((p) =>
+                      !inventorySearch.trim() ||
+                      p.name.toLowerCase().includes(inventorySearch.toLowerCase()) ||
+                      p.code?.toLowerCase().includes(inventorySearch.toLowerCase())
+                    )
+                    .map((p) => (
+                    <tr key={p.id} className="hover:bg-white/[0.03] transition-colors">
+                      <td className="py-3 font-semibold text-white flex items-center gap-3">
+                        <img src={p.images?.[0]} alt={p.name} className="w-8 h-8 rounded-md object-contain bg-white/5 border border-white/10 shrink-0" />
+                        <span className="truncate">{p.name}</span>
                       </td>
-                      <td className="py-3.5 text-white/70">{p.category_name}</td>
-                      <td className="py-3.5 text-white/60">
+                      <td className="py-3 text-slate-300 font-medium">{p.category_name}</td>
+                      <td className="py-3 text-slate-400">
                         {p.storage_options?.join(", ") || "Standard"}
                       </td>
-                      <td className="py-3.5">
-                        <span className={`px-2.5 py-0.5 rounded-full font-bold text-[10px] ${p.stock_status === "in_stock"
+                      <td className="py-3">
+                        <span className={`px-2.5 py-0.5 rounded-md font-semibold text-[10px] ${
+                          p.stock_status === "in_stock"
                             ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
                             : "bg-red-500/10 text-red-400 border border-red-500/20"
-                          }`}>
+                        }`}>
                           {p.stock_status === "in_stock" ? "In Stock" : "Low Stock"}
                         </span>
                       </td>
-                      <td className="py-3.5 text-right">
+                      <td className="py-3 text-right">
                         <button
                           onClick={() => {
-                            setEditingProduct(p);
-                            setIsProductModalOpen(true);
+                            setQuickStockProduct(p);
+                            setQuickStockQty(10);
                           }}
-                          className="text-blue-400 hover:underline font-bold"
+                          className="px-2.5 py-1 bg-blue-600/15 border border-blue-500/25 text-blue-400 hover:bg-blue-600/25 rounded-lg font-semibold text-xs transition-colors"
                         >
                           Update Stock
                         </button>
@@ -1681,32 +1690,36 @@ function DashboardContent() {
           TAB 8: PAYMENTS & GATEWAY SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "payments" && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-extrabold text-white">Payments & Gateway Settings</h1>
-            <p className="text-xs text-white/50">Manage Cash on Delivery (COD) fee, PayHere online payments and WhatsApp checkout settings</p>
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="pb-2 border-b border-white/5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Payments & Gateways
+            </h1>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              Manage Cash on Delivery (COD) fee, PayHere online payments and WhatsApp checkout hotline
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
             {/* PayHere Online Gateway Status */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-2">
-              <span className="text-xs text-white/40 font-bold uppercase">PayHere Gateway Status</span>
-              <h3 className="text-lg font-bold text-emerald-400 flex items-center gap-2">
-                <Check className="w-5 h-5" /> Connected & Verified
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-2">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">PayHere Gateway Status</span>
+              <h3 className="text-base font-bold text-emerald-400 flex items-center gap-2">
+                <Check className="w-4 h-4" /> Connected & Verified
               </h3>
-              <p className="text-xs text-white/50">Merchant ID configured • LKR Sandbox & Production active</p>
+              <p className="text-xs text-slate-400">Merchant ID configured • LKR Sandbox & Production active</p>
             </div>
 
             {/* Editable Cash on Delivery (COD) Fee */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-3">
-              <span className="text-xs text-white/40 font-bold uppercase">Cash on Delivery (COD) Fee</span>
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-3">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Cash on Delivery (COD) Fee</span>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-white/60">Rs.</span>
+                <span className="text-xs font-semibold text-slate-400">Rs.</span>
                 <input
                   type="number"
                   value={codFee}
                   onChange={(e) => setCodFee(Number(e.target.value))}
-                  className="w-full bg-white/5 border border-white/10 px-3 py-2 rounded-xl text-sm font-bold text-white outline-none focus:border-blue-500"
+                  className="w-full bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg text-sm font-bold text-white outline-none focus:border-blue-500"
                   placeholder="250"
                 />
               </div>
@@ -1714,22 +1727,22 @@ function DashboardContent() {
                 type="button"
                 onClick={handleSaveCodFee}
                 disabled={savingCod}
-                className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center justify-center gap-2"
+                className="w-full py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-xs rounded-lg transition-all shadow-xs flex items-center justify-center gap-1.5"
               >
                 {savingCod ? "Saving..." : "Save COD Fee"}
               </button>
               {codSavedMsg && (
-                <p className="text-xs font-bold text-emerald-400 text-center animate-in fade-in">
+                <p className="text-xs font-semibold text-emerald-400 text-center animate-in fade-in">
                   ✓ COD Fee updated to Rs. {codFee}!
                 </p>
               )}
             </div>
 
             {/* WhatsApp Direct Order */}
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-2">
-              <span className="text-xs text-white/40 font-bold uppercase">WhatsApp Direct Order</span>
-              <h3 className="text-lg font-bold text-blue-400">+94 77 414 1118</h3>
-              <p className="text-xs text-white/50">Auto-formatted message redirect active</p>
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-2">
+              <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">WhatsApp Direct Order</span>
+              <h3 className="text-base font-bold text-blue-400">+94 77 414 1118</h3>
+              <p className="text-xs text-slate-400">Auto-formatted message redirect active for checkout</p>
             </div>
           </div>
         </div>
@@ -1762,23 +1775,27 @@ function DashboardContent() {
           TAB 11: ANALYTICS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "analytics" && (
-        <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-extrabold text-white">Analytics & Performance Reports</h1>
-            <p className="text-xs text-white/50">Real-time revenue, conversion rates and inventory turnover</p>
+        <div className="space-y-6 animate-in fade-in duration-150">
+          <div className="pb-2 border-b border-white/5">
+            <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Analytics & Performance Reports
+            </h1>
+            <p className="text-xs text-slate-400 font-medium mt-0.5">
+              Real-time revenue, conversion rates and payment method breakdown
+            </p>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
-              <h3 className="font-bold text-base text-white">Monthly Sales Breakdown</h3>
-              <div className="h-48 bg-white/5 rounded-2xl flex items-center justify-center text-xs text-white/40">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-4">
+              <h3 className="font-semibold text-sm text-white">Monthly Sales Breakdown</h3>
+              <div className="h-44 bg-white/5 rounded-lg flex items-center justify-center text-xs text-slate-400">
                 Line chart visualizing LKR revenue growth across 31 days
               </div>
             </div>
 
-            <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-lg space-y-4">
-              <h3 className="font-bold text-base text-white">Payment Method Distribution</h3>
-              <div className="h-48 bg-white/5 rounded-2xl flex items-center justify-center text-xs text-white/40">
+            <div className="bg-[#0F172A] border border-white/10 rounded-xl p-5 shadow-xs space-y-4">
+              <h3 className="font-semibold text-sm text-white">Payment Method Distribution</h3>
+              <div className="h-44 bg-white/5 rounded-lg flex items-center justify-center text-xs text-slate-400">
                 PayHere Online (55%) • COD (35%) • WhatsApp Checkout (10%)
               </div>
             </div>
@@ -1934,49 +1951,49 @@ function DashboardContent() {
         onSaved={refreshData}
       />
 
-      {/* Quick Add Stock Modal */}
+      {/* Quick Add Stock Modal (POS Speed) */}
       {quickStockProduct && (
-        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/20 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
+        <div className="fixed inset-0 z-50 bg-black/75 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-[#0F172A] border border-white/15 rounded-2xl p-5 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 duration-150 text-white">
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="text-base font-extrabold flex items-center gap-2">
-                <Plus className="w-5 h-5 text-emerald-400" /> Add Stock: {quickStockProduct.name}
+              <h3 className="text-sm font-bold flex items-center gap-2">
+                <Plus className="w-4 h-4 text-emerald-400" /> Restock: {quickStockProduct.name}
               </h3>
-              <button onClick={() => setQuickStockProduct(null)} className="text-white/40 hover:text-white">
+              <button onClick={() => setQuickStockProduct(null)} className="text-slate-400 hover:text-white">
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="space-y-3 text-xs">
+            <div className="space-y-3.5 text-xs">
               <div className="p-3 bg-white/5 border border-white/10 rounded-xl flex items-center justify-between">
-                <span className="text-white/60 font-bold">Current Stock:</span>
-                <span className="font-black text-sm text-emerald-400 font-mono">
+                <span className="text-slate-300 font-medium">Current Stock on Hand:</span>
+                <span className="font-bold text-sm text-emerald-400 font-mono">
                   {quickStockProduct.stock_count || 0} Units
                 </span>
               </div>
 
               <div>
-                <label className="block font-bold text-white/80 mb-1">Add Additional Quantity</label>
+                <label className="block font-semibold text-slate-300 mb-1.5">Additional Units to Add</label>
                 <div className="flex items-center gap-2">
                   <input
                     type="number"
                     min={1}
                     value={quickStockQty}
                     onChange={(e) => setQuickStockQty(Number(e.target.value))}
-                    className="w-full bg-white/5 border border-white/10 p-3 rounded-xl font-mono font-bold text-white outline-none focus:border-blue-500 text-sm"
+                    className="w-full bg-white/5 border border-white/10 p-2.5 rounded-xl font-mono font-bold text-white outline-none focus:border-blue-500 text-sm"
                   />
-                  <span className="font-bold text-white/60 shrink-0">Units</span>
+                  <span className="font-semibold text-slate-400 shrink-0">Units</span>
                 </div>
               </div>
 
               {/* Quick Preset Buttons */}
-              <div className="flex items-center gap-2 pt-1">
+              <div className="flex items-center gap-2 pt-0.5">
                 {[5, 10, 25, 50].map((preset) => (
                   <button
                     key={preset}
                     type="button"
                     onClick={() => setQuickStockQty(preset)}
-                    className="flex-1 py-1.5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg font-mono font-bold text-xs"
+                    className="flex-1 py-1.5 bg-white/5 hover:bg-blue-600 hover:text-white border border-white/10 rounded-lg font-mono font-semibold text-xs transition-colors"
                   >
                     +{preset}
                   </button>
@@ -1984,11 +2001,11 @@ function DashboardContent() {
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-white/10">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-white/10">
               <button
                 type="button"
                 onClick={() => setQuickStockProduct(null)}
-                className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-bold text-xs rounded-xl"
+                className="px-3.5 py-1.5 bg-white/10 hover:bg-white/20 text-slate-300 hover:text-white font-semibold text-xs rounded-xl transition-colors"
               >
                 Cancel
               </button>
@@ -1996,7 +2013,7 @@ function DashboardContent() {
                 type="button"
                 onClick={handleSaveQuickStock}
                 disabled={isUpdatingStock}
-                className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-xs rounded-xl shadow-md flex items-center gap-1.5"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs flex items-center gap-1.5 transition-all"
               >
                 {isUpdatingStock ? "Updating..." : `Confirm +${quickStockQty} Stock`}
               </button>

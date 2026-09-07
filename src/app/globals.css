@@ -49,6 +49,50 @@ nextjs-portal,
   display: none !important;
 }
 
+/* ── Admin Panel Design Tokens & Scoped Theme Variables ── */
+[data-admin-root] {
+  --admin-bg: #090D14;
+  --admin-surface: #0F172A;
+  --admin-surface-subtle: #111827;
+  --admin-surface-elevated: #1E293B;
+  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-border-strong: rgba(255, 255, 255, 0.16);
+  --admin-text-primary: #F8FAFC;
+  --admin-text-secondary: #94A3B8;
+  --admin-text-muted: #64748B;
+  --admin-primary: #2563EB;
+  --admin-primary-hover: #1D4ED8;
+  --admin-primary-subtle: rgba(37, 99, 235, 0.12);
+  --admin-success: #10B981;
+  --admin-success-subtle: rgba(16, 185, 129, 0.12);
+  --admin-warning: #F59E0B;
+  --admin-warning-subtle: rgba(245, 158, 11, 0.12);
+  --admin-danger: #EF4444;
+  --admin-danger-subtle: rgba(239, 68, 68, 0.12);
+}
+
+[data-admin-root][data-admin-theme="light"],
+[data-admin-theme="light"] [data-admin-root] {
+  --admin-bg: #F8FAFC;
+  --admin-surface: #FFFFFF;
+  --admin-surface-subtle: #F1F5F9;
+  --admin-surface-elevated: #FFFFFF;
+  --admin-border: #E2E8F0;
+  --admin-border-strong: #CBD5E1;
+  --admin-text-primary: #0F172A;
+  --admin-text-secondary: #475569;
+  --admin-text-muted: #64748B;
+  --admin-primary: #2563EB;
+  --admin-primary-hover: #1D4ED8;
+  --admin-primary-subtle: rgba(37, 99, 235, 0.08);
+  --admin-success: #059669;
+  --admin-success-subtle: rgba(5, 150, 105, 0.08);
+  --admin-warning: #D97706;
+  --admin-warning-subtle: rgba(217, 119, 6, 0.08);
+  --admin-danger: #DC2626;
+  --admin-danger-subtle: rgba(220, 38, 38, 0.08);
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {

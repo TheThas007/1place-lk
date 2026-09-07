@@ -12,6 +12,7 @@ interface TodayDealSectionProps {
   settings?: TodayDealSettings | null;
   className?: string;
   isLivePreview?: boolean;
+  previewDevice?: "desktop" | "tablet" | "mobile";
 }
 
 // Format 2-digit number
@@ -23,6 +24,7 @@ export default function TodayDealSection({
   settings,
   className = "",
   isLivePreview = false,
+  previewDevice = "desktop",
 }: TodayDealSectionProps) {
   const [liveSettings, setLiveSettings] = useState<TodayDealSettings>(() => ({
     ...DEFAULT_TODAY_DEAL_SETTINGS,
@@ -33,18 +35,30 @@ export default function TodayDealSection({
   useEffect(() => {
     if (settings) {
       setLiveSettings((prev) => ({ ...prev, ...settings }));
-    } else {
-      getTodayDealSettings().then((cached) => {
-        if (cached) setLiveSettings(cached);
-      }).catch(() => {});
     }
   }, [settings]);
+
+  // Fetch latest settings from Firestore on public homepage mount to prevent stale cache
+  useEffect(() => {
+    if (!isLivePreview) {
+      getTodayDealSettings()
+        .then((fresh) => {
+          if (fresh) setLiveSettings(fresh);
+        })
+        .catch(() => {});
+    }
+  }, [isLivePreview]);
 
   const deal = liveSettings;
 
   const [mounted, setMounted] = useState(false);
   const [now, setNow] = useState<number>(() => Date.now());
   const [imgError, setImgError] = useState(false);
+
+  // Reset imgError whenever image sources or previewDevice change
+  useEffect(() => {
+    setImgError(false);
+  }, [deal.desktopImageUrl, deal.mobileImageUrl, deal.squareImageUrl, deal.bannerMode, previewDevice]);
 
   // Live 1-second interval ticker for real-time automatic auto-hide
   useEffect(() => {
@@ -127,11 +141,36 @@ export default function TodayDealSection({
 
   const isExternalCta = (activeCtaUrl || "").startsWith("http");
 
-  // Product Image Source (Desktop and Mobile fallback)
-  const displayPhoneImg =
-    deal.squareImageUrl ||
-    deal.desktopImageUrl ||
-    "/images/today-deal-phone-card.png";
+  // Image Source Resolution:
+  // - In "full_image" mode (default): Desktop MUST use desktopImageUrl first!
+  // - In "custom_bg_with_square_image" mode: Use squareImageUrl first.
+  const desktopImg =
+    deal.bannerMode === "custom_bg_with_square_image"
+      ? (deal.squareImageUrl?.trim() || deal.desktopImageUrl?.trim() || "/images/today-deal-phone-card.png")
+      : (deal.desktopImageUrl?.trim() || deal.squareImageUrl?.trim() || "/images/today-deal-phone-card.png");
+
+  const mobileImg = deal.mobileImageUrl?.trim() || desktopImg;
+
+  // Active image for live preview device switching in admin canvas
+  const previewImg = previewDevice === "mobile" ? mobileImg : desktopImg;
+
+  // Focal position classes
+  const desktopFocalClass =
+    deal.desktopFocalPosition === "left"
+      ? "object-left"
+      : deal.desktopFocalPosition === "right"
+      ? "object-right"
+      : "object-center";
+
+  const mobileFocalClass =
+    deal.mobileFocalPosition === "left"
+      ? "object-left"
+      : deal.mobileFocalPosition === "right"
+      ? "object-right"
+      : "object-center";
+
+  const activeFocalClass =
+    isLivePreview && previewDevice === "mobile" ? mobileFocalClass : desktopFocalClass;
 
   const imgScale = (deal.imageScale ?? 100) / 100;
 
@@ -383,24 +422,39 @@ export default function TodayDealSection({
               className="w-full h-full flex items-center justify-center cursor-pointer overflow-hidden relative rounded-none"
               aria-label={deal.heading || "Today's Deal Product"}
             >
-              <picture className="w-full h-full flex items-center justify-center rounded-none">
-                {deal.mobileImageUrl && (
-                  <source
-                    media="(max-width: 640px)"
-                    srcSet={deal.mobileImageUrl}
-                  />
-                )}
+              {isLivePreview ? (
+                /* Live Preview Mode: Directly render previewImg honoring the preview device switcher */
                 <img
-                  src={!imgError ? displayPhoneImg : "/images/today-deal-phone-card.png"}
+                  src={!imgError ? previewImg : "/images/today-deal-phone-card.png"}
                   alt={deal.imageAlt || deal.heading || "Today's Deal Product Mockup"}
                   style={{
                     transform: imgScale !== 1 ? `scale(${imgScale})` : undefined,
                     borderRadius: 0,
                   }}
-                  className={`${imageFitClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none`}
+                  className={`${imageFitClass} ${activeFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full`}
                   onError={() => setImgError(true)}
                 />
-              </picture>
+              ) : (
+                /* Public Production Mode: Responsive picture element with desktop and mobile fallback */
+                <picture className="w-full h-full flex items-center justify-center rounded-none">
+                  {deal.mobileImageUrl?.trim() && (
+                    <source
+                      media="(max-width: 640px)"
+                      srcSet={deal.mobileImageUrl.trim()}
+                    />
+                  )}
+                  <img
+                    src={!imgError ? desktopImg : "/images/today-deal-phone-card.png"}
+                    alt={deal.imageAlt || deal.heading || "Today's Deal Product Mockup"}
+                    style={{
+                      transform: imgScale !== 1 ? `scale(${imgScale})` : undefined,
+                      borderRadius: 0,
+                    }}
+                    className={`${imageFitClass} ${desktopFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full`}
+                    onError={() => setImgError(true)}
+                  />
+                </picture>
+              )}
             </Link>
           </div>
 

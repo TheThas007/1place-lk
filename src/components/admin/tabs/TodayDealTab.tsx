@@ -28,6 +28,7 @@ import { db } from "@/lib/firebase";
 import { TodayDealSettings, TodayDealStatus } from "@/lib/types";
 import { DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
+import { clearDataCache } from "@/lib/firestore-client";
 import TodayDealSection from "@/components/home/today-deal-section";
 
 interface TodayDealTabProps {
@@ -75,17 +76,18 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
 
   // Sync initial settings if updated from parent
   useEffect(() => {
-    if (initialSettings) {
+    if (initialSettings && Object.keys(initialSettings).length > 0) {
       setSettings((prev) => ({ ...prev, ...initialSettings }));
     }
   }, [initialSettings]);
 
-  // Load from Firestore if initialSettings not provided
+  // Always fetch latest settings from Firestore on mount to guarantee fresh live data
   useEffect(() => {
+    let isMounted = true;
     async function loadSettings() {
       try {
         const snap = await getDoc(doc(db, "settings", "today_deal"));
-        if (snap.exists()) {
+        if (snap.exists() && isMounted) {
           const data = snap.data();
           setSettings((prev) => ({
             ...prev,
@@ -94,15 +96,29 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
             backgroundBannerBorderRadius: data.backgroundBannerBorderRadius ?? 0,
             borderRadius: data.borderRadius ?? 0,
           }));
+          return;
+        }
+
+        const altSnap = await getDoc(doc(db, "siteSettings", "todayDeal"));
+        if (altSnap.exists() && isMounted) {
+          const altData = altSnap.data();
+          setSettings((prev) => ({
+            ...prev,
+            ...altData,
+            frameBorderRadius: altData.frameBorderRadius ?? 0,
+            backgroundBannerBorderRadius: altData.backgroundBannerBorderRadius ?? 0,
+            borderRadius: altData.borderRadius ?? 0,
+          }));
         }
       } catch (err) {
         console.warn("Could not fetch today's deal settings:", err);
       }
     }
-    if (!initialSettings) {
-      loadSettings();
-    }
-  }, [initialSettings]);
+    loadSettings();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Compute live campaign status
   const campaignStatus: TodayDealStatus = useMemo(() => {
@@ -162,6 +178,10 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
       await setDoc(doc(db, "settings", "today_deal"), payload, { merge: true });
       // Also sync to siteSettings doc if needed
       await setDoc(doc(db, "siteSettings", "todayDeal"), payload, { merge: true });
+
+      // Invalidate memory data cache so public homepage and dashboard get fresh data immediately
+      clearDataCache("settings:today_deal");
+      clearDataCache("settings");
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3500);
@@ -319,7 +339,7 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
               maxWidth: previewDevice === "mobile" ? "375px" : previewDevice === "tablet" ? "768px" : "100%",
             }}
           >
-            <TodayDealSection settings={settings} isLivePreview={true} />
+            <TodayDealSection settings={settings} isLivePreview={true} previewDevice={previewDevice} />
           </div>
         </div>
       </div>
@@ -776,6 +796,30 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                     </label>
                   </div>
 
+                  {/* Desktop Banner Image Live Thumbnail Preview */}
+                  {settings.desktopImageUrl && (
+                    <div className="relative rounded-xl overflow-hidden h-28 border border-white/10 group bg-black/50">
+                      <img
+                        src={settings.desktopImageUrl}
+                        alt="Desktop Banner Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-2.5">
+                        <span className="text-[10px] text-white/90 font-mono truncate max-w-[200px]">
+                          {settings.desktopImageUrl}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSettings({ ...settings, desktopImageUrl: "" })}
+                          className="p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors cursor-pointer"
+                          title="Remove Desktop Banner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Focal Position Selector */}
                   <div>
                     <label className="block text-white/60 font-bold uppercase tracking-wider mb-1.5">
@@ -836,6 +880,30 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                       {uploadingMobile ? "Uploading Image..." : "Upload Mobile Banner"}
                     </label>
                   </div>
+
+                  {/* Mobile Banner Image Live Thumbnail Preview */}
+                  {settings.mobileImageUrl && (
+                    <div className="relative rounded-xl overflow-hidden h-28 border border-white/10 group bg-black/50">
+                      <img
+                        src={settings.mobileImageUrl}
+                        alt="Mobile Banner Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-2.5">
+                        <span className="text-[10px] text-white/90 font-mono truncate max-w-[200px]">
+                          {settings.mobileImageUrl}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setSettings({ ...settings, mobileImageUrl: "" })}
+                          className="p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors cursor-pointer"
+                          title="Remove Mobile Banner"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
 
                   {/* Mobile Focal Position Selector */}
                   <div>
@@ -1042,6 +1110,30 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                         {uploadingSquare ? "Uploading Square Image..." : "Upload Square Image"}
                       </label>
                     </div>
+
+                    {/* Square Product Image Live Thumbnail Preview */}
+                    {settings.squareImageUrl && (
+                      <div className="relative rounded-xl overflow-hidden h-28 border border-white/10 group bg-black/50 flex items-center justify-center">
+                        <img
+                          src={settings.squareImageUrl}
+                          alt="Square Product Preview"
+                          className="h-full w-auto object-contain"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end justify-between p-2.5">
+                          <span className="text-[10px] text-white/90 font-mono truncate max-w-[200px]">
+                            {settings.squareImageUrl}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setSettings({ ...settings, squareImageUrl: "" })}
+                            className="p-1.5 bg-red-600/80 hover:bg-red-600 text-white rounded-lg transition-colors cursor-pointer"
+                            title="Remove Square Image"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    )}
 
                     {/* Square Image Alignment Selector */}
                     <div>
