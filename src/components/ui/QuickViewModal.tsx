@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef, useMemo } from "react";
 import Link from "next/link";
 import { X, Check, ShoppingBag, Heart, ShieldCheck, Truck, Sparkles, MessageCircle } from "lucide-react";
 import { Product } from "@/lib/types";
-import { formatPrice, announceToScreenReader } from "@/lib/utils";
+import { formatPrice, announceToScreenReader, normalizeImageUrl } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { getColorCSS } from "@/lib/color-utils";
@@ -140,7 +140,9 @@ export default function QuickViewModal({ product, isOpen, onClose }: QuickViewMo
     return product.images && product.images.length > 0 ? product.images : ["/placeholder-phone.webp"];
   })();
 
-  const mainDisplayImage = productImages[activeImageIndex] || productImages[0] || "/placeholder-phone.webp";
+  const mainDisplayImage = normalizeImageUrl(
+    productImages[activeImageIndex] || productImages[0] || "/placeholder-phone.webp"
+  );
 
   const isWishlisted = isInWishlist(product.id);
   const hasCombos = Boolean(product.variant_combos && product.variant_combos.length > 0);

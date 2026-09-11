@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Maximize2, X, ChevronLeft, ChevronRight, Play } from "lucide-react";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface ProductGalleryProps {
   images: string[];
@@ -33,9 +34,10 @@ export default function ProductGallery({
     }
   }, [selectedIndex]);
 
-  const displayImages = images && images.length > 0
+  const rawImages = images && images.length > 0
     ? images
     : ["https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?q=80&w=800&auto=format&fit=crop"];
+  const displayImages = rawImages.map((u) => normalizeImageUrl(u));
 
   const handleNext = () => {
     const nextIdx = (activeIdx + 1) % displayImages.length;

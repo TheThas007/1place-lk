@@ -3,6 +3,7 @@ import { collection, getDocs, doc, setDoc, getDoc, deleteDoc, query, where } fro
 import { Brand, Department, DepartmentBrandPageConfig, DepartmentBrandCategoryTab, Product } from "./types";
 import { DEFAULT_BRANDS, BRAND_DEFAULT_CAMPAIGN_BANNERS } from "./data";
 import { cachedFetch, clearDataCache, CACHE_TTL } from "./data-cache";
+import { normalizeImageUrl } from "./utils";
 
 // ── Initial Primary Departments ──
 export const DEFAULT_DEPARTMENTS: Department[] = [
@@ -125,7 +126,7 @@ export async function getBrandsFromDb(): Promise<Brand[]> {
             ...data,
             id,
             slug,
-            logo_url: rawLogo,
+            logo_url: normalizeImageUrl(rawLogo),
             order: orderNum,
             sort_order: orderNum,
             assigned_departments,
@@ -267,9 +268,9 @@ export function generateDefaultDepartmentPageConfig(
 
     // Banner-Only Hero
     bannerEnabled: true,
-    desktopBannerUrl: defaultBannerUrl,
-    tabletBannerUrl: defaultBannerUrl,
-    mobileBannerUrl: defaultBannerUrl,
+    desktopBannerUrl: normalizeImageUrl(defaultBannerUrl),
+    tabletBannerUrl: normalizeImageUrl(defaultBannerUrl),
+    mobileBannerUrl: normalizeImageUrl(defaultBannerUrl),
     bannerAlt: `${brandName} ${deptName} Promotional Banner`,
     desktopFocalPosition: "center",
     tabletFocalPosition: "center",

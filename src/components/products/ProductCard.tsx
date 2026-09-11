@@ -4,7 +4,7 @@ import React, { useState } from "react";
 import Link from "next/link";
 import { ShoppingBag, Heart, Check, Star } from "lucide-react";
 import { Product } from "@/lib/types";
-import { formatPrice, announceToScreenReader, getProductSlug } from "@/lib/utils";
+import { formatPrice, announceToScreenReader, getProductSlug, normalizeImageUrl } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { resolveProductSwatches } from "@/lib/color-utils";
@@ -87,10 +87,11 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
     toggleWishlist(product.id);
   };
 
-  const mainImage =
+  const rawImage =
     !imageError && product.images && product.images.length > 0
       ? product.images[0]
-      : "/placeholder-phone.webp";
+      : (product.image || product.image_url || "/placeholder-phone.webp");
+  const mainImage = normalizeImageUrl(rawImage);
 
   // Color Swatches
   const productSwatches = resolveProductSwatches(product);

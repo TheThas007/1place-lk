@@ -4,7 +4,7 @@ import { getProducts } from "@/lib/firestore-client";
 import { products as fallbackProducts } from "@/lib/data";
 import ProductCard from "@/components/products/ProductCard";
 import ScrollReveal from "@/components/ui/ScrollReveal";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, normalizeImageUrl } from "@/lib/utils";
 
 const ACCESSORY_CATEGORY_IDS = new Set([
   "8", "9", "10", "14", "15", "16", "17", "18", "19", "20", "21", "22", "23", "24", "25"
@@ -69,7 +69,9 @@ export default async function FeaturedAccessories() {
               ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
               : 0;
 
-            const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+            const mainImage = normalizeImageUrl(
+              product.images?.[0] || product.image || product.image_url || "/placeholder-phone.webp"
+            );
             const brandName = product.brand_name || product.brand || "";
 
             return (

@@ -6,7 +6,7 @@ import { ShoppingBag, Eye, Heart, Check, Star } from "lucide-react";
 import { Product, NewArrivalsSettings } from "@/lib/types";
 import { getProducts, getNewArrivalsSettings } from "@/lib/firestore-client";
 import { DEFAULT_NEW_ARRIVALS_SETTINGS } from "@/lib/data";
-import { formatPrice, announceToScreenReader } from "@/lib/utils";
+import { formatPrice, announceToScreenReader, normalizeImageUrl } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useWishlist } from "@/lib/wishlist-context";
 import { usePurchaseGuard } from "@/lib/use-purchase-guard";
@@ -154,7 +154,9 @@ export default function NewArrivalsSection({
                   ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
                   : 0;
 
-                const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+                const mainImage = normalizeImageUrl(
+                  product.images?.[0] || product.image || product.image_url || "/placeholder-phone.webp"
+                );
                 const brandName = product.brand_name || product.brand || "";
 
                 return (
@@ -269,7 +271,9 @@ export default function NewArrivalsSection({
               ? Math.round(((product.old_price! - product.price) / product.old_price!) * 100)
               : 0;
 
-            const mainImage = product.images?.[0] || "/placeholder-phone.webp";
+            const mainImage = normalizeImageUrl(
+              product.images?.[0] || product.image || product.image_url || "/placeholder-phone.webp"
+            );
 
             return (
               <React.Fragment key={product.id}>

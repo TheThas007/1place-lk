@@ -42,10 +42,52 @@ import {
   DEFAULT_MOTION_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
-import { generateProductSlug } from "./utils";
+import { generateProductSlug, normalizeImageUrl, normalizeImageUrls } from "./utils";
 import { cachedFetch, getCachedData, setCachedData, clearDataCache, CACHE_TTL } from "./data-cache";
 
 export { clearDataCache } from "./data-cache";
+
+/**
+ * Normalizes all image URLs inside a product object so expired SSL hosts (e.g. i.postimg.cc)
+ * are served through our secure internal proxy route seamlessly.
+ */
+export function normalizeProduct<T extends Product | null | undefined>(product: T): T {
+  if (!product) return product;
+
+  const rawImages = Array.isArray(product.images) && product.images.length > 0
+    ? product.images
+    : (product.image || product.image_url || product.cover_image ? [product.image || product.image_url || product.cover_image] : []);
+
+  const images = normalizeImageUrls(rawImages);
+  const image = normalizeImageUrl(product.image) || images[0] || "";
+  const image_url = normalizeImageUrl(product.image_url) || images[0] || "";
+  const cover_image = normalizeImageUrl(product.cover_image) || images[0] || "";
+
+  const color_variants = Array.isArray(product.color_variants)
+    ? product.color_variants.map((c) => ({
+        ...c,
+        cover_image: normalizeImageUrl(c.cover_image) || (c.images?.[0] ? normalizeImageUrl(c.images[0]) : ""),
+        images: normalizeImageUrls(c.images),
+      }))
+    : product.color_variants;
+
+  const variant_combos = Array.isArray(product.variant_combos)
+    ? product.variant_combos.map((vc) => ({
+        ...vc,
+        image_ref: normalizeImageUrl(vc.image_ref),
+      }))
+    : product.variant_combos;
+
+  return {
+    ...product,
+    images: images.length > 0 ? images : (image ? [image] : []),
+    image,
+    image_url,
+    cover_image,
+    color_variants,
+    variant_combos,
+  };
+}
 
 // ── 1. Product Banners ──
 export async function getProductBanners(): Promise<ProductBanner[]> {
@@ -53,7 +95,14 @@ export async function getProductBanners(): Promise<ProductBanner[]> {
     try {
       const q = query(collection(db, "product_banners"));
       const snapshot = await getDocs(q);
-      const banners = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as ProductBanner));
+      const banners = snapshot.docs.map((d) => {
+        const data = d.data() as ProductBanner;
+        return {
+          ...data,
+          id: d.id,
+          float_image: normalizeImageUrl(data.float_image),
+        } as ProductBanner;
+      });
       return banners.filter((b) => b.active !== false).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
     } catch (e) {
       console.warn("Offline/Error fetching product banners:", e);
@@ -68,12 +117,12 @@ export async function getProducts(): Promise<Product[]> {
     try {
       const q = query(collection(db, "products"));
       const snapshot = await getDocs(q);
-      const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Product));
+      const docs = snapshot.docs.map((d) => normalizeProduct({ ...d.data(), id: d.id } as Product));
       if (docs.length > 0) return docs;
     } catch (e) {
       console.warn("Offline/Error fetching products:", e);
     }
-    return fallbackProducts;
+    return fallbackProducts.map(normalizeProduct);
   }, CACHE_TTL.PRODUCTS);
 }
 
@@ -101,7 +150,8 @@ export async function getCategories(): Promise<Category[]> {
           return;
         }
 
-        const image_url = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
+        const rawImageUrl = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
+        const image_url = normalizeImageUrl(rawImageUrl);
 
         catMap.set(key, { ...existing, ...data, id, image_url });
       });
@@ -250,7 +300,16 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
     try {
       const q = query(collection(db, "hero_slides"));
       const snapshot = await getDocs(q);
-      const slides = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as HeroSlide));
+      const slides = snapshot.docs.map((d) => {
+        const data = d.data() as HeroSlide;
+        return {
+          ...data,
+          id: d.id,
+          image_url: normalizeImageUrl(data.image_url),
+          desktop_image_url: normalizeImageUrl(data.desktop_image_url),
+          mobile_image_url: normalizeImageUrl(data.mobile_image_url),
+        } as HeroSlide;
+      });
       const activeSlides = slides.filter((s) => s.active !== false);
       if (activeSlides.length > 0) {
         return activeSlides.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
@@ -258,7 +317,12 @@ export async function getHeroSlides(): Promise<HeroSlide[]> {
     } catch (e) {
       console.warn("Offline/Error fetching hero slides:", e);
     }
-    return DEFAULT_HERO_SLIDES;
+    return DEFAULT_HERO_SLIDES.map((s) => ({
+      ...s,
+      image_url: normalizeImageUrl(s.image_url),
+      desktop_image_url: normalizeImageUrl(s.desktop_image_url),
+      mobile_image_url: normalizeImageUrl(s.mobile_image_url),
+    }));
   }, CACHE_TTL.BANNERS);
 }
 
@@ -268,14 +332,24 @@ export async function getGalleryImages(): Promise<any[]> {
     try {
       const q = query(collection(db, "gallery"));
       const snapshot = await getDocs(q);
-      const images = snapshot.docs.map((d) => ({ ...d.data(), id: d.id }));
+      const images = snapshot.docs.map((d) => {
+        const data = d.data();
+        return {
+          ...data,
+          id: d.id,
+          image_url: normalizeImageUrl(data.image_url || data.imageUrl || data.url),
+        };
+      });
       if (images.length > 0) {
         return images;
       }
     } catch (e) {
       console.warn("Offline/Error fetching gallery images:", e);
     }
-    return DEFAULT_GALLERY_IMAGES;
+    return DEFAULT_GALLERY_IMAGES.map((g) => ({
+      ...g,
+      image_url: normalizeImageUrl(g.image_url),
+    }));
   }, CACHE_TTL.GALLERY);
 }
 
@@ -375,21 +449,21 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
           return queryHasPlus ? nameHasPlus : !nameHasPlus;
         }) || docs[0];
 
-        return bestDoc;
+        return normalizeProduct(bestDoc);
       }
 
       // 3. Try Document ID lookup
       const docRef = doc(db, "products", decoded);
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
-        return { ...docSnap.data(), id: docSnap.id } as Product;
+        return normalizeProduct({ ...docSnap.data(), id: docSnap.id } as Product);
       }
 
       // 4. Try SKU / Product Code lookup
       const qCode = query(collection(db, "products"), where("code", "==", decoded), limit(1));
       const codeSnap = await getDocs(qCode);
       if (!codeSnap.empty) {
-        return codeSnap.docs[0].data() as Product;
+        return normalizeProduct(codeSnap.docs[0].data() as Product);
       }
     } catch (e) {
       console.warn("Offline/Error fetching product by slug:", e);
@@ -413,7 +487,7 @@ export async function getProductBySlug(rawSlug: string): Promise<Product | null>
         pNameSlug === plusConvertedSlug
       );
     });
-    if (fallbackMatch) return fallbackMatch;
+    if (fallbackMatch) return normalizeProduct(fallbackMatch);
 
     return null;
   }, CACHE_TTL.PRODUCTS);

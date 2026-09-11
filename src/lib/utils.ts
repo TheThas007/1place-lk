@@ -184,3 +184,39 @@ export function getProductSlug(product?: Partial<Product> | null): string {
   return storedSlug || generateProductSlug(name);
 }
 
+/**
+ * Normalizes image URLs across the application.
+ * Automatically routes hosts with expired or problematic SSL certificates (e.g. i.postimg.cc)
+ * through our secure internal Next.js proxy route (/api/image-proxy).
+ */
+export function normalizeImageUrl(url?: string | null): string {
+  if (!url || typeof url !== "string") return "";
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+
+  // If already proxied, or a local asset / data URI, return as-is
+  if (
+    trimmed.startsWith("/api/image-proxy") ||
+    trimmed.startsWith("/") ||
+    trimmed.startsWith("data:") ||
+    trimmed.startsWith("blob:")
+  ) {
+    return trimmed;
+  }
+
+  // Hosts known to have expired SSL certificates or CORS issues
+  if (trimmed.includes("postimg.cc") || trimmed.includes("postimages.org")) {
+    return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
+  }
+
+  return trimmed;
+}
+
+/**
+ * Normalizes an array of image URLs
+ */
+export function normalizeImageUrls(urls?: (string | null | undefined)[] | null): string[] {
+  if (!urls || !Array.isArray(urls)) return [];
+  return urls.map(normalizeImageUrl).filter(Boolean);
+}
+
