@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { getFeaturedGridBannerSettings, NewArrivalsPromotionalBannerData } from "@/lib/firestore-client";
+import { normalizeImageUrl } from "@/lib/utils";
 
 export type { NewArrivalsPromotionalBannerData };
 
@@ -54,8 +55,8 @@ export default function NewArrivalsGridBanner() {
     return null;
   }
 
-  const desktopImage = banner.desktop_banner_url || banner.customImage || "";
-  const mobileImage = banner.mobile_banner_url || desktopImage;
+  const desktopImage = normalizeImageUrl(banner.desktop_banner_url || banner.customImage || "");
+  const mobileImage = normalizeImageUrl(banner.mobile_banner_url || banner.desktop_banner_url || banner.customImage || "");
 
   if (!desktopImage && !mobileImage) {
     return null;

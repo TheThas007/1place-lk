@@ -8,6 +8,7 @@ import { getOfferBanners } from "@/lib/firestore-client";
 import { fallbackOfferBanners } from "@/lib/data";
 import { OfferBanner, BannerPlacement } from "@/lib/types";
 import { useToast } from "@/components/ui/ToastProvider";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface CampaignPlacementProps {
   placement: BannerPlacement;
@@ -66,8 +67,8 @@ export default function CampaignPlacement({ placement, className }: CampaignPlac
   if (banner.countdownEnabled && banner.countdownEndAt && new Date(banner.countdownEndAt).getTime() <= now) return null;
 
   const destinationUrl = banner.primaryCtaUrl || "/products?category=audio";
-  const desktopImg = banner.desktopImage || "/images/campaign-headphone-desktop.jpg";
-  const mobileImg = banner.mobileImage || "/images/campaign-headphone-mobile.jpg";
+  const desktopImg = normalizeImageUrl(banner.desktopImage || "/images/campaign-headphone-desktop.jpg");
+  const mobileImg = normalizeImageUrl(banner.mobileImage || "/images/campaign-headphone-mobile.jpg");
 
   return (
     <section

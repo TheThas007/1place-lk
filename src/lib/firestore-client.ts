@@ -259,6 +259,8 @@ export async function getOfferBanners(placement?: string): Promise<OfferBanner[]
           status: data.status || "active",
           placement: data.placement || "homepage_after_categories",
           contentMode: data.contentMode || "image_only",
+          desktopImage: normalizeImageUrl(data.desktopImage),
+          mobileImage: normalizeImageUrl(data.mobileImage),
         } as OfferBanner;
       });
 
@@ -590,10 +592,18 @@ export async function getShowcaseSettings(): Promise<VisualShowcaseSettings> {
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as VisualShowcaseSettings;
+        const rawSlides = data.slides && data.slides.length > 0 ? data.slides : DEFAULT_SHOWCASE_SETTINGS.slides;
+        const normalizedSlides = (rawSlides || []).map((s) => ({
+          ...s,
+          desktop_image: normalizeImageUrl(s.desktop_image),
+          mobile_image: normalizeImageUrl(s.mobile_image),
+          bg_image: normalizeImageUrl(s.bg_image),
+          bg_image_mobile: normalizeImageUrl(s.bg_image_mobile),
+        }));
         return {
           ...DEFAULT_SHOWCASE_SETTINGS,
           ...data,
-          slides: data.slides && data.slides.length > 0 ? data.slides : DEFAULT_SHOWCASE_SETTINGS.slides,
+          slides: normalizedSlides,
         };
       }
     } catch (e) {
@@ -611,10 +621,16 @@ export async function getFeaturedCollections(): Promise<FeaturedCollectionsSetti
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
         const data = docSnap.data() as FeaturedCollectionsSettings;
+        const rawCards = data.cards && data.cards.length > 0 ? data.cards : DEFAULT_FEATURED_COLLECTIONS.cards;
+        const normalizedCards = (rawCards || []).map((c) => ({
+          ...c,
+          desktop_image_url: normalizeImageUrl(c.desktop_image_url),
+          mobile_image_url: normalizeImageUrl(c.mobile_image_url),
+        }));
         return {
           ...DEFAULT_FEATURED_COLLECTIONS,
           ...data,
-          cards: data.cards && data.cards.length > 0 ? data.cards : DEFAULT_FEATURED_COLLECTIONS.cards,
+          cards: normalizedCards,
         };
       }
     } catch (e) {
@@ -702,18 +718,28 @@ export async function getTodayDealSettings(): Promise<TodayDealSettings> {
       const docRef = doc(db, "settings", "today_deal");
       const docSnap = await getDoc(docRef);
       if (docSnap.exists()) {
+        const dealData = docSnap.data();
         return {
           ...DEFAULT_TODAY_DEAL_SETTINGS,
-          ...docSnap.data(),
+          ...dealData,
+          desktopImageUrl: normalizeImageUrl(dealData.desktopImageUrl),
+          mobileImageUrl: normalizeImageUrl(dealData.mobileImageUrl),
+          squareImageUrl: normalizeImageUrl(dealData.squareImageUrl),
+          backgroundBannerUrl: normalizeImageUrl(dealData.backgroundBannerUrl),
         } as TodayDealSettings;
       }
 
       const altDocRef = doc(db, "siteSettings", "todayDeal");
       const altSnap = await getDoc(altDocRef);
       if (altSnap.exists()) {
+        const altData = altSnap.data();
         return {
           ...DEFAULT_TODAY_DEAL_SETTINGS,
-          ...altSnap.data(),
+          ...altData,
+          desktopImageUrl: normalizeImageUrl(altData.desktopImageUrl),
+          mobileImageUrl: normalizeImageUrl(altData.mobileImageUrl),
+          squareImageUrl: normalizeImageUrl(altData.squareImageUrl),
+          backgroundBannerUrl: normalizeImageUrl(altData.backgroundBannerUrl),
         } as TodayDealSettings;
       }
     } catch (e) {
@@ -829,7 +855,12 @@ export async function getCampaignPopupSettings(): Promise<CampaignPopupSettings>
       const docRef = doc(db, "settings", "campaign_popup");
       const snap = await getDoc(docRef);
       if (snap.exists()) {
-        return { ...DEFAULT_CAMPAIGN_POPUP, ...snap.data() } as CampaignPopupSettings;
+        const popupData = snap.data();
+        return {
+          ...DEFAULT_CAMPAIGN_POPUP,
+          ...popupData,
+          imageUrl: normalizeImageUrl(popupData.imageUrl),
+        } as CampaignPopupSettings;
       }
     } catch {
       // Fallback
@@ -880,7 +911,14 @@ export async function getFeaturedGridBannerSettings(): Promise<NewArrivalsPromot
       const bannerRef = doc(db, "settings", "featured_grid_banner");
       const snap = await getDoc(bannerRef);
       if (snap.exists()) {
-        return snap.data() as NewArrivalsPromotionalBannerData;
+        const bData = snap.data() as NewArrivalsPromotionalBannerData;
+        return {
+          ...bData,
+          desktop_banner_url: normalizeImageUrl(bData.desktop_banner_url),
+          mobile_banner_url: normalizeImageUrl(bData.mobile_banner_url),
+          customImage: normalizeImageUrl(bData.customImage),
+          image: normalizeImageUrl(bData.image),
+        };
       }
     } catch {
       // Fallback

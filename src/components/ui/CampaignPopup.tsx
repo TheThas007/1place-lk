@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { X, Sparkles, Tag, ArrowRight, Check } from "lucide-react";
 import { getCampaignPopupSettings } from "@/lib/firestore-client";
 import { useToast } from "@/components/ui/ToastProvider";
+import { normalizeImageUrl } from "@/lib/utils";
 
 export interface CampaignPopupSettings {
   enabled: boolean;
@@ -185,7 +186,7 @@ export default function CampaignPopup() {
           {popup.imageUrl && (
             <div className="w-full aspect-[16/9] sm:aspect-[2/1] max-h-[220px] sm:max-h-[280px] md:max-h-[320px] rounded-xl sm:rounded-2xl overflow-hidden mb-3.5 sm:mb-4 bg-neutral-900 border border-white/10 relative shrink-0 shadow-md">
               <img
-                src={popup.imageUrl}
+                src={normalizeImageUrl(popup.imageUrl)}
                 alt={popup.headline || "Promotional Campaign"}
                 className="w-full h-full object-cover object-top"
               />

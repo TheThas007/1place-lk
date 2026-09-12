@@ -7,6 +7,7 @@ import { TodayDealSettings } from "@/lib/types";
 import { DEFAULT_TODAY_DEAL_SETTINGS } from "@/lib/data";
 import { getTodayDealSettings } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface TodayDealSectionProps {
   settings?: TodayDealSettings | null;
@@ -144,12 +145,14 @@ export default function TodayDealSection({
   // Image Source Resolution:
   // - In "full_image" mode (default): Desktop MUST use desktopImageUrl first!
   // - In "custom_bg_with_square_image" mode: Use squareImageUrl first.
-  const desktopImg =
+  const rawDesktop =
     deal.bannerMode === "custom_bg_with_square_image"
       ? (deal.squareImageUrl?.trim() || deal.desktopImageUrl?.trim() || "/images/today-deal-phone-card.png")
       : (deal.desktopImageUrl?.trim() || deal.squareImageUrl?.trim() || "/images/today-deal-phone-card.png");
+  const desktopImg = normalizeImageUrl(rawDesktop);
 
-  const mobileImg = deal.mobileImageUrl?.trim() || desktopImg;
+  const rawMobile = deal.mobileImageUrl?.trim() || rawDesktop;
+  const mobileImg = normalizeImageUrl(rawMobile);
 
   // Active image for live preview device switching in admin canvas
   const previewImg = previewDevice === "mobile" ? mobileImg : desktopImg;
@@ -227,7 +230,7 @@ export default function TodayDealSection({
           style={{ borderRadius: 0 }}
         >
           <img
-            src={deal.backgroundBannerUrl}
+            src={normalizeImageUrl(deal.backgroundBannerUrl || "")}
             alt="Today's Deal Background Banner"
             className="w-full h-full object-cover rounded-none"
           />
@@ -437,10 +440,10 @@ export default function TodayDealSection({
               ) : (
                 /* Public Production Mode: Responsive picture element with desktop and mobile fallback */
                 <picture className="w-full h-full flex items-center justify-center rounded-none">
-                  {deal.mobileImageUrl?.trim() && (
+                  {mobileImg && (
                     <source
                       media="(max-width: 640px)"
-                      srcSet={deal.mobileImageUrl.trim()}
+                      srcSet={mobileImg}
                     />
                   )}
                   <img

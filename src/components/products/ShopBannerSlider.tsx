@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Sparkles, Tag, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { OfferBanner } from "@/lib/types";
+import { normalizeImageUrl } from "@/lib/utils";
 
 // Default fallback offer banners if none are added in admin yet
 const DEFAULT_SHOP_BANNERS: OfferBanner[] = [
@@ -88,7 +89,7 @@ export default function ShopBannerSlider({ banners = [] }: ShopBannerSliderProps
     return () => clearInterval(timer);
   }, [slideImages.length, isPaused]);
 
-  const currentImage = slideImages[activeImageIndex] || slideImages[0];
+  const currentImage = normalizeImageUrl(slideImages[activeImageIndex] || slideImages[0]);
 
   const handlePrev = () => {
     if (slideImages.length > 1 && activeImageIndex > 0) {

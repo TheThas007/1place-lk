@@ -8,6 +8,7 @@ import { FeaturedCollectionsSettings, FeaturedCollectionCard } from "@/lib/types
 import { DEFAULT_FEATURED_COLLECTIONS } from "@/lib/data";
 import { getFeaturedCollections } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface FeaturedCollectionsProps {
   settings?: FeaturedCollectionsSettings | null;
@@ -65,7 +66,7 @@ function CollectionCard({ card }: { card: FeaturedCollectionCard; index: number 
   const secondaryUrl = card.secondary_cta_url?.trim() || cardDestination;
   const isExternal = cardDestination.startsWith("http://") || cardDestination.startsWith("https://");
 
-  const imageSource = card.desktop_image_url || card.mobile_image_url || "/placeholder-phone.webp";
+  const imageSource = normalizeImageUrl(card.desktop_image_url || card.mobile_image_url || "/placeholder-phone.webp");
   const focalPosition = getFocalPositionStyle(card);
 
   // Vertical content position (defaults to top for editorial clean aesthetic)
@@ -160,7 +161,7 @@ function CollectionCard({ card }: { card: FeaturedCollectionCard; index: number 
         {!imgError ? (
           <picture className="w-full h-full block rounded-none" style={{ borderRadius: 0 }}>
             {card.mobile_image_url && (
-              <source media="(max-width: 640px)" srcSet={card.mobile_image_url} />
+              <source media="(max-width: 640px)" srcSet={normalizeImageUrl(card.mobile_image_url)} />
             )}
             <img
               src={imageSource}

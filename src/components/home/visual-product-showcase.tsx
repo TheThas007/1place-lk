@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { VisualShowcaseSettings, VisualShowcaseSlide, ShowcasePlacement } from "@/lib/types";
 import { DEFAULT_SHOWCASE_SETTINGS } from "@/lib/data";
+import { normalizeImageUrl } from "@/lib/utils";
 
 interface VisualProductShowcaseProps {
   settings?: VisualShowcaseSettings | null;
@@ -104,8 +105,10 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
 
   // Background computation
   const isImageBg = currentSlide.bg_type === "image" && Boolean(currentSlide.bg_image);
-  const bgImageUrl = currentSlide.bg_image || "";
-  const bgImageMobileUrl = currentSlide.bg_image_mobile || bgImageUrl;
+  const bgImageUrl = normalizeImageUrl(currentSlide.bg_image || "");
+  const bgImageMobileUrl = normalizeImageUrl(currentSlide.bg_image_mobile || bgImageUrl);
+  const desktopImg = normalizeImageUrl(currentSlide.desktop_image || "");
+  const mobileImg = normalizeImageUrl(currentSlide.mobile_image || desktopImg);
   const overlayOpacity = (currentSlide.bg_overlay_opacity ?? (isImageBg ? 20 : 0)) / 100;
   const overlayColor = currentSlide.bg_overlay_color || "#000000";
 
@@ -293,7 +296,7 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
                 className="w-full flex items-end justify-center"
               >
                 <img
-                  src={currentSlide.mobile_image || currentSlide.desktop_image || "/placeholder-phone.webp"}
+                  src={mobileImg || desktopImg || "/placeholder-phone.webp"}
                   alt={currentSlide.title || "Featured Visual"}
                   loading="lazy"
                   className="max-h-[290px] sm:max-h-[340px] w-auto max-w-[96%] object-contain object-bottom drop-shadow-[0_15px_30px_rgba(0,0,0,0.15)]"
@@ -493,11 +496,11 @@ export default function VisualProductShowcase({ settings, placement }: VisualPro
                       className="relative flex items-end justify-center w-full max-w-5xl"
                     >
                       <picture className="w-full h-full flex items-end justify-center">
-                        {currentSlide.mobile_image && (
-                          <source media="(max-width: 640px)" srcSet={currentSlide.mobile_image} />
+                        {mobileImg && (
+                          <source media="(max-width: 640px)" srcSet={mobileImg} />
                         )}
                         <img
-                          src={currentSlide.desktop_image}
+                          src={desktopImg || "/placeholder-phone.webp"}
                           alt={currentSlide.image_alt || currentSlide.title || "Featured Product Showcase"}
                           loading="lazy"
                           decoding="async"
