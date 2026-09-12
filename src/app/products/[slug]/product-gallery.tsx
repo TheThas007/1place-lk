@@ -102,6 +102,9 @@ export default function ProductGallery({
               alt={`${name} - Image ${safeActiveIdx + 1}`}
               className="w-full h-full object-contain object-center p-1 sm:p-2 transition-transform duration-300 ease-out group-hover:scale-105 cursor-pointer select-none"
               onClick={() => setIsFullscreen(true)}
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+              }}
             />
           </div>
         )}
@@ -125,6 +128,9 @@ export default function ProductGallery({
               src={img}
               alt={`${name} thumbnail ${i + 1}`}
               className="max-w-full max-h-full w-auto h-auto object-contain"
+              onError={(e) => {
+                (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+              }}
             />
           </button>
         ))}
@@ -169,6 +175,9 @@ export default function ProductGallery({
                   src={displayImages[safeActiveIdx]}
                   alt={`${name} Fullscreen`}
                   className="max-w-full max-h-full object-contain"
+                  onError={(e) => {
+                    (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
+                  }}
                 />
               </div>
 

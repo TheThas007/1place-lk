@@ -191,8 +191,13 @@ export function getProductSlug(product?: Partial<Product> | null): string {
  */
 export function normalizeImageUrl(url?: string | null): string {
   if (!url || typeof url !== "string") return "";
-  const trimmed = url.trim();
+  let trimmed = url.trim();
   if (!trimmed) return "";
+
+  // Decode common HTML entities that can break image loading
+  if (trimmed.includes("&amp;")) trimmed = trimmed.replace(/&amp;/g, "&");
+  if (trimmed.includes("&#x27;")) trimmed = trimmed.replace(/&#x27;/g, "'");
+  if (trimmed.includes("&quot;")) trimmed = trimmed.replace(/&quot;/g, '"');
 
   // If already proxied, or a local asset / data URI, return as-is
   if (
@@ -204,8 +209,12 @@ export function normalizeImageUrl(url?: string | null): string {
     return trimmed;
   }
 
-  // Hosts known to have expired SSL certificates or CORS issues
-  if (trimmed.includes("postimg.cc") || trimmed.includes("postimages.org")) {
+  // Hosts known to have expired SSL certificates, CORS issues, or ISP blocks
+  if (
+    trimmed.includes("postimg.cc") ||
+    trimmed.includes("postimages.org") ||
+    trimmed.includes("wikimedia.org")
+  ) {
     return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
   }
 

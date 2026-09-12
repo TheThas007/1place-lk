@@ -10,6 +10,7 @@ import { getHeroSlides } from "@/lib/firestore-client";
 import { DEFAULT_HERO_SLIDES } from "@/lib/data";
 import { HeroSlide } from "@/lib/types";
 import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
+import { normalizeImageUrl } from "@/lib/utils";
 
 if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
@@ -134,8 +135,8 @@ export default function HeroSection() {
 
   const currentSlide = slides[currentIndex] || slides[0];
 
-  const desktopBg = currentSlide.desktop_image_url || currentSlide.image_url;
-  const mobileBg  = currentSlide.mobile_image_url || currentSlide.image_url || desktopBg;
+  const desktopBg = normalizeImageUrl(currentSlide.desktop_image_url || currentSlide.image_url);
+  const mobileBg  = normalizeImageUrl(currentSlide.mobile_image_url || currentSlide.image_url || currentSlide.desktop_image_url);
 
   // Horizontal alignment helper
   const horizAlignClass =

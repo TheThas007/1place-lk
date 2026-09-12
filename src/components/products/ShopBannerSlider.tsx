@@ -65,10 +65,15 @@ export default function ShopBannerSlider({ banners = [] }: ShopBannerSliderProps
   const slideImages = useMemo(() => {
     if (!current) return [];
     const imgs: string[] = [];
-    if (current.desktopImage) imgs.push(current.desktopImage);
+    if (current.desktopImage) imgs.push(normalizeImageUrl(current.desktopImage));
+    if (current.mobileImage) {
+      const normMob = normalizeImageUrl(current.mobileImage);
+      if (normMob && !imgs.includes(normMob)) imgs.push(normMob);
+    }
     if (current.additionalImages && current.additionalImages.length > 0) {
       current.additionalImages.forEach((img) => {
-        if (img && !imgs.includes(img)) imgs.push(img);
+        const norm = normalizeImageUrl(img);
+        if (norm && !imgs.includes(norm)) imgs.push(norm);
       });
     }
     return imgs.length > 0 ? imgs : ["https://images.unsplash.com/photo-1616469829941-c7200edec809?q=80&w=1600&auto=format&fit=crop"];
