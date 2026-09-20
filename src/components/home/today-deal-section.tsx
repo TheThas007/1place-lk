@@ -375,7 +375,7 @@ export default function TodayDealSection({
                     className="inline-flex items-center justify-between gap-4 px-4 py-2.5 rounded-none border text-xs font-bold font-mono tracking-wide w-full sm:w-auto"
                   >
                     <div className="flex items-center gap-1.5 uppercase font-bold text-[11px]">
-                      <Clock className="w-3.5 h-3.5 text-[#ED0712] animate-pulse" />
+                      <Clock className="w-3.5 h-3.5 animate-pulse" />
                       <span>DEAL ENDS IN</span>
                     </div>
                     <span className="font-extrabold text-xs tracking-wider">

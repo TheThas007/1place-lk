@@ -3,10 +3,48 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Images, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowRight, Images, ChevronLeft, ChevronRight, Download } from "lucide-react";
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+
+async function downloadMedia(url: string, title?: string) {
+  try {
+    let blob: Blob;
+    try {
+      const res = await fetch(url, { mode: "cors" });
+      if (!res.ok) throw new Error("direct fetch failed");
+      blob = await res.blob();
+    } catch {
+      const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(url)}`;
+      const res = await fetch(proxyUrl);
+      if (!res.ok) throw new Error("proxy fetch failed");
+      blob = await res.blob();
+    }
+    const blobUrl = window.URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = blobUrl;
+    const cleanTitle = (title || "street-mobile")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "-")
+      .replace(/-+/g, "-")
+      .slice(0, 40);
+    link.download = `${cleanTitle || "street-mobile-gallery"}.jpg`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 2000);
+  } catch {
+    const link = document.createElement("a");
+    link.href = url;
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+    link.download = (title || "street-mobile-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+}
 
 function InstagramIcon({ className = "w-3 h-3" }: { className?: string }) {
   return (
@@ -80,11 +118,26 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
       )}
 
       {/* 4. Bottom Transparent Gradient & Typography */}
-      <div className="absolute inset-x-0 bottom-0 pt-12 sm:pt-14 pb-3 sm:pb-3.5 px-3 sm:px-3.5 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex items-end z-10 pointer-events-none">
+      <div className="absolute inset-x-0 bottom-0 pt-12 sm:pt-14 pb-3 sm:pb-3.5 px-3 sm:px-3.5 pr-12 bg-gradient-to-t from-black/90 via-black/45 to-transparent flex items-end z-10 pointer-events-none">
         <p className="text-white text-xs sm:text-[13px] font-semibold leading-snug line-clamp-2 drop-shadow-xs m-0 select-none">
           {titleText}
         </p>
       </div>
+
+      {/* 5. Download Button */}
+      <button
+        type="button"
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          downloadMedia(image.image_url, titleText);
+        }}
+        aria-label={`Download image: ${titleText}`}
+        title="Download photo"
+        className="absolute bottom-2.5 sm:bottom-3 right-2.5 sm:right-3 z-20 w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-black/60 hover:bg-black/90 active:scale-90 border border-white/20 text-white backdrop-blur-md flex items-center justify-center transition-all shadow-md opacity-0 group-hover:opacity-100 cursor-pointer"
+      >
+        <Download className="w-3.5 h-3.5 text-white" />
+      </button>
     </div>
   );
 

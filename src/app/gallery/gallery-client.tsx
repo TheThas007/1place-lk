@@ -3,7 +3,7 @@
 import { useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { X, ZoomIn, Camera, Wrench, Users, LayoutGrid, ChevronLeft, ChevronRight, ImageIcon, ExternalLink, Play } from "lucide-react";
+import { X, ZoomIn, Camera, Wrench, Users, LayoutGrid, ChevronLeft, ChevronRight, ImageIcon, ExternalLink, Play, Download, Loader2, Sparkles } from "lucide-react";
 import { GalleryImage } from "@/lib/types";
 import { getPlatformMeta } from "@/components/admin/tabs/GalleryTab";
 
@@ -50,6 +50,68 @@ const CATEGORY_COLORS: Record<string, string> = {
 export default function GalleryClient({ images }: { images: GalleryImage[] }) {
   const [activeFilter, setActiveFilter] = useState("all");
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const [downloadingKey, setDownloadingKey] = useState<string | null>(null);
+
+  const handleDownload = async (mediaUrl: string, title?: string, id?: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation();
+    }
+    if (!mediaUrl) return;
+
+    const key = id || mediaUrl;
+    setDownloadingKey(key);
+
+    try {
+      let blob: Blob;
+      try {
+        const res = await fetch(mediaUrl, { mode: "cors" });
+        if (!res.ok) throw new Error("direct fetch failed");
+        blob = await res.blob();
+      } catch {
+        // Use internal image proxy to bypass CORS restrictions
+        const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(mediaUrl)}`;
+        const res = await fetch(proxyUrl);
+        if (!res.ok) throw new Error("proxy fetch failed");
+        blob = await res.blob();
+      }
+
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+
+      const isVideo = mediaUrl.toLowerCase().includes(".mp4") || mediaUrl.toLowerCase().includes(".webm");
+      const ext = isVideo ? ".mp4" : ".jpg";
+      const cleanTitle = (title || "street-mobile")
+        .toLowerCase()
+        .replace(/[^a-z0-9]/g, "-")
+        .replace(/-+/g, "-")
+        .slice(0, 40);
+      link.download = `${cleanTitle || "street-mobile-gallery"}${ext}`;
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setTimeout(() => {
+        window.URL.revokeObjectURL(blobUrl);
+      }, 2500);
+    } catch (err) {
+      console.warn("Direct blob download failed, fallback to anchor click", err);
+      const link = document.createElement("a");
+      link.href = mediaUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      link.download = (title || "street-mobile-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    } finally {
+      setTimeout(() => {
+        setDownloadingKey((prev) => (prev === key ? null : prev));
+      }, 1500);
+    }
+  };
 
   // Filter out hidden items
   const visibleImages = images.filter((img) => img.visible !== false);
@@ -155,6 +217,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                 { label: `${visibleImages.length} Gallery Items`, color: "bg-violet-50 text-violet-700 border-violet-200/70" },
                 { label: "Instagram & TikTok Linkable", color: "bg-pink-50 text-pink-700 border-pink-200/70" },
                 { label: "Shop & Repair Lab", color: "bg-blue-50 text-blue-700 border-blue-200/70" },
+                { label: "HD Media Downloads", color: "bg-emerald-50 text-emerald-700 border-emerald-200/70" },
               ].map((chip) => (
                 <span key={chip.label} className={`px-3.5 py-1.5 rounded-full text-xs font-bold border ${chip.color} shadow-sm`}>
                   {chip.label}
@@ -241,6 +304,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                 const validPostUrl = validateUrl(img.post_url);
                 const platformMeta = getPlatformMeta(img.platform, img.post_url);
                 const cardTitle = img.title || img.caption || "Gallery Item";
+                const isDownloading = downloadingKey === (img.id || img.image_url);
 
                 return (
                   <motion.div key={img.id || idx} variants={cardVariants} className="break-inside-avoid">
@@ -263,6 +327,8 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                             platformMeta={platformMeta}
                             validPostUrl={validPostUrl}
                             cardTitle={cardTitle}
+                            isDownloading={isDownloading}
+                            onDownload={(e) => handleDownload(img.video_url || img.image_url, cardTitle, img.id || img.image_url, e)}
                             onLightboxOpen={(e) => openLightbox(idx, e)}
                           />
                         </a>
@@ -279,6 +345,8 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                             platformMeta={platformMeta}
                             validPostUrl={null}
                             cardTitle={cardTitle}
+                            isDownloading={isDownloading}
+                            onDownload={(e) => handleDownload(img.video_url || img.image_url, cardTitle, img.id || img.image_url, e)}
                           />
                         </div>
                       )}
@@ -307,14 +375,43 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
               {lightboxIdx + 1} / {filtered.length}
             </div>
 
-            {/* Close */}
-            <button
-              type="button"
-              onClick={closeLightbox}
-              className="absolute top-4 right-4 z-20 w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-all"
-            >
-              <X className="w-5 h-5" />
-            </button>
+            {/* Top Right Actions */}
+            <div className="absolute top-4 right-4 z-20 flex items-center gap-2">
+              <button
+                type="button"
+                onClick={(e) =>
+                  handleDownload(
+                    filtered[lightboxIdx].video_url || filtered[lightboxIdx].image_url,
+                    filtered[lightboxIdx].title || filtered[lightboxIdx].caption,
+                    filtered[lightboxIdx].id || filtered[lightboxIdx].image_url,
+                    e
+                  )
+                }
+                disabled={downloadingKey === (filtered[lightboxIdx].id || filtered[lightboxIdx].image_url)}
+                className="h-11 px-4 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center gap-2 text-white text-xs font-bold transition-all active:scale-95 cursor-pointer backdrop-blur-md"
+                title="Download media"
+              >
+                {downloadingKey === (filtered[lightboxIdx].id || filtered[lightboxIdx].image_url) ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin text-white" />
+                    <span className="hidden sm:inline">Downloading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Download className="w-4 h-4 text-white" />
+                    <span className="hidden sm:inline">Download</span>
+                  </>
+                )}
+              </button>
+
+              <button
+                type="button"
+                onClick={closeLightbox}
+                className="w-11 h-11 rounded-2xl bg-white/10 hover:bg-white/20 border border-white/15 flex items-center justify-center text-white transition-all cursor-pointer backdrop-blur-md"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
             {/* Prev */}
             <button
@@ -380,18 +477,46 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
                     )}
                   </div>
 
-                  {/* Direct Social Link Button in Lightbox */}
-                  {validateUrl(filtered[lightboxIdx].post_url) && (
-                    <a
-                      href={validateUrl(filtered[lightboxIdx].post_url)!}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="shrink-0 inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95"
+                  {/* Actions in Lightbox details bar */}
+                  <div className="flex flex-wrap items-center justify-center sm:justify-end gap-2.5 shrink-0">
+                    <button
+                      type="button"
+                      onClick={(e) =>
+                        handleDownload(
+                          filtered[lightboxIdx].video_url || filtered[lightboxIdx].image_url,
+                          filtered[lightboxIdx].title || filtered[lightboxIdx].caption,
+                          filtered[lightboxIdx].id || filtered[lightboxIdx].image_url,
+                          e
+                        )
+                      }
+                      disabled={downloadingKey === (filtered[lightboxIdx].id || filtered[lightboxIdx].image_url)}
+                      className="inline-flex items-center gap-2 px-4 py-2 bg-white/15 hover:bg-white/25 text-white border border-white/20 rounded-xl text-xs font-bold transition-all shadow-md active:scale-95 cursor-pointer"
                     >
-                      <span>{getPlatformMeta(filtered[lightboxIdx].platform, filtered[lightboxIdx].post_url)?.label || "View Original Post"}</span>
-                      <ExternalLink className="w-3.5 h-3.5" />
-                    </a>
-                  )}
+                      {downloadingKey === (filtered[lightboxIdx].id || filtered[lightboxIdx].image_url) ? (
+                        <>
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                          <span>Downloading...</span>
+                        </>
+                      ) : (
+                        <>
+                          <Download className="w-3.5 h-3.5" />
+                          <span>Download {filtered[lightboxIdx].video_url ? "Video" : "Image"}</span>
+                        </>
+                      )}
+                    </button>
+
+                    {validateUrl(filtered[lightboxIdx].post_url) && (
+                      <a
+                        href={validateUrl(filtered[lightboxIdx].post_url)!}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95"
+                      >
+                        <span>{getPlatformMeta(filtered[lightboxIdx].platform, filtered[lightboxIdx].post_url)?.label || "View Original Post"}</span>
+                        <ExternalLink className="w-3.5 h-3.5" />
+                      </a>
+                    )}
+                  </div>
                 </div>
               </motion.div>
             </AnimatePresence>
@@ -426,6 +551,8 @@ function GalleryCardInner({
   validPostUrl,
   cardTitle,
   onLightboxOpen,
+  onDownload,
+  isDownloading,
 }: {
   img: GalleryImage;
   idx: number;
@@ -435,6 +562,8 @@ function GalleryCardInner({
   validPostUrl: string | null;
   cardTitle: string;
   onLightboxOpen?: (e: React.MouseEvent) => void;
+  onDownload: (e: React.MouseEvent) => void;
+  isDownloading?: boolean;
 }) {
   return (
     <div className={`relative ${ratio} overflow-hidden bg-gray-100`}>
@@ -452,7 +581,7 @@ function GalleryCardInner({
 
       {/* Category Badge (Top Left) */}
       {img.category && (
-        <div className="absolute top-3.5 left-3.5 z-10">
+        <div className="absolute top-3.5 left-3.5 z-10 pointer-events-none">
           <span className={`px-3 py-1 rounded-full bg-gradient-to-r ${gradClass} text-white text-[10px] font-bold uppercase tracking-widest shadow-lg`}>
             {img.category}
           </span>
@@ -461,11 +590,27 @@ function GalleryCardInner({
 
       {/* Social Platform Premium Badge (Top Right) */}
       {platformMeta && (
-        <div className={`absolute top-3.5 right-3.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-xl flex items-center gap-1 z-10 ${platformMeta.badgeBg}`}>
+        <div className={`absolute top-3.5 right-3.5 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-wider text-white shadow-xl flex items-center gap-1 z-10 pointer-events-none ${platformMeta.badgeBg}`}>
           <span>{platformMeta.icon}</span>
           <span>{platformMeta.name}</span>
         </div>
       )}
+
+      {/* Direct Quick Download Button (Bottom Right - accessible directly on touch/desktop) */}
+      <button
+        type="button"
+        onClick={onDownload}
+        disabled={isDownloading}
+        aria-label={`Download image: ${cardTitle}`}
+        title="Download image"
+        className="absolute bottom-3 right-3 z-30 w-9 h-9 rounded-xl bg-black/60 hover:bg-black/90 active:scale-90 border border-white/25 text-white backdrop-blur-md flex items-center justify-center transition-all duration-200 shadow-lg hover:scale-105 cursor-pointer"
+      >
+        {isDownloading ? (
+          <Loader2 className="w-4 h-4 animate-spin text-white" />
+        ) : (
+          <Download className="w-4 h-4 text-white" />
+        )}
+      </button>
 
       {/* Hover Action Overlay */}
       <div className="absolute inset-0 bg-black/60 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-all duration-300 flex flex-col items-center justify-center p-4 text-center z-20">
@@ -480,21 +625,42 @@ function GalleryCardInner({
           {validPostUrl ? (platformMeta?.label || "View Post") : "Open Lightbox"}
         </span>
 
-        {/* Secondary Lightbox trigger button if link is present */}
-        {validPostUrl && onLightboxOpen && (
+        {/* Action Buttons Row */}
+        <div className="flex items-center gap-2 mt-3 z-30">
+          {validPostUrl && onLightboxOpen && (
+            <button
+              type="button"
+              onClick={onLightboxOpen}
+              className="px-3 py-1.5 bg-white/20 hover:bg-white/35 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all flex items-center gap-1.5 backdrop-blur-md active:scale-95 cursor-pointer"
+            >
+              <ZoomIn className="w-3 h-3" />
+              <span>Preview</span>
+            </button>
+          )}
           <button
             type="button"
-            onClick={onLightboxOpen}
-            className="mt-3 px-3 py-1 bg-white/20 hover:bg-white/30 text-white rounded-lg text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-colors"
+            onClick={onDownload}
+            disabled={isDownloading}
+            className="px-3 py-1.5 bg-white/20 hover:bg-white/35 text-white rounded-xl text-[10px] font-bold uppercase tracking-wider border border-white/20 transition-all flex items-center gap-1.5 backdrop-blur-md active:scale-95 cursor-pointer"
           >
-            Zoom Photo 🔍
+            {isDownloading ? (
+              <>
+                <Loader2 className="w-3 h-3 animate-spin" />
+                <span>Saving...</span>
+              </>
+            ) : (
+              <>
+                <Download className="w-3 h-3" />
+                <span>Download</span>
+              </>
+            )}
           </button>
-        )}
+        </div>
       </div>
 
       {/* Bottom Caption Overlay */}
       {img.caption && (
-        <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/80 via-black/30 to-transparent translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 pointer-events-none">
+        <div className="absolute bottom-0 left-0 right-0 p-4 pr-14 bg-gradient-to-t from-black/80 via-black/30 to-transparent translate-y-2 group-hover:translate-y-0 opacity-0 group-hover:opacity-100 transition-all duration-300 z-10 pointer-events-none">
           <p className="text-white text-sm font-semibold leading-tight line-clamp-1">{img.caption}</p>
         </div>
       )}
