@@ -41,6 +41,18 @@ const nextConfig: NextConfig = {
       {
         protocol: "https",
         hostname: "postimages.org",
+      },
+      {
+        protocol: "https",
+        hostname: "ik.imagekit.io",
+      },
+      {
+        protocol: "https",
+        hostname: "icon.horse",
+      },
+      {
+        protocol: "https",
+        hostname: "cdn.simpleicons.org",
       }
     ],
   },
