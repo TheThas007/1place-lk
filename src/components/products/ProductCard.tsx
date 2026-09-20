@@ -14,9 +14,10 @@ import { usePurchaseGuard } from "@/lib/use-purchase-guard";
 interface ProductCardProps {
   product: Product;
   className?: string;
+  priority?: boolean;
 }
 
-export default function ProductCard({ product, className = "" }: ProductCardProps) {
+export default function ProductCard({ product, className = "", priority = false }: ProductCardProps) {
   const { handleAuthenticatedPurchase } = usePurchaseGuard();
   const { isInWishlist, toggleWishlist } = useWishlist();
   const [added, setAdded] = useState(false);
@@ -156,7 +157,8 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
               src={mainImage}
               alt={product.name}
               fill
-              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              priority={priority}
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
               onError={() => setImageError(true)}
               className="object-contain object-center transition-transform duration-300 ease-out group-hover:scale-105 p-2 sm:p-3"
             />

@@ -712,8 +712,8 @@ export default function ProductsClient({
                       : "grid grid-cols-1 gap-3 sm:gap-4"
                   }
                 >
-                  {paginatedProducts.map((product) => (
-                    <ProductCard key={product.id} product={product} />
+                  {paginatedProducts.map((product, idx) => (
+                    <ProductCard key={product.id} product={product} priority={idx < 8} />
                   ))}
                 </div>
 
