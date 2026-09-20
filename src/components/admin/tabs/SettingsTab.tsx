@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import { Settings, Sparkles, Star, Image as ImageIcon, Bot, Save, Check } from "lucide-react";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 export default function SettingsTab({
   settings,
@@ -12,6 +13,7 @@ export default function SettingsTab({
   settings?: any;
   onSave?: (newSettings: any) => void;
 }) {
+  const { isLight } = useAdminTheme();
   const [localSettings, setLocalSettings] = useState<any>(settings || {});
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
   const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
@@ -81,17 +83,22 @@ export default function SettingsTab({
   };
 
   return (
-    <div className="space-y-6 text-white font-outfit">
-      
+    <div className="space-y-6">
       {/* ── Section 1: Master Homepage & Launch Visibility Center ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-4">
+      <div className={`border rounded-2xl p-5 sm:p-7 space-y-6 shadow-xs ${
+        isLight ? "bg-white border-[#E2E8F0]" : "bg-[#0E141D] border-white/[0.08]"
+      }`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b pb-4 ${
+          isLight ? "border-slate-100" : "border-white/[0.08]"
+        }`}>
           <div>
-            <h3 className="text-lg font-extrabold text-white flex items-center gap-2">
-              <Settings className="w-5 h-5 text-blue-400" />
+            <h3 className={`text-base font-bold flex items-center gap-2 tracking-tight ${
+              isLight ? "text-slate-900" : "text-white"
+            }`}>
+              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-500" />
               Storefront &amp; Auth Control Center (ON / OFF)
             </h3>
-            <p className="text-xs text-white/50 mt-1">
+            <p className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               Master control switches to turn authentication methods and homepage sections ON or OFF.
             </p>
           </div>
@@ -99,7 +106,7 @@ export default function SettingsTab({
           <button
             onClick={handleSaveAll}
             disabled={saving}
-            className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-emerald-600/20 flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto"
+            className="px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] disabled:opacity-50 text-white font-semibold text-xs rounded-xl shadow-xs flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto active:scale-[0.99]"
           >
             {savedSuccess ? <Check className="w-4 h-4 text-white" /> : <Save className="w-4 h-4" />}
             <span>{saving ? "Saving..." : savedSuccess ? "Settings Saved!" : "Save All Settings"}</span>
@@ -107,17 +114,24 @@ export default function SettingsTab({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-
           {/* Switch: Google 1-Tap Authentication */}
           <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-            googleAuthEnabled ? "bg-sky-950/30 border-sky-500/40 shadow-lg shadow-sky-500/5" : "bg-white/5 border-white/10 opacity-70"
+            googleAuthEnabled
+              ? isLight
+                ? "bg-blue-50/70 border-blue-200"
+                : "bg-sky-950/20 border-sky-500/30"
+              : isLight
+              ? "bg-[#F8FAFC] border-slate-200 opacity-80"
+              : "bg-white/[0.02] border-white/[0.08] opacity-70"
           }`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <span className="text-sm font-black text-sky-400">G</span>
-                <span className="font-extrabold text-sm text-white">Continue with Google (One-Tap Sign-In)</span>
+                <span className="text-sm font-black text-blue-600 dark:text-sky-400">G</span>
+                <span className={`font-semibold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+                  Continue with Google (One-Tap Sign-In)
+                </span>
               </div>
-              <p className="text-xs text-white/50">
+              <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 {googleAuthEnabled ? "ENABLED • Google sign-in button is visible" : "DISABLED (Hidden) • Users sign in with Email/Password"}
               </p>
             </div>
@@ -128,20 +142,30 @@ export default function SettingsTab({
                 onChange={(e) => setGoogleAuthEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-sky-500 shadow-inner"></div>
+              <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                isLight ? "bg-slate-300 peer-checked:bg-blue-600" : "bg-slate-800 peer-checked:bg-blue-600"
+              } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
             </label>
           </div>
 
           {/* Switch 2: Store Photo Gallery */}
           <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-            galleryEnabled ? "bg-emerald-950/30 border-emerald-500/40 shadow-lg shadow-emerald-500/5" : "bg-white/5 border-white/10 opacity-70"
+            galleryEnabled
+              ? isLight
+                ? "bg-emerald-50/70 border-emerald-200"
+                : "bg-emerald-950/20 border-emerald-500/30"
+              : isLight
+              ? "bg-[#F8FAFC] border-slate-200 opacity-80"
+              : "bg-white/[0.02] border-white/[0.08] opacity-70"
           }`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <ImageIcon className={`w-4 h-4 ${galleryEnabled ? "text-emerald-400" : "text-white/40"}`} />
-                <span className="font-extrabold text-sm text-white">Store Photo Gallery Section</span>
+                <ImageIcon className={`w-4 h-4 ${galleryEnabled ? "text-emerald-600 dark:text-emerald-400" : "text-slate-400"}`} />
+                <span className={`font-semibold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+                  Store Photo Gallery Section
+                </span>
               </div>
-              <p className="text-xs text-white/50">
+              <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 {galleryEnabled ? "ENABLED • Visible on homepage" : "DISABLED • Hidden from homepage"}
               </p>
             </div>
@@ -152,20 +176,30 @@ export default function SettingsTab({
                 onChange={(e) => setGalleryEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-emerald-600 shadow-inner"></div>
+              <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                isLight ? "bg-slate-300 peer-checked:bg-emerald-600" : "bg-slate-800 peer-checked:bg-emerald-600"
+              } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
             </label>
           </div>
 
           {/* Switch 3: Customer Reviews */}
           <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-            reviewsEnabled ? "bg-amber-950/30 border-amber-500/40 shadow-lg shadow-amber-500/5" : "bg-white/5 border-white/10 opacity-70"
+            reviewsEnabled
+              ? isLight
+                ? "bg-amber-50/70 border-amber-200"
+                : "bg-amber-950/20 border-amber-500/30"
+              : isLight
+              ? "bg-[#F8FAFC] border-slate-200 opacity-80"
+              : "bg-white/[0.02] border-white/[0.08] opacity-70"
           }`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Star className={`w-4 h-4 ${reviewsEnabled ? "text-amber-400" : "text-white/40"}`} />
-                <span className="font-extrabold text-sm text-white">Google Customer Reviews</span>
+                <Star className={`w-4 h-4 ${reviewsEnabled ? "text-amber-500 fill-amber-500" : "text-slate-400"}`} />
+                <span className={`font-semibold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+                  Google Customer Reviews
+                </span>
               </div>
-              <p className="text-xs text-white/50">
+              <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 {reviewsEnabled ? "ENABLED • Visible on homepage" : "DISABLED • Hidden from homepage"}
               </p>
             </div>
@@ -176,21 +210,31 @@ export default function SettingsTab({
                 onChange={(e) => setReviewsEnabled(e.target.checked)}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-amber-500 shadow-inner"></div>
+              <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                isLight ? "bg-slate-300 peer-checked:bg-amber-500" : "bg-slate-800 peer-checked:bg-amber-500"
+              } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
             </label>
           </div>
 
           {/* Switch 4: Gallery Particle Snow Effect */}
           <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
-            localSettings.snowEffectEnabled ? "bg-blue-950/30 border-blue-500/40 shadow-lg shadow-blue-500/5" : "bg-white/5 border-white/10 opacity-70"
+            localSettings.snowEffectEnabled
+              ? isLight
+                ? "bg-blue-50/70 border-blue-200"
+                : "bg-blue-950/20 border-blue-500/30"
+              : isLight
+              ? "bg-[#F8FAFC] border-slate-200 opacity-80"
+              : "bg-white/[0.02] border-white/[0.08] opacity-70"
           }`}>
             <div className="space-y-1">
               <div className="flex items-center gap-2">
-                <Sparkles className={`w-4 h-4 ${localSettings.snowEffectEnabled ? "text-blue-400" : "text-white/40"}`} />
-                <span className="font-extrabold text-sm text-white">Gallery Particle Snow Effect</span>
+                <Sparkles className={`w-4 h-4 ${localSettings.snowEffectEnabled ? "text-blue-600 dark:text-blue-400" : "text-slate-400"}`} />
+                <span className={`font-semibold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+                  Gallery Particle Snow Effect
+                </span>
               </div>
-              <p className="text-xs text-white/50">
-                Realistic 50k+ particle snow effect on the gallery section background
+              <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                Realistic particle snow effect on the gallery section background
               </p>
             </div>
             <label className="relative inline-flex items-center cursor-pointer shrink-0">
@@ -200,13 +244,14 @@ export default function SettingsTab({
                 onChange={(e) => setLocalSettings({ ...localSettings, snowEffectEnabled: e.target.checked })}
                 className="sr-only peer"
               />
-              <div className="w-12 h-6.5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5.5 after:w-5.5 after:transition-all peer-checked:bg-blue-500 shadow-inner"></div>
+              <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                isLight ? "bg-slate-300 peer-checked:bg-blue-600" : "bg-slate-800 peer-checked:bg-blue-600"
+              } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
             </label>
           </div>
-
         </div>
       </div>
-
     </div>
   );
 }
+

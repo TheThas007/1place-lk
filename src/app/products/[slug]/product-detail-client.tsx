@@ -98,6 +98,17 @@ export default function ProductDetailClient({
     );
   }, [product]);
 
+  // Comprehensive check for pre-order / pre-booking support
+  const isPreOrderAvailable = useMemo(() => {
+    return Boolean(
+      (product as any).is_preorder ||
+      (product as any).pre_order ||
+      (product as any).pre_booking ||
+      product.stock_status === "pre_order" ||
+      isMobileOrLaptop
+    );
+  }, [product, isMobileOrLaptop]);
+
   // 1. Color Variants
   const colorVariants: ProductColor[] = useMemo(() => {
     if (product.hasColorVariants === false) return [];
@@ -580,10 +591,10 @@ export default function ProductDetailClient({
 
   // Auto-open pre-order modal if ?book=true is in URL
   useEffect(() => {
-    if (searchParams && searchParams.get("book") === "true" && isVariantOutOfStock && isMobileOrLaptop) {
+    if (searchParams && searchParams.get("book") === "true" && isVariantOutOfStock && isPreOrderAvailable) {
       setIsPreOrderOpen(true);
     }
-  }, [searchParams, isVariantOutOfStock, isMobileOrLaptop]);
+  }, [searchParams, isVariantOutOfStock, isPreOrderAvailable]);
 
   // Auto-clamp quantity if variant stock decreases below chosen quantity
   useEffect(() => {
@@ -902,15 +913,15 @@ export default function ProductDetailClient({
                   <span
                     className={`w-2.5 h-2.5 rounded-full ${
                       isVariantOutOfStock
-                        ? isMobileOrLaptop
+                        ? isPreOrderAvailable
                           ? "bg-amber-500 animate-pulse"
                           : "bg-red-500"
                         : "bg-emerald-500"
                     }`}
                   />
-                  <span className={isVariantOutOfStock ? (isMobileOrLaptop ? "text-amber-700 font-bold" : "text-red-600 font-bold") : "text-emerald-700 font-bold"}>
+                  <span className={isVariantOutOfStock ? (isPreOrderAvailable ? "text-amber-700 font-bold" : "text-red-600 font-bold") : "text-emerald-700 font-bold"}>
                     {isVariantOutOfStock
-                      ? isMobileOrLaptop
+                      ? isPreOrderAvailable
                         ? "Out of Stock — Available for Pre-Booking"
                         : "Out of Stock"
                       : "In Stock & Ready to Ship"}
@@ -1090,7 +1101,11 @@ export default function ProductDetailClient({
                       >
                         <span className="truncate">
                           {selectedStorageVariant
-                            ? `${selectedStorageVariant.ram ? `${selectedStorageVariant.ram} + ` : ""}${selectedStorageVariant.storage}${selectedStorageVariant.sim_type ? ` • ${selectedStorageVariant.sim_type}` : ""} — ${formatPrice(selectedStorageVariant.price + warrantyPrice)}`
+                            ? `${selectedStorageVariant.ram ? `${selectedStorageVariant.ram} + ` : ""}${selectedStorageVariant.storage}${selectedStorageVariant.sim_type ? ` • ${selectedStorageVariant.sim_type}` : ""} — ${
+                                typeof selectedStorageVariant.price === "number" && selectedStorageVariant.price > 0
+                                  ? formatPrice(selectedStorageVariant.price + warrantyPrice)
+                                  : "Price Coming Soon"
+                              }`
                             : "Select Option"}
                         </span>
                         <ChevronDown
@@ -1148,7 +1163,11 @@ export default function ProductDetailClient({
                                   }`}
                                 >
                                   <span>
-                                    {label} — {formatPrice(variant.price + warrantyPrice)}
+                                    {label} — {
+                                      typeof variant.price === "number" && variant.price > 0
+                                        ? formatPrice(variant.price + warrantyPrice)
+                                        : "Price Coming Soon"
+                                    }
                                   </span>
                                   {isComboOutOfStock ? (
                                     <span className="text-[11px] font-semibold text-red-500 bg-red-50 px-2 py-0.5 rounded border border-red-100">
@@ -1241,7 +1260,7 @@ export default function ProductDetailClient({
                 </button>
 
                 {/* 2. Buy Now or Pre-Order Button */}
-                {isVariantOutOfStock && isMobileOrLaptop ? (
+                {isVariantOutOfStock && isPreOrderAvailable ? (
                   <button
                     type="button"
                     onClick={() => setIsPreOrderOpen(true)}
@@ -1469,7 +1488,7 @@ export default function ProductDetailClient({
         </div>
 
         <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
-          {isVariantOutOfStock && isMobileOrLaptop ? (
+          {isVariantOutOfStock && isPreOrderAvailable ? (
             <button
               type="button"
               onClick={() => setIsPreOrderOpen(true)}

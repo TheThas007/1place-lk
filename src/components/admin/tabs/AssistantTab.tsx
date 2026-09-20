@@ -44,8 +44,10 @@ import {
   DEFAULT_ASSISTANT_SETTINGS,
   DEFAULT_FAQS,
 } from "@/lib/assistant-knowledge";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 export default function AssistantTab() {
+  const { isLight } = useAdminTheme();
   const [activeSubTab, setActiveSubTab] = useState<"overview" | "conversations" | "faqs" | "settings">("overview");
 
   // State
@@ -243,7 +245,7 @@ export default function AssistantTab() {
       )}
 
       {/* Header Banner */}
-      <div className="bg-white p-6 sm:p-7 rounded-2xl border border-neutral-200 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} p-6 sm:p-7 rounded-2xl border flex flex-col md:flex-row md:items-center justify-between gap-4`}>
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl overflow-hidden bg-black border border-white/20 shadow-md shrink-0">
             <img
@@ -254,21 +256,27 @@ export default function AssistantTab() {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h2 className="text-xl sm:text-2xl font-black text-neutral-950 tracking-tight">
+              <h2 className={`text-xl sm:text-2xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
                 Streetla Assistant AI
               </h2>
-              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${settings.enabled ? "bg-emerald-100 text-emerald-800" : "bg-neutral-200 text-neutral-600"}`}>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
+                settings.enabled
+                  ? isLight ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                  : isLight ? "bg-slate-100 text-slate-600 border border-slate-200" : "bg-white/10 text-white/60 border border-white/10"
+              }`}>
                 {settings.enabled ? "Active" : "Disabled"}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-neutral-500 mt-0.5">
+            <p className={`text-xs sm:text-sm mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               Manage AI shopping assistance, multi-language knowledge, live conversations and store policies.
             </p>
           </div>
         </div>
 
         {/* Sub-Tab Navigation */}
-        <div className="flex items-center gap-1.5 bg-neutral-100 p-1 rounded-xl self-start md:self-auto text-xs font-bold">
+        <div className={`flex items-center gap-1.5 p-1 rounded-xl self-start md:self-auto text-xs font-semibold border ${
+          isLight ? "bg-slate-100 border-slate-200" : "bg-white/5 border-white/10"
+        }`}>
           {[
             { id: "overview", label: "Overview", icon: TrendingUp },
             { id: "conversations", label: "Conversations", icon: MessageSquare },
@@ -282,10 +290,10 @@ export default function AssistantTab() {
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveSubTab(tab.id as any)}
-                className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 ${
+                className={`px-3.5 py-2 rounded-lg transition-all flex items-center gap-1.5 cursor-pointer ${
                   isActive
-                    ? "bg-white text-black shadow-xs"
-                    : "text-neutral-600 hover:text-black hover:bg-neutral-200/60"
+                    ? "bg-[#2563EB] text-white shadow-xs"
+                    : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
                 }`}
               >
                 <Icon className="w-3.5 h-3.5" />
@@ -303,50 +311,50 @@ export default function AssistantTab() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
+            <div className={`p-5 rounded-2xl border ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"}`}>
+              <span className={`text-xs font-semibold uppercase tracking-wider block ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 Total Conversations
               </span>
-              <span className="text-3xl font-black text-neutral-950 mt-1 block">
+              <span className={`text-3xl font-bold mt-1 block ${isLight ? "text-slate-900" : "text-white"}`}>
                 {conversations.length}
               </span>
-              <span className="text-[11px] text-neutral-400 mt-2 block">
+              <span className={`text-[11px] mt-2 block ${isLight ? "text-slate-400" : "text-slate-500"}`}>
                 Across English, Tamil &amp; Sinhala
               </span>
             </div>
 
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
+            <div className={`p-5 rounded-2xl border ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"}`}>
+              <span className={`text-xs font-semibold uppercase tracking-wider block ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 Sessions Today
               </span>
-              <span className="text-3xl font-black text-emerald-600 mt-1 block">
+              <span className="text-3xl font-bold text-emerald-500 mt-1 block">
                 {conversationsToday}
               </span>
-              <span className="text-[11px] text-neutral-400 mt-2 block">
+              <span className={`text-[11px] mt-2 block ${isLight ? "text-slate-400" : "text-slate-500"}`}>
                 Real-time active visitors
               </span>
             </div>
 
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
+            <div className={`p-5 rounded-2xl border ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"}`}>
+              <span className={`text-xs font-semibold uppercase tracking-wider block ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 Human Handoffs
               </span>
-              <span className="text-3xl font-black text-neutral-950 mt-1 block">
+              <span className={`text-3xl font-bold mt-1 block ${isLight ? "text-slate-900" : "text-white"}`}>
                 {humanHandoffs}
               </span>
-              <span className="text-[11px] text-neutral-400 mt-2 block">
+              <span className={`text-[11px] mt-2 block ${isLight ? "text-slate-400" : "text-slate-500"}`}>
                 WhatsApp &amp; Call referrals
               </span>
             </div>
 
-            <div className="p-5 bg-white rounded-2xl border border-neutral-200 shadow-2xs">
-              <span className="text-xs font-bold text-neutral-500 uppercase tracking-wider block">
+            <div className={`p-5 rounded-2xl border ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"}`}>
+              <span className={`text-xs font-semibold uppercase tracking-wider block ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 Knowledge FAQs
               </span>
-              <span className="text-3xl font-black text-neutral-950 mt-1 block">
+              <span className={`text-3xl font-bold mt-1 block ${isLight ? "text-slate-900" : "text-white"}`}>
                 {faqs.length}
               </span>
-              <span className="text-[11px] text-neutral-400 mt-2 block">
+              <span className={`text-[11px] mt-2 block ${isLight ? "text-slate-400" : "text-slate-500"}`}>
                 Active multi-language answers
               </span>
             </div>
@@ -354,22 +362,22 @@ export default function AssistantTab() {
           </div>
 
           {/* Quick Common Inquiries Card */}
-          <div className="bg-white p-6 rounded-2xl border border-neutral-200 shadow-2xs space-y-4">
-            <h3 className="font-extrabold text-base text-neutral-950">
+          <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} p-6 rounded-2xl border space-y-4`}>
+            <h3 className={`font-bold text-base ${isLight ? "text-slate-900" : "text-white"}`}>
               Popular Assistant Actions
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-                <span className="font-bold text-neutral-900 block text-sm">📱 Find a Phone</span>
-                <p className="text-neutral-500 mt-1">Queries live stock and displays rich product cards with instant Add to Bag.</p>
+              <div className={`p-4 rounded-xl border ${isLight ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"}`}>
+                <span className={`font-bold block text-sm ${isLight ? "text-slate-900" : "text-white"}`}>📱 Find a Phone</span>
+                <p className={`mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Queries live stock and displays rich product cards with instant Add to Bag.</p>
               </div>
-              <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-                <span className="font-bold text-neutral-900 block text-sm">📦 Verified Order Tracking</span>
-                <p className="text-neutral-500 mt-1">Protects customer data with 2-factor order # + phone verification.</p>
+              <div className={`p-4 rounded-xl border ${isLight ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"}`}>
+                <span className={`font-bold block text-sm ${isLight ? "text-slate-900" : "text-white"}`}>📦 Verified Order Tracking</span>
+                <p className={`mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Protects customer data with 2-factor order # + phone verification.</p>
               </div>
-              <div className="p-4 bg-neutral-50 rounded-xl border border-neutral-200">
-                <span className="font-bold text-neutral-900 block text-sm">🔧 Repairs &amp; Warranty</span>
-                <p className="text-neutral-500 mt-1">Explains Vavuniya lab screen/battery replacement and warranty details.</p>
+              <div className={`p-4 rounded-xl border ${isLight ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"}`}>
+                <span className={`font-bold block text-sm ${isLight ? "text-slate-900" : "text-white"}`}>🔧 Repairs &amp; Warranty</span>
+                <p className={`mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Explains Vavuniya lab screen/battery replacement and warranty details.</p>
               </div>
             </div>
           </div>

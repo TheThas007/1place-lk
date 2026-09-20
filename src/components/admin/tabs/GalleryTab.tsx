@@ -22,6 +22,7 @@ import {
   Tablet,
   Smartphone,
 } from "lucide-react";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 export function getPlatformMeta(platform?: string, post_url?: string) {
   let p = (platform || "").toLowerCase();
@@ -97,6 +98,7 @@ export default function GalleryTab({
   onDelete,
   onRefresh,
 }: GalleryTabProps) {
+  const { isLight } = useAdminTheme();
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [activeSection, setActiveSection] = useState<"photos" | "animation">("photos");
 
@@ -191,35 +193,37 @@ export default function GalleryTab({
         </div>
       </div>
 
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 bg-slate-900/60 p-5 rounded-2xl border border-white/10">
+      <div className={`flex flex-col md:flex-row md:items-center justify-between gap-4 p-5 rounded-2xl border ${
+        isLight ? "bg-white border-slate-200 shadow-xs" : "bg-[#0E141D] border-white/[0.08]"
+      }`}>
         <div>
-          <h3 className="text-xl font-extrabold text-white flex items-center gap-2.5">
-            <Sparkles className="w-5 h-5 text-blue-400" />
+          <h3 className={`text-xl font-bold flex items-center gap-2.5 ${isLight ? "text-[#0F172A]" : "text-white"}`}>
+            <Sparkles className="w-5 h-5 text-blue-600" />
             Store Gallery &amp; Apple-Style Rail Manager
           </h3>
-          <p className="text-xs text-white/50 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-[#94A3B8]"}`}>
             Manage your showroom photo gallery items and configure the smooth continuous horizontal scroll marquee.
           </p>
         </div>
 
         <div className="flex items-center gap-2.5 shrink-0">
-          <div className="flex bg-white/5 p-1 rounded-xl border border-white/10">
+          <div className={`flex p-1 rounded-xl border ${isLight ? "bg-slate-100 border-slate-200" : "bg-white/5 border-white/10"}`}>
             <button
               onClick={() => setActiveSection("photos")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
                 activeSection === "photos"
-                  ? "bg-blue-600 text-white shadow"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-[#2563EB] text-white shadow-xs"
+                  : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
               }`}
             >
               Gallery Photos ({images.length})
             </button>
             <button
               onClick={() => setActiveSection("animation")}
-              className={`px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all ${
+              className={`px-3.5 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
                 activeSection === "animation"
-                  ? "bg-blue-600 text-white shadow"
-                  : "text-white/60 hover:text-white"
+                  ? "bg-[#2563EB] text-white shadow-xs"
+                  : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
               }`}
             >
               <Sliders className="w-3.5 h-3.5" />
@@ -230,7 +234,7 @@ export default function GalleryTab({
           {activeSection === "photos" && (
             <button
               onClick={onAdd}
-              className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all shadow-lg active:scale-95 shrink-0"
+              className="flex items-center gap-2 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-xs font-semibold transition-all shadow-sm cursor-pointer shrink-0"
             >
               <Plus className="w-4 h-4" />
               Add Photo

@@ -22,18 +22,74 @@ export const metadata: Metadata = {
 
 export default async function ProductsPage() {
   const [products, categories, brands] = await Promise.all([
-    getProducts(),
-    getCategories(),
-    getBrands(),
+    getProducts().catch(() => []),
+    getCategories().catch(() => []),
+    getBrands().catch(() => []),
   ]);
 
+  const collectionJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "CollectionPage",
+    "@id": "https://www.streetmobile.lk/products#collection",
+    "name": "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
+    "description": "Browse genuine smartphones, accessories, chargers, earbuds and gadgets available at Street Mobile Sri Lanka.",
+    "url": "https://www.streetmobile.lk/products",
+    "mainEntity": {
+      "@type": "ItemList",
+      "itemListElement": products.slice(0, 24).map((p, idx) => ({
+        "@type": "ListItem",
+        "position": idx + 1,
+        "url": `https://www.streetmobile.lk/products/${p.slug}`,
+        "name": p.name,
+      })),
+    },
+  };
+
+  const breadcrumbsJsonLd = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Home",
+        "item": "https://www.streetmobile.lk",
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "All Products",
+        "item": "https://www.streetmobile.lk/products",
+      },
+    ],
+  };
+
   return (
-    <Suspense fallback={<div className="bg-white min-h-screen pt-32 text-center text-gray-400">Loading shop...</div>}>
-      <ProductsClient
-        initialProducts={products}
-        categories={categories}
-        brands={brands}
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionJsonLd) }}
       />
-    </Suspense>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbsJsonLd) }}
+      />
+      <Suspense
+        fallback={
+          <div className="bg-white min-h-screen pt-28 pb-16 px-4 max-w-7xl mx-auto">
+            <div className="flex items-center justify-center min-h-[300px] flex-col gap-3">
+              <div className="w-8 h-8 rounded-full border-2 border-neutral-900 border-t-transparent animate-spin" />
+              <p className="text-xs font-semibold text-neutral-500">Loading Street Mobile catalog...</p>
+            </div>
+          </div>
+        }
+      >
+        <ProductsClient
+          initialProducts={products}
+          categories={categories}
+          brands={brands}
+        />
+      </Suspense>
+    </>
   );
 }

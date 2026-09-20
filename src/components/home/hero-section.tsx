@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
+import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
@@ -264,22 +265,25 @@ export default function HeroSection() {
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
             <AnimatePresence mode="popLayout" custom={direction} initial={false}>
-              <motion.img
+              <motion.div
                 key={currentSlide.id || currentIndex}
                 initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * 50, scale: 1.03 }}
                 animate={{ opacity: 1, x: 0, scale: 1.0 }}
                 exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * -50, scale: 0.98 }}
                 transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-                src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
-                alt={currentSlide.alt || line1Text || "Latest Smartphones"}
-                className="w-full h-full object-cover will-change-transform"
-                style={{
-                  objectPosition: currentSlide.mobile_image_position || currentSlide.desktop_image_position || "center",
-                }}
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800";
-                }}
-              />
+                className="absolute inset-0 w-full h-full will-change-transform"
+              >
+                <Image
+                  src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
+                  alt={currentSlide.alt || line1Text || "Latest Smartphones"}
+                  fill
+                  priority
+                  className="object-cover"
+                  style={{
+                    objectPosition: currentSlide.mobile_image_position || currentSlide.desktop_image_position || "center",
+                  }}
+                />
+              </motion.div>
             </AnimatePresence>
 
             {/* Subtle transparent dark gradient on left only if text is visible */}
@@ -418,21 +422,25 @@ export default function HeroSection() {
             className="absolute inset-0 w-full h-full will-change-transform"
           >
             {/* Desktop Background Image with subtle cinematic scale */}
-            <img
+            <Image
               key={`img-desktop-${currentIndex}`}
-              src={desktopBg}
+              src={desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
               alt={currentSlide.alt || line1Text || "Hero Banner"}
-              className="hidden lg:block w-full h-full object-cover"
+              fill
+              priority
+              className="hidden lg:block object-cover"
               style={{
                 objectPosition: currentSlide.desktop_image_position || "center",
               }}
             />
             {/* Mobile Background Image */}
-            <img
+            <Image
               key={`img-mobile-${currentIndex}`}
-              src={mobileBg}
+              src={mobileBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
               alt={currentSlide.alt || line1Text || "Hero Banner"}
-              className="lg:hidden w-full h-full object-cover"
+              fill
+              priority
+              className="lg:hidden object-cover"
               style={{
                 objectPosition: currentSlide.mobile_image_position || "center",
               }}

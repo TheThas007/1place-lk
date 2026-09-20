@@ -40,24 +40,37 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const product = await getProductBySlug(slug);
 
   if (!product) {
-    return { title: "Product Not Found" };
+    return {
+      title: "Product Not Found | Street Mobile Sri Lanka",
+      description: "The requested smartphone or mobile accessory could not be found at Street Mobile Sri Lanka.",
+      robots: { index: false, follow: true },
+    };
   }
 
   const brand = resolveProductBrand(product);
-  const title = `${product.name} Price in Sri Lanka | Street Mobile`;
-  const priceStr = product.price ? `Rs. ${Number(product.price).toLocaleString("en-LK")}` : "";
-  const warranty = product.warranty || product.brand_warranty || "Official Warranty";
-  const stockText = product.stock_status === "out_of_stock" ? "Available for Pre-Order" : "In Stock";
+  const fullName = (product.name || "").toLowerCase().includes(brand.toLowerCase())
+    ? product.name
+    : `${brand} ${product.name}`;
 
+  const effectivePrice = product.sale_price && product.sale_price > 0 && product.sale_price < product.price
+    ? product.sale_price
+    : product.price;
+
+  const hasValidPrice = typeof effectivePrice === "number" && !isNaN(effectivePrice) && effectivePrice > 0;
+  const priceStr = hasValidPrice ? `Rs. ${Math.round(effectivePrice).toLocaleString("en-LK")}` : "Price Coming Soon";
+  const warranty = product.warranty || product.brand_warranty || "Official Company Warranty";
+  const stockText = product.stock_status === "out_of_stock" ? "Available for Pre-Order" : "In Stock & Ready for Delivery";
+
+  const title = `${fullName} Price in Sri Lanka | Street Mobile`;
   const description =
     product.description && product.description.length > 40
-      ? `${product.name} price in Sri Lanka is ${priceStr}. ${stockText} with ${warranty}. Buy genuine ${brand} products at Street Mobile Vavuniya with islandwide delivery.`
-      : `Buy original ${product.name} (${brand}) in Sri Lanka at Street Mobile. Best price ${priceStr}, ${warranty}, and express islandwide delivery.`;
+      ? `${fullName} price in Sri Lanka: ${priceStr}. ${stockText} with ${warranty}. Buy genuine ${brand} devices at Street Mobile Vavuniya with express islandwide delivery.`
+      : `Buy original ${fullName} (${brand}) in Sri Lanka at Street Mobile. Best price ${priceStr}, ${warranty}, and express islandwide delivery.`;
 
   const canonicalUrl = `https://www.streetmobile.lk/products/${product.slug || slug}`;
   const images = product.images && product.images.length > 0
-    ? product.images.map((img) => ({ url: img, alt: `${product.name} - Street Mobile Sri Lanka` }))
-    : [{ url: "https://www.streetmobile.lk/logo.png", alt: product.name }];
+    ? product.images.map((img) => ({ url: img, alt: `${fullName} - Street Mobile Sri Lanka` }))
+    : [{ url: "https://www.streetmobile.lk/logo.png", alt: fullName }];
 
   return {
     title,
@@ -101,7 +114,19 @@ export default async function ProductDetailPage({
   const categoryName = product.category_name || "Smartphones";
   const categorySlug = (product.category_slug || product.categorySlug || categoryName).toLowerCase().replace(/[^a-z0-9]+/g, "-");
 
-  const productJsonLd = {
+  const effectivePrice = product.sale_price && product.sale_price > 0 && product.sale_price < product.price
+    ? product.sale_price
+    : product.price;
+
+  const hasValidPrice = typeof effectivePrice === "number" && !isNaN(effectivePrice) && effectivePrice > 0;
+  const isPreOrder = Boolean(
+    (product as any).is_preorder ||
+    (product as any).pre_order ||
+    (product as any).pre_booking ||
+    product.stock_status === "pre_order"
+  );
+
+  const productJsonLd: Record<string, any> = {
     "@context": "https://schema.org",
     "@type": "Product",
     "@id": `https://www.streetmobile.lk/products/${product.slug || slug}#product`,
@@ -114,23 +139,52 @@ export default async function ProductDetailPage({
       "@type": "Brand",
       "name": brand,
     },
-    "offers": {
-      "@type": "Offer",
-      "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
-      "priceCurrency": "LKR",
-      "price": product.price,
-      "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
-      "itemCondition": "https://schema.org/NewCondition",
-      "availability": product.stock_status === "out_of_stock" 
-        ? "https://schema.org/OutOfStock" 
-        : "https://schema.org/InStock",
-      "seller": {
-        "@type": "Organization",
-        "@id": "https://www.streetmobile.lk/#organization",
-        "name": "Street Mobile",
-        "url": "https://www.streetmobile.lk"
-      }
-    }
+    ...(hasValidPrice
+      ? {
+          "offers": {
+            "@type": "Offer",
+            "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
+            "priceCurrency": "LKR",
+            "price": effectivePrice,
+            "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
+            "itemCondition": "https://schema.org/NewCondition",
+            "availability": product.stock_status === "out_of_stock"
+              ? (isPreOrder ? "https://schema.org/PreOrder" : "https://schema.org/OutOfStock")
+              : "https://schema.org/InStock",
+            "seller": {
+              "@type": "Organization",
+              "@id": "https://www.streetmobile.lk/#organization",
+              "name": "Street Mobile",
+              "url": "https://www.streetmobile.lk"
+            }
+          }
+        }
+      : {
+          "offers": {
+            "@type": "Offer",
+            "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
+            "priceCurrency": "LKR",
+            "availability": isPreOrder ? "https://schema.org/PreOrder" : "https://schema.org/OutOfStock",
+            "itemCondition": "https://schema.org/NewCondition",
+            "seller": {
+              "@type": "Organization",
+              "@id": "https://www.streetmobile.lk/#organization",
+              "name": "Street Mobile",
+              "url": "https://www.streetmobile.lk"
+            }
+          }
+        }),
+    ...(product.rating && product.rating > 0
+      ? {
+          "aggregateRating": {
+            "@type": "AggregateRating",
+            "ratingValue": product.rating,
+            "reviewCount": product.review_count || product.reviews_count || 1,
+            "bestRating": "5",
+            "worstRating": "1"
+          }
+        }
+      : {})
   };
 
   const breadcrumbsJsonLd = {

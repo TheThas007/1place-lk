@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import { Coupon } from "@/lib/types";
 import { formatPrice } from "@/lib/utils";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface CouponsTabProps {
   coupons: Coupon[];
@@ -40,6 +41,7 @@ export default function CouponsTab({
   onToggleStatus,
   onDuplicate,
 }: CouponsTabProps) {
+  const { isLight } = useAdminTheme();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<"all" | "active" | "disabled">("all");
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -68,11 +70,11 @@ export default function CouponsTab({
       {/* Top Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-black text-white flex items-center gap-2.5">
-            <Tag className="w-6 h-6 text-blue-400" />
+          <h1 className={`text-2xl font-bold flex items-center gap-2.5 ${isLight ? "text-[#0F172A]" : "text-white"}`}>
+            <Tag className="w-6 h-6 text-blue-600" />
             <span>Promo Codes & Coupons</span>
           </h1>
-          <p className="text-xs text-white/50 mt-1">
+          <p className={`text-xs mt-1 ${isLight ? "text-slate-500" : "text-[#94A3B8]"}`}>
             Create, manage, enable, or disable discount codes for customer checkout
           </p>
         </div>
@@ -80,7 +82,7 @@ export default function CouponsTab({
         <button
           type="button"
           onClick={onAdd}
-          className="px-4 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-lg shadow-blue-600/30 flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto"
+          className="px-4 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-sm flex items-center gap-2 transition-all cursor-pointer self-start sm:self-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Promo Code</span>
@@ -89,53 +91,63 @@ export default function CouponsTab({
 
       {/* Metric Stat Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-        <div className="p-4 rounded-2xl bg-[#0F172A] border border-white/10 flex items-center justify-between shadow-lg">
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
+          isLight ? "bg-white border-slate-200" : "bg-[#0E141D] border-white/[0.08]"
+        }`}>
           <div>
-            <span className="text-[11px] font-bold text-white/40 uppercase tracking-wider block">
+            <span className={`text-[11px] font-bold uppercase tracking-wider block ${isLight ? "text-slate-400" : "text-[#94A3B8]"}`}>
               Total Promo Codes
             </span>
-            <span className="text-2xl font-black text-white mt-1 block">{coupons.length}</span>
+            <span className={`text-2xl font-bold font-mono mt-1 block ${isLight ? "text-slate-900" : "text-white"}`}>{coupons.length}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/70">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isLight ? "bg-slate-100 text-slate-700" : "bg-white/5 text-slate-300"}`}>
             <Tag className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0F172A] border border-emerald-500/20 flex items-center justify-between shadow-lg">
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
+          isLight ? "bg-white border-emerald-200" : "bg-[#0E141D] border-emerald-500/20"
+        }`}>
           <div>
-            <span className="text-[11px] font-bold text-emerald-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-bold text-emerald-600 uppercase tracking-wider block">
               Active & Live
             </span>
-            <span className="text-2xl font-black text-emerald-400 mt-1 block">{activeCount}</span>
+            <span className="text-2xl font-bold font-mono text-emerald-600 mt-1 block">{activeCount}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400">
+          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-600">
             <Sparkles className="w-5 h-5" />
           </div>
         </div>
 
-        <div className="p-4 rounded-2xl bg-[#0F172A] border border-red-500/20 flex items-center justify-between shadow-lg">
+        <div className={`p-4 rounded-2xl border flex items-center justify-between shadow-xs ${
+          isLight ? "bg-white border-red-200" : "bg-[#0E141D] border-red-500/20"
+        }`}>
           <div>
-            <span className="text-[11px] font-bold text-red-400 uppercase tracking-wider block">
+            <span className="text-[11px] font-bold text-red-500 uppercase tracking-wider block">
               Disabled (Inactive)
             </span>
-            <span className="text-2xl font-black text-red-400 mt-1 block">{disabledCount}</span>
+            <span className="text-2xl font-bold font-mono text-red-500 mt-1 block">{disabledCount}</span>
           </div>
-          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-400">
+          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center text-red-500">
             <Power className="w-5 h-5" />
           </div>
         </div>
       </div>
 
       {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl bg-[#0F172A] border border-white/10">
+      <div className={`flex flex-col sm:flex-row items-center justify-between gap-3 p-3 rounded-2xl border ${
+        isLight ? "bg-white border-slate-200" : "bg-[#0E141D] border-white/[0.08]"
+      }`}>
         <div className="relative w-full sm:w-80">
-          <Search className="w-4 h-4 text-white/40 absolute left-3.5 top-3" />
+          <Search className={`w-4 h-4 absolute left-3.5 top-3 ${isLight ? "text-slate-400" : "text-[#94A3B8]"}`} />
           <input
             type="text"
             placeholder="Search by code or title..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500 transition-colors"
+            className={`w-full pl-10 pr-4 py-2 rounded-xl text-xs outline-none border transition-all ${
+              isLight ? "bg-slate-50 border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500" : "bg-white/5 border-white/10 text-white placeholder-slate-400 focus:border-blue-500"
+            }`}
           />
         </div>
 
@@ -145,10 +157,12 @@ export default function CouponsTab({
               key={st}
               type="button"
               onClick={() => setFilterStatus(st)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold capitalize transition-all cursor-pointer ${
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold capitalize transition-all cursor-pointer ${
                 filterStatus === st
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-white/5 text-white/60 hover:text-white hover:bg-white/10"
+                  ? "bg-[#2563EB] text-white shadow-xs"
+                  : isLight
+                  ? "bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200"
+                  : "bg-white/5 text-[#94A3B8] hover:text-white hover:bg-white/10"
               }`}
             >
               {st}
@@ -158,7 +172,9 @@ export default function CouponsTab({
       </div>
 
       {/* Promo Codes Table / List */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+      <div className={`rounded-2xl border overflow-hidden shadow-xs ${
+        isLight ? "bg-white border-slate-200" : "bg-[#0E141D] border-white/[0.08]"
+      }`}>
         {filteredCoupons.length === 0 ? (
           <div className="text-center py-16 px-4">
             <Tag className="w-12 h-12 text-white/20 mx-auto mb-3" />
@@ -179,8 +195,10 @@ export default function CouponsTab({
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-white/80">
-              <thead className="bg-white/5 text-[11px] font-extrabold uppercase tracking-wider text-white/40 border-b border-white/10">
+            <table className="w-full text-left text-xs">
+              <thead className={`text-[11px] font-bold uppercase tracking-wider border-b ${
+                isLight ? "bg-slate-50 text-slate-500 border-slate-200" : "bg-white/5 text-[#94A3B8] border-white/10"
+              }`}>
                 <tr>
                   <th className="py-3.5 px-4">Promo Code</th>
                   <th className="py-3.5 px-4">Discount</th>
@@ -191,7 +209,7 @@ export default function CouponsTab({
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5 font-medium">
+              <tbody className={`divide-y font-medium ${isLight ? "divide-slate-100" : "divide-white/5"}`}>
                 {filteredCoupons.map((coupon) => {
                   const isActive = coupon.status === "active";
 

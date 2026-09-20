@@ -2,10 +2,26 @@
 
 import React, { useState, useMemo } from "react";
 import { Category, Product } from "@/lib/types";
-import { Plus, Edit, Trash2, CheckCircle2, XCircle, Search, Eye, ArrowUp, ArrowDown, Copy, EyeOff, FolderOpen, AlertTriangle, ShieldAlert } from "lucide-react";
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Search,
+  Eye,
+  EyeOff,
+  ArrowUp,
+  ArrowDown,
+  Copy,
+  FolderOpen,
+  AlertTriangle,
+  Sparkles,
+  X,
+  ExternalLink,
+} from "lucide-react";
 import { db } from "@/lib/firebase";
 import { doc, setDoc, addDoc, collection } from "firebase/firestore";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface CategoriesTabProps {
   categories: Category[];
@@ -22,27 +38,39 @@ export default function CategoriesTab({
   onEdit,
   onDelete,
 }: CategoriesTabProps) {
+  const { isLight } = useAdminTheme();
+
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<"all" | "active" | "inactive" | "homepage">("all");
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [deleteWarningCategory, setDeleteWarningCategory] = useState<{ cat: Category; linkedCount: number } | null>(null);
 
-  // Clean Categories filter
+  // Clean Categories filter (excluding migration audit known brand names and deduplicating logical categories)
   const cleanCategories = useMemo(() => {
-    const filtered = categories.filter((c) => {
-      const cName = (c.name || "").toLowerCase();
-      const cSlug = (c.slug || "").toLowerCase();
-      return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+    const seen = new Set<string>();
+    const result: Category[] = [];
+    (categories || []).forEach((c) => {
+      const cName = (c.name || "").trim().toLowerCase();
+      const cSlug = (c.slug || "").trim().toLowerCase();
+      if (!cName) return;
+      if (KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug)) {
+        return;
+      }
+      if (!seen.has(cName)) {
+        seen.add(cName);
+        result.push(c);
+      }
     });
-    return filtered.length > 0 ? filtered : categories;
+    return result.length > 0 ? result : categories;
   }, [categories]);
 
   // Filtered & Sorted Categories List
   const displayedCategories = useMemo(() => {
     return cleanCategories
       .filter((c) => {
-        const q = searchQuery.toLowerCase();
+        const q = searchQuery.toLowerCase().trim();
         const matchesSearch =
+          !q ||
           c.name.toLowerCase().includes(q) ||
           c.slug.toLowerCase().includes(q) ||
           (c.description && c.description.toLowerCase().includes(q));
@@ -133,91 +161,167 @@ export default function CategoriesTab({
   };
 
   return (
-    <div className="space-y-6 text-white">
-      
-      {/* Top Header (Dark Theme) */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-[10px] font-black uppercase tracking-wider mb-2 border border-blue-500/20">
-            <FolderOpen className="w-3.5 h-3.5 text-blue-400" />
-            <span>HOMEPAGE NAVIGATION</span>
+    <div
+      className={`space-y-5 animate-fadeIn ${
+        isLight ? "text-slate-900" : "text-[#F8FAFC]"
+      }`}
+    >
+      {/* ──────────────────────────────────────────────────────────
+          1. PAGE HEADER
+          ────────────────────────────────────────────────────────── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+              isLight
+                ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"
+                : "bg-blue-600/10 text-blue-500 border border-blue-500/20"
+            }`}
+          >
+            <FolderOpen className="w-5 h-5" />
           </div>
-          <h3 className="text-2xl font-black text-white tracking-tight">Shop by Category Manager</h3>
-          <p className="text-xs text-white/50 font-medium mt-0.5">
-            Manage, reorder, and customize the category carousel sections on your homepage ({cleanCategories.length} categories).
-          </p>
+          <div>
+            <h1
+              className={`text-2xl font-bold tracking-tight ${
+                isLight ? "text-slate-900" : "text-[#F8FAFC]"
+              }`}
+            >
+              Shop by Category
+            </h1>
+            <p
+              className={`text-[13px] font-normal mt-0.5 ${
+                isLight ? "text-slate-500" : "text-[#94A3B8]"
+              }`}
+            >
+              Manage, reorder, and customize the category sections on your homepage.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           <button
             type="button"
             onClick={() => setShowPreviewModal(true)}
-            className="flex items-center gap-2 px-4 py-2.5 bg-white/5 hover:bg-white/10 text-white rounded-2xl text-xs font-bold transition-all border border-white/10 shadow-xs"
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all border ${
+              isLight
+                ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-sm"
+                : "bg-[#121A25] hover:bg-[#1A2535] text-[#F8FAFC] border-white/[0.08]"
+            }`}
           >
-            <Eye className="w-4 h-4 text-blue-400" />
-            Live Section Preview
+            <Eye className="w-3.5 h-3.5 text-blue-400" />
+            <span>Live Section Preview</span>
           </button>
-          
+
           <button
             type="button"
             onClick={onAdd}
-            className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white rounded-2xl text-xs font-bold transition-all shadow-md active:scale-95"
+            className="flex items-center gap-2 px-4 py-2.5 bg-[#2563EB] hover:bg-blue-600 text-white rounded-xl text-xs font-semibold shadow-md shadow-blue-600/20 transition-all shrink-0"
           >
-            <Plus className="w-4 h-4" />
-            Add Category
+            <Plus className="w-3.5 h-3.5" />
+            <span>Add Category</span>
           </button>
         </div>
       </div>
 
-      {/* Filter & Search Bar */}
-      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 bg-[#0F172A] border border-white/10 rounded-2xl p-4 shadow-md">
-        <div className="relative flex-1 max-w-md">
-          <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+      {/* ──────────────────────────────────────────────────────────
+          2. SEARCH + FILTER TOOLBAR
+          ────────────────────────────────────────────────────────── */}
+      <div
+        className={`rounded-2xl p-2.5 border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+          isLight
+            ? "bg-white border-slate-200 shadow-sm"
+            : "bg-[#0E141D] border-white/[0.08]"
+        }`}
+      >
+        {/* Left: Search Input */}
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search
+            className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
+              isLight ? "text-slate-400" : "text-[#94A3B8]"
+            }`}
+          />
           <input
             type="text"
             placeholder="Search category by name or slug..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl pl-10 pr-4 py-2 text-xs text-white placeholder-white/40 focus:outline-none focus:border-blue-500"
+            className={`w-full bg-transparent pl-10 pr-4 py-2 text-xs rounded-xl focus:outline-none transition-colors ${
+              isLight
+                ? "text-slate-900 placeholder-slate-400 focus:bg-slate-50"
+                : "text-[#F8FAFC] placeholder-slate-500 focus:bg-white/[0.03]"
+            }`}
           />
         </div>
 
+        {/* Right: Filter Buttons */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar">
           {[
             { id: "all", label: "All Categories" },
             { id: "homepage", label: "Shown on Homepage" },
             { id: "active", label: "Active" },
             { id: "inactive", label: "Inactive" },
-          ].map((f) => (
-            <button
-              key={f.id}
-              type="button"
-              onClick={() => setStatusFilter(f.id as any)}
-              className={`px-3.5 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
-                statusFilter === f.id
-                  ? "bg-blue-600 text-white shadow-xs"
-                  : "bg-white/5 text-white/60 hover:bg-white/10 hover:text-white"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
+          ].map((f) => {
+            const isActive = statusFilter === f.id;
+            return (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setStatusFilter(f.id as any)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border ${
+                  isActive
+                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm"
+                    : isLight
+                    ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                    : "bg-[#121A25] hover:bg-[#1A2535] text-[#94A3B8] hover:text-[#F8FAFC] border-white/[0.08]"
+                }`}
+              >
+                {f.label}
+              </button>
+            );
+          })}
         </div>
       </div>
 
-      {/* Clean Admin Category Cards Grid (Dark Theme) */}
+      {/* ──────────────────────────────────────────────────────────
+          3. CATEGORY COUNT
+          ────────────────────────────────────────────────────────── */}
+      <div className="flex items-center justify-between text-xs px-1">
+        <span
+          className={`font-medium ${
+            isLight ? "text-slate-500" : "text-[#94A3B8]"
+          }`}
+        >
+          {cleanCategories.length} Categories
+          {displayedCategories.length !== cleanCategories.length &&
+            ` (${displayedCategories.length} matching filter)`}
+        </span>
+      </div>
+
+      {/* ──────────────────────────────────────────────────────────
+          4. CATEGORY GRID (3 columns desktop, 2 tablet, 1 mobile)
+          ────────────────────────────────────────────────────────── */}
       {displayedCategories.length === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-[#0F172A] border border-white/10 space-y-3">
-          <p className="text-white/50 text-sm font-semibold">No matching categories found.</p>
+        <div
+          className={`text-center py-16 rounded-2xl border ${
+            isLight
+              ? "bg-white border-slate-200 text-slate-500"
+              : "bg-[#0E141D] border-white/[0.08] text-slate-400"
+          }`}
+        >
+          <FolderOpen className="w-10 h-10 mx-auto mb-3 opacity-30" />
+          <h3 className="text-base font-semibold">No matching categories found</h3>
+          <p className="text-xs mt-1 max-w-sm mx-auto opacity-70">
+            No categories match your search or filter. Try clearing the search query or adding a new category.
+          </p>
           <button
             onClick={onAdd}
-            className="px-5 py-2 bg-blue-600 text-white text-xs font-bold rounded-xl hover:bg-blue-500 transition-all"
+            className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-all"
           >
-            + Create New Category
+            + Add Category
           </button>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {displayedCategories.map((cat, idx) => {
             const linkedProductsCount = products.filter(
               (p) =>
@@ -226,69 +330,123 @@ export default function CategoriesTab({
                 p.category_name?.toLowerCase() === cat.name.toLowerCase()
             ).length;
 
+            const isShownOnHomepage = cat.show_on_homepage !== false;
+
             return (
               <div
                 key={cat.id || idx}
-                className={`bg-[#0F172A] border rounded-2xl p-5 transition-all shadow-md hover:border-white/20 relative flex flex-col justify-between ${
-                  cat.show_on_homepage !== false ? "border-white/10" : "border-white/5 bg-[#0F172A]/50 opacity-60"
-                }`}
+                className={`group rounded-2xl p-4.5 border flex flex-col justify-between transition-all duration-200 hover:shadow-lg ${
+                  isLight
+                    ? "bg-white border-slate-200 hover:border-slate-300 hover:bg-slate-50/50 shadow-sm"
+                    : "bg-[#0E141D] border-white/[0.08] hover:bg-[#121A25] hover:border-white/[0.16]"
+                } ${!isShownOnHomepage ? "opacity-75" : ""}`}
               >
-                {/* Top Section */}
-                <div className="flex items-start gap-4">
-                  
-                  {/* Category Icon Container */}
-                  <div className="w-16 h-16 rounded-2xl border border-white/10 bg-white/5 p-2 flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
-                    {cat.image_url ? (
-                      <img
-                        src={cat.image_url}
-                        alt={cat.icon_alt_text || cat.name}
-                        className="w-full h-full object-contain"
+                <div>
+                  {/* Top Bar: Order badge + Homepage status tag (TEXT ONLY, NO ICONS/IMAGES) */}
+                  <div className="flex items-center justify-between gap-2">
+                    <span
+                      className={`text-[10px] px-2 py-0.5 rounded-md font-mono font-bold uppercase tracking-wider ${
+                        isLight
+                          ? "bg-slate-100 text-slate-600 border border-slate-200"
+                          : "bg-white/5 text-[#94A3B8] border border-white/[0.08]"
+                      }`}
+                    >
+                      Order #{cat.sort_order ?? idx}
+                    </span>
+
+                    <span
+                      className={`inline-flex items-center gap-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-md border ${
+                        isShownOnHomepage
+                          ? isLight
+                            ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                          : isLight
+                          ? "bg-slate-100 text-slate-500 border-slate-200"
+                          : "bg-white/5 text-slate-500 border-white/[0.06]"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isShownOnHomepage ? "bg-emerald-500" : "bg-slate-400"
+                        }`}
                       />
-                    ) : (
-                      <span className="text-3xl">{cat.icon || "📱"}</span>
-                    )}
+                      <span>{isShownOnHomepage ? "Homepage" : "Hidden"}</span>
+                    </span>
                   </div>
 
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <h4 className="text-sm font-extrabold text-white truncate">{cat.name}</h4>
-                      <span className="text-[10px] font-mono font-bold text-white/50 bg-white/5 px-2 py-0.5 rounded-md shrink-0">
-                        Order #{cat.sort_order ?? idx}
+                  {/* Category Name: 15-16px semibold */}
+                  <h3
+                    className={`text-[15px] font-semibold tracking-tight mt-3 leading-snug truncate uppercase ${
+                      isLight ? "text-slate-900" : "text-[#F8FAFC]"
+                    }`}
+                    title={cat.name}
+                  >
+                    {cat.name}
+                  </h3>
+
+                  {/* Slug: muted 11-12px text */}
+                  <p
+                    className={`text-xs font-mono truncate mt-0.5 ${
+                      isLight ? "text-slate-400" : "text-slate-500"
+                    }`}
+                  >
+                    /{cat.slug}
+                  </p>
+
+                  {/* Metadata: Product count & Homepage status */}
+                  <div className="flex items-center gap-3.5 mt-3 text-xs">
+                    {/* Products count badge */}
+                    <span
+                      className={`font-medium ${
+                        isLight ? "text-slate-600" : "text-[#94A3B8]"
+                      }`}
+                    >
+                      {linkedProductsCount} Products
+                    </span>
+
+                    {/* Homepage status indicator */}
+                    <span
+                      className={`inline-flex items-center gap-1.5 font-medium ${
+                        isShownOnHomepage
+                          ? isLight
+                            ? "text-emerald-600"
+                            : "text-[#10B981]"
+                          : isLight
+                          ? "text-slate-400"
+                          : "text-slate-500"
+                      }`}
+                    >
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full ${
+                          isShownOnHomepage
+                            ? "bg-emerald-500 shadow-xs shadow-emerald-500/50"
+                            : "bg-slate-500"
+                        }`}
+                      />
+                      <span>
+                        {isShownOnHomepage ? "Homepage" : "Hidden"}
                       </span>
-                    </div>
-
-                    <p className="text-xs text-white/40 font-mono truncate">
-                      /{cat.slug}
-                    </p>
-
-                    <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-                      <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 text-[10px] font-bold border border-blue-500/20">
-                        {linkedProductsCount} Products
-                      </span>
-
-                      {cat.show_on_homepage !== false ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-2 py-0.5 rounded-md border border-emerald-500/20">
-                          <CheckCircle2 className="w-3 h-3 text-emerald-400" /> Homepage
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] text-white/40 font-bold bg-white/5 px-2 py-0.5 rounded-md">
-                          <EyeOff className="w-3 h-3 text-white/40" /> Hidden
-                        </span>
-                      )}
-                    </div>
+                    </span>
                   </div>
                 </div>
 
-                {/* Bottom Action Footer */}
-                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between gap-2">
-                  
+                {/* Bottom Row: Reorder (Left) & Actions (Right) */}
+                <div
+                  className={`mt-4 pt-3 border-t flex items-center justify-between gap-2 ${
+                    isLight ? "border-slate-100" : "border-white/[0.08]"
+                  }`}
+                >
                   {/* Reorder Buttons */}
                   <div className="flex items-center gap-1">
                     <button
                       type="button"
                       onClick={() => handleReorder(idx, "up")}
                       disabled={idx === 0}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className={`p-1.5 rounded-lg border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                        isLight
+                          ? "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600"
+                          : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] text-slate-300"
+                      }`}
                       title="Move Up"
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
@@ -297,7 +455,11 @@ export default function CategoriesTab({
                       type="button"
                       onClick={() => handleReorder(idx, "down")}
                       disabled={idx === displayedCategories.length - 1}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                      className={`p-1.5 rounded-lg border transition-colors disabled:opacity-30 disabled:cursor-not-allowed ${
+                        isLight
+                          ? "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600"
+                          : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] text-slate-300"
+                      }`}
                       title="Move Down"
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
@@ -306,41 +468,66 @@ export default function CategoriesTab({
 
                   {/* Actions */}
                   <div className="flex items-center gap-1.5">
+                    {/* Visibility Toggle */}
                     <button
                       type="button"
                       onClick={() => handleToggleVisibility(cat)}
-                      className={`p-1.5 rounded-lg text-xs font-bold transition-colors ${
-                        cat.show_on_homepage !== false
-                          ? "bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30"
-                          : "bg-white/5 text-white/40 hover:bg-white/10 text-white"
+                      className={`p-1.5 rounded-lg border transition-colors ${
+                        isShownOnHomepage
+                          ? isLight
+                            ? "bg-emerald-50 text-emerald-600 border-emerald-200 hover:bg-emerald-100"
+                            : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                          : isLight
+                          ? "bg-slate-100 text-slate-400 border-slate-200 hover:text-slate-600"
+                          : "bg-white/[0.04] text-slate-500 border-white/[0.08] hover:text-slate-300"
                       }`}
-                      title={cat.show_on_homepage !== false ? "Hide from Homepage" : "Show on Homepage"}
+                      title={
+                        isShownOnHomepage
+                          ? "Hide from Homepage"
+                          : "Show on Homepage"
+                      }
                     >
-                      {cat.show_on_homepage !== false ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+                      {isShownOnHomepage ? (
+                        <Eye className="w-3.5 h-3.5" />
+                      ) : (
+                        <EyeOff className="w-3.5 h-3.5" />
+                      )}
                     </button>
 
+                    {/* Duplicate */}
                     <button
                       type="button"
                       onClick={() => handleDuplicate(cat)}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white transition-colors"
+                      className={`p-1.5 rounded-lg border transition-colors ${
+                        isLight
+                          ? "bg-slate-50 hover:bg-slate-100 border-slate-200 text-slate-600"
+                          : "bg-white/[0.04] hover:bg-white/[0.08] border-white/[0.08] text-slate-300"
+                      }`}
                       title="Duplicate Category"
                     >
                       <Copy className="w-3.5 h-3.5" />
                     </button>
 
+                    {/* Edit */}
                     <button
                       type="button"
                       onClick={() => onEdit(cat)}
-                      className="px-2.5 py-1.5 rounded-lg bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 text-xs font-bold transition-colors flex items-center gap-1 border border-blue-500/30"
+                      className={`flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
+                        isLight
+                          ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                          : "bg-[#141E2B] hover:bg-[#1C2A3C] text-slate-300 hover:text-white border-white/[0.08]"
+                      }`}
                       title="Edit Category"
                     >
-                      <Edit className="w-3.5 h-3.5" /> Edit
+                      <Edit2 className="w-3 h-3 text-blue-400" />
+                      <span>Edit</span>
                     </button>
 
+                    {/* Delete */}
                     <button
                       type="button"
                       onClick={() => triggerDeleteCheck(cat)}
-                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 transition-colors"
+                      className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors"
                       title="Delete Category"
                     >
                       <Trash2 className="w-3.5 h-3.5" />
@@ -353,34 +540,70 @@ export default function CategoriesTab({
         </div>
       )}
 
-      {/* Safety Deletion Warning Modal (Dark Theme) */}
+      {/* ──────────────────────────────────────────────────────────
+          SAFETY DELETION WARNING MODAL
+          ────────────────────────────────────────────────────────── */}
       {deleteWarningCategory && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 w-full max-w-md space-y-4 shadow-2xl animate-in zoom-in-95 text-white">
-            <div className="flex items-center gap-3 text-amber-400 border-b border-white/10 pb-3">
-              <AlertTriangle className="w-6 h-6 shrink-0" />
-              <h3 className="font-extrabold text-lg text-white">Category Deletion Warning</h3>
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div
+            className={`w-full max-w-md rounded-2xl p-6 space-y-4 border shadow-2xl transition-all ${
+              isLight
+                ? "bg-white border-slate-200 text-slate-900"
+                : "bg-[#0E141D] border-white/[0.12] text-[#F8FAFC]"
+            }`}
+          >
+            <div
+              className={`flex items-center gap-3 pb-3 border-b ${
+                isLight ? "border-slate-100" : "border-white/[0.08]"
+              }`}
+            >
+              <div className="w-9 h-9 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-amber-500 shrink-0">
+                <AlertTriangle className="w-5 h-5" />
+              </div>
+              <h3 className="font-bold text-base">Category Deletion Warning</h3>
             </div>
 
-            <p className="text-xs text-white/70 leading-relaxed">
+            <p
+              className={`text-xs leading-relaxed ${
+                isLight ? "text-slate-600" : "text-slate-300"
+              }`}
+            >
               Category <strong>&quot;{deleteWarningCategory.cat.name}&quot;</strong> has{" "}
-              <span className="font-extrabold text-white">{deleteWarningCategory.linkedCount} product(s)</span> assigned to it.
+              <span className="font-bold text-blue-400">
+                {deleteWarningCategory.linkedCount} product(s)
+              </span>{" "}
+              assigned to it.
             </p>
 
-            <div className="p-3.5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-300 text-xs space-y-1">
-              <p className="font-bold flex items-center gap-1.5">
-                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" /> Note:
+            <div
+              className={`p-3 rounded-xl border text-xs space-y-1 ${
+                isLight
+                  ? "bg-amber-50 border-amber-200 text-amber-800"
+                  : "bg-amber-500/10 border-amber-500/20 text-amber-300"
+              }`}
+            >
+              <p className="font-semibold flex items-center gap-1.5">
+                <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                <span>Note</span>
               </p>
-              <p className="text-[11px] text-amber-300/80">
-                You can hide this category from the homepage or permanently delete it (linked products will remain safe in inventory).
+              <p className="text-[11px] opacity-80">
+                You can hide this category from the homepage or permanently delete it. Linked products will remain safe in inventory.
               </p>
             </div>
 
-            <div className="flex flex-wrap items-center justify-end gap-2 pt-2 border-t border-white/10">
+            <div
+              className={`flex flex-wrap items-center justify-end gap-2 pt-3 border-t ${
+                isLight ? "border-slate-100" : "border-white/[0.08]"
+              }`}
+            >
               <button
                 type="button"
                 onClick={() => setDeleteWarningCategory(null)}
-                className="px-4 py-2 rounded-xl text-xs font-bold text-white/60 hover:bg-white/10 text-white"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+                  isLight
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
               >
                 Cancel
               </button>
@@ -390,7 +613,11 @@ export default function CategoriesTab({
                   await handleToggleVisibility(deleteWarningCategory.cat);
                   setDeleteWarningCategory(null);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-amber-600/80 hover:bg-amber-600 text-white"
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-medium transition-colors border ${
+                  isLight
+                    ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                    : "bg-[#141E2B] hover:bg-[#1C2A3C] text-slate-200 border-white/10"
+                }`}
               >
                 Hide From Homepage
               </button>
@@ -401,52 +628,118 @@ export default function CategoriesTab({
                   setDeleteWarningCategory(null);
                   onDelete(catId);
                 }}
-                className="px-4 py-2 rounded-xl text-xs font-bold bg-red-600 hover:bg-red-500 text-white shadow-md flex items-center gap-1.5"
+                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-red-600 hover:bg-red-500 text-white shadow-sm flex items-center gap-1.5 transition-colors"
               >
-                <Trash2 className="w-3.5 h-3.5" /> Delete Category Permanently
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>Delete Permanently</span>
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Live Homepage Category Carousel Section Preview Modal (Dark Theme) */}
+      {/* ──────────────────────────────────────────────────────────
+          LIVE HOMEPAGE CATEGORY CAROUSEL PREVIEW MODAL
+          ────────────────────────────────────────────────────────── */}
       {showPreviewModal && (
-        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 space-y-4 shadow-2xl text-white">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
-              <h3 className="font-extrabold text-base text-white flex items-center gap-2">
-                <Eye className="w-5 h-5 text-blue-400" /> Live Homepage Category Carousel Preview
-              </h3>
-              <button onClick={() => setShowPreviewModal(false)} className="p-2 text-white/40 hover:text-white rounded-xl">
-                ✕
+        <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 animate-fadeIn">
+          <div
+            className={`w-full max-w-4xl max-h-[90vh] overflow-y-auto rounded-2xl p-6 space-y-4 border shadow-2xl ${
+              isLight
+                ? "bg-white border-slate-200 text-slate-900"
+                : "bg-[#0E141D] border-white/[0.12] text-[#F8FAFC]"
+            }`}
+          >
+            <div
+              className={`flex items-center justify-between pb-3 border-b ${
+                isLight ? "border-slate-100" : "border-white/[0.08]"
+              }`}
+            >
+              <div className="flex items-center gap-2.5">
+                <div
+                  className={`w-8 h-8 rounded-xl flex items-center justify-center ${
+                    isLight
+                      ? "bg-blue-50 text-blue-600"
+                      : "bg-blue-600/10 text-blue-500"
+                  }`}
+                >
+                  <Eye className="w-4 h-4" />
+                </div>
+                <h3 className="font-bold text-base">
+                  Live Homepage Category Carousel Preview
+                </h3>
+              </div>
+              <button
+                onClick={() => setShowPreviewModal(false)}
+                className={`p-1.5 rounded-lg transition-colors ${
+                  isLight
+                    ? "text-slate-400 hover:text-slate-700 hover:bg-slate-100"
+                    : "text-slate-400 hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <X className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="p-6 bg-black/40 rounded-3xl border border-white/10 space-y-6">
-              <span className="text-[10px] font-extrabold uppercase tracking-widest text-blue-400 block">
-                HOMEPAGE LIVE CAROUSEL PREVIEW
-              </span>
-              
-              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                {displayedCategories.filter(c => c.show_on_homepage !== false).map((cat) => (
-                  <div key={cat.id} className="p-4 rounded-2xl bg-white/5 border border-white/10 text-center space-y-2">
-                    <div className="w-14 h-14 mx-auto rounded-xl bg-white/5 p-2 flex items-center justify-center overflow-hidden">
-                      {cat.image_url ? (
-                        <img src={cat.image_url} alt={cat.name} className="w-full h-full object-contain" />
-                      ) : (
-                        <span className="text-2xl">{cat.icon || "📱"}</span>
-                      )}
+            <div
+              className={`p-6 rounded-2xl border space-y-4 ${
+                isLight
+                  ? "bg-slate-50 border-slate-200"
+                  : "bg-[#080C12] border-white/[0.06]"
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-blue-400">
+                  Homepage Carousel Preview
+                </span>
+                <span className="text-xs text-slate-400 font-medium">
+                  {
+                    displayedCategories.filter((c) => c.show_on_homepage !== false)
+                      .length
+                  }{" "}
+                  categories active on homepage
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                {displayedCategories
+                  .filter((c) => c.show_on_homepage !== false)
+                  .map((cat) => (
+                    <div
+                      key={cat.id}
+                      className={`p-3.5 rounded-xl border text-center space-y-2 transition-all ${
+                        isLight
+                          ? "bg-white border-slate-200 shadow-sm"
+                          : "bg-[#0E141D] border-white/[0.08]"
+                      }`}
+                    >
+                      <div
+                        className={`w-12 h-12 mx-auto rounded-xl border p-2 flex items-center justify-center overflow-hidden ${
+                          isLight
+                            ? "bg-slate-50 border-slate-200 text-slate-700"
+                            : "bg-[#121A25] border-white/[0.08] text-slate-300"
+                        }`}
+                      >
+                        {cat.image_url ? (
+                          <img
+                            src={cat.image_url}
+                            alt={cat.name}
+                            className="w-full h-full object-contain"
+                          />
+                        ) : (
+                          <span className="text-2xl">{cat.icon || "📱"}</span>
+                        )}
+                      </div>
+                      <span className="text-xs font-semibold block truncate">
+                        {cat.name}
+                      </span>
                     </div>
-                    <span className="text-xs font-bold text-white block truncate">{cat.name}</span>
-                  </div>
-                ))}
+                  ))}
               </div>
             </div>
           </div>
         </div>
       )}
-
     </div>
   );
 }

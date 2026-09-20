@@ -3,6 +3,7 @@
 import React from "react";
 import { HeroSlide } from "@/lib/types";
 import { Plus, Edit, Trash2, Sparkles, CheckCircle2, XCircle, Image as ImageIcon, Copy, ArrowUp, ArrowDown } from "lucide-react";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface HeroTabProps {
   slides: HeroSlide[];
@@ -15,22 +16,24 @@ interface HeroTabProps {
 }
 
 export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, onToggleStatus, onReorder }: HeroTabProps) {
+  const { isLight } = useAdminTheme();
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-emerald-400" /> Homepage Hero Slider Manager
+          <h3 className={`text-xl font-bold flex items-center gap-2 ${isLight ? "text-[#0F172A]" : "text-white"}`}>
+            <Sparkles className="w-5 h-5 text-blue-600" /> Homepage Hero Slider Manager
           </h3>
-          <p className="text-xs text-white/50 mt-0.5">
-            Add, edit, reorder, duplicate and manage full-width Apple-style hero banner slides
+          <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500" : "text-[#94A3B8]"}`}>
+            Add, edit, reorder, duplicate and manage full-width hero banner slides
           </p>
         </div>
 
         <button
           onClick={onAdd}
-          className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-extrabold text-xs flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20 active:scale-95 shrink-0 cursor-pointer"
+          className="px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs flex items-center gap-2 transition-all shadow-sm shrink-0 cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Hero Slide Banner
         </button>
@@ -38,13 +41,15 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, 
 
       {/* Grid of Slides */}
       {slides.length === 0 ? (
-        <div className="p-12 text-center bg-slate-900/50 rounded-2xl border border-white/5">
-          <ImageIcon className="w-12 h-12 text-white/20 mx-auto mb-3" />
-          <p className="text-sm font-semibold text-white/60">No custom hero slides added yet.</p>
-          <p className="text-xs text-white/40 mt-1">Default storefront wallpapers are currently active on the homepage.</p>
+        <div className={`p-12 text-center rounded-2xl border ${
+          isLight ? "bg-white border-slate-200 text-slate-500" : "bg-[#0E141D] border-white/[0.08] text-slate-400"
+        }`}>
+          <ImageIcon className="w-12 h-12 text-slate-400/40 mx-auto mb-3" />
+          <p className="text-sm font-semibold">No custom hero slides added yet.</p>
+          <p className="text-xs mt-1 opacity-70">Default storefront wallpapers are currently active on the homepage.</p>
           <button
             onClick={onAdd}
-            className="mt-4 px-4 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition-all cursor-pointer"
+            className="mt-4 px-4 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white rounded-xl text-xs font-semibold shadow-sm transition-all cursor-pointer"
           >
             Upload First Hero Slide
           </button>
@@ -54,7 +59,9 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, 
           {slides.map((slide, idx) => (
             <div
               key={slide.id}
-              className="bg-slate-900/80 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all flex flex-col justify-between group shadow-xl"
+              className={`rounded-2xl border overflow-hidden transition-all flex flex-col justify-between group shadow-xs ${
+                isLight ? "bg-white border-slate-200 hover:border-slate-300" : "bg-[#0E141D] border-white/[0.08] hover:border-white/20"
+              }`}
             >
               {/* Media Preview Box */}
               <div className="relative aspect-[16/9] bg-black overflow-hidden">
@@ -112,11 +119,11 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, 
               {/* Info Body */}
               <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white truncate">{slide.heading || slide.alt || "Hero Banner Slide"}</h4>
-                  <p className="text-xs text-white/40 mt-1 truncate">{slide.description || slide.image_url}</p>
+                  <h4 className={`text-sm font-bold truncate ${isLight ? "text-slate-900" : "text-white"}`}>{slide.heading || slide.alt || "Hero Banner Slide"}</h4>
+                  <p className={`text-xs mt-1 truncate ${isLight ? "text-slate-500" : "text-[#94A3B8]"}`}>{slide.description || slide.image_url}</p>
                   {(slide.hide_content_on_mobile || slide.hide_text_on_mobile || slide.hide_buttons_on_mobile) && (
                     <div className="flex items-center gap-1.5 mt-2 flex-wrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/20 text-purple-300 text-[10px] font-bold border border-purple-500/30">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-600 text-[10px] font-bold border border-purple-500/20">
                         📱 {slide.hide_content_on_mobile ? "Clean Banner on Mobile" : slide.hide_text_on_mobile ? "Text Hidden on Mobile" : "Buttons Hidden on Mobile"}
                       </span>
                     </div>
@@ -124,20 +131,24 @@ export default function HeroTab({ slides, onAdd, onEdit, onDelete, onDuplicate, 
                 </div>
 
                 {/* Actions */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between gap-2">
+                <div className={`pt-3 border-t flex items-center justify-between gap-2 ${isLight ? "border-slate-100" : "border-white/10"}`}>
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => onEdit(slide)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition-all cursor-pointer"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700" : "bg-white/10 hover:bg-white/20 border-white/10 text-white"
+                      }`}
                     >
                       <Edit className="w-3.5 h-3.5" /> Edit
                     </button>
                     <button
                       onClick={() => onDuplicate?.(slide)}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/15 text-white/80 text-xs font-semibold transition-all cursor-pointer"
+                      className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border transition-all cursor-pointer ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 border-slate-200 text-slate-700" : "bg-white/5 hover:bg-white/15 border-white/10 text-white/80"
+                      }`}
                       title="Duplicate Slide"
                     >
-                      <Copy className="w-3.5 h-3.5 text-blue-400" /> Copy
+                      <Copy className="w-3.5 h-3.5 text-blue-500" /> Copy
                     </button>
                   </div>
 

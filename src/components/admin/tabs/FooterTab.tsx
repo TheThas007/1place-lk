@@ -23,8 +23,10 @@ import {
   ShieldCheck,
   Image as ImageIcon,
 } from "lucide-react";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
+  const { isLight } = useAdminTheme();
   const [settings, setSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -144,14 +146,19 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
   return (
     <div className="space-y-8 max-w-7xl mx-auto">
       {/* ── Top Header ── */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-black text-white flex items-center gap-2.5">
-            <Globe className="w-6 h-6 text-amber-400" /> Footer Settings
-          </h2>
-          <p className="text-xs text-white/50 mt-1">
-            Customize the minimal 4-column footer, branding, navigation links, social profiles, and legal copyright.
-          </p>
+      <div className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6`}>
+        <div className="flex items-center gap-3">
+          <div className={`w-10 h-10 rounded-xl ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"} flex items-center justify-center font-bold`}>
+            <Globe className="w-5 h-5" />
+          </div>
+          <div>
+            <h2 className={`text-xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
+              Footer Settings
+            </h2>
+            <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              Customize the minimal 4-column footer, branding, navigation links, social profiles, and legal copyright.
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-3">
@@ -159,11 +166,11 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-amber-400 text-black font-bold text-xs hover:bg-amber-300 transition-all shadow-lg active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#2563EB] text-white hover:bg-[#1D4ED8] font-semibold text-xs transition-all shadow-xs active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {savedSuccess ? (
               <>
-                <CheckCircle className="w-4 h-4 text-black" /> Saved Successfully!
+                <CheckCircle className="w-4 h-4 text-emerald-300" /> Saved Successfully!
               </>
             ) : saving ? (
               "Saving Changes..."
@@ -181,11 +188,11 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
         <div className="lg:col-span-7 space-y-6">
           
           {/* 1. Visibility & Brand Info */}
-          <div className="bg-zinc-900/80 border border-white/10 rounded-2xl p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-white/10 pb-4">
+          <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6 space-y-5`}>
+            <div className={`flex items-center justify-between border-b pb-4 ${isLight ? "border-slate-200" : "border-white/10"}`}>
               <div>
-                <h3 className="text-sm font-bold text-white">Enable Footer</h3>
-                <p className="text-xs text-white/50">Show or hide the footer across all public pages.</p>
+                <h3 className={`text-sm font-bold ${isLight ? "text-slate-900" : "text-white"}`}>Enable Footer</h3>
+                <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>Show or hide the footer across all public pages.</p>
               </div>
               <label className="relative inline-flex items-center cursor-pointer">
                 <input
@@ -194,7 +201,7 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
                   onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
                   className="sr-only peer"
                 />
-                <div className="w-11 h-6 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-400" />
+                <div className={`w-11 h-6 ${isLight ? "bg-slate-200" : "bg-white/10"} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600`} />
               </label>
             </div>
 

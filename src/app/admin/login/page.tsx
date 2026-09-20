@@ -32,51 +32,57 @@ export default function AdminLoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 px-4">
-      {/* Background glow */}
+    <div className="min-h-screen flex items-center justify-center bg-[#121358] px-4 font-sans relative overflow-hidden">
+      {/* Background glow halos */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-500/10 rounded-full blur-[120px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-500/10 rounded-full blur-[120px]" />
+        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#6C63FF]/15 rounded-full blur-[140px]" />
+        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#4F46E5]/15 rounded-full blur-[140px]" />
+        {/* Subtle decorative grid */}
+        <div className="absolute inset-0 bg-[radial-gradient(#2A2D73_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
       </div>
 
-      <div className="relative w-full max-w-md">
+      <div className="relative w-full max-w-md z-10">
         {/* Logo area */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 mb-4">
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#6C63FF] to-[#4F46E5] text-white shadow-xl shadow-[#6C63FF]/25 border border-white/20 mb-4 ring-4 ring-[#1E2175]">
             <Lock className="w-8 h-8 text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            Admin Panel
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181A66] border border-[#2A2D73] text-[11px] font-semibold text-[#A8ABCC] uppercase tracking-wider mb-2">
+            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
+            StreetMobile Management
+          </div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
+            Admin Portal
           </h1>
-          <p className="text-sm text-white/50 mt-1">
-            STREET MOBILE — Management Dashboard
+          <p className="text-xs sm:text-sm text-[#A8ABCC] mt-1 font-sans">
+            Sign in to manage inventory, orders, and store operations
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-white/5 backdrop-blur-xl border border-white/10 rounded-3xl p-8 shadow-2xl">
+        <div className="bg-[#181A66]/90 backdrop-blur-xl border border-[#2A2D73] rounded-3xl p-8 shadow-2xl shadow-black/40">
           <form onSubmit={handleSubmit} className="space-y-5">
             {/* Error Message */}
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500/20 rounded-xl text-red-400 text-sm">
-                <AlertCircle className="w-4 h-4 shrink-0" />
+              <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/25 rounded-xl text-rose-300 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
                 {error}
               </div>
             )}
 
             {/* Username */}
             <div>
-              <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-[#A8ABCC] mb-2 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8ABCC]" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter username"
-                  className="w-full pl-11 pr-4 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="Enter admin username"
+                  className="w-full pl-11 pr-4 py-3.5 bg-[#121358]/80 border border-[#2A2D73] rounded-xl text-white placeholder:text-[#A8ABCC]/50 text-sm outline-none focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/30 transition-all"
                   required
                   autoFocus
                 />
@@ -85,23 +91,23 @@ export default function AdminLoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-medium text-white/60 mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-[#A8ABCC] mb-2 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-white/30" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8ABCC]" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter password"
-                  className="w-full pl-11 pr-12 py-3.5 bg-white/5 border border-white/10 rounded-xl text-white placeholder:text-white/25 text-sm outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20 transition-all"
+                  placeholder="Enter admin password"
+                  className="w-full pl-11 pr-12 py-3.5 bg-[#121358]/80 border border-[#2A2D73] rounded-xl text-white placeholder:text-[#A8ABCC]/50 text-sm outline-none focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/30 transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A8ABCC] hover:text-white transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -116,23 +122,24 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-white text-slate-900 rounded-xl font-semibold text-sm hover:bg-white/90 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-3.5 bg-[#6C63FF] hover:bg-[#5B54E0] text-white rounded-xl font-semibold text-sm shadow-lg shadow-[#6C63FF]/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-slate-300 border-t-slate-900 rounded-full animate-spin" />
-                  Signing in...
+                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  Authenticating...
                 </>
               ) : (
-                "Sign In"
+                "Sign In to Console"
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-white/5">
-            <p className="text-xs text-white/30 text-center">
-              Protected area. Authorized personnel only.
-            </p>
+          <div className="mt-6 pt-5 border-t border-[#2A2D73]/60 flex items-center justify-between text-xs text-[#A8ABCC]">
+            <span>StreetMobile.lk Admin v2.0</span>
+            <span className="text-[11px] bg-[#1E2175] text-[#A8ABCC] px-2 py-0.5 rounded border border-[#2A2D73]">
+              SSL Secured
+            </span>
           </div>
         </div>
       </div>

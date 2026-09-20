@@ -1,8 +1,24 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, Suspense } from "react";
+import { useState, useEffect, useRef, useMemo, Suspense, createContext, useContext } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+export interface AdminThemeContextType {
+  theme: "dark" | "light";
+  isLight: boolean;
+  toggleTheme: () => void;
+}
+
+export const AdminThemeContext = createContext<AdminThemeContextType>({
+  theme: "dark",
+  isLight: false,
+  toggleTheme: () => {},
+});
+
+export function useAdminTheme() {
+  return useContext(AdminThemeContext);
+}
 import {
   LayoutDashboard,
   Package,
@@ -13,6 +29,7 @@ import {
   Sparkles,
   Flame,
   ShoppingBag,
+  ShoppingCart,
   Wrench,
   DollarSign,
   ShieldCheck,
@@ -39,81 +56,107 @@ import {
   Bell,
   ChevronRight,
   ChevronLeft,
+  ChevronDown,
   ExternalLink,
+  MessageCircle,
+  Megaphone,
 } from "lucide-react";
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
-import { collection, getDocs } from "firebase/firestore";
+import { collection, getDocs, onSnapshot } from "firebase/firestore";
+import { playOrderChime } from "@/lib/audio-chime";
 import ProductModal from "@/components/admin/ProductModal";
 import CommandPalette from "@/components/admin/CommandPalette";
 
-interface NavItem {
+interface NavSubItem {
   id: string;
   label: string;
-  icon: any;
   href: string;
 }
 
-interface NavGroup {
-  group: string;
-  items: NavItem[];
+interface NavSection {
+  id: string;
+  title: string;
+  icon: any;
+  items: NavSubItem[];
 }
 
-const SIDEBAR_GROUPS: NavGroup[] = [
+const SIDEBAR_SECTIONS: NavSection[] = [
   {
-    group: "OVERVIEW",
+    id: "catalog",
+    title: "Catalog",
+    icon: Package,
     items: [
-      { id: "overview", label: "Dashboard", icon: LayoutDashboard, href: "/admin/dashboard" },
+      { id: "products", label: "Products", href: "/admin/dashboard?tab=products" },
+      { id: "categories", label: "Shop by Category", href: "/admin/dashboard?tab=categories" },
+      { id: "mega-menu", label: "Category Mega Menu", href: "/admin/dashboard?tab=mega-menu" },
+      { id: "brands", label: "Shop by Brand", href: "/admin/dashboard?tab=brands" },
+      { id: "collections", label: "Featured Collections", href: "/admin/dashboard?tab=collections" },
+      { id: "showcase", label: "Visual Showcase", href: "/admin/dashboard?tab=showcase" },
     ],
   },
   {
-    group: "CATALOG",
+    id: "sales",
+    title: "Sales",
+    icon: ShoppingCart,
     items: [
-      { id: "products", label: "Products", icon: Package, href: "/admin/dashboard?tab=products" },
-      { id: "categories", label: "Shop by Category", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
-      { id: "mega-menu", label: "Category Mega Menu", icon: FolderTree, href: "/admin/dashboard?tab=mega-menu" },
-      { id: "brands", label: "Shop by Brand", icon: Tag, href: "/admin/dashboard?tab=brands" },
-      { id: "collections", label: "Featured Collections", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
-      { id: "showcase", label: "Visual Showcase", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
+      { id: "orders", label: "Orders", href: "/admin/dashboard?tab=orders" },
+      { id: "today-deal", label: "Today’s Deal", href: "/admin/dashboard?tab=today-deal" },
+      { id: "coupons", label: "Promo Codes & Coupons", href: "/admin/dashboard?tab=coupons" },
+      { id: "payments", label: "Payments & Gateways", href: "/admin/dashboard?tab=payments" },
+      { id: "cashflow", label: "Cash Flow", href: "/admin/dashboard?tab=cashflow" },
     ],
   },
   {
-    group: "SALES",
+    id: "operations",
+    title: "Operations",
+    icon: Settings,
     items: [
-      { id: "orders", label: "Orders", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
-      { id: "today-deal", label: "Today’s Deal", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
-      { id: "coupons", label: "Promo Codes & Coupons", icon: Tag, href: "/admin/dashboard?tab=coupons" },
-      { id: "payments", label: "Payments & Gateways", icon: CreditCard, href: "/admin/dashboard?tab=payments" },
-      { id: "analytics", label: "Analytics & Reports", icon: BarChart3, href: "/admin/dashboard?tab=analytics" },
+      { id: "inventory", label: "Inventory Levels", href: "/admin/dashboard?tab=inventory" },
+      { id: "repairs", label: "Device Repairs", href: "/admin/dashboard?tab=repairs" },
+      { id: "cashflow", label: "Cash Flow Accounts", href: "/admin/dashboard?tab=cashflow" },
+      { id: "warranties", label: "Warranty Management", href: "/admin/dashboard?tab=warranties" },
+      { id: "suppliers", label: "Suppliers", href: "/admin/dashboard?tab=suppliers" },
     ],
   },
   {
-    group: "OPERATIONS",
+    id: "customers",
+    title: "Customers",
+    icon: Users,
     items: [
-      { id: "inventory", label: "Inventory Levels", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
-      { id: "repairs", label: "Mobile Repairs", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
-      { id: "cashflow", label: "Cash Flow Accounts", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
-      { id: "warranties", label: "Warranty Management", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
-      { id: "users", label: "Customers Directory", icon: Users, href: "/admin/dashboard?tab=users" },
+      { id: "users", label: "Customers Directory", href: "/admin/dashboard?tab=users" },
+      { id: "reviews", label: "Reviews", href: "/admin/dashboard?tab=reviews" },
     ],
   },
   {
-    group: "MARKETING",
+    id: "marketing",
+    title: "Marketing",
+    icon: Megaphone,
     items: [
-      { id: "gallery", label: "Store Gallery Wall", icon: Images, href: "/admin/dashboard?tab=gallery" },
-      { id: "hero", label: "Homepage Hero Slider", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
-      { id: "banners", label: "Offers & Banners", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
-      { id: "reviews", label: "Google Reviews", icon: Star, href: "/admin/dashboard?tab=reviews" },
-      { id: "footer", label: "Footer Configuration", icon: Globe, href: "/admin/dashboard?tab=footer" },
+      { id: "gallery", label: "Store Gallery Wall", href: "/admin/dashboard?tab=gallery" },
+      { id: "hero", label: "Homepage Hero Slider", href: "/admin/dashboard?tab=hero" },
+      { id: "banners", label: "Offers & Banners", href: "/admin/dashboard?tab=banners" },
+      { id: "reviews", label: "Google Reviews", href: "/admin/dashboard?tab=reviews" },
+      { id: "footer", label: "Footer Configuration", href: "/admin/dashboard?tab=footer" },
     ],
   },
   {
-    group: "SYSTEM",
+    id: "analytics",
+    title: "Analytics",
+    icon: BarChart3,
     items: [
-      { id: "assistant", label: "Streetla AI Assistant", icon: Bot, href: "/admin/dashboard?tab=assistant" },
-      { id: "mobile", label: "Mobile Experience", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
-      { id: "settings", label: "Store & Auth Settings", icon: Settings, href: "/admin/dashboard?tab=settings" },
-      { id: "contact-settings", label: "Contact & Store Times", icon: Clock, href: "/admin/dashboard?tab=contact-settings" },
+      { id: "analytics", label: "Analytics & Reports", href: "/admin/dashboard?tab=analytics" },
+    ],
+  },
+  {
+    id: "system",
+    title: "System",
+    icon: ShieldCheck,
+    items: [
+      { id: "assistant", label: "Streetla AI Assistant", href: "/admin/dashboard?tab=assistant" },
+      { id: "mobile", label: "Mobile Experience", href: "/admin/dashboard?tab=mobile" },
+      { id: "settings", label: "Store & Auth Settings", href: "/admin/dashboard?tab=settings" },
+      { id: "contact-settings", label: "Contact Details & Store Times", href: "/admin/dashboard?tab=contact-settings" },
     ],
   },
 ];
@@ -135,13 +178,25 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return true;
   });
 
-  // Theme State
+  // Theme State - Default to Dark Mode as requested
   const [theme, setTheme] = useState<"dark" | "light">(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("admin_theme") as "dark" | "light") || "dark";
     }
     return "dark";
   });
+
+  useEffect(() => {
+    if (typeof document !== "undefined") {
+      if (theme === "dark") {
+        document.documentElement.classList.add("dark");
+        document.documentElement.classList.remove("light");
+      } else {
+        document.documentElement.classList.remove("dark");
+        document.documentElement.classList.add("light");
+      }
+    }
+  }, [theme]);
 
   const toggleTheme = () => {
     const nextTheme = theme === "dark" ? "light" : "dark";
@@ -155,25 +210,45 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
 
+  // Accordion state: which main section is currently expanded (or null)
+  const [expandedSection, setExpandedSection] = useState<string | null>(() => {
+    const initialMatch = SIDEBAR_SECTIONS.find((sec) =>
+      sec.items.some((item) => item.id === activeTabParam)
+    );
+    return initialMatch ? initialMatch.id : null;
+  });
+
+  // Auto-expand section if URL tab points inside it
+  useEffect(() => {
+    const currentSec = SIDEBAR_SECTIONS.find((sec) =>
+      sec.items.some((item) => item.id === activeTabParam)
+    );
+    if (currentSec) {
+      setExpandedSection(currentSec.id);
+    }
+  }, [activeTabParam]);
+
+  const toggleSection = (sectionId: string) => {
+    setExpandedSection((prev) => (prev === sectionId ? null : sectionId));
+  };
+
   // Command Palette & Modals
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false);
   const [isAddProductOpen, setIsAddProductOpen] = useState(false);
 
-  // Live order alert state
-  const [liveAlert, setLiveAlert] = useState<any | null>(null);
-  const [hasUnreadAlert, setHasUnreadAlert] = useState(false);
-  const lastOrderId = useRef<string | null>(null);
+  // Profile Dropdown state
+  const [profileDropdownOpen, setProfileDropdownOpen] = useState(false);
+  const profileRef = useRef<HTMLDivElement>(null);
 
-  // Active Tab Metadata for Breadcrumbs
-  const currentTabMeta = useMemo(() => {
-    for (const group of SIDEBAR_GROUPS) {
-      const match = group.items.find((item) => item.id === activeTabParam);
-      if (match) {
-        return { group: group.group, label: match.label, icon: match.icon };
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+        setProfileDropdownOpen(false);
       }
-    }
-    return { group: "OVERVIEW", label: "Dashboard", icon: LayoutDashboard };
-  }, [activeTabParam]);
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Auth Guard
   useEffect(() => {
@@ -201,52 +276,47 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  const [pendingOrdersCount, setPendingOrdersCount] = useState<number>(0);
+
+  // Real-time Orders listener for Notification Bell & Chime
+  useEffect(() => {
+    let isInitial = true;
+    const unsub = onSnapshot(
+      collection(db, "orders"),
+      (snap) => {
+        let count = 0;
+        snap.docs.forEach((doc) => {
+          const data = doc.data();
+          const status = (data.status || data.orderStatus || "").toLowerCase();
+          if (status === "pending" || status === "processing" || status === "payment pending") {
+            count++;
+          }
+        });
+        setPendingOrdersCount(count);
+
+        if (!isInitial) {
+          snap.docChanges().forEach((change) => {
+            if (change.type === "added") {
+              playOrderChime();
+            }
+          });
+        }
+        isInitial = false;
+      },
+      (err) => {
+        console.warn("Realtime order notification listener error:", err);
+      }
+    );
+
+    return () => unsub();
+  }, []);
+
   // Listen for global open product modal event
   useEffect(() => {
     const handleOpenModal = () => setIsAddProductOpen(true);
     window.addEventListener("open-add-product-modal", handleOpenModal);
     return () => window.removeEventListener("open-add-product-modal", handleOpenModal);
   }, []);
-
-  // Poll for latest incoming orders
-  useEffect(() => {
-    if (!isAuthed) return;
-
-    const fetchLatestOrder = async () => {
-      try {
-        const snapshot = await getDocs(collection(db, "orders"));
-        const sorted = snapshot.docs
-          .map((d) => ({ ...d.data(), id: d.id }))
-          .sort((a: any, b: any) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-
-        if (sorted.length) {
-          const doc = sorted[0];
-          if (lastOrderId.current && lastOrderId.current !== doc.id) {
-            setLiveAlert({ ...doc });
-            setHasUnreadAlert(true);
-            try {
-              const audio = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-200.wav");
-              audio.play().catch(() => {});
-            } catch (e) {}
-          }
-          lastOrderId.current = doc.id;
-        }
-      } catch (error) {
-        console.error("Error fetching latest order:", error);
-      }
-    };
-
-    fetchLatestOrder();
-    const interval = setInterval(fetchLatestOrder, 30000);
-    return () => clearInterval(interval);
-  }, [isAuthed]);
-
-  useEffect(() => {
-    if (liveAlert) {
-      const timer = setTimeout(() => setLiveAlert(null), 6000);
-      return () => clearTimeout(timer);
-    }
-  }, [liveAlert]);
 
   const handleLogout = () => {
     sessionStorage.removeItem("admin_auth");
@@ -256,14 +326,14 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
 
   if (!isAuthed) {
     return (
-      <div className="min-h-screen bg-[#090D14] flex flex-col items-center justify-center text-white font-sans p-4 gap-4">
+      <div className="min-h-screen bg-[#080D14] flex flex-col items-center justify-center text-white font-sans p-4 gap-4">
         <div className="flex items-center gap-2 font-bold text-sm text-white/80">
-          <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
+          <div className="w-4 h-4 rounded-full border-2 border-white/40 border-t-white animate-spin" />
           Authenticating Admin Session...
         </div>
         <Link
           href="/admin/login"
-          className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-bold rounded-xl shadow-lg transition-all"
+          className="px-5 py-2 bg-white hover:bg-slate-200 text-[#080D14] text-xs font-bold rounded-xl shadow-lg transition-all"
         >
           Go to Admin Login
         </Link>
@@ -272,310 +342,561 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
   }
 
   const isLight = theme === "light";
+  const isDashboardActive = activeTabParam === "overview";
 
   return (
-    <div
-      data-admin-root
-      data-admin-theme={theme}
-      className={`flex h-screen overflow-hidden font-sans transition-colors duration-150 ${
-        isLight ? "bg-[#F8FAFC] text-[#0F172A]" : "bg-[#090D14] text-[#F8FAFC]"
-      }`}
-    >
-      {/* ── Mobile Sidebar Drawer Backdrop ── */}
-      {mobileSidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden animate-in fade-in"
-          onClick={() => setMobileSidebarOpen(false)}
-        />
-      )}
-
-      {/* ── Left Navigation Sidebar (Grouped & POS Compact) ── */}
-      <aside
-        className={`fixed lg:static inset-y-0 left-0 z-50 flex flex-col transition-all duration-200 shrink-0 border-r ${
-          sidebarCollapsed ? "w-[68px]" : "w-[248px]"
-        } ${
-          isLight
-            ? "bg-[#FFFFFF] border-[#E2E8F0] shadow-sm"
-            : "bg-[#0F172A] border-white/10"
-        } ${
-          mobileSidebarOpen ? "translate-x-0 w-[260px]" : "-translate-x-full lg:translate-x-0"
+    <AdminThemeContext.Provider value={{ theme, isLight, toggleTheme }}>
+      <div
+        data-admin-root
+        data-admin-theme={theme}
+        data-theme={theme}
+        className={`${theme === "dark" ? "dark" : "light"} flex h-screen overflow-hidden font-sans ${
+          isLight ? "bg-[#F5F7FA] text-[#0F172A]" : "bg-[#080C12] text-[#F8FAFC]"
         }`}
       >
-        {/* 1. Brand Logo Header */}
-        <div
-          className={`h-16 px-4 border-b flex items-center shrink-0 ${
-            isLight ? "border-[#E2E8F0]" : "border-white/10"
-          } ${sidebarCollapsed ? "justify-center" : "justify-between"}`}
-        >
-          <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-            <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center text-white shadow-sm shadow-blue-600/30 shrink-0">
-              <Smartphone className="w-4 h-4" />
-            </div>
-            {!sidebarCollapsed && (
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5">
-                  <h1 className="text-sm font-bold tracking-tight leading-none truncate">
-                    StreetMobile<span className="text-blue-500">.lk</span>
-                  </h1>
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="Store Operational" />
-                </div>
-                <span className="text-[10px] text-slate-400 font-semibold uppercase tracking-wider block mt-0.5">
-                  POS & Operations
-                </span>
-              </div>
-            )}
-          </Link>
-
-          {/* Mobile Close Button */}
-          <button
-            type="button"
+        {/* ── Mobile Sidebar Drawer Backdrop ── */}
+        {mobileSidebarOpen && (
+          <div
+            className="fixed inset-0 bg-black/70 backdrop-blur-xs z-40 lg:hidden animate-in fade-in"
             onClick={() => setMobileSidebarOpen(false)}
-            className="p-1 rounded-md text-slate-400 hover:text-white lg:hidden"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
+          />
+        )}
 
-        {/* 2. Scrollable Grouped Navigation */}
-        <nav
-          data-admin-nav="true"
-          className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-4 custom-scrollbar"
+        {/* ── Left Navigation Sidebar ── */}
+        <aside
+          className={`fixed lg:static inset-y-0 left-0 z-50 flex flex-col transition-all duration-200 shrink-0 border-r ${
+            sidebarCollapsed ? "w-[68px]" : "w-[240px]"
+          } ${
+            isLight
+              ? "bg-white border-[#E2E8F0]"
+              : "bg-[#0E141D] border-white/[0.08]"
+          } ${
+            mobileSidebarOpen ? "translate-x-0 w-[250px]" : "-translate-x-full lg:translate-x-0"
+          }`}
         >
-          {SIDEBAR_GROUPS.map((group) => (
-            <div key={group.group} className="space-y-1">
+          {/* 1. Brand Logo Header */}
+          <div
+            className={`h-16 px-4 border-b flex items-center shrink-0 ${
+              isLight ? "bg-white border-[#E2E8F0]" : "bg-[#0E141D] border-white/[0.08]"
+            } ${sidebarCollapsed ? "justify-center" : "justify-between"}`}
+          >
+            <Link href="/admin/dashboard" className="flex items-center gap-3 group">
+              {/* Cube icon from reference screenshot */}
+              <div
+                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs shrink-0 bg-[#2563EB] text-white"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
+                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+                  <line x1="12" y1="22.08" x2="12" y2="12" />
+                </svg>
+              </div>
               {!sidebarCollapsed && (
-                <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 tracking-wider uppercase">
-                  {group.group}
-                </div>
-              )}
-
-              {group.items.map((item) => {
-                const isActive = activeTabParam === item.id;
-                const Icon = item.icon;
-
-                return (
-                  <Link
-                    key={item.id}
-                    href={item.href}
-                    onClick={() => setMobileSidebarOpen(false)}
-                    title={sidebarCollapsed ? item.label : undefined}
-                    className={`relative w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-xs font-medium transition-all ${
-                      sidebarCollapsed ? "justify-center" : ""
-                    } ${
-                      isActive
-                        ? isLight
-                          ? "bg-blue-50 text-blue-700 font-semibold shadow-xs"
-                          : "bg-blue-600/15 text-blue-400 font-semibold"
-                        : isLight
-                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
-                        : "text-slate-300 hover:text-white hover:bg-white/5"
+                <div className="min-w-0">
+                  <h1
+                    className={`text-sm font-bold tracking-tight leading-tight ${
+                      isLight ? "text-[#0F172A]" : "text-white"
                     }`}
                   >
-                    {/* Left Active Indicator Bar */}
-                    {isActive && (
-                      <span className="absolute left-0 top-1.5 bottom-1.5 w-1 rounded-r bg-blue-600" />
+                    StreetMobile<span className={isLight ? "text-[#64748B]" : "text-white/80"}>.lk</span>
+                  </h1>
+                  <span
+                    className={`text-[9px] font-semibold tracking-wider uppercase block mt-0.5 ${
+                      isLight ? "text-[#64748B]" : "text-[#94A3B8]"
+                    }`}
+                  >
+                    ADMIN OPERATING SYSTEM
+                  </span>
+                </div>
+              )}
+            </Link>
+
+            {/* Mobile Close Button */}
+            <button
+              type="button"
+              onClick={() => setMobileSidebarOpen(false)}
+              className={`p-1 rounded-md lg:hidden ${
+                isLight ? "text-[#64748B] hover:text-[#0F172A]" : "text-[#94A3B8] hover:text-white"
+              }`}
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* 2. Scrollable Accordion Navigation */}
+          <nav
+            data-admin-nav="true"
+            className="flex-1 min-h-0 overflow-y-auto px-2.5 py-3 space-y-1 custom-scrollbar"
+          >
+            {/* OVERVIEW / DASHBOARD */}
+            <Link
+              href="/admin/dashboard"
+              onClick={() => setMobileSidebarOpen(false)}
+              title={sidebarCollapsed ? "Dashboard" : undefined}
+              className={`w-full flex items-center gap-3 px-3 py-2 text-xs font-semibold rounded-xl transition-all duration-150 relative ${
+                sidebarCollapsed ? "justify-center" : ""
+              } ${
+                isDashboardActive
+                  ? isLight
+                    ? "bg-[#EFF6FF] text-[#2563EB] font-bold shadow-xs before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#2563EB] before:rounded-r"
+                    : "bg-[rgba(37,99,235,0.14)] text-[#38BDF8] font-bold shadow-xs before:absolute before:left-0 before:top-2 before:bottom-2 before:w-1 before:bg-[#2563EB] before:rounded-r"
+                  : isLight
+                  ? "text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                  : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+              }`}
+            >
+              <LayoutDashboard className={`w-4 h-4 shrink-0 ${
+                isDashboardActive ? (isLight ? "text-[#2563EB]" : "text-[#38BDF8]") : (isLight ? "text-[#64748B]" : "text-[#94A3B8]")
+              }`} />
+              {!sidebarCollapsed && <span>Dashboard</span>}
+            </Link>
+
+            {/* 7 MAJOR ACCORDION SECTIONS */}
+            {SIDEBAR_SECTIONS.map((section) => {
+              const isExpanded = expandedSection === section.id && !sidebarCollapsed;
+              const Icon = section.icon;
+              const hasActiveChild = section.items.some((it) => it.id === activeTabParam);
+
+              return (
+                <div key={section.id} className="space-y-1">
+                  {/* Clickable Main Section Heading */}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (sidebarCollapsed) {
+                        setSidebarCollapsed(false);
+                        setExpandedSection(section.id);
+                      } else {
+                        toggleSection(section.id);
+                      }
+                    }}
+                    title={sidebarCollapsed ? section.title : undefined}
+                    className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-medium transition-all duration-150 ${
+                      sidebarCollapsed ? "justify-center" : ""
+                    } ${
+                      hasActiveChild && !isExpanded
+                        ? isLight
+                          ? "text-[#2563EB] bg-[#EFF6FF] font-semibold"
+                          : "text-[#38BDF8] bg-[rgba(37,99,235,0.14)] font-semibold"
+                        : isLight
+                        ? "text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                        : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Icon className={`w-4 h-4 shrink-0 ${
+                        isLight
+                          ? hasActiveChild && !isExpanded
+                            ? "text-[#2563EB]"
+                            : "text-[#64748B]"
+                          : hasActiveChild && !isExpanded
+                          ? "text-[#38BDF8]"
+                          : "text-[#94A3B8]"
+                      }`} />
+                      {!sidebarCollapsed && <span className="truncate">{section.title}</span>}
+                    </div>
+
+                    {!sidebarCollapsed && (
+                      <ChevronRight
+                        className={`w-3.5 h-3.5 shrink-0 transition-transform duration-200 ${
+                          isLight ? "text-[#64748B]" : "text-[#94A3B8]"
+                        } ${
+                          isExpanded ? (isLight ? "rotate-90 text-[#0F172A]" : "rotate-90 text-white") : ""
+                        }`}
+                      />
                     )}
+                  </button>
 
-                    <Icon
-                      className={`w-4 h-4 shrink-0 transition-colors ${
-                        isActive
-                          ? "text-blue-500"
-                          : isLight
-                          ? "text-slate-500"
-                          : "text-slate-400"
+                  {/* Expanded Submenu Container */}
+                  {!sidebarCollapsed && isExpanded && (
+                    <div
+                      className={`rounded-xl p-1.5 space-y-0.5 animate-in fade-in slide-in-from-top-1 duration-150 border ${
+                        isLight
+                          ? "bg-[#F8FAFC] border-[#E2E8F0]"
+                          : "bg-[#121A25] border-white/[0.08]"
                       }`}
-                    />
+                    >
+                      {section.items.map((subItem) => {
+                        const isSubActive = activeTabParam === subItem.id;
 
-                    {!sidebarCollapsed && <span className="truncate">{item.label}</span>}
-                  </Link>
-                );
-              })}
-            </div>
-          ))}
-        </nav>
+                        return (
+                          <Link
+                            key={subItem.id}
+                            href={subItem.href}
+                            onClick={() => setMobileSidebarOpen(false)}
+                            className={`relative w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+                              isSubActive
+                                ? isLight
+                                  ? "bg-white text-[#2563EB] font-bold shadow-xs border border-[#E2E8F0] relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#2563EB] before:rounded-r"
+                                  : "bg-[rgba(37,99,235,0.14)] text-[#38BDF8] font-bold shadow-xs border border-blue-500/20 relative before:absolute before:left-0 before:top-1.5 before:bottom-1.5 before:w-1 before:bg-[#2563EB] before:rounded-r"
+                                : isLight
+                                ? "text-[#475569] hover:text-[#0F172A] hover:bg-white"
+                                : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                            }`}
+                          >
+                            <span className="truncate">{subItem.label}</span>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </nav>
 
-        {/* 3. Support Hotline & Sign Out Pinned at Bottom */}
-        <div
-          className={`p-2.5 border-t space-y-1 shrink-0 ${
-            isLight ? "border-[#E2E8F0] bg-slate-50/50" : "border-white/10 bg-[#0F172A]"
-          }`}
-        >
-          {!sidebarCollapsed ? (
-            <>
-              {/* WhatsApp Support Row */}
-              <a
-                href="https://wa.me/94774141118"
-                target="_blank"
-                rel="noopener noreferrer"
-                className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs transition-colors ${
-                  isLight ? "text-slate-600 hover:bg-slate-200/50" : "text-slate-400 hover:bg-white/5"
+          {/* 3. Pinned Footer: WhatsApp Support, Admin Profile & Sign Out */}
+          <div
+            className={`p-2.5 border-t space-y-2 shrink-0 ${
+              isLight ? "bg-white border-[#E2E8F0]" : "bg-[#0E141D] border-white/[0.08]"
+            }`}
+          >
+            {!sidebarCollapsed ? (
+              <>
+                {/* WhatsApp Support Row */}
+                <a
+                  href="https://wa.me/94774141118"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
+                    isLight
+                      ? "text-[#475569] hover:text-[#0F172A] hover:bg-[#F8FAFC]"
+                      : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                  }`}
+                >
+                  <span className="flex items-center gap-2.5 font-medium">
+                    <div className="w-5 h-5 rounded-full bg-emerald-500/15 text-emerald-500 flex items-center justify-center shrink-0">
+                      <MessageCircle className="w-3.5 h-3.5 fill-emerald-500 text-emerald-500" />
+                    </div>
+                    <span>WhatsApp Support</span>
+                  </span>
+                  <ExternalLink className="w-3.5 h-3.5 opacity-40" />
+                </a>
+
+                {/* Admin Profile Card */}
+                <div
+                  className={`flex items-center justify-between p-2 rounded-xl border ${
+                    isLight
+                      ? "bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A]"
+                      : "bg-[#121A25] border-white/[0.08] text-[#F8FAFC]"
+                  }`}
+                >
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div
+                      className={`w-7 h-7 rounded-full font-bold text-xs flex items-center justify-center shrink-0 shadow-xs ${
+                        isLight ? "bg-[#0F172A] text-white" : "bg-[#2563EB] text-white"
+                      }`}
+                    >
+                      AD
+                    </div>
+                    <div className="min-w-0 text-left">
+                      <div className="text-xs font-semibold leading-none truncate">Admin</div>
+                      <div className={`text-[10px] truncate mt-0.5 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
+                        Superadmin
+                      </div>
+                    </div>
+                  </div>
+                  <ChevronRight className={`w-4 h-4 shrink-0 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`} />
+                </div>
+
+                {/* Sign Out Button */}
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  className={`w-full flex items-center gap-2 px-2.5 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                    isLight
+                      ? "text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                      : "text-[#94A3B8] hover:text-[#EF4444] hover:bg-red-500/10"
+                  }`}
+                >
+                  <LogOut className="w-3.5 h-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </>
+            ) : (
+              <div className="flex flex-col items-center gap-2 py-1">
+                <button
+                  type="button"
+                  onClick={handleLogout}
+                  title="Sign Out"
+                  className={`p-2 rounded-lg transition-colors ${
+                    isLight
+                      ? "text-[#64748B] hover:text-[#EF4444] hover:bg-[#FEF2F2]"
+                      : "text-[#94A3B8] hover:text-[#EF4444] hover:bg-red-500/10"
+                  }`}
+                >
+                  <LogOut className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        {/* ── Main Content Shell ── */}
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Top Header Bar (64px) */}
+          <header
+            data-admin-header="true"
+            className={`h-16 border-b px-4 sm:px-6 flex items-center justify-between gap-4 shrink-0 transition-colors duration-150 ${
+              isLight
+                ? "bg-white border-[#E2E8F0]"
+                : "bg-[#0E141D] border-white/[0.08]"
+            }`}
+          >
+            {/* Left: Mobile Toggle & Desktop Collapse Toggle */}
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={() => setMobileSidebarOpen(true)}
+                className={`p-2 rounded-lg lg:hidden ${
+                  isLight ? "text-[#475569] hover:bg-[#F8FAFC]" : "text-[#94A3B8] hover:text-white hover:bg-white/5"
                 }`}
               >
-                <span className="flex items-center gap-2 font-medium">
-                  <HelpCircle className="w-3.5 h-3.5 text-blue-500" /> WhatsApp Hotline
+                <Menu className="w-5 h-5" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+                title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
+                className={`hidden lg:flex p-2 rounded-lg transition-colors ${
+                  isLight ? "text-[#475569] hover:bg-[#F8FAFC]" : "text-[#94A3B8] hover:text-white hover:bg-white/5"
+                }`}
+              >
+                <Menu className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Center: Search Field */}
+            <div className="flex-1 max-w-xl mx-2 sm:mx-4">
+              <button
+                type="button"
+                onClick={() => setIsCommandPaletteOpen(true)}
+                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all border shadow-xs ${
+                  isLight
+                    ? "bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] hover:border-[#CBD5E1]"
+                    : "bg-[#0B111A] border-white/[0.08] text-[#F8FAFC] hover:border-white/[0.14]"
+                }`}
+              >
+                <span className="flex items-center gap-2.5 truncate">
+                  <Search className={`w-4 h-4 shrink-0 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`} />
+                  <span className={`truncate font-normal ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
+                    Search orders, products, customers...
+                  </span>
                 </span>
-                <ExternalLink className="w-3 h-3 opacity-60" />
-              </a>
-
-              {/* Sign Out Button */}
-              <button
-                type="button"
-                onClick={handleLogout}
-                className="w-full flex items-center gap-2 px-2.5 py-2 text-xs font-semibold text-red-500 hover:bg-red-500/10 rounded-lg transition-colors"
-              >
-                <LogOut className="w-3.5 h-3.5" />
-                <span>Sign Out</span>
-              </button>
-            </>
-          ) : (
-            <div className="flex flex-col items-center gap-2 py-1">
-              <button
-                type="button"
-                onClick={handleLogout}
-                title="Sign Out"
-                className="p-2 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-              >
-                <LogOut className="w-4 h-4" />
+                <kbd
+                  className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
+                    isLight
+                      ? "bg-white text-[#64748B] border-[#E2E8F0]"
+                      : "bg-[#121A25] text-[#94A3B8] border-white/[0.08]"
+                  }`}
+                >
+                  <span>⌘</span>
+                  <span>K</span>
+                </kbd>
               </button>
             </div>
-          )}
+
+            {/* Right Controls: Theme Toggle, Notifications, Admin Profile, Add Product Button */}
+            <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+              {/* Theme Toggle Button */}
+              <button
+                type="button"
+                onClick={toggleTheme}
+                title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
+                className={`p-2 rounded-xl border transition-colors cursor-pointer ${
+                  isLight
+                    ? "bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]"
+                    : "bg-[#121A25] border-white/[0.08] text-[#F8FAFC] hover:bg-[#16212F]"
+                }`}
+              >
+                {isLight ? <Moon className="w-4 h-4 text-[#475569]" /> : <Sun className="w-4 h-4 text-amber-400" />}
+              </button>
+
+              {/* Notification Bell with real-time pending orders badge */}
+              <button
+                type="button"
+                onClick={() => router.push("/admin/dashboard?tab=orders")}
+                title={pendingOrdersCount > 0 ? `${pendingOrdersCount} Pending Orders` : "No pending orders"}
+                className={`relative p-2 rounded-xl border transition-colors cursor-pointer ${
+                  isLight
+                    ? "bg-white border-[#E2E8F0] text-[#475569] hover:bg-[#F8FAFC]"
+                    : "bg-[#121A25] border-white/[0.08] text-[#94A3B8] hover:text-white hover:bg-[#16212F]"
+                }`}
+              >
+                <Bell className="w-4 h-4" />
+                {pendingOrdersCount > 0 && (
+                  <span className="absolute -top-1 -right-1 min-w-4 h-4 px-1 rounded-full bg-[#EF4444] text-white text-[9px] font-bold flex items-center justify-center shadow-xs animate-pulse">
+                    {pendingOrdersCount > 99 ? "99+" : pendingOrdersCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Admin Profile Dropdown */}
+              <div className="relative" ref={profileRef}>
+                <button
+                  type="button"
+                  onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
+                  className={`flex items-center gap-2 p-1 sm:px-2.5 sm:py-1.5 rounded-xl border transition-all cursor-pointer ${
+                    isLight
+                      ? "bg-white border-[#E2E8F0] hover:bg-[#F8FAFC] text-[#0F172A]"
+                      : "bg-[#121A25] border-white/[0.08] hover:bg-[#16212F] text-[#F8FAFC]"
+                  }`}
+                >
+                  <div
+                    className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${
+                      isLight ? "bg-[#0F172A] text-white" : "bg-[#2563EB] text-white"
+                    }`}
+                  >
+                    AD
+                  </div>
+                  <div className="hidden xl:block text-left leading-tight">
+                    <div className="text-xs font-semibold leading-none">Admin</div>
+                    <div className={`text-[10px] ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
+                      Superadmin
+                    </div>
+                  </div>
+                  <ChevronDown className="w-3.5 h-3.5 opacity-60 hidden sm:block" />
+                </button>
+
+                {/* Profile Dropdown Menu */}
+                {profileDropdownOpen && (
+                  <div
+                    className={`absolute right-0 mt-2 w-56 rounded-2xl p-2 shadow-2xl border z-50 animate-in fade-in slide-in-from-top-2 ${
+                      isLight
+                        ? "bg-white border-[#E2E8F0] text-[#0F172A]"
+                        : "bg-[#0E141D] border-white/[0.14] text-[#F8FAFC]"
+                    }`}
+                  >
+                    <div className={`px-3 py-2 border-b ${isLight ? "border-[#E2E8F0]" : "border-white/[0.08]"}`}>
+                      <p className="text-xs font-bold truncate">StreetMobile Admin</p>
+                      <p className={`text-[11px] truncate mt-0.5 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
+                        admin@streetmobile.lk
+                      </p>
+                      <span className="inline-block mt-1.5 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                        Store Superadmin
+                      </span>
+                    </div>
+
+                    <div className="py-1 space-y-0.5 text-xs font-medium">
+                      <Link
+                        href="/admin/dashboard?tab=settings"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                          isLight
+                            ? "hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A]"
+                            : "hover:bg-white/5 text-[#94A3B8] hover:text-white"
+                        }`}
+                      >
+                        <Settings className="w-3.5 h-3.5 opacity-70" />
+                        <span>Store Settings</span>
+                      </Link>
+
+                      <Link
+                        href="/admin/dashboard?tab=contact-settings"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
+                          isLight
+                            ? "hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A]"
+                            : "hover:bg-white/5 text-[#94A3B8] hover:text-white"
+                        }`}
+                      >
+                        <Clock className="w-3.5 h-3.5 opacity-70" />
+                        <span>Contact & Times</span>
+                      </Link>
+
+                      <a
+                        href="https://wa.me/94774141118"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        onClick={() => setProfileDropdownOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          isLight
+                            ? "hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A]"
+                            : "hover:bg-white/5 text-[#94A3B8] hover:text-white"
+                        }`}
+                      >
+                        <span className="flex items-center gap-2">
+                          <MessageCircle className="w-3.5 h-3.5 text-emerald-500" />
+                          <span>WhatsApp Support</span>
+                        </span>
+                        <ExternalLink className="w-3 h-3 opacity-50" />
+                      </a>
+                    </div>
+
+                    <div className={`pt-1 border-t ${isLight ? "border-[#E2E8F0]" : "border-white/[0.08]"}`}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setProfileDropdownOpen(false);
+                          handleLogout();
+                        }}
+                        className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#EF4444] hover:bg-red-500/10 rounded-lg transition-colors cursor-pointer"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        <span>Sign Out</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Primary Action Button: "+ Add Product" */}
+              <button
+                type="button"
+                onClick={() => setIsAddProductOpen(true)}
+                className="px-3.5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold rounded-[10px] shadow-xs hover:shadow-sm hover:-translate-y-px active:translate-y-0 transition-all flex items-center gap-1.5 cursor-pointer shrink-0"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Add Product</span>
+              </button>
+            </div>
+          </header>
+
+          {/* Dynamic Tab Content Area */}
+          <main
+            className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-7 flex flex-col justify-between transition-colors duration-150 ${
+              isLight ? "bg-[#F5F7FA]" : "bg-[#080C12]"
+            }`}
+          >
+            <div className="flex-1">
+              {children}
+            </div>
+
+            {/* Admin OS Footer */}
+            <footer
+              className={`mt-10 pt-6 pb-2 border-t flex flex-col sm:flex-row items-center justify-between gap-3 text-xs ${
+                isLight ? "border-[#E2E8F0] text-[#64748B]" : "border-white/[0.08] text-[#94A3B8]"
+              }`}
+            >
+              <p>© 2026 StreetMobile.lk Admin Operating System.</p>
+              <div className="flex items-center gap-3 text-xs font-medium">
+                <Link
+                  href="/admin/dashboard?tab=settings"
+                  className={`transition-colors ${isLight ? "hover:text-[#0F172A]" : "hover:text-white"}`}
+                >
+                  System Settings
+                </Link>
+                <span>•</span>
+                <a
+                  href="https://wa.me/94774141118"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`transition-colors ${isLight ? "hover:text-[#0F172A]" : "hover:text-white"}`}
+                >
+                  Support Hotline
+                </a>
+              </div>
+            </footer>
+          </main>
         </div>
-      </aside>
-
-      {/* ── Main Content Shell ── */}
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top Header Bar (64px) */}
-        <header
-          data-admin-header="true"
-          className={`h-16 border-b px-4 sm:px-8 flex items-center justify-between gap-4 shrink-0 transition-colors duration-150 ${
-            isLight
-              ? "bg-[#FFFFFF] border-[#E2E8F0]"
-              : "bg-[#0F172A] border-white/10"
-          }`}
-        >
-          {/* Left: Mobile Toggle, Desktop Collapse & Breadcrumbs */}
-          <div className="flex items-center gap-3 min-w-0">
-            {/* Mobile Hamburger */}
-            <button
-              type="button"
-              onClick={() => setMobileSidebarOpen(true)}
-              className={`p-2 rounded-lg lg:hidden ${
-                isLight ? "text-slate-600 hover:bg-slate-100" : "text-slate-300 hover:bg-white/5"
-              }`}
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-
-            {/* Desktop Rail Collapse Toggle */}
-            <button
-              type="button"
-              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-              title={sidebarCollapsed ? "Expand Sidebar" : "Collapse Sidebar"}
-              className={`hidden lg:flex p-1.5 rounded-lg transition-colors ${
-                isLight ? "text-slate-500 hover:bg-slate-100" : "text-slate-400 hover:bg-white/5"
-              }`}
-            >
-              {sidebarCollapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-            </button>
-
-            {/* Breadcrumb Context */}
-            <div className="hidden sm:flex items-center gap-2 text-xs font-medium truncate">
-              <span className={isLight ? "text-slate-400" : "text-slate-500"}>Admin</span>
-              <span className={isLight ? "text-slate-300" : "text-slate-700"}>/</span>
-              <span className={isLight ? "text-slate-500" : "text-slate-400"}>{currentTabMeta.group}</span>
-              <span className={isLight ? "text-slate-300" : "text-slate-700"}>/</span>
-              <span className={`font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>
-                {currentTabMeta.label}
-              </span>
-            </div>
-          </div>
-
-          {/* Center: Omnibar Search Trigger */}
-          <div className="flex-1 max-w-md mx-2 sm:mx-4">
-            <button
-              type="button"
-              onClick={() => setIsCommandPaletteOpen(true)}
-              className={`w-full flex items-center justify-between px-3.5 py-1.5 rounded-xl text-xs transition-all border ${
-                isLight
-                  ? "bg-slate-50 border-slate-200 text-slate-500 hover:bg-slate-100 hover:border-slate-300"
-                  : "bg-white/5 border-white/10 text-slate-400 hover:bg-white/10 hover:border-white/20"
-              }`}
-            >
-              <span className="flex items-center gap-2 truncate">
-                <Search className="w-3.5 h-3.5 shrink-0" />
-                <span className="truncate">Search orders, catalog, actions...</span>
-              </span>
-              <kbd className="hidden sm:inline-block text-[10px] font-mono px-1.5 py-0.5 rounded bg-black/10 dark:bg-white/10 text-slate-400 border border-black/5 dark:border-white/5 shrink-0">
-                ⌘ K
-              </kbd>
-            </button>
-          </div>
-
-          {/* Right: Theme Toggle, Notifications, Profile, Primary Add Product */}
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            {/* Theme Toggle Button */}
-            <button
-              type="button"
-              onClick={toggleTheme}
-              title={isLight ? "Switch to Dark Mode" : "Switch to Light Mode"}
-              className={`p-2 rounded-xl border transition-colors ${
-                isLight
-                  ? "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                  : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              {isLight ? <Moon className="w-4 h-4 text-slate-600" /> : <Sun className="w-4 h-4 text-amber-400" />}
-            </button>
-
-            {/* Notification Bell */}
-            <button
-              type="button"
-              onClick={() => router.push("/admin/dashboard?tab=orders")}
-              title="Recent Orders"
-              className={`relative p-2 rounded-xl border transition-colors ${
-                isLight
-                  ? "bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100"
-                  : "bg-white/5 border-white/10 text-slate-300 hover:bg-white/10"
-              }`}
-            >
-              <Bell className="w-4 h-4" />
-              {hasUnreadAlert && (
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-blue-500 animate-pulse" />
-              )}
-            </button>
-
-            {/* Primary Action Button: "+ Add Product" */}
-            <button
-              type="button"
-              onClick={() => setIsAddProductOpen(true)}
-              className="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-semibold shadow-sm transition-all flex items-center gap-1.5 active:scale-95"
-            >
-              <Plus className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Add Product</span>
-            </button>
-          </div>
-        </header>
-
-        {/* Dynamic Tab Content Area */}
-        <main
-          className={`flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 transition-colors duration-150 ${
-            isLight ? "bg-[#F8FAFC]" : "bg-[#090D14]"
-          }`}
-        >
-          {children}
-        </main>
-      </div>
 
       {/* ── Global Overlay Layer ── */}
-
-      {/* Global Command Palette Omnibar */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
         onOpenAddProduct={() => setIsAddProductOpen(true)}
       />
 
-      {/* Global Product Add Modal triggered from Top Bar */}
       <ProductModal
         isOpen={isAddProductOpen}
         onClose={() => setIsAddProductOpen(false)}
@@ -585,45 +906,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
         }}
         categories={[]}
       />
-
-      {/* ── Global Notification Layer: Live Order Toast ── */}
-      {liveAlert && (
-        <div className="fixed bottom-6 right-6 z-50 bg-[#1E293B] border border-white/15 rounded-2xl p-4 shadow-2xl max-w-sm flex items-start gap-3.5 animate-in fade-in slide-in-from-bottom-4">
-          <div className="w-9 h-9 rounded-xl bg-blue-600/20 text-blue-400 flex items-center justify-center shrink-0">
-            <ShoppingBag className="w-4 h-4 animate-bounce" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between gap-2">
-              <h4 className="text-white font-bold text-xs">New Order Placed!</h4>
-              <button
-                onClick={() => setLiveAlert(null)}
-                className="text-slate-400 hover:text-white"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
-            </div>
-            <p className="text-[11px] text-slate-300 mt-0.5 truncate">
-              {liveAlert.customerName || "Customer"} • {formatPrice(liveAlert.finalTotal || liveAlert.totalPrice || 0)}
-            </p>
-            <div className="flex items-center gap-2 mt-2.5">
-              <Link
-                href="/admin/dashboard?tab=orders"
-                onClick={() => setLiveAlert(null)}
-                className="px-2.5 py-1 bg-blue-600 text-white font-semibold text-[11px] rounded-lg hover:bg-blue-700 transition-colors"
-              >
-                View Order
-              </Link>
-              <button
-                onClick={() => setLiveAlert(null)}
-                className="px-2.5 py-1 bg-white/10 text-slate-300 hover:text-white rounded-lg text-[11px] transition-colors"
-              >
-                Dismiss
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
+  </AdminThemeContext.Provider>
   );
 }
 
@@ -631,7 +915,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#090D14] flex items-center justify-center text-white text-sm font-semibold">
+        <div className="min-h-screen bg-[#071525] flex items-center justify-center text-white text-sm font-semibold">
           <div className="flex items-center gap-2">
             <div className="w-4 h-4 rounded-full border-2 border-blue-500 border-t-transparent animate-spin" />
             Loading Admin Workspace...

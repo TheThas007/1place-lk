@@ -2,6 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { Category, Brand, Department } from "@/lib/types";
@@ -47,13 +48,16 @@ function MobileBrandCard({
     >
       <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
         {!imgError && logoUrl ? (
-          <img
-            src={logoUrl}
-            alt={brand.logo_alt_text || `${brand.name} logo`}
-            loading="lazy"
-            className="max-h-[60%] max-w-[78%] w-auto h-auto object-contain transition-transform duration-200 group-hover:scale-105"
-            onError={() => setImgError(true)}
-          />
+          <div className="relative w-[78%] h-[60%] flex items-center justify-center">
+            <Image
+              src={logoUrl}
+              alt={brand.logo_alt_text || `${brand.name} logo`}
+              fill
+              sizes="(max-width: 640px) 33vw, 0px"
+              className="object-contain transition-transform duration-200 group-hover:scale-105"
+              onError={() => setImgError(true)}
+            />
+          </div>
         ) : (
           <span className="text-[11px] sm:text-xs font-black text-black tracking-tight text-center truncate px-1 select-none">
             {brand.name}
@@ -107,13 +111,16 @@ function BrandCard({
         {/* Centered Genuine Brand Logo or High-Contrast Brand Name */}
         <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
-            <img
-              src={logoUrl}
-              alt={brand.logo_alt_text || `${brand.name} logo`}
-              loading="lazy"
-              className="max-h-14 sm:max-h-18 md:max-h-20 max-w-[86%] sm:max-w-[85%] w-auto h-auto object-contain transition-transform duration-300 ease-out group-hover:scale-110"
-              onError={() => setImgError(true)}
-            />
+            <div className="relative w-[86%] sm:w-[85%] h-14 sm:h-[72px] md:h-20 flex items-center justify-center">
+              <Image
+                src={logoUrl}
+                alt={brand.logo_alt_text || `${brand.name} logo`}
+                fill
+                sizes="(max-width: 768px) 33vw, 15vw"
+                className="object-contain transition-transform duration-300 ease-out group-hover:scale-110"
+                onError={() => setImgError(true)}
+              />
+            </div>
           ) : (
             <span className="text-base sm:text-xl font-black text-neutral-900 font-sans tracking-tight select-none uppercase text-center px-1">
               {brand.name}

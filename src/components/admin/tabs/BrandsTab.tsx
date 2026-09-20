@@ -59,6 +59,7 @@ import {
 import { uploadImageWithFallback } from "@/lib/upload-utils";
 import DepartmentBrandHero from "@/components/brand/DepartmentBrandHero";
 import { getDeptPrefix, formatDeptOrderCode, parseDeptOrderNumber } from "@/lib/utils";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 const BRAND_LOGO_PRESETS = [
   { name: "Apple", logo: "https://cdn.simpleicons.org/apple/000000" },
@@ -158,6 +159,7 @@ async function probeImageDetails(url: string, targetRatio: number): Promise<Part
 }
 
 export default function BrandsTab({ products = [] }: { products?: Product[] }) {
+  const { isLight } = useAdminTheme();
   const [brands, setBrands] = useState<Brand[]>([]);
   const [departments, setDepartments] = useState<Department[]>(DEFAULT_DEPARTMENTS);
   const [loading, setLoading] = useState(true);
@@ -572,40 +574,90 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
     );
 
   return (
-    <div className="space-y-6">
-      {/* ── TOP ACTION BAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white/5 border border-white/10 p-5 rounded-3xl">
-        <div>
-          <h2 className="text-lg font-extrabold text-white flex items-center gap-2">
-            <Tag className="w-5 h-5 text-red-500" />
-            Brands &amp; Shop by Brand Catalog
-          </h2>
-          <p className="text-xs text-white/50 mt-0.5">
-            Manage brands, assign them to departments, and configure full-frame banner artwork.
-          </p>
+    <div
+      className={`space-y-5 animate-fadeIn ${
+        isLight ? "text-slate-900" : "text-[#F8FAFC]"
+      }`}
+    >
+      {/* ── 1. PAGE HEADER ── */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-3.5">
+          <div
+            className={`w-11 h-11 rounded-2xl flex items-center justify-center shrink-0 ${
+              isLight
+                ? "bg-blue-50 text-blue-600 border border-blue-100 shadow-sm"
+                : "bg-blue-600/10 text-blue-500 border border-blue-500/20"
+            }`}
+          >
+            <Tag className="w-5 h-5" />
+          </div>
+          <div>
+            <h1
+              className={`text-2xl font-bold tracking-tight ${
+                isLight ? "text-slate-900" : "text-[#F8FAFC]"
+              }`}
+            >
+              Brands
+            </h1>
+            <p
+              className={`text-[13px] font-normal mt-0.5 ${
+                isLight ? "text-slate-500" : "text-[#94A3B8]"
+              }`}
+            >
+              Manage brands, assign departments, and configure brand catalog visibility.
+            </p>
+          </div>
         </div>
 
         <button
           type="button"
           onClick={() => handleOpenModal()}
-          className="flex items-center justify-center gap-2 px-5 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer"
+          className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition-all active:scale-95 cursor-pointer shrink-0"
         >
-          <Plus className="w-4 h-4" />
+          <Plus className="w-3.5 h-3.5" />
           <span>Add New Brand</span>
         </button>
       </div>
 
-      {/* ── FILTER & SEARCH TOOLBAR ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white/5 border border-white/10 p-3 rounded-2xl">
-        {/* Department Filters */}
-        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 custom-scrollbar">
+      {/* ── 2. FILTER & SEARCH TOOLBAR ── */}
+      <div
+        className={`rounded-2xl p-2.5 border transition-all flex flex-col md:flex-row md:items-center justify-between gap-3 ${
+          isLight
+            ? "bg-white border-slate-200 shadow-sm"
+            : "bg-[#0E141D] border-white/[0.08]"
+        }`}
+      >
+        {/* Left: Search Input */}
+        <div className="relative flex-1 min-w-[200px] max-w-md">
+          <Search
+            className={`absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 ${
+              isLight ? "text-slate-400" : "text-[#94A3B8]"
+            }`}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search brands by name or slug..."
+            className={`w-full bg-transparent pl-10 pr-4 py-2 text-xs rounded-xl focus:outline-none transition-colors ${
+              isLight
+                ? "text-slate-900 placeholder-slate-400 focus:bg-slate-50"
+                : "text-[#F8FAFC] placeholder-slate-500 focus:bg-white/[0.03]"
+            }`}
+          />
+        </div>
+
+        {/* Right: Department Segmented Buttons */}
+        <div className="flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0 no-scrollbar">
           <button
             type="button"
             onClick={() => setSelectedDeptFilter("all")}
-            className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
+            className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border cursor-pointer ${
               selectedDeptFilter === "all"
-                ? "bg-white text-black shadow"
-                : "bg-white/5 text-white/70 hover:text-white"
+                ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm"
+                : isLight
+                ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                : "bg-[#121A25] hover:bg-[#1A2535] text-[#94A3B8] hover:text-[#F8FAFC] border-white/[0.08]"
             }`}
           >
             All Departments ({brands.length})
@@ -615,15 +667,18 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
               const depts = b.assigned_departments || getDefaultBrandDepartments(b.slug, b.product_group);
               return depts.includes(dept.slug);
             }).length;
+            const isSelected = selectedDeptFilter === dept.slug;
             return (
               <button
                 key={dept.slug}
                 type="button"
                 onClick={() => setSelectedDeptFilter(dept.slug)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap ${
-                  selectedDeptFilter === dept.slug
-                    ? "bg-red-600 text-white shadow"
-                    : "bg-white/5 text-white/70 hover:text-white"
+                className={`px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap transition-all border cursor-pointer ${
+                  isSelected
+                    ? "bg-[#2563EB] text-white border-[#2563EB] shadow-sm"
+                    : isLight
+                    ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                    : "bg-[#121A25] hover:bg-[#1A2535] text-[#94A3B8] hover:text-[#F8FAFC] border-white/[0.08]"
                 }`}
               >
                 {dept.name} ({count})
@@ -631,30 +686,42 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
             );
           })}
         </div>
-
-        {/* Search */}
-        <div className="relative w-full sm:w-64">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-white/40" />
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search brands by name or slug..."
-            className="w-full bg-white/5 border border-white/10 pl-8 pr-3 py-1.5 rounded-xl text-xs text-white placeholder-white/40 outline-none focus:border-red-500"
-          />
-        </div>
       </div>
 
-      {/* ── BRANDS TABLE ── */}
-      <div className="bg-white/5 border border-white/10 rounded-3xl overflow-hidden shadow-xl">
+      {/* ── 3. BRAND COUNT ── */}
+      <div className="flex items-center justify-between text-xs px-1">
+        <span
+          className={`font-medium ${
+            isLight ? "text-slate-500" : "text-[#94A3B8]"
+          }`}
+        >
+          {filteredBrands.length} Brands
+          {filteredBrands.length !== brands.length && ` (${brands.length} total)`}
+        </span>
+      </div>
+
+      {/* ── 4. BRANDS TABLE ── */}
+      <div
+        className={`rounded-2xl border overflow-hidden shadow-sm ${
+          isLight
+            ? "bg-white border-slate-200"
+            : "bg-[#0E141D] border-white/[0.08]"
+        }`}
+      >
         <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-white/80">
-            <thead className="bg-black/40 text-white/40 uppercase tracking-widest text-[10px] font-bold border-b border-white/10">
+          <table className="w-full text-left text-xs">
+            <thead
+              className={`border-b text-[11px] font-semibold uppercase tracking-wider ${
+                isLight
+                  ? "bg-slate-50 text-slate-500 border-slate-200"
+                  : "bg-[#0B111A] text-[#64748B] border-white/[0.08]"
+              }`}
+            >
               <tr>
-                <th className="py-3 px-3 w-28 text-center">
+                <th className="py-3 px-4 w-28 text-center">
                   {selectedDeptFilter !== "all"
-                    ? `${departments.find((d) => d.slug === selectedDeptFilter)?.name || selectedDeptFilter} Order #`
-                    : "Order #"}
+                    ? `${departments.find((d) => d.slug === selectedDeptFilter)?.name || selectedDeptFilter} Order`
+                    : "Order"}
                 </th>
                 <th className="py-3 px-5">Brand</th>
                 <th className="py-3 px-4">Slug</th>
@@ -664,147 +731,272 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <th className="py-3 px-5 text-right">Actions</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-white/5">
-              {filteredBrands.map((brand) => {
-                const depts = brand.assigned_departments || getDefaultBrandDepartments(brand.slug, brand.product_group);
-                const currentOrder =
-                  selectedDeptFilter !== "all"
-                    ? (brand.department_order?.[selectedDeptFilter] ?? brand.sort_order ?? brand.order ?? 1)
-                    : (brand.sort_order ?? brand.order ?? 1);
-                return (
-                  <tr key={brand.id} className="hover:bg-white/5 transition-colors">
-                    <td className="py-3 px-3 text-center">
-                      {selectedDeptFilter !== "all" ? (
-                        <div className="flex items-center justify-center gap-1">
-                          <span
-                            className={`px-1.5 py-0.5 rounded font-mono font-black text-[11px] border ${
-                              selectedDeptFilter === "phones"
-                                ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                                : selectedDeptFilter === "laptops-tablets"
-                                ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                                : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+            <tbody
+              className={`divide-y ${
+                isLight ? "divide-slate-100" : "divide-white/[0.06]"
+              }`}
+            >
+              {filteredBrands.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="py-12 text-center text-slate-400">
+                    No brands match your search or filter.
+                  </td>
+                </tr>
+              ) : (
+                filteredBrands.map((brand) => {
+                  const depts =
+                    brand.assigned_departments ||
+                    getDefaultBrandDepartments(brand.slug, brand.product_group);
+                  const currentOrder =
+                    selectedDeptFilter !== "all"
+                      ? (brand.department_order?.[selectedDeptFilter] ??
+                        brand.sort_order ??
+                        brand.order ??
+                        1)
+                      : (brand.sort_order ?? brand.order ?? 1);
+                  const isActive =
+                    brand.enabled !== false && brand.status !== "inactive";
+                  const isVisible = brand.show_on_homepage !== false;
+
+                  return (
+                    <tr
+                      key={brand.id}
+                      className={`h-[68px] transition-colors ${
+                        isLight
+                          ? "hover:bg-slate-50"
+                          : "hover:bg-[#121A25]/60"
+                      }`}
+                    >
+                      {/* ORDER */}
+                      <td className="py-3 px-4 text-center">
+                        {selectedDeptFilter !== "all" ? (
+                          <div className="flex items-center justify-center gap-1.5">
+                            <span
+                              className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${
+                                selectedDeptFilter === "phones"
+                                  ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                  : selectedDeptFilter === "laptops-tablets"
+                                  ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                  : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                              }`}
+                            >
+                              {getDeptPrefix(selectedDeptFilter)}
+                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={currentOrder}
+                              onChange={(e) => {
+                                const val = parseInt(e.target.value, 10);
+                                if (!isNaN(val) && val >= 1) {
+                                  handleUpdateBrandOrder(
+                                    brand,
+                                    val,
+                                    selectedDeptFilter
+                                  );
+                                }
+                              }}
+                              className={`w-12 border px-1.5 py-1 rounded-lg font-mono font-semibold text-center text-xs outline-none transition-colors ${
+                                isLight
+                                  ? "bg-slate-50 border-slate-200 text-slate-900 focus:border-blue-500"
+                                  : "bg-[#121A25] border-white/10 text-white focus:border-blue-500"
+                              }`}
+                              title={`Edit ${formatDeptOrderCode(
+                                selectedDeptFilter,
+                                currentOrder
+                              )} position`}
+                            />
+                          </div>
+                        ) : (
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
+                            {depts.map((dSlug) => {
+                              const orderNum =
+                                brand.department_order?.[dSlug] ??
+                                brand.sort_order ??
+                                brand.order ??
+                                1;
+                              const prefix = getDeptPrefix(dSlug);
+                              return (
+                                <span
+                                  key={dSlug}
+                                  className={`px-1.5 py-0.5 rounded font-mono font-semibold text-[10px] border ${
+                                    dSlug === "phones"
+                                      ? "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                                      : dSlug === "laptops-tablets"
+                                      ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                                      : "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                  }`}
+                                  title={`${dSlug}: ${prefix}${orderNum}`}
+                                >
+                                  {prefix}
+                                  {orderNum}
+                                </span>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* BRAND (Logo + Name) */}
+                      <td className="py-3 px-5">
+                        <div className="flex items-center gap-3">
+                          <div
+                            className={`w-9 h-9 rounded-xl p-1.5 flex items-center justify-center shrink-0 border ${
+                              isLight
+                                ? "bg-slate-50 border-slate-200"
+                                : "bg-white/[0.06] border-white/10"
                             }`}
                           >
-                            {getDeptPrefix(selectedDeptFilter)}
-                          </span>
-                          <input
-                            type="number"
-                            min="1"
-                            value={currentOrder}
-                            onChange={(e) => {
-                              const val = parseInt(e.target.value, 10);
-                              if (!isNaN(val) && val >= 1) {
-                                handleUpdateBrandOrder(brand, val, selectedDeptFilter);
-                              }
-                            }}
-                            className="w-12 bg-black/50 border border-white/20 hover:border-red-500 focus:border-red-500 px-1.5 py-1 rounded-xl text-white font-mono font-black text-center text-xs outline-none transition-all shadow-inner"
-                            title={`Edit ${formatDeptOrderCode(selectedDeptFilter, currentOrder)} position`}
-                          />
-                        </div>
-                      ) : (
-                        <div className="flex items-center justify-center gap-1 flex-wrap">
-                          {depts.map((dSlug) => {
-                            const orderNum = brand.department_order?.[dSlug] ?? brand.sort_order ?? brand.order ?? 1;
-                            const prefix = getDeptPrefix(dSlug);
-                            return (
-                              <span
-                                key={dSlug}
-                                className={`px-1.5 py-0.5 rounded font-mono font-black text-[10px] border ${
-                                  dSlug === "phones"
-                                    ? "bg-blue-500/20 text-blue-400 border-blue-500/30"
-                                    : dSlug === "laptops-tablets"
-                                    ? "bg-purple-500/20 text-purple-400 border-purple-500/30"
-                                    : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                            {brand.logo_url ? (
+                              <img
+                                src={brand.logo_url}
+                                alt={brand.name}
+                                className={`w-full h-full object-contain ${
+                                  isLight ? "" : "filter brightness-0 invert"
                                 }`}
-                                title={`${dSlug}: ${prefix}${orderNum}`}
+                              />
+                            ) : (
+                              <span
+                                className={`font-semibold text-xs ${
+                                  isLight ? "text-slate-600" : "text-white/60"
+                                }`}
                               >
-                                {prefix}{orderNum}
+                                {brand.name.slice(0, 2).toUpperCase()}
                               </span>
+                            )}
+                          </div>
+                          <div className="min-w-0">
+                            <span
+                              className={`font-semibold block truncate text-sm leading-snug ${
+                                isLight ? "text-slate-900" : "text-[#F8FAFC]"
+                              }`}
+                            >
+                              {brand.name}
+                            </span>
+                            <span
+                              className={`text-[11px] block truncate ${
+                                isLight ? "text-slate-400" : "text-[#94A3B8]"
+                              }`}
+                            >
+                              {brand.id}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* SLUG */}
+                      <td
+                        className={`py-3 px-4 font-mono text-xs ${
+                          isLight ? "text-slate-500" : "text-slate-400"
+                        }`}
+                      >
+                        {brand.slug}
+                      </td>
+
+                      {/* ASSIGNED DEPARTMENTS */}
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {depts.map((dSlug) => {
+                            const dept = departments.find(
+                              (d) => d.slug === dSlug
+                            );
+                            return (
+                              <Link
+                                key={dSlug}
+                                href={`/shop-by-brand/${dSlug}/${brand.slug}`}
+                                target="_blank"
+                                className={`px-2 py-0.5 rounded-lg text-[10px] font-medium border transition-colors flex items-center gap-1 ${
+                                  isLight
+                                    ? "bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                                    : "bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 border-blue-500/20"
+                                }`}
+                                title={`View ${brand.name} in ${
+                                  dept?.name || dSlug
+                                }`}
+                              >
+                                <span>{dept?.name || dSlug}</span>
+                                <ExternalLink className="w-2.5 h-2.5 opacity-60" />
+                              </Link>
                             );
                           })}
                         </div>
-                      )}
-                    </td>
-                    <td className="py-3 px-5">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-white/10 p-1 flex items-center justify-center border border-white/10">
-                          {brand.logo_url ? (
-                            <img
-                              src={brand.logo_url}
-                              alt={brand.name}
-                              className="w-full h-full object-contain filter brightness-0 invert"
-                            />
-                          ) : (
-                            <span className="font-extrabold text-xs text-white/60">
-                              {brand.name.slice(0, 2).toUpperCase()}
-                            </span>
-                          )}
-                        </div>
-                        <div>
-                          <span className="font-extrabold text-white block">{brand.name}</span>
-                          <span className="text-[10px] text-white/40">{brand.id}</span>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="py-3 px-4 font-mono text-white/60 text-[11px]">{brand.slug}</td>
-                    <td className="py-3 px-4">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        {depts.map((dSlug) => {
-                          const dept = departments.find((d) => d.slug === dSlug);
-                          return (
-                            <Link
-                              key={dSlug}
-                              href={`/shop-by-brand/${dSlug}/${brand.slug}`}
-                              target="_blank"
-                              className="px-2 py-0.5 rounded-lg bg-blue-500/10 hover:bg-blue-500/20 text-blue-400 text-[10px] font-bold border border-blue-500/20 transition-colors flex items-center gap-1"
-                              title={`View ${brand.name} in ${dept?.name || dSlug}`}
-                            >
-                              <span>{dept?.name || dSlug}</span>
-                              <ExternalLink className="w-2.5 h-2.5 opacity-60" />
-                            </Link>
-                          );
-                        })}
-                      </div>
-                    </td>
-                    <td className="py-3 px-4">
-                      <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                        brand.enabled !== false && brand.status !== "inactive"
-                          ? "bg-emerald-500/20 text-emerald-400"
-                          : "bg-red-500/20 text-red-400"
-                      }`}>
-                        {brand.enabled !== false && brand.status !== "inactive" ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                    <td className="py-3 px-4">
-                      {brand.show_on_homepage !== false ? (
-                        <span className="text-emerald-400 font-bold text-[11px]">Visible</span>
-                      ) : (
-                        <span className="text-white/40 text-[11px]">Hidden</span>
-                      )}
-                    </td>
-                    <td className="py-3 px-5 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleOpenModal(brand)}
-                          className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/80 hover:text-white transition-colors cursor-pointer"
-                          title="Edit Brand & Department Pages"
+                      </td>
+
+                      {/* STATUS */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                            isActive
+                              ? isLight
+                                ? "text-emerald-600"
+                                : "text-[#10B981]"
+                              : isLight
+                              ? "text-slate-400"
+                              : "text-slate-500"
+                          }`}
                         >
-                          <Edit className="w-3.5 h-3.5" />
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteBrand(brand.id, brand.name)}
-                          className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition-colors cursor-pointer"
-                          title="Delete Brand"
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isActive ? "bg-emerald-500" : "bg-slate-500"
+                            }`}
+                          />
+                          <span>{isActive ? "Active" : "Inactive"}</span>
+                        </span>
+                      </td>
+
+                      {/* HOMEPAGE */}
+                      <td className="py-3 px-4">
+                        <span
+                          className={`inline-flex items-center gap-1.5 text-xs font-medium ${
+                            isVisible
+                              ? isLight
+                                ? "text-emerald-600"
+                                : "text-[#10B981]"
+                              : isLight
+                              ? "text-slate-400"
+                              : "text-slate-500"
+                          }`}
                         >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
+                          <span
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isVisible ? "bg-emerald-500" : "bg-slate-500"
+                            }`}
+                          />
+                          <span>{isVisible ? "Visible" : "Hidden"}</span>
+                        </span>
+                      </td>
+
+                      {/* ACTIONS */}
+                      <td className="py-3 px-5 text-right">
+                        <div className="flex items-center justify-end gap-1.5">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenModal(brand)}
+                            className={`p-1.5 rounded-lg border transition-colors cursor-pointer ${
+                              isLight
+                                ? "bg-slate-50 hover:bg-slate-100 text-slate-700 border-slate-200"
+                                : "bg-[#141E2B] hover:bg-[#1C2A3C] text-slate-300 hover:text-white border-white/[0.08]"
+                            }`}
+                            title="Edit Brand & Department Pages"
+                          >
+                            <Edit className="w-3.5 h-3.5 text-blue-400" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() =>
+                              handleDeleteBrand(brand.id, brand.name)
+                            }
+                            className="p-1.5 rounded-lg text-red-400 hover:bg-red-500/10 border border-transparent hover:border-red-500/20 transition-colors cursor-pointer"
+                            title="Delete Brand"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })
+              )}
             </tbody>
           </table>
         </div>
@@ -812,27 +1004,50 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
 
       {/* ── EDIT / CREATE BRAND MODAL ── */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm overflow-y-auto">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-6">
-            
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md overflow-y-auto animate-fadeIn">
+          <div
+            className={`border rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden my-6 transition-all ${
+              isLight
+                ? "bg-white border-slate-200 text-slate-900"
+                : "bg-[#0E141D] border-white/[0.12] text-[#F8FAFC]"
+            }`}
+          >
             {/* Modal Header */}
-            <div className="flex items-center justify-between p-6 border-b border-white/10 shrink-0">
+            <div
+              className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 border-b shrink-0 ${
+                isLight ? "border-slate-100" : "border-white/[0.08]"
+              }`}
+            >
               <div>
-                <h2 className="text-lg font-extrabold text-white">
+                <h2 className="text-lg font-bold tracking-tight">
                   {editingBrand ? `Edit Brand: ${editingBrand.name}` : "Add New Brand"}
                 </h2>
-                <p className="text-xs text-white/50">
+                <p
+                  className={`text-xs mt-0.5 ${
+                    isLight ? "text-slate-500" : "text-[#94A3B8]"
+                  }`}
+                >
                   Configure brand details, assigned departments, and responsive banner artwork.
                 </p>
               </div>
 
               {/* Sub-Tabs */}
-              <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl border border-white/10">
+              <div
+                className={`flex items-center gap-1 p-1 rounded-xl border ${
+                  isLight
+                    ? "bg-slate-50 border-slate-200"
+                    : "bg-[#121A25] border-white/[0.08]"
+                }`}
+              >
                 <button
                   type="button"
                   onClick={() => setModalSubTab("general")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    modalSubTab === "general" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    modalSubTab === "general"
+                      ? "bg-[#2563EB] text-white shadow-sm"
+                      : isLight
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
                   }`}
                 >
                   General
@@ -840,8 +1055,12 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("departments")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    modalSubTab === "departments" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    modalSubTab === "departments"
+                      ? "bg-[#2563EB] text-white shadow-sm"
+                      : isLight
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
                   }`}
                 >
                   Departments
@@ -849,8 +1068,12 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("pages")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
-                    modalSubTab === "pages" ? "bg-red-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                    modalSubTab === "pages"
+                      ? "bg-[#2563EB] text-white shadow-sm"
+                      : isLight
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
                   }`}
                 >
                   Department Pages
@@ -858,8 +1081,12 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                 <button
                   type="button"
                   onClick={() => setModalSubTab("preview")}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center gap-1 cursor-pointer ${
-                    modalSubTab === "preview" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1 cursor-pointer ${
+                    modalSubTab === "preview"
+                      ? "bg-[#2563EB] text-white shadow-sm"
+                      : isLight
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-white"
                   }`}
                 >
                   <Eye className="w-3 h-3" /> Live Preview
@@ -2090,17 +2317,25 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
               )}
 
               {/* Modal Footer */}
-              <div className="flex items-center justify-between pt-4 border-t border-white/10 shrink-0">
+              <div
+                className={`flex items-center justify-between pt-4 border-t shrink-0 ${
+                  isLight ? "border-slate-100" : "border-white/[0.08]"
+                }`}
+              >
                 <div className="flex items-center gap-2">
                   <button
                     type="button"
                     onClick={() => setIsModalOpen(false)}
-                    className="px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white font-bold text-xs transition-colors cursor-pointer"
+                    className={`px-4 py-2 rounded-xl font-medium text-xs transition-colors cursor-pointer ${
+                      isLight
+                        ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
+                        : "text-slate-400 hover:text-white hover:bg-white/5"
+                    }`}
                   >
                     Close
                   </button>
                   {hasUnsavedChanges && (
-                    <span className="text-amber-400 text-xs font-bold flex items-center gap-1">
+                    <span className="text-amber-400 text-xs font-medium flex items-center gap-1">
                       <AlertTriangle className="w-3.5 h-3.5" /> Unsaved changes
                     </span>
                   )}
@@ -2108,7 +2343,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
 
                 <div className="flex items-center gap-2">
                   {saveSuccess && (
-                    <span className="text-emerald-400 text-xs font-bold flex items-center gap-1">
+                    <span className="text-emerald-400 text-xs font-medium flex items-center gap-1">
                       <CheckCircle2 className="w-3.5 h-3.5" /> Saved successfully!
                     </span>
                   )}
@@ -2116,7 +2351,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                   <button
                     type="submit"
                     disabled={isSaving}
-                    className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-red-600 hover:bg-red-500 text-white font-bold text-xs shadow-lg shadow-red-600/30 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-6 py-2.5 rounded-xl bg-[#2563EB] hover:bg-blue-600 text-white font-semibold text-xs shadow-md shadow-blue-600/20 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                   >
                     <Save className="w-3.5 h-3.5" />
                     <span>{isSaving ? "Saving..." : "Save Brand & Pages"}</span>

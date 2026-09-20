@@ -8,14 +8,60 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 /**
- * Consistently format numbers to Sri Lankan LKR currency strings: LKR 114,990
+ * Checks if a price value is a genuine, valid positive number.
  */
-export function formatPrice(price: number): string {
-  if (typeof price !== "number" || isNaN(price)) {
-    return "LKR 0";
+export function isValidPrice(price: unknown): price is number {
+  if (price === null || price === undefined || price === "") return false;
+  const num = Number(price);
+  return typeof num === "number" && !isNaN(num) && num > 0;
+}
+
+export interface FormatProductPriceOptions {
+  fallback?: string;
+  prefix?: string;
+  allowZero?: boolean;
+}
+
+/**
+ * Safe e-commerce price formatter:
+ * Returns formatted "LKR 114,990" for valid prices.
+ * Returns "Price Coming Soon" or custom fallback when price is missing, null, undefined, or invalid.
+ * Never silently converts null/undefined/NaN into "LKR 0".
+ */
+export function formatProductPrice(
+  price: unknown,
+  options?: FormatProductPriceOptions
+): string {
+  const fallback = options?.fallback ?? "Price Coming Soon";
+  const prefix = options?.prefix ?? "LKR ";
+
+  if (price === null || price === undefined || price === "") {
+    return fallback;
   }
-  const formattedNumber = Math.round(price).toLocaleString("en-US");
-  return `LKR ${formattedNumber}`;
+
+  const num = Number(price);
+  if (isNaN(num)) {
+    return fallback;
+  }
+
+  if (num === 0 && !options?.allowZero) {
+    return fallback;
+  }
+
+  if (num < 0) {
+    return fallback;
+  }
+
+  const formattedNumber = Math.round(num).toLocaleString("en-US");
+  return `${prefix}${formattedNumber}`;
+}
+
+/**
+ * Consistently format numbers to Sri Lankan LKR currency strings.
+ * Defaults to "Price Coming Soon" if price is absent/invalid.
+ */
+export function formatPrice(price: unknown, fallback?: string): string {
+  return formatProductPrice(price, { fallback });
 }
 
 /**
@@ -198,25 +244,6 @@ export function normalizeImageUrl(url?: string | null): string {
   if (trimmed.includes("&amp;")) trimmed = trimmed.replace(/&amp;/g, "&");
   if (trimmed.includes("&#x27;")) trimmed = trimmed.replace(/&#x27;/g, "'");
   if (trimmed.includes("&quot;")) trimmed = trimmed.replace(/&quot;/g, '"');
-
-  // If already proxied, or a local asset / data URI, return as-is
-  if (
-    trimmed.startsWith("/api/image-proxy") ||
-    trimmed.startsWith("/") ||
-    trimmed.startsWith("data:") ||
-    trimmed.startsWith("blob:")
-  ) {
-    return trimmed;
-  }
-
-  // Hosts known to have expired SSL certificates, CORS issues, or ISP blocks
-  if (
-    trimmed.includes("postimg.cc") ||
-    trimmed.includes("postimages.org") ||
-    trimmed.includes("wikimedia.org")
-  ) {
-    return `/api/image-proxy?url=${encodeURIComponent(trimmed)}`;
-  }
 
   return trimmed;
 }

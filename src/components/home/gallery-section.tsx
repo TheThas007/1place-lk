@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, Images, ChevronLeft, ChevronRight } from "lucide-react";
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
@@ -53,16 +54,14 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
   const CardContent = (
     <div className="relative w-full h-full overflow-hidden bg-neutral-100 select-none rounded-[12px] sm:rounded-[14px]">
       {/* 1. Edge-to-Edge Image with Smooth Subtle Scale */}
-      <img
+      <Image
         src={image.image_url}
         alt={titleText}
-        loading={index < 4 ? "eager" : "lazy"}
-        decoding="async"
+        priority={index < 4}
+        fill
+        sizes="(max-width: 640px) 74vw, 300px"
         draggable={false}
-        className="w-full h-full object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03] pointer-events-none select-none"
-        onError={(e) => {
-          (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
-        }}
+        className="object-cover object-center transition-transform duration-300 ease-out group-hover:scale-[1.03] pointer-events-none select-none"
       />
 
       {/* 2. Top-Left Category Badge */}

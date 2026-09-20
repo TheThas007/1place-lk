@@ -60,7 +60,7 @@ export default function PreOrderModal({
         selectedStorage: selectedStorage || "Standard",
         selectedRam: selectedRam || "",
         sku: skuText,
-        estimatedPrice: currentPrice,
+        estimatedPrice: typeof currentPrice === "number" && !isNaN(currentPrice) && currentPrice > 0 ? currentPrice : null,
         customerName: customerName.trim(),
         phone: phone.trim(),
         city: city.trim(),

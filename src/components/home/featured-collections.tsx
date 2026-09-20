@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { ChevronRight } from "lucide-react";
 import { FeaturedCollectionsSettings, FeaturedCollectionCard } from "@/lib/types";
@@ -159,20 +160,40 @@ function CollectionCard({ card }: { card: FeaturedCollectionCard; index: number 
         style={{ borderRadius: 0 }}
       >
         {!imgError ? (
-          <picture className="w-full h-full block rounded-none" style={{ borderRadius: 0 }}>
-            {card.mobile_image_url && (
-              <source media="(max-width: 640px)" srcSet={normalizeImageUrl(card.mobile_image_url)} />
+          <>
+            {card.mobile_image_url && card.desktop_image_url && card.mobile_image_url !== card.desktop_image_url ? (
+              <>
+                <Image
+                  src={normalizeImageUrl(card.mobile_image_url)}
+                  alt={card.image_alt || card.title}
+                  fill
+                  sizes="(max-width: 640px) 100vw, 0px"
+                  className="sm:hidden object-cover block p-0 m-0 rounded-none transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.018] motion-reduce:transform-none"
+                  style={{ objectPosition: focalPosition, borderRadius: 0 }}
+                  onError={() => setImgError(true)}
+                />
+                <Image
+                  src={normalizeImageUrl(card.desktop_image_url)}
+                  alt={card.image_alt || card.title}
+                  fill
+                  sizes="(max-width: 640px) 0px, 50vw"
+                  className="hidden sm:block object-cover p-0 m-0 rounded-none transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.018] motion-reduce:transform-none"
+                  style={{ objectPosition: focalPosition, borderRadius: 0 }}
+                  onError={() => setImgError(true)}
+                />
+              </>
+            ) : (
+              <Image
+                src={imageSource}
+                alt={card.image_alt || card.title}
+                fill
+                sizes="(max-width: 768px) 100vw, 50vw"
+                className="object-cover block p-0 m-0 rounded-none transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.018] motion-reduce:transform-none"
+                style={{ objectPosition: focalPosition, borderRadius: 0 }}
+                onError={() => setImgError(true)}
+              />
             )}
-            <img
-              src={imageSource}
-              alt={card.image_alt || card.title}
-              loading="lazy"
-              decoding="async"
-              className="w-full h-full object-cover block p-0 m-0 rounded-none transition-transform duration-500 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.018] motion-reduce:transform-none"
-              style={{ objectPosition: focalPosition, borderRadius: 0 }}
-              onError={() => setImgError(true)}
-            />
-          </picture>
+          </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-neutral-400 font-mono text-xs rounded-none">
             Street Mobile Collection
@@ -319,13 +340,12 @@ export default function FeaturedCollections({ settings }: FeaturedCollectionsPro
         <div className="relative w-full aspect-[16/9] rounded-2xl overflow-hidden shadow-xs text-white border border-neutral-800/20 p-3.5 sm:p-5 flex flex-col justify-between">
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
-            <img
+            <Image
               src={lifestyleImage}
               alt={firstCard?.title || "Featured Collection"}
-              className="w-full h-full object-cover object-center"
-              onError={(e) => {
-                (e.target as HTMLImageElement).src = "https://images.unsplash.com/photo-1516257984-b1b4d707412e?q=80&w=800";
-              }}
+              fill
+              sizes="100vw"
+              className="object-cover object-center"
             />
             {/* Subtle dark gradient overlay for text readability */}
             <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-60% to-transparent z-10 pointer-events-none" />

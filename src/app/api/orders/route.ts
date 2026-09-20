@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getLocalOrders, saveLocalOrder, updateLocalOrderStatus, deleteLocalOrder, OrderRecord } from "@/lib/orders-store";
 import { db } from "@/lib/firebase";
-import { collection, addDoc, getDocs, doc, getDoc, query, where, limit, setDoc, updateDoc, deleteDoc } from "firebase/firestore";
+import { collection, addDoc, getDocs, doc, getDoc, query, where, limit, setDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { deductProductStock } from "@/lib/stock-deduction";
 
 // GET /api/orders - returns all orders
@@ -110,6 +110,46 @@ export async function POST(req: Request) {
       );
     }
 
+    const items = Array.isArray(body.items) ? body.items : [];
+    if (items.length === 0) {
+      return NextResponse.json(
+        { success: false, error: "Order must contain at least one product." },
+        { status: 400 }
+      );
+    }
+
+    // Zero / Invalid Price & Quantity Protection
+    for (const item of items) {
+      const itemPrice = Number(item.price);
+      const itemQty = Number(item.quantity);
+      if (isNaN(itemPrice) || itemPrice <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid price detected for item "${item.name || "Product"}". Please refresh your cart or contact support.`,
+          },
+          { status: 400 }
+        );
+      }
+      if (isNaN(itemQty) || itemQty <= 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: `Invalid quantity detected for item "${item.name || "Product"}".`,
+          },
+          { status: 400 }
+        );
+      }
+    }
+
+    const calculatedTotal = Number(body.totalPrice ?? body.finalTotal);
+    if (isNaN(calculatedTotal) || calculatedTotal <= 0) {
+      return NextResponse.json(
+        { success: false, error: "Invalid order total amount." },
+        { status: 400 }
+      );
+    }
+
     const orderId = body.id || `SM-${Math.floor(100000 + Math.random() * 900000)}`;
 
     const isCard = (body.paymentMethod || "").toString().toLowerCase().includes("payhere") || (body.paymentMethod || "").toString().toLowerCase().includes("card");
@@ -213,25 +253,95 @@ export async function PATCH(req: Request) {
   }
 }
 
-// DELETE /api/orders - delete order
+// DELETE /api/orders - permanent single or bulk order delete
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
-    const id = searchParams.get("id");
-    if (!id) {
-      return NextResponse.json({ success: false, error: "Missing id" }, { status: 400 });
+    const queryId = searchParams.get("id");
+    const queryIds = searchParams.get("ids");
+
+    let idsToDelete: string[] = [];
+    if (queryIds) {
+      idsToDelete = queryIds.split(",").map((s) => s.trim()).filter(Boolean);
+    } else if (queryId) {
+      idsToDelete = [queryId.trim()];
+    } else {
+      try {
+        const body = await req.json();
+        if (Array.isArray(body.ids)) {
+          idsToDelete = body.ids.map((s: any) => String(s).trim()).filter(Boolean);
+        } else if (body.id) {
+          idsToDelete = [String(body.id).trim()];
+        }
+      } catch {
+        // No body provided
+      }
     }
 
-    deleteLocalOrder(id);
-
-    try {
-      await deleteDoc(doc(db, "orders", id));
-    } catch (e) {
-      console.warn("Firestore delete warning:", e);
+    if (idsToDelete.length === 0) {
+      return NextResponse.json({ success: false, error: "Missing order id or ids" }, { status: 400 });
     }
 
-    return NextResponse.json({ success: true });
+    const ORDER_SUBCOLLECTIONS = ["items", "payments", "statusHistory", "notes", "tracking", "history", "audit"];
+    let deletedCount = 0;
+    const errors: string[] = [];
+
+    // Delete in chunks of 100 to stay safely below Firestore batch limits (500 ops)
+    const CHUNK_SIZE = 100;
+    for (let i = 0; i < idsToDelete.length; i += CHUNK_SIZE) {
+      const chunk = idsToDelete.slice(i, i + CHUNK_SIZE);
+      const batch = writeBatch(db);
+
+      for (const id of chunk) {
+        // Purge local file storage
+        try {
+          deleteLocalOrder(id);
+        } catch (localErr) {
+          console.warn(`Local store delete warning for ${id}:`, localErr);
+        }
+
+        // Clean any subcollection documents if they exist
+        for (const subName of ORDER_SUBCOLLECTIONS) {
+          try {
+            const subSnap = await getDocs(collection(db, "orders", id, subName));
+            for (const subDoc of subSnap.docs) {
+              batch.delete(subDoc.ref);
+            }
+          } catch {
+            // subcollection doesn't exist or isn't queryable
+          }
+        }
+
+        // Delete parent order document
+        batch.delete(doc(db, "orders", id));
+      }
+
+      try {
+        await batch.commit();
+        deletedCount += chunk.length;
+      } catch (batchErr: any) {
+        console.error("Firestore batch delete error:", batchErr);
+        errors.push(batchErr?.message || "Batch delete error");
+        // Fallback: delete individually
+        for (const id of chunk) {
+          try {
+            await deleteDoc(doc(db, "orders", id));
+            deletedCount++;
+          } catch (singleErr: any) {
+            console.error(`Single delete error for ${id}:`, singleErr);
+          }
+        }
+      }
+    }
+
+    return NextResponse.json({
+      success: deletedCount > 0,
+      deletedCount,
+      totalRequested: idsToDelete.length,
+      errors: errors.length > 0 ? errors : undefined,
+    });
   } catch (err: any) {
+    console.error("DELETE /api/orders error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
   }
 }

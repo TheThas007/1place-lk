@@ -49,51 +49,204 @@ nextjs-portal,
   display: none !important;
 }
 
-/* ── Admin Panel Design Tokens & Scoped Theme Variables ── */
+/* ── StreetMobile Admin Panel Design Tokens & Scoped Theme Variables ── */
 [data-admin-root] {
-  --admin-bg: #090D14;
-  --admin-surface: #0F172A;
-  --admin-surface-subtle: #111827;
-  --admin-surface-elevated: #1E293B;
+  font-family: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif !important;
+
+  /* Master SaaS Admin Design System - Dark Palette Default */
+  --admin-bg: #080C12;
+  --admin-body: #080C12;
+  --admin-sidebar: #0E141D;
+  --admin-sidebar-expanded: #121A25;
+  --admin-card: #0E141D;
+  --admin-card-hover: #121A25;
+  --admin-input: #0B111A;
+  --admin-dropdown: #0E141D;
+  --admin-modal: #0E141D;
   --admin-border: rgba(255, 255, 255, 0.08);
-  --admin-border-strong: rgba(255, 255, 255, 0.16);
-  --admin-text-primary: #F8FAFC;
-  --admin-text-secondary: #94A3B8;
-  --admin-text-muted: #64748B;
+  --admin-border-strong: rgba(255, 255, 255, 0.14);
+  --admin-border-subtle: rgba(255, 255, 255, 0.05);
+  --admin-divider: rgba(255, 255, 255, 0.08);
+  --admin-text-main: #F8FAFC;
+  --admin-text-secondary: #CBD5E1;
+  --admin-text-muted: #94A3B8;
   --admin-primary: #2563EB;
   --admin-primary-hover: #1D4ED8;
-  --admin-primary-subtle: rgba(37, 99, 235, 0.12);
+  --admin-primary-text: #FFFFFF;
   --admin-success: #10B981;
-  --admin-success-subtle: rgba(16, 185, 129, 0.12);
   --admin-warning: #F59E0B;
-  --admin-warning-subtle: rgba(245, 158, 11, 0.12);
   --admin-danger: #EF4444;
-  --admin-danger-subtle: rgba(239, 68, 68, 0.12);
+  --admin-info: #38BDF8;
+
+  /* Legacy variable mappings for backward compatibility across all subtabs */
+  --admin-surface: var(--admin-card);
+  --admin-surface-subtle: #121A25;
+  --admin-surface-elevated: #121A25;
+  --admin-text-primary: var(--admin-text-main);
+}
+
+[data-admin-root][data-admin-theme="dark"],
+[data-admin-theme="dark"] [data-admin-root],
+[data-theme="dark"] {
+  --admin-bg: #080C12;
+  --admin-body: #080C12;
+  --admin-sidebar: #0E141D;
+  --admin-sidebar-expanded: #121A25;
+  --admin-card: #0E141D;
+  --admin-card-hover: #121A25;
+  --admin-input: #0B111A;
+  --admin-dropdown: #0E141D;
+  --admin-modal: #0E141D;
+  --admin-border: rgba(255, 255, 255, 0.08);
+  --admin-border-strong: rgba(255, 255, 255, 0.14);
+  --admin-border-subtle: rgba(255, 255, 255, 0.05);
+  --admin-divider: rgba(255, 255, 255, 0.08);
+  --admin-text-main: #F8FAFC;
+  --admin-text-secondary: #CBD5E1;
+  --admin-text-muted: #94A3B8;
+  --admin-primary: #2563EB;
+  --admin-primary-hover: #1D4ED8;
+  --admin-primary-text: #FFFFFF;
+  --admin-success: #10B981;
+  --admin-warning: #F59E0B;
+  --admin-danger: #EF4444;
+  --admin-info: #38BDF8;
 }
 
 [data-admin-root][data-admin-theme="light"],
-[data-admin-theme="light"] [data-admin-root] {
-  --admin-bg: #F8FAFC;
-  --admin-surface: #FFFFFF;
-  --admin-surface-subtle: #F1F5F9;
-  --admin-surface-elevated: #FFFFFF;
+[data-admin-theme="light"] [data-admin-root],
+[data-theme="light"] {
+  --admin-bg: #F5F7FA;
+  --admin-body: #F5F7FA;
+  --admin-sidebar: #FFFFFF;
+  --admin-sidebar-expanded: #F8FAFC;
+  --admin-card: #FFFFFF;
+  --admin-card-hover: #F8FAFC;
+  --admin-input: #FFFFFF;
+  --admin-dropdown: #FFFFFF;
+  --admin-modal: #FFFFFF;
   --admin-border: #E2E8F0;
   --admin-border-strong: #CBD5E1;
-  --admin-text-primary: #0F172A;
+  --admin-border-subtle: #F1F5F9;
+  --admin-divider: #E2E8F0;
+  --admin-text-main: #0F172A;
   --admin-text-secondary: #475569;
   --admin-text-muted: #64748B;
   --admin-primary: #2563EB;
   --admin-primary-hover: #1D4ED8;
-  --admin-primary-subtle: rgba(37, 99, 235, 0.08);
-  --admin-success: #059669;
-  --admin-success-subtle: rgba(5, 150, 105, 0.08);
-  --admin-warning: #D97706;
-  --admin-warning-subtle: rgba(217, 119, 6, 0.08);
-  --admin-danger: #DC2626;
-  --admin-danger-subtle: rgba(220, 38, 38, 0.08);
+  --admin-primary-text: #FFFFFF;
+  --admin-success: #10B981;
+  --admin-warning: #F59E0B;
+  --admin-danger: #EF4444;
+  --admin-info: #0EA5E9;
+
+  --light-bg: #F5F7FA;
+  --light-card: #FFFFFF;
+  --light-text: #0F172A;
+  --light-secondary: #475569;
+  --light-muted: #64748B;
+  --light-border: #E2E8F0;
+  --light-hover: #F8FAFC;
+  --light-primary: #2563EB;
 }
 
-@custom-variant dark (&:is(.dark *));
+/* ── Smooth Theme Transitions & Unified Admin Token Utilities ── */
+[data-admin-root] {
+  transition: background-color 150ms ease-out, color 150ms ease-out, border-color 150ms ease-out;
+}
+
+[data-admin-root] .admin-bg {
+  background-color: var(--admin-bg) !important;
+}
+[data-admin-root] .admin-sidebar {
+  background-color: var(--admin-sidebar) !important;
+}
+[data-admin-root] .admin-card {
+  background-color: var(--admin-card) !important;
+  border-color: var(--admin-border) !important;
+}
+[data-admin-root] .admin-card-elevated {
+  background-color: var(--admin-card-hover) !important;
+  border-color: var(--admin-border) !important;
+}
+[data-admin-root] .admin-border {
+  border-color: var(--admin-border) !important;
+}
+[data-admin-root] .admin-text {
+  color: var(--admin-text-main) !important;
+}
+[data-admin-root] .admin-text-secondary {
+  color: var(--admin-text-secondary) !important;
+}
+
+/* Backward-compatibility bridge for hardcoded dark & slate shades across all admin sub-tabs */
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#090D14\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#080D14\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#080C12\] {
+  background-color: #080C12 !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#0F172A\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#101821\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#07111C\] {
+  background-color: #0E141D !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#1E293B\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#141F2B\],
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#0E1A27\] {
+  background-color: #121A25 !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .bg-\[\#0D1722\] {
+  background-color: #0B111A !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .border-white\/10,
+[data-admin-root]:not([data-admin-theme="light"]) .border-white\/5,
+[data-admin-root]:not([data-admin-theme="light"]) .border-\[\#1E2A36\] {
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .text-slate-400 {
+  color: #94A3B8 !important;
+}
+[data-admin-root]:not([data-admin-theme="light"]) .text-slate-300 {
+  color: #CBD5E1 !important;
+}
+
+[data-admin-root][data-admin-theme="light"] .bg-\[\#090D14\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#080D14\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#080C12\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#0B1119\] {
+  background-color: #F5F7FA !important;
+}
+[data-admin-root][data-admin-theme="light"] .bg-\[\#0F172A\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#101821\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#0E141D\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#07111C\],
+[data-admin-root][data-admin-theme="light"] .bg-slate-900,
+[data-admin-root][data-admin-theme="light"] .bg-slate-950 {
+  background-color: #FFFFFF !important;
+}
+[data-admin-root][data-admin-theme="light"] .bg-\[\#1E293B\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#141F2B\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#0E1A27\],
+[data-admin-root][data-admin-theme="light"] .bg-\[\#0D1722\] {
+  background-color: #F8FAFC !important;
+}
+[data-admin-root][data-admin-theme="light"] .border-white\/10,
+[data-admin-root][data-admin-theme="light"] .border-white\/5,
+[data-admin-root][data-admin-theme="light"] .border-\[\#1E2A36\] {
+  border-color: #E2E8F0 !important;
+}
+[data-admin-root][data-admin-theme="light"] .text-slate-400 {
+  color: #64748B !important;
+}
+[data-admin-root][data-admin-theme="light"] .text-slate-300 {
+  color: #475569 !important;
+}
+[data-admin-root][data-admin-theme="light"] .text-slate-200,
+[data-admin-root][data-admin-theme="light"] .text-white {
+  color: #0F172A !important;
+}
+
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme inline {
   --color-background: #ffffff;

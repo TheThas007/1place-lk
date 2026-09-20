@@ -6,6 +6,7 @@ import { Sparkles, Plus, Search, Edit, Trash2, Copy, Eye, Tag, Calendar, Monitor
 import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
 import CampaignPopupControl from "@/components/admin/CampaignPopupControl";
 import NewArrivalsControl from "@/components/admin/NewArrivalsControl";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface BannersTabProps {
   banners: OfferBanner[];
@@ -26,6 +27,7 @@ export default function BannersTab({
   onDuplicate,
   onToggleStatus,
 }: BannersTabProps) {
+  const { isLight } = useAdminTheme();
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlacement, setSelectedPlacement] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -74,17 +76,17 @@ export default function BannersTab({
       {/* Top Header & Search Bar */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h3 className="text-xl font-bold text-white flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-amber-400" /> Offer Banner Manager
+          <h3 className={`text-xl font-bold flex items-center gap-2 ${isLight ? "text-[#0F172A]" : "text-white"}`}>
+            <Sparkles className="w-5 h-5 text-amber-500" /> Offer Banner Manager
           </h3>
-          <p className="text-xs text-white/50 mt-0.5">
+          <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500" : "text-[#94A3B8]"}`}>
             Manage all marketing banners, hero sliders, announcement bars, and popups
           </p>
         </div>
 
         <button
           onClick={onAdd}
-          className="px-5 py-2.5 rounded-xl bg-amber-400 text-black text-xs font-bold flex items-center gap-2 hover:bg-amber-300 transition-all shadow-lg active:scale-95 shrink-0"
+          className="px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold flex items-center gap-2 shadow-sm transition-all cursor-pointer shrink-0"
         >
           <Plus className="w-4 h-4" /> Create Offer Banner
         </button>
@@ -93,20 +95,24 @@ export default function BannersTab({
       {/* Filter Bar */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/40" />
+          <Search className={`absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 ${isLight ? "text-slate-400" : "text-[#94A3B8]"}`} />
           <input
             type="text"
             placeholder="Search by title, coupon..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 bg-white/5 border border-white/10 rounded-xl text-xs text-white placeholder-white/30 focus:outline-none"
+            className={`w-full pl-9 pr-4 py-2 border rounded-xl text-xs outline-none transition-all ${
+              isLight ? "bg-white border-slate-200 text-slate-900 placeholder-slate-400 focus:border-blue-500" : "bg-[#0E141D] border-white/[0.08] text-white placeholder-slate-500 focus:border-blue-500"
+            }`}
           />
         </div>
 
         <select
           value={selectedPlacement}
           onChange={(e) => setSelectedPlacement(e.target.value)}
-          className="px-3.5 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+          className={`px-3.5 py-2 border rounded-xl text-xs outline-none cursor-pointer transition-all ${
+            isLight ? "bg-white border-slate-200 text-slate-900 focus:border-blue-500" : "bg-[#0E141D] border-white/[0.08] text-white focus:border-blue-500"
+          }`}
         >
           <option value="all">All Placements</option>
           <option value="homepage_hero">Homepage Hero Slider</option>
@@ -120,7 +126,9 @@ export default function BannersTab({
         <select
           value={selectedStatus}
           onChange={(e) => setSelectedStatus(e.target.value)}
-          className="px-3.5 py-2 bg-zinc-900 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
+          className={`px-3.5 py-2 border rounded-xl text-xs outline-none cursor-pointer transition-all ${
+            isLight ? "bg-white border-slate-200 text-slate-900 focus:border-blue-500" : "bg-[#0E141D] border-white/[0.08] text-white focus:border-blue-500"
+          }`}
         >
           <option value="all">All Statuses</option>
           <option value="active">Active</option>
@@ -133,18 +141,22 @@ export default function BannersTab({
 
       {/* Banner Cards Grid */}
       {filteredBanners.length === 0 ? (
-        <div className="p-12 text-center bg-zinc-900/40 rounded-2xl border border-white/5">
-          <p className="text-sm text-white/50">No offer banners found matching filters.</p>
+        <div className={`p-12 text-center rounded-2xl border ${
+          isLight ? "bg-white border-slate-200 text-slate-500" : "bg-[#0E141D] border-white/[0.08] text-slate-400"
+        }`}>
+          <p className="text-sm">No offer banners found matching filters.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {filteredBanners.map((banner) => (
             <div
               key={banner.id}
-              className="bg-zinc-900/70 border border-white/10 rounded-2xl overflow-hidden hover:border-white/20 transition-all flex flex-col group"
+              className={`rounded-2xl border overflow-hidden transition-all flex flex-col group ${
+                isLight ? "bg-white border-slate-200 hover:border-slate-300 shadow-xs" : "bg-[#0E141D] border-white/[0.08] hover:border-white/20"
+              }`}
             >
               {/* Media Preview Box */}
-              <div className="relative aspect-[16/9] bg-zinc-950 overflow-hidden">
+              <div className="relative aspect-[16/9] bg-slate-900 overflow-hidden">
                 {banner.desktopImage ? (
                   <img
                     src={banner.desktopImage}
@@ -165,17 +177,17 @@ export default function BannersTab({
               {/* Card Body */}
               <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                 <div>
-                  <h4 className="text-sm font-bold text-white truncate">{banner.internalName}</h4>
-                  <p className="text-xs text-amber-400 font-medium mt-0.5 truncate">{banner.headline}</p>
+                  <h4 className={`text-sm font-bold truncate ${isLight ? "text-slate-900" : "text-white"}`}>{banner.internalName}</h4>
+                  <p className="text-xs text-blue-600 font-medium mt-0.5 truncate">{banner.headline}</p>
                   {banner.couponCode && (
-                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-white/10 text-[10px] font-mono text-white/80">
-                      <Tag className="w-3 h-3 text-amber-400" /> {banner.couponCode}
+                    <div className="mt-2 inline-flex items-center gap-1 px-2 py-0.5 rounded bg-blue-500/10 text-[10px] font-mono text-blue-600 border border-blue-500/20">
+                      <Tag className="w-3 h-3 text-blue-600" /> {banner.couponCode}
                     </div>
                   )}
                 </div>
 
                 {/* Actions */}
-                <div className="pt-3 border-t border-white/10 flex items-center justify-between">
+                <div className={`pt-3 border-t flex items-center justify-between ${isLight ? "border-slate-100" : "border-white/10"}`}>
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => onEdit(banner)}

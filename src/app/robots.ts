@@ -5,7 +5,7 @@ export default function robots(): MetadataRoute.Robots {
     rules: [
       {
         userAgent: "*",
-        allow: "/",
+        allow: ["/", "/api/products/feed", "/feed.xml"],
         disallow: [
           "/admin",
           "/admin/*",
@@ -18,12 +18,11 @@ export default function robots(): MetadataRoute.Robots {
           "/wishlist",
           "/payment/*",
           "/api/*",
-          "/_next/*",
         ],
       },
       {
         userAgent: "Googlebot",
-        allow: "/",
+        allow: ["/", "/api/products/feed", "/feed.xml"],
         disallow: [
           "/admin",
           "/admin/*",

@@ -305,20 +305,83 @@ export function isCategoryName(str?: string | null): boolean {
 }
 
 /**
- * Filter and sanitize a list of categories so that:
+ * Normalizes a category string to a stable canonical comparison key:
+ * - safely converts to string
+ * - strips emojis & catalog symbols
+ * - trims leading and trailing whitespace
+ * - collapses consecutive whitespace into a single space
+ * - converts to lowercase
+ */
+export function normalizeCategoryKey(name?: string | null): string {
+  if (!name) return "";
+  return cleanCatalogString(String(name))
+    .trim()
+    .replace(/\s+/g, " ")
+    .toLowerCase();
+}
+
+/**
+ * Clean Human-Readable Category Display Name Formatter:
+ * - Collapses irregular whitespace
+ * - Preserves standard canonical category casing (e.g. "Smartphones", "Earbuds & TWS")
+ * - Formats all-caps or all-lowercase names into clean Title Case while respecting acronyms (TWS, OTG, USB)
+ */
+export function formatCategoryDisplayName(rawName?: string | null, fallbackDocName?: string | null): string {
+  const clean = cleanCatalogString(rawName || fallbackDocName || "").trim().replace(/\s+/g, " ");
+  if (!clean) return "Uncategorized";
+
+  // Check against standard categories
+  const matchedStandard = STANDARD_CATEGORIES.find(
+    (sc) => sc.toLowerCase() === clean.toLowerCase()
+  );
+  if (matchedStandard) return matchedStandard;
+
+  // Check alias
+  const lower = clean.toLowerCase();
+  if (CATEGORY_ALIASES[lower]) {
+    return CATEGORY_ALIASES[lower];
+  }
+
+  // If already mixed case (e.g. "Car Mount", "Screen Protectors"), keep it
+  const hasLower = /[a-z]/.test(clean);
+  const hasUpper = /[A-Z]/.test(clean);
+  if (hasLower && hasUpper && clean !== clean.toUpperCase() && clean !== clean.toLowerCase()) {
+    return clean;
+  }
+
+  // Format into Title Case
+  const words = clean.split(" ");
+  const formatted = words.map((w) => {
+    const wLower = w.toLowerCase();
+    if (["otg", "tws", "usb", "led"].includes(wLower)) return w.toUpperCase();
+    if (wLower === "&" || wLower === "and") return "&";
+    return w.charAt(0).toUpperCase() + w.slice(1).toLowerCase();
+  });
+
+  return formatted.join(" ");
+}
+
+/**
+ * Filter, deduplicate, and sanitize a list of categories so that:
+ * - NO duplicate categories differing only by case, leading/trailing spaces, or formatting
  * - NO brand names are included (e.g. Apple, Samsung, JBL are excluded)
  * - Aliases are normalized to canonical standard names
  * - Unique and sorted list is returned
  */
 export function sanitizeCategoriesList(rawList: (string | { name?: string })[]): string[] {
-  const set = new Set<string>(STANDARD_CATEGORIES);
+  const map = new Map<string, string>();
+
+  STANDARD_CATEGORIES.forEach((cat) => {
+    map.set(normalizeCategoryKey(cat), cat);
+  });
 
   rawList.forEach((item) => {
     const rawName = typeof item === "string" ? item : item?.name || "";
-    const clean = cleanCatalogString(rawName);
-    if (!clean) return;
+    const clean = cleanCatalogString(rawName).trim().replace(/\s+/g, " ");
+    if (!clean || clean.length <= 1 || clean.startsWith("--")) return;
 
     const lower = clean.toLowerCase();
+    const key = normalizeCategoryKey(clean);
 
     // If it's recognized as a brand name, EXCLUDE IT completely!
     if (isBrandName(clean) || lower === "apple" || lower === "samsung" || lower === "xiaomi" || lower === "redmi") {
@@ -326,30 +389,47 @@ export function sanitizeCategoriesList(rawList: (string | { name?: string })[]):
     }
 
     if (CATEGORY_ALIASES[lower]) {
-      set.add(CATEGORY_ALIASES[lower]);
-    } else if (clean.length > 1 && !clean.startsWith("--")) {
-      set.add(clean);
+      const canonical = CATEGORY_ALIASES[lower];
+      map.set(normalizeCategoryKey(canonical), canonical);
+    } else {
+      if (!map.has(key)) {
+        map.set(key, formatCategoryDisplayName(clean));
+      } else {
+        // If this one has better casing (e.g. Title Case vs ALL-CAPS), prefer it
+        const current = map.get(key)!;
+        const currentIsAllUpperOrLower = current === current.toUpperCase() || current === current.toLowerCase();
+        const cleanIsMixed = /[a-z]/.test(clean) && /[A-Z]/.test(clean);
+        if (currentIsAllUpperOrLower && cleanIsMixed) {
+          map.set(key, clean);
+        }
+      }
     }
   });
 
-  return Array.from(set).sort((a, b) => a.localeCompare(b));
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
 }
 
 /**
- * Filter and sanitize a list of brands so that:
+ * Filter, deduplicate, and sanitize a list of brands so that:
+ * - NO duplicate brands differing only by case, leading/trailing spaces, or formatting
  * - NO category names are included (e.g. Smartphones, Earbuds are excluded)
  * - Aliases are normalized to canonical standard names
  * - Unique and sorted list is returned
  */
 export function sanitizeBrandsList(rawList: (string | { name?: string })[]): string[] {
-  const set = new Set<string>(STANDARD_BRANDS);
+  const map = new Map<string, string>();
+
+  STANDARD_BRANDS.forEach((brand) => {
+    map.set(normalizeCategoryKey(brand), brand);
+  });
 
   rawList.forEach((item) => {
     const rawName = typeof item === "string" ? item : item?.name || "";
-    const clean = cleanCatalogString(rawName);
-    if (!clean) return;
+    const clean = cleanCatalogString(rawName).trim().replace(/\s+/g, " ");
+    if (!clean || clean.length <= 1 || clean.startsWith("--")) return;
 
     const lower = clean.toLowerCase();
+    const key = normalizeCategoryKey(clean);
 
     // If it's recognized as a category name, EXCLUDE IT completely!
     if (isCategoryName(clean) || lower === "smartphones" || lower === "phone" || lower === "earbuds" || lower === "headphones") {
@@ -357,13 +437,23 @@ export function sanitizeBrandsList(rawList: (string | { name?: string })[]): str
     }
 
     if (BRAND_ALIASES[lower]) {
-      set.add(BRAND_ALIASES[lower]);
-    } else if (clean.length > 1 && !clean.startsWith("--")) {
-      set.add(clean);
+      const canonical = BRAND_ALIASES[lower];
+      map.set(normalizeCategoryKey(canonical), canonical);
+    } else {
+      if (!map.has(key)) {
+        map.set(key, clean);
+      } else {
+        const current = map.get(key)!;
+        const currentIsAllUpperOrLower = current === current.toUpperCase() || current === current.toLowerCase();
+        const cleanIsMixed = /[a-z]/.test(clean) && /[A-Z]/.test(clean);
+        if (currentIsAllUpperOrLower && cleanIsMixed) {
+          map.set(key, clean);
+        }
+      }
     }
   });
 
-  return Array.from(set).sort((a, b) => a.localeCompare(b));
+  return Array.from(map.values()).sort((a, b) => a.localeCompare(b));
 }
 
 /**

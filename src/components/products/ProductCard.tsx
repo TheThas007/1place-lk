@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { ShoppingBag, Heart, Check, Star } from "lucide-react";
 import { Product } from "@/lib/types";
 import { formatPrice, announceToScreenReader, getProductSlug, normalizeImageUrl } from "@/lib/utils";
@@ -150,13 +151,14 @@ export default function ProductCard({ product, className = "" }: ProductCardProp
           </button>
 
           {/* Product Image */}
-          <div className="w-full h-full flex items-center justify-center overflow-hidden p-2 sm:p-3">
-            <img
+          <div className="w-full h-full flex items-center justify-center overflow-hidden relative">
+            <Image
               src={mainImage}
               alt={product.name}
-              loading="lazy"
+              fill
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
               onError={() => setImageError(true)}
-              className="w-full h-full max-w-full max-h-full object-contain object-center transition-transform duration-300 ease-out group-hover:scale-105"
+              className="object-contain object-center transition-transform duration-300 ease-out group-hover:scale-105 p-2 sm:p-3"
             />
           </div>
         </div>

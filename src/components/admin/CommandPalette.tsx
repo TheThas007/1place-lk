@@ -33,6 +33,7 @@ import {
   X,
   Command,
 } from "lucide-react";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -52,6 +53,7 @@ interface CommandItem {
 
 export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: CommandPaletteProps) {
   const router = useRouter();
+  const { isLight } = useAdminTheme();
   const [query, setQuery] = useState("");
   const [selectedIndex, setSelectedIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,33 +182,53 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 p-4 bg-black/70 backdrop-blur-sm animate-in fade-in duration-150">
+    <div className="fixed inset-0 z-50 flex items-start justify-center pt-20 sm:pt-28 p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-150">
       <div
-        className="w-full max-w-xl bg-[#0F172A] border border-white/10 rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150"
+        className={`w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden animate-in zoom-in-95 duration-150 font-sans border ${
+          isLight
+            ? "bg-white border-[#E5E7EB] text-[#111827]"
+            : "bg-[#181A66] border-[#2A2D73]"
+        }`}
         onClick={(e) => e.stopPropagation()}
         onKeyDown={handleKeyDown}
       >
         {/* Search Input Bar */}
-        <div className="relative flex items-center px-4 py-3.5 border-b border-white/10">
-          <Search className="w-5 h-5 text-slate-400 shrink-0 mr-3" />
+        <div className={`relative flex items-center px-4 py-3.5 border-b ${
+          isLight
+            ? "border-[#E5E7EB] bg-white text-[#111827]"
+            : "border-[#2A2D73] bg-[#121358]/50"
+        }`}>
+          <Search className={`w-5 h-5 shrink-0 mr-3 ${
+            isLight ? "text-[#667085]" : "text-[#A8ABCC]"
+          }`} />
           <input
             ref={inputRef}
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Type a command or jump to page..."
-            className="w-full bg-transparent text-sm text-white placeholder-slate-400 outline-none font-medium"
+            className={`w-full bg-transparent text-sm outline-none font-medium ${
+              isLight
+                ? "text-[#111827] placeholder-[#98A2B3]"
+                : "text-white placeholder-[#A8ABCC]/60"
+            }`}
           />
           {query && (
             <button
               type="button"
               onClick={() => setQuery("")}
-              className="p-1 text-slate-400 hover:text-white rounded-md mr-1"
+              className={`p-1 rounded-md mr-1 ${
+                isLight ? "text-[#667085] hover:text-[#111827]" : "text-[#A8ABCC] hover:text-white"
+              }`}
             >
               <X className="w-4 h-4" />
             </button>
           )}
-          <span className="text-[10px] font-mono text-slate-400 bg-white/5 border border-white/10 px-1.5 py-0.5 rounded">
+          <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+            isLight
+              ? "bg-[#F3F4F6] text-[#667085] border-[#E5E7EB]"
+              : "bg-[#1E2175] text-[#A8ABCC] border-[#2A2D73]"
+          }`}>
             ESC
           </span>
         </div>
@@ -214,7 +236,9 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
         {/* Results List */}
         <div className="max-h-80 overflow-y-auto p-2 space-y-1 custom-scrollbar">
           {filteredCommands.length === 0 ? (
-            <div className="py-8 text-center text-xs text-slate-400 font-medium">
+            <div className={`py-8 text-center text-xs font-medium ${
+              isLight ? "text-[#667085]" : "text-[#A8ABCC]"
+            }`}>
               No matching pages or actions found for "{query}".
             </div>
           ) : (
@@ -228,16 +252,24 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
                   type="button"
                   onClick={() => executeCommand(item)}
                   onMouseEnter={() => setSelectedIndex(index)}
-                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs transition-colors ${
+                  className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl text-left text-xs transition-colors cursor-pointer ${
                     isSelected
-                      ? "bg-blue-600 text-white font-semibold"
-                      : "text-slate-300 hover:bg-white/5 hover:text-white"
+                      ? isLight
+                        ? "bg-[#111827] text-white font-semibold shadow-xs"
+                        : "bg-[#6C63FF] text-white font-semibold shadow-md shadow-[#6C63FF]/20"
+                      : isLight
+                        ? "text-[#374151] hover:bg-[#F3F4F6] hover:text-[#111827]"
+                        : "text-[#A8ABCC] hover:bg-[#1E2175] hover:text-white"
                   }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${
-                        isSelected ? "bg-white/20 text-white" : "bg-white/5 text-slate-400"
+                        isSelected
+                          ? "bg-white/20 text-white"
+                          : isLight
+                            ? "bg-[#F3F4F6] text-[#374151]"
+                            : "bg-[#1E2175] text-[#A8ABCC]"
                       }`}
                     >
                       <Icon className="w-4 h-4" />
@@ -250,12 +282,20 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
                       className={`text-[10px] px-2 py-0.5 rounded-md uppercase tracking-wider font-bold ${
                         isSelected
                           ? "bg-white/20 text-white"
-                          : "bg-white/5 text-slate-400 border border-white/5"
+                          : isLight
+                            ? "bg-[#F3F4F6] text-[#667085] border border-[#E5E7EB]"
+                            : "bg-[#1E2175] text-[#A8ABCC] border-[#2A2D73]"
                       }`}
                     >
                       {item.category}
                     </span>
-                    <ArrowRight className={`w-3.5 h-3.5 ${isSelected ? "text-white" : "text-slate-500"}`} />
+                    <ArrowRight className={`w-3.5 h-3.5 ${
+                      isSelected
+                        ? "text-white"
+                        : isLight
+                          ? "text-[#667085]"
+                          : "text-[#A8ABCC]/70"
+                    }`} />
                   </div>
                 </button>
               );
@@ -264,18 +304,36 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
         </div>
 
         {/* Footer Shortcut Helper */}
-        <div className="px-4 py-2 bg-[#090D14]/80 border-t border-white/5 flex items-center justify-between text-[11px] text-slate-400">
+        <div className={`px-4 py-2.5 border-t flex items-center justify-between text-[11px] ${
+          isLight
+            ? "bg-[#F9FAFB] border-[#E5E7EB] text-[#667085]"
+            : "bg-[#0D1048] border-[#2A2D73] text-[#A8ABCC]"
+        }`}>
           <div className="flex items-center gap-3">
             <span>
-              <kbd className="px-1.5 py-0.5 bg-white/10 rounded font-mono text-[10px]">↑</kbd>{" "}
-              <kbd className="px-1.5 py-0.5 bg-white/10 rounded font-mono text-[10px]">↓</kbd> to navigate
+              <kbd className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
+                isLight
+                  ? "bg-white border-[#E5E7EB] text-[#111827]"
+                  : "bg-[#181A66] border-[#2A2D73] text-white"
+              }`}>↑</kbd>{" "}
+              <kbd className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
+                isLight
+                  ? "bg-white border-[#E5E7EB] text-[#111827]"
+                  : "bg-[#181A66] border-[#2A2D73] text-white"
+              }`}>↓</kbd> to navigate
             </span>
             <span>
-              <kbd className="px-1.5 py-0.5 bg-white/10 rounded font-mono text-[10px]">↵</kbd> to select
+              <kbd className={`px-1.5 py-0.5 rounded font-mono text-[10px] border ${
+                isLight
+                  ? "bg-white border-[#E5E7EB] text-[#111827]"
+                  : "bg-[#181A66] border-[#2A2D73] text-white"
+              }`}>↵</kbd> to select
             </span>
           </div>
-          <span className="flex items-center gap-1 font-medium">
-            <Command className="w-3 h-3" /> Quick Switcher
+          <span className={`flex items-center gap-1 font-medium ${
+            isLight ? "text-[#111827]" : "text-white/80"
+          }`}>
+            <Command className={`w-3 h-3 ${isLight ? "text-[#111827]" : "text-[#6C63FF]"}`} /> Quick Switcher
           </span>
         </div>
       </div>

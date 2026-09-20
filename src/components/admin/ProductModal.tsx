@@ -34,7 +34,7 @@ import {
 import { Product, Category, ProductColor, ProductVariantCombo, WarrantyOption, InventoryLog, ProductImageSettings } from "@/lib/types";
 import { db } from "@/lib/firebase";
 import { addDoc, updateDoc, doc, collection, setDoc } from "firebase/firestore";
-import { getBrands, getCategories } from "@/lib/firestore-client";
+import { getBrands, getCategories, clearDataCache } from "@/lib/firestore-client";
 import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
@@ -257,6 +257,7 @@ export default function ProductModal({
   // Load live Firestore categories and brands whenever modal is opened
   useEffect(() => {
     if (!isOpen) return;
+    setActiveTab(1);
 
     let isMounted = true;
     async function loadLiveTaxonomies() {
@@ -516,7 +517,12 @@ export default function ProductModal({
       setHasStorageVariants(detectedHasStorage);
 
       // Spec Rows (Only populate if saved on product; otherwise empty array)
-      const rows = Object.entries(initialData.specifications || {}).map(([key, value]) => ({ key, value }));
+      const rawSpecs = initialData.specifications;
+      const rows = Array.isArray(rawSpecs)
+        ? rawSpecs.map((s: any) => ({ key: String(s?.key || s?.name || ""), value: String(s?.value || "") }))
+        : typeof rawSpecs === "object" && rawSpecs !== null
+        ? Object.entries(rawSpecs).map(([key, value]) => ({ key, value: String(value) }))
+        : [];
       setSpecRows(rows);
 
       // Colours
@@ -1061,7 +1067,8 @@ export default function ProductModal({
       const cleanedPayload = sanitizeForFirestore(productPayload);
 
       if (initialData?.id) {
-        await updateDoc(doc(db, "products", initialData.id), cleanedPayload);
+        await setDoc(doc(db, "products", initialData.id), cleanedPayload, { merge: true });
+      clearDataCache("products");
       } else {
         await addDoc(collection(db, "products"), cleanedPayload);
       }
@@ -1091,7 +1098,7 @@ export default function ProductModal({
           </button>
           <div>
             <h2 className="text-base font-black text-gray-900 tracking-tight flex items-center gap-2">
-              {initialData ? `Edit Product: ${initialData.name}` : "Create New Product"}
+              {initialData && initialData.id ? `Edit Product: ${name || initialData.name || "Product"}` : "Create New Product"}
               {hasUnsavedChanges && (
                 <span className="bg-amber-100 text-amber-800 text-[10px] font-bold px-2 py-0.5 rounded-full">
                   Unsaved Changes
@@ -1119,7 +1126,7 @@ export default function ProductModal({
             className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl transition-all shadow-md shadow-blue-600/30 flex items-center gap-2"
           >
             {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-            {initialData ? "Update Product" : "Publish Product"}
+            {Boolean(initialData && initialData.id) ? "Update Product" : "Publish Product"}
           </button>
         </div>
       </div>

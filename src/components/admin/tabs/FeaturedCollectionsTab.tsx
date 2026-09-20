@@ -42,6 +42,7 @@ import {
 } from "@/lib/types";
 import { DEFAULT_FEATURED_COLLECTIONS } from "@/lib/data";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface FeaturedCollectionsTabProps {
   products?: Product[];
@@ -93,6 +94,7 @@ export default function FeaturedCollectionsTab({
   initialSettings,
   onRefresh,
 }: FeaturedCollectionsTabProps) {
+  const { isLight } = useAdminTheme();
   const [settings, setSettings] = useState<FeaturedCollectionsSettings>(() => {
     if (initialSettings && initialSettings.cards && initialSettings.cards.length > 0) {
       return initialSettings;
@@ -290,16 +292,16 @@ export default function FeaturedCollectionsTab({
     <div className="space-y-8 max-w-7xl mx-auto pb-16">
       
       {/* ── Top Header & Global Actions ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-neutral-900 border border-neutral-800 p-6 rounded-2xl shadow-xl">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border p-6 rounded-2xl`}>
         <div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 text-blue-400 text-xs font-bold mb-2">
+          <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full ${isLight ? "bg-blue-50 text-blue-700" : "bg-blue-500/10 text-blue-400"} text-xs font-bold mb-2`}>
             <Sparkles className="w-3.5 h-3.5" />
             <span>Square-Edged Full-Frame Banners</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-black text-white tracking-tight">
+          <h1 className={`text-2xl sm:text-3xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
             Featured Collections
           </h1>
-          <p className="text-neutral-400 text-xs sm:text-sm mt-1">
+          <p className={`text-xs sm:text-sm mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
             2×2 full-frame image grid with overlay typography, customizable focal points, and zero corner radius.
           </p>
         </div>
@@ -308,7 +310,11 @@ export default function FeaturedCollectionsTab({
           <button
             type="button"
             onClick={handleResetToDefaults}
-            className="px-3.5 py-2.5 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-bold flex items-center gap-2 transition-all active:scale-95 cursor-pointer"
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-medium flex items-center gap-2 transition-all active:scale-95 cursor-pointer border ${
+              isLight
+                ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs"
+                : "bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10"
+            }`}
             title="Reset to default template"
           >
             <RotateCcw className="w-3.5 h-3.5" />
@@ -318,7 +324,7 @@ export default function FeaturedCollectionsTab({
           <button
             type="button"
             onClick={handleOpenAddModal}
-            className="px-4 py-2.5 rounded-xl bg-[#0071E3] hover:bg-[#0077ED] text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-blue-600/30 active:scale-95 cursor-pointer"
+            className="px-4 py-2.5 rounded-xl bg-[#2563EB] hover:bg-[#1D4ED8] text-white text-xs font-semibold flex items-center gap-2 transition-all shadow-xs active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Add Banner</span>
@@ -328,10 +334,10 @@ export default function FeaturedCollectionsTab({
             type="button"
             onClick={handleSaveToFirestore}
             disabled={saving}
-            className={`px-5 py-2.5 rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-lg active:scale-95 cursor-pointer ${
+            className={`px-5 py-2.5 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs active:scale-95 cursor-pointer ${
               savedSuccess
                 ? "bg-emerald-600 text-white"
-                : "bg-white hover:bg-neutral-200 text-black"
+                : "bg-[#2563EB] hover:bg-[#1D4ED8] text-white"
             }`}
           >
             {saving ? (
@@ -355,7 +361,7 @@ export default function FeaturedCollectionsTab({
       </div>
 
       {/* ── Global Section Settings Bar ── */}
-      <div className="bg-neutral-900/90 border border-neutral-800 p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+      <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border p-5 rounded-2xl flex flex-col md:flex-row items-start md:items-center justify-between gap-4`}>
         <div className="flex items-center gap-3">
           <label className="relative inline-flex items-center cursor-pointer">
             <input
@@ -364,11 +370,11 @@ export default function FeaturedCollectionsTab({
               onChange={(e) => setSettings({ ...settings, enabled: e.target.checked })}
               className="sr-only peer"
             />
-            <div className="w-11 h-6 bg-neutral-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            <div className={`w-11 h-6 ${isLight ? "bg-slate-200" : "bg-neutral-800"} peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500`}></div>
           </label>
           <div>
-            <h4 className="text-sm font-bold text-white">Enable Section on Homepage</h4>
-            <p className="text-xs text-neutral-400">
+            <h4 className={`text-sm font-bold ${isLight ? "text-slate-900" : "text-white"}`}>Enable Section on Homepage</h4>
+            <p className={`text-xs ${isLight ? "text-slate-500" : "text-neutral-400"}`}>
               When toggled off, the entire Featured Collections section is hidden from the homepage.
             </p>
           </div>
@@ -381,7 +387,9 @@ export default function FeaturedCollectionsTab({
               placeholder="Section Title (Optional)"
               value={settings.title || ""}
               onChange={(e) => setSettings({ ...settings, title: e.target.value })}
-              className="w-full px-3.5 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+              className={`w-full px-3.5 py-2 rounded-xl text-xs outline-none focus:border-blue-500 border ${
+                isLight ? "bg-[#F8FAFC] border-[#E2E8F0] text-slate-900 placeholder:text-slate-400 focus:bg-white" : "bg-[#0B111A] border-white/[0.08] text-white placeholder-neutral-500"
+              }`}
             />
           </div>
           <div className="flex-1 md:w-72">
@@ -390,7 +398,9 @@ export default function FeaturedCollectionsTab({
               placeholder="Section Subtitle (Optional)"
               value={settings.subtitle || ""}
               onChange={(e) => setSettings({ ...settings, subtitle: e.target.value })}
-              className="w-full px-3.5 py-2 rounded-xl bg-neutral-800 border border-neutral-700 text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-blue-500"
+              className={`w-full px-3.5 py-2 rounded-xl text-xs outline-none focus:border-blue-500 border ${
+                isLight ? "bg-[#F8FAFC] border-[#E2E8F0] text-slate-900 placeholder:text-slate-400 focus:bg-white" : "bg-[#0B111A] border-white/[0.08] text-white placeholder-neutral-500"
+              }`}
             />
           </div>
         </div>

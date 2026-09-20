@@ -31,6 +31,7 @@ import { db } from "@/lib/firebase";
 import { Product, Category, VisualShowcaseSettings, VisualShowcaseSlide, ShowcasePlacement } from "@/lib/types";
 import { DEFAULT_SHOWCASE_SETTINGS } from "@/lib/data";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface ShowcaseTabProps {
   products: Product[];
@@ -65,6 +66,7 @@ export default function ShowcaseTab({
   initialSettings,
   onRefresh,
 }: ShowcaseTabProps) {
+  const { isLight } = useAdminTheme();
   const [settings, setSettings] = useState<VisualShowcaseSettings>(() => {
     if (initialSettings && initialSettings.slides && initialSettings.slides.length > 0) {
       return initialSettings;
@@ -317,17 +319,17 @@ export default function ShowcaseTab({
   return (
     <div className="space-y-8">
       {/* ── Top Header & Global Toggle Bar ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl flex flex-col md:flex-row md:items-center justify-between gap-6">
+      <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6 flex flex-col md:flex-row md:items-center justify-between gap-6`}>
         <div>
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-blue-500/20 text-blue-400 flex items-center justify-center font-bold">
+            <div className={`w-10 h-10 rounded-xl ${isLight ? "bg-blue-50 text-blue-600" : "bg-blue-500/10 text-blue-400"} flex items-center justify-center font-bold`}>
               <Sparkles className="w-5 h-5" />
             </div>
             <div>
-              <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
                 Featured Visual Showcase
               </h1>
-              <p className="text-xs sm:text-sm text-white/50 font-medium">
+              <p className={`text-xs sm:text-sm font-normal ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                 Create and position full-width cinematic showcase banners with background images &amp; text overlay across your homepage.
               </p>
             </div>
@@ -340,15 +342,19 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, enabled: !prev.enabled }))}
-            className={`px-4 py-2.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 border cursor-pointer ${
+            className={`px-4 py-2.5 rounded-xl text-xs font-semibold transition-all flex items-center gap-2 border cursor-pointer ${
               settings.enabled
-                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
-                : "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
+                ? isLight
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100"
+                  : "bg-emerald-500/10 text-emerald-400 border-emerald-500/30 hover:bg-emerald-500/20"
+                : isLight
+                  ? "bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100"
+                  : "bg-red-500/10 text-red-400 border-red-500/30 hover:bg-red-500/20"
             }`}
           >
             <span
               className={`w-2.5 h-2.5 rounded-full ${
-                settings.enabled ? "bg-emerald-400 animate-pulse" : "bg-red-400"
+                settings.enabled ? "bg-emerald-500 animate-pulse" : "bg-rose-500"
               }`}
             />
             {settings.enabled ? "Showcase: ACTIVE" : "Showcase: HIDDEN"}
@@ -358,10 +364,14 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, auto_slide: !prev.auto_slide }))}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all border cursor-pointer ${
               settings.auto_slide !== false
-                ? "bg-blue-500/10 text-blue-400 border-blue-500/30"
-                : "bg-white/5 text-white/40 border-white/10"
+                ? isLight
+                  ? "bg-blue-50 text-blue-700 border-blue-200"
+                  : "bg-blue-500/10 text-blue-400 border-blue-500/30"
+                : isLight
+                  ? "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  : "bg-white/5 text-white/40 border-white/10"
             }`}
           >
             {settings.auto_slide !== false ? "Auto-Rotate: 6s" : "Auto-Rotate: OFF"}
@@ -371,10 +381,14 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={() => setSettings((prev) => ({ ...prev, enable_animation: prev.enable_animation === false }))}
-            className={`px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all border cursor-pointer ${
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all border cursor-pointer ${
               settings.enable_animation !== false
-                ? "bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20"
-                : "bg-white/5 text-white/40 border-white/10 hover:text-white"
+                ? isLight
+                  ? "bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
+                  : "bg-purple-500/10 text-purple-300 border-purple-500/30 hover:bg-purple-500/20"
+                : isLight
+                  ? "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                  : "bg-white/5 text-white/40 border-white/10 hover:text-white"
             }`}
           >
             {settings.enable_animation !== false ? "✨ Animation: ON" : "✨ Animation: OFF"}
@@ -383,7 +397,11 @@ export default function ShowcaseTab({
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="px-3.5 py-2.5 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 rounded-xl text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
+            className={`px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all flex items-center gap-1.5 cursor-pointer border ${
+              isLight
+                ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs"
+                : "bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10"
+            }`}
             title="Reset to default showcase"
           >
             <RefreshCw className="w-3.5 h-3.5" />
@@ -394,7 +412,7 @@ export default function ShowcaseTab({
             type="button"
             onClick={handleSave}
             disabled={saving}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-blue-600/30 transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
+            className="px-5 py-2.5 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 active:scale-95 disabled:opacity-50 cursor-pointer"
           >
             {saving ? (
               <>
@@ -414,8 +432,12 @@ export default function ShowcaseTab({
       </div>
 
       {savedSuccess && (
-        <div className="p-4 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl flex items-center gap-3 text-emerald-300 text-xs font-bold animate-in fade-in">
-          <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+        <div className={`p-4 rounded-2xl flex items-center gap-3 text-xs font-semibold animate-in fade-in border ${
+          isLight
+            ? "bg-emerald-50 border-emerald-200 text-emerald-800"
+            : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300"
+        }`}>
+          <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
           <span>Featured Visual Showcase saved successfully and live on the homepage!</span>
         </div>
       )}
@@ -426,13 +448,17 @@ export default function ShowcaseTab({
         <div className="lg:col-span-7 space-y-4">
           {/* Add Slide Button & Header */}
           <div className="flex items-center justify-between">
-            <h2 className="text-sm font-bold text-white uppercase tracking-wider flex items-center gap-2">
-              <Layers className="w-4 h-4 text-blue-400" /> Showcase Banners ({slides.length})
+            <h2 className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+              <Layers className="w-4 h-4 text-blue-500" /> Showcase Banners ({slides.length})
             </h2>
             <button
               type="button"
               onClick={handleAddSlide}
-              className="px-4 py-2 bg-white/10 hover:bg-white/15 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 border border-white/10 cursor-pointer"
+              className={`px-4 py-2 text-xs font-semibold rounded-xl transition-all flex items-center gap-1.5 border cursor-pointer ${
+                isLight
+                  ? "bg-white hover:bg-slate-50 text-slate-800 border-slate-200 shadow-xs"
+                  : "bg-white/10 hover:bg-white/15 text-white border-white/10"
+              }`}
             >
               <Plus className="w-4 h-4" /> Add Banner
             </button>
@@ -445,46 +471,54 @@ export default function ShowcaseTab({
             return (
               <div
                 key={slide.id || `editor-slide-${idx}`}
-                className={`bg-[#0F172A] border rounded-3xl transition-all shadow-lg overflow-hidden ${
+                className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl transition-all overflow-hidden ${
                   isExpanded
-                    ? "border-blue-500/40 ring-1 ring-blue-500/20"
-                    : "border-white/10 hover:border-white/20"
+                    ? isLight ? "border-blue-500 ring-2 ring-blue-500/20" : "border-blue-500/40 ring-1 ring-blue-500/20"
+                    : isLight ? "hover:border-slate-300" : "hover:border-white/20"
                 }`}
               >
                 {/* Slide Header Summary */}
                 <div
                   onClick={() => setActiveSlideIndex(idx)}
-                  className="p-5 flex items-center justify-between cursor-pointer select-none bg-white/[0.02] hover:bg-white/[0.04] transition-colors gap-3"
+                  className={`p-5 flex items-center justify-between cursor-pointer select-none transition-colors gap-3 ${
+                    isLight ? "bg-slate-50/70 hover:bg-slate-50" : "bg-white/[0.02] hover:bg-white/[0.04]"
+                  }`}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <span className="w-7 h-7 rounded-xl bg-white/10 text-white font-mono font-black text-xs flex items-center justify-center shrink-0">
+                    <span className={`w-7 h-7 rounded-lg font-mono font-bold text-xs flex items-center justify-center shrink-0 ${
+                      isLight ? "bg-slate-200 text-slate-800" : "bg-white/10 text-white"
+                    }`}>
                       #{idx + 1}
                     </span>
                     <div className="truncate space-y-1">
                       <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="font-extrabold text-sm text-white truncate">
+                        <h3 className={`font-bold text-sm truncate ${isLight ? "text-slate-900" : "text-white"}`}>
                           {slide.title || `Banner #${idx + 1} (${slide.bg_type === "image" ? "Full Background Image" : "Showcase"})`}
                         </h3>
                         <span
                           className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                             slide.enabled !== false
-                              ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                              : "bg-red-500/10 text-red-400 border border-red-500/20"
+                              ? isLight ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                              : isLight ? "bg-rose-50 text-rose-700 border border-rose-200" : "bg-red-500/10 text-red-400 border border-red-500/20"
                           }`}
                         >
                           {slide.enabled !== false ? "Active" : "Disabled"}
                         </span>
                         {/* Placement Tag Badge */}
-                        <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20 truncate max-w-[200px]">
+                        <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border truncate max-w-[200px] ${
+                          isLight ? "bg-amber-50 text-amber-800 border-amber-200" : "bg-amber-500/10 text-amber-300 border border-amber-500/20"
+                        }`}>
                           {getPlacementDisplay(slidePlacement)}
                         </span>
                         {slide.bg_type === "image" && (
-                          <span className="px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/10 text-purple-300 border border-purple-500/20">
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold border ${
+                            isLight ? "bg-purple-50 text-purple-700 border-purple-200" : "bg-purple-500/10 text-purple-300 border border-purple-500/20"
+                          }`}>
                             🖼️ Full BG Image
                           </span>
                         )}
                       </div>
-                      <p className="text-[11px] text-white/40 truncate">
+                      <p className={`text-[11px] truncate ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                         {slide.primary_cta_url ? `Links to: ${slide.primary_cta_url}` : "Links to: /products"}
                       </p>
                     </div>
@@ -499,7 +533,9 @@ export default function ShowcaseTab({
                         moveSlide(idx, "up");
                       }}
                       disabled={idx === 0}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
+                      className={`p-1.5 rounded-lg disabled:opacity-20 cursor-pointer ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-600" : "bg-white/5 hover:bg-white/10 text-white/60 hover:text-white"
+                      }`}
                     >
                       <ArrowUp className="w-3.5 h-3.5" />
                     </button>
@@ -510,7 +546,9 @@ export default function ShowcaseTab({
                         moveSlide(idx, "down");
                       }}
                       disabled={idx === slides.length - 1}
-                      className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/60 hover:text-white disabled:opacity-20 cursor-pointer"
+                      className={`p-1.5 rounded-lg disabled:opacity-20 cursor-pointer ${
+                        isLight ? "bg-slate-100 hover:bg-slate-200 text-slate-600" : "bg-white/5 hover:bg-white/10 text-white/60 hover:text-white"
+                      }`}
                     >
                       <ArrowDown className="w-3.5 h-3.5" />
                     </button>
@@ -1477,20 +1515,20 @@ export default function ShowcaseTab({
 
         {/* RIGHT COLUMN: Real-Time Interactive Live Preview (Col 5) */}
         <div className="lg:col-span-5 sticky top-6 space-y-4">
-          <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-5 shadow-xl space-y-4">
-            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+          <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-5 space-y-4`}>
+            <div className={`flex items-center justify-between border-b pb-3 ${isLight ? "border-slate-200" : "border-white/10"}`}>
               <div className="flex items-center gap-2">
-                <Eye className="w-4 h-4 text-emerald-400" />
-                <h3 className="font-extrabold text-sm text-white">Live Showcase Preview</h3>
+                <Eye className={`w-4 h-4 ${isLight ? "text-emerald-600" : "text-emerald-400"}`} />
+                <h3 className={`font-bold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>Live Showcase Preview</h3>
               </div>
 
               {/* Viewport Switcher */}
-              <div className="flex items-center p-1 bg-white/5 border border-white/10 rounded-xl">
+              <div className={`flex items-center p-1 rounded-xl border ${isLight ? "bg-slate-100 border-slate-200" : "bg-white/5 border-white/10"}`}>
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("desktop")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    previewDevice === "desktop" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    previewDevice === "desktop" ? "bg-[#2563EB] text-white shadow-xs" : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
                   }`}
                 >
                   <Monitor className="w-3.5 h-3.5" /> Desktop
@@ -1498,8 +1536,8 @@ export default function ShowcaseTab({
                 <button
                   type="button"
                   onClick={() => setPreviewDevice("mobile")}
-                  className={`px-3 py-1 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer ${
-                    previewDevice === "mobile" ? "bg-blue-600 text-white shadow" : "text-white/60 hover:text-white"
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer ${
+                    previewDevice === "mobile" ? "bg-[#2563EB] text-white shadow-xs" : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
                   }`}
                 >
                   <Smartphone className="w-3.5 h-3.5" /> Mobile

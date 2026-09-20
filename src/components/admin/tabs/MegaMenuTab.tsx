@@ -41,6 +41,7 @@ import {
 } from "@/lib/types";
 import { DEFAULT_MEGA_MENU_SETTINGS } from "@/lib/data";
 import MegaMenu from "@/components/layout/MegaMenu";
+import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
 interface MegaMenuTabProps {
   initialSettings?: MegaMenuSettings | null;
@@ -57,6 +58,7 @@ export default function MegaMenuTab({
   products = [],
   onRefresh,
 }: MegaMenuTabProps) {
+  const { isLight } = useAdminTheme();
   const [settings, setSettings] = useState<MegaMenuSettings>(() => {
     return {
       ...DEFAULT_MEGA_MENU_SETTINGS,
@@ -411,27 +413,27 @@ export default function MegaMenuTab({
     <div className="space-y-8 pb-20 font-sans">
       
       {/* ── TOP HEADER & PUBLISH ACTIONS ── */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl">
+      <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-4 ${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6`}>
         <div className="flex items-center gap-3.5">
-          <div className="w-12 h-12 rounded-2xl bg-red-500/20 text-red-500 flex items-center justify-center border border-red-500/30 shrink-0">
+          <div className={`w-12 h-12 rounded-xl ${isLight ? "bg-blue-50 text-blue-600 border-blue-200" : "bg-blue-500/10 text-blue-400 border-blue-500/20"} flex items-center justify-center border shrink-0`}>
             <FolderTree className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2.5">
-              <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">
+              <h1 className={`text-xl sm:text-2xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
                 Category Mega Menu
               </h1>
               <span
-                className={`px-3 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                className={`px-3 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider border ${
                   settings.status === "published" && !hasUnsavedChanges
-                    ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
-                    : "bg-amber-500/20 text-amber-400 border-amber-500/30"
+                    ? isLight ? "bg-emerald-50 text-emerald-700 border-emerald-200" : "bg-emerald-500/20 text-emerald-400 border-emerald-500/30"
+                    : isLight ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-amber-500/20 text-amber-400 border-amber-500/30"
                 }`}
               >
                 ● {hasUnsavedChanges ? "Unsaved Changes" : settings.status || "Published"}
               </span>
             </div>
-            <p className="text-xs text-white/50 mt-0.5">
+            <p className={`text-xs mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               Control the desktop 3-column &ldquo;Shop by Category&rdquo; navigation and mobile accordion drawer.
             </p>
           </div>
@@ -441,7 +443,11 @@ export default function MegaMenuTab({
           <button
             type="button"
             onClick={handleResetDefaults}
-            className="px-3.5 py-2 bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border border-white/10 font-bold text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer"
+            className={`px-3.5 py-2 font-medium text-xs rounded-xl transition-all flex items-center gap-1.5 cursor-pointer border ${
+              isLight
+                ? "bg-white hover:bg-slate-50 text-slate-700 border-slate-200 shadow-xs"
+                : "bg-white/5 hover:bg-white/10 text-white/70 hover:text-white border-white/10"
+            }`}
           >
             <RotateCcw className="w-3.5 h-3.5" /> Defaults
           </button>
@@ -450,7 +456,11 @@ export default function MegaMenuTab({
             type="button"
             onClick={handleSaveDraft}
             disabled={saving}
-            className="px-4 py-2 bg-white/10 hover:bg-white/20 text-white font-extrabold text-xs rounded-xl border border-white/15 transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+            className={`px-4 py-2 font-semibold text-xs rounded-xl border transition-all flex items-center gap-1.5 cursor-pointer disabled:opacity-50 ${
+              isLight
+                ? "bg-slate-100 hover:bg-slate-200 text-slate-700 border-slate-200"
+                : "bg-white/10 hover:bg-white/20 text-white border-white/15"
+            }`}
           >
             <Save className="w-3.5 h-3.5" /> Save Draft
           </button>
@@ -459,7 +469,7 @@ export default function MegaMenuTab({
             type="button"
             onClick={handlePublishLive}
             disabled={saving}
-            className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white font-extrabold text-xs rounded-xl shadow-lg shadow-red-600/30 transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
+            className="px-5 py-2 bg-[#2563EB] hover:bg-[#1D4ED8] text-white font-semibold text-xs rounded-xl shadow-xs transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95"
           >
             {saving ? (
               <>
@@ -504,24 +514,24 @@ export default function MegaMenuTab({
       )}
 
       {/* ── LIVE INTERACTIVE PREVIEW ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4">
+      <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6 space-y-4`}>
+        <div className={`flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b pb-4 ${isLight ? "border-slate-200" : "border-white/10"}`}>
           <div>
-            <h3 className="text-sm font-extrabold text-white flex items-center gap-2">
-              <Eye className="w-4 h-4 text-red-400" /> Live Storefront Preview
+            <h3 className={`text-sm font-bold flex items-center gap-2 ${isLight ? "text-slate-900" : "text-white"}`}>
+              <Eye className={`w-4 h-4 ${isLight ? "text-blue-600" : "text-blue-400"}`} /> Live Storefront Preview
             </h3>
-            <p className="text-[11px] text-white/40">
+            <p className={`text-[11px] ${isLight ? "text-slate-500" : "text-slate-400"}`}>
               Exact 1:1 replica of the desktop dropdown and mobile accordion drawer.
             </p>
           </div>
 
           {/* Device Tabs */}
-          <div className="flex items-center gap-1 bg-black/40 border border-white/10 p-1 rounded-2xl">
+          <div className={`flex items-center gap-1 p-1 rounded-xl border ${isLight ? "bg-slate-100 border-slate-200" : "bg-black/40 border-white/10"}`}>
             <button
               type="button"
               onClick={() => setPreviewDevice("desktop")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                previewDevice === "desktop" ? "bg-red-600 text-white shadow-md" : "text-white/60 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                previewDevice === "desktop" ? "bg-[#2563EB] text-white shadow-xs" : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
               }`}
             >
               <Monitor className="w-3.5 h-3.5" /> Desktop
@@ -529,8 +539,8 @@ export default function MegaMenuTab({
             <button
               type="button"
               onClick={() => setPreviewDevice("tablet")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                previewDevice === "tablet" ? "bg-red-600 text-white shadow-md" : "text-white/60 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                previewDevice === "tablet" ? "bg-[#2563EB] text-white shadow-xs" : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
               }`}
             >
               <Tablet className="w-3.5 h-3.5" /> Tablet
@@ -538,8 +548,8 @@ export default function MegaMenuTab({
             <button
               type="button"
               onClick={() => setPreviewDevice("mobile")}
-              className={`px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 ${
-                previewDevice === "mobile" ? "bg-red-600 text-white shadow-md" : "text-white/60 hover:text-white"
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 ${
+                previewDevice === "mobile" ? "bg-[#2563EB] text-white shadow-xs" : isLight ? "text-slate-600 hover:text-slate-900" : "text-white/60 hover:text-white"
               }`}
             >
               <Smartphone className="w-3.5 h-3.5" /> Mobile Drawer
@@ -548,7 +558,7 @@ export default function MegaMenuTab({
         </div>
 
         {/* Device Frame */}
-        <div className="bg-[#020617] border border-white/5 rounded-2xl p-4 sm:p-6 flex items-center justify-center overflow-x-auto min-h-[340px]">
+        <div className={`rounded-xl p-4 sm:p-6 flex items-center justify-center overflow-x-auto min-h-[340px] border ${isLight ? "bg-slate-50 border-slate-200" : "bg-[#020617] border-white/5"}`}>
           <div
             className="transition-all duration-300 w-full"
             style={{
@@ -598,14 +608,16 @@ export default function MegaMenuTab({
       </div>
 
       {/* ── CONFIGURATION SUB-TABS ── */}
-      <div className="bg-[#0F172A] border border-white/10 rounded-3xl p-6 shadow-xl space-y-6">
-        <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-4 flex-wrap">
+      <div className={`${isLight ? "bg-white border-[#E2E8F0] shadow-xs" : "bg-[#0E141D] border-white/[0.08]"} border rounded-2xl p-6 space-y-6`}>
+        <div className={`flex items-center justify-between gap-4 border-b pb-4 flex-wrap ${isLight ? "border-slate-200" : "border-white/10"}`}>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => setActiveSubTab("columns")}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                activeSubTab === "columns" ? "bg-white/15 text-white border border-white/20" : "text-white/50 hover:text-white"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeSubTab === "columns"
+                  ? isLight ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-white/15 text-white border border-white/20"
+                  : isLight ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100" : "text-white/50 hover:text-white"
               }`}
             >
               📑 Menu Columns &amp; Links ({settings.columns?.length || 0})
@@ -613,8 +625,10 @@ export default function MegaMenuTab({
             <button
               type="button"
               onClick={() => setActiveSubTab("appearance")}
-              className={`px-4 py-2 rounded-xl text-xs font-extrabold transition-all cursor-pointer ${
-                activeSubTab === "appearance" ? "bg-white/15 text-white border border-white/20" : "text-white/50 hover:text-white"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all cursor-pointer ${
+                activeSubTab === "appearance"
+                  ? isLight ? "bg-blue-50 text-blue-700 border border-blue-200" : "bg-white/15 text-white border border-white/20"
+                  : isLight ? "text-slate-600 hover:text-slate-900 hover:bg-slate-100" : "text-white/50 hover:text-white"
               }`}
             >
               🎨 Colors, Padding &amp; Spacing
@@ -625,7 +639,9 @@ export default function MegaMenuTab({
             <button
               type="button"
               onClick={handleAddColumn}
-              className="px-4 py-2 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 cursor-pointer"
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer border ${
+                isLight ? "bg-blue-50 hover:bg-blue-100 text-blue-700 border-blue-200" : "bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-500/30"
+              }`}
             >
               <Plus className="w-4 h-4" /> Add Column
             </button>
