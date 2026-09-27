@@ -26,13 +26,11 @@ export default function FinishingZoomWrapper({
     offset: ["start end", "end end"],
   });
 
-  // Smooth cinematic finishing zoom effect
-  const rawScale = useTransform(scrollYProgress, [0, 0.45, 1], [0.93, 0.97, 1.0]);
+  // Only keep opacity, removed scale/zoom to improve performance
   const rawOpacity = useTransform(scrollYProgress, [0, 0.3, 1], [0.88, 0.96, 1.0]);
   const rawBorderRadius = useTransform(scrollYProgress, [0, 0.8, 1], [36, 16, 0]);
 
   // Apply spring physics for buttery smooth responsiveness
-  const scale = useSpring(rawScale, { stiffness: 110, damping: 26, restDelta: 0.001 });
   const opacity = useSpring(rawOpacity, { stiffness: 110, damping: 26, restDelta: 0.001 });
 
   if (isReducedMotion) {
@@ -43,7 +41,6 @@ export default function FinishingZoomWrapper({
     <div ref={containerRef} className="relative w-full overflow-hidden">
       <motion.div
         style={{
-          scale,
           opacity,
           borderRadius: rawBorderRadius,
           transformOrigin: "center top",

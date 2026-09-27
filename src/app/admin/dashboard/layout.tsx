@@ -91,7 +91,6 @@ const SIDEBAR_SECTIONS: NavSection[] = [
       { id: "categories", label: "Shop by Category", href: "/admin/dashboard?tab=categories" },
       { id: "mega-menu", label: "Category Mega Menu", href: "/admin/dashboard?tab=mega-menu" },
       { id: "brands", label: "Shop by Brand", href: "/admin/dashboard?tab=brands" },
-      { id: "collections", label: "Featured Collections", href: "/admin/dashboard?tab=collections" },
       { id: "showcase", label: "Visual Showcase", href: "/admin/dashboard?tab=showcase" },
     ],
   },
@@ -102,9 +101,7 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     items: [
       { id: "orders", label: "Orders", href: "/admin/dashboard?tab=orders" },
       { id: "today-deal", label: "Today’s Deal", href: "/admin/dashboard?tab=today-deal" },
-      { id: "coupons", label: "Promo Codes & Coupons", href: "/admin/dashboard?tab=coupons" },
       { id: "payments", label: "Payments & Gateways", href: "/admin/dashboard?tab=payments" },
-      { id: "cashflow", label: "Cash Flow", href: "/admin/dashboard?tab=cashflow" },
     ],
   },
   {
@@ -113,10 +110,7 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: Settings,
     items: [
       { id: "inventory", label: "Inventory Levels", href: "/admin/dashboard?tab=inventory" },
-      { id: "repairs", label: "Device Repairs", href: "/admin/dashboard?tab=repairs" },
-      { id: "cashflow", label: "Cash Flow Accounts", href: "/admin/dashboard?tab=cashflow" },
       { id: "warranties", label: "Warranty Management", href: "/admin/dashboard?tab=warranties" },
-      { id: "suppliers", label: "Suppliers", href: "/admin/dashboard?tab=suppliers" },
     ],
   },
   {
@@ -134,18 +128,11 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: Megaphone,
     items: [
       { id: "gallery", label: "Store Gallery Wall", href: "/admin/dashboard?tab=gallery" },
+      { id: "whatsapp-marketing", label: "WhatsApp Marketing", href: "/admin/dashboard?tab=whatsapp-marketing" },
       { id: "hero", label: "Homepage Hero Slider", href: "/admin/dashboard?tab=hero" },
       { id: "banners", label: "Offers & Banners", href: "/admin/dashboard?tab=banners" },
       { id: "reviews", label: "Google Reviews", href: "/admin/dashboard?tab=reviews" },
       { id: "footer", label: "Footer Configuration", href: "/admin/dashboard?tab=footer" },
-    ],
-  },
-  {
-    id: "analytics",
-    title: "Analytics",
-    icon: BarChart3,
-    items: [
-      { id: "analytics", label: "Analytics & Reports", href: "/admin/dashboard?tab=analytics" },
     ],
   },
   {
@@ -154,7 +141,6 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: ShieldCheck,
     items: [
       { id: "assistant", label: "Streetla AI Assistant", href: "/admin/dashboard?tab=assistant" },
-      { id: "mobile", label: "Mobile Experience", href: "/admin/dashboard?tab=mobile" },
       { id: "settings", label: "Store & Auth Settings", href: "/admin/dashboard?tab=settings" },
       { id: "contact-settings", label: "Contact Details & Store Times", href: "/admin/dashboard?tab=contact-settings" },
     ],
@@ -666,34 +652,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               </button>
             </div>
 
-            {/* Center: Search Field */}
+            {/* Center: Empty Space */}
             <div className="flex-1 max-w-xl mx-2 sm:mx-4">
-              <button
-                type="button"
-                onClick={() => setIsCommandPaletteOpen(true)}
-                className={`w-full flex items-center justify-between px-3.5 py-2 rounded-xl text-xs transition-all border shadow-xs ${
-                  isLight
-                    ? "bg-[#F8FAFC] border-[#E2E8F0] text-[#0F172A] hover:border-[#CBD5E1]"
-                    : "bg-[#0B111A] border-white/[0.08] text-[#F8FAFC] hover:border-white/[0.14]"
-                }`}
-              >
-                <span className="flex items-center gap-2.5 truncate">
-                  <Search className={`w-4 h-4 shrink-0 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`} />
-                  <span className={`truncate font-normal ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
-                    Search orders, products, customers...
-                  </span>
-                </span>
-                <kbd
-                  className={`hidden sm:inline-flex items-center gap-1 text-[10px] font-mono px-1.5 py-0.5 rounded border shrink-0 ${
-                    isLight
-                      ? "bg-white text-[#64748B] border-[#E2E8F0]"
-                      : "bg-[#121A25] text-[#94A3B8] border-white/[0.08]"
-                  }`}
-                >
-                  <span>⌘</span>
-                  <span>K</span>
-                </kbd>
-              </button>
             </div>
 
             {/* Right Controls: Theme Toggle, Notifications, Admin Profile, Add Product Button */}

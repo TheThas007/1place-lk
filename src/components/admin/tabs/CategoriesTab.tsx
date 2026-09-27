@@ -19,7 +19,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 import { db } from "@/lib/firebase";
-import { doc, setDoc, addDoc, collection } from "firebase/firestore";
+import { doc, setDoc, addDoc, deleteDoc, collection } from "firebase/firestore";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 import { useAdminTheme } from "@/app/admin/dashboard/layout";
 
@@ -140,6 +140,59 @@ export default function CategoriesTab({
     }
   };
 
+  const handleCleanDuplicates = async () => {
+    if (!confirm("Are you sure you want to clean up duplicate categories? This will merge duplicates and update all linked products safely.")) return;
+    try {
+      const grouped: Record<string, Category[]> = {};
+      categories.forEach(c => {
+        const name = (c.name || "").trim().toLowerCase();
+        if (!name) return;
+        if (!grouped[name]) grouped[name] = [];
+        grouped[name].push(c);
+      });
+      
+      let deleted = 0;
+      let updatedProducts = 0;
+      
+      for (const docs of Object.values(grouped)) {
+        if (docs.length > 1) {
+          // Sort categories by the number of products they have
+          const sortedDocs = docs.map(cat => {
+            const count = products.filter(p => p.category_id === cat.id || p.categoryId === cat.id || p.category_name?.toLowerCase() === cat.name?.toLowerCase()).length;
+            return { cat, count };
+          }).sort((a, b) => b.count - a.count);
+          
+          const keptCategory = sortedDocs[0].cat;
+          
+          for (let i = 1; i < sortedDocs.length; i++) {
+            const duplicateCat = sortedDocs[i].cat;
+            
+            // Update products that are pointing to the duplicate category
+            const orphaned = products.filter(p => p.category_id === duplicateCat.id || p.categoryId === duplicateCat.id);
+            for (const p of orphaned) {
+               await setDoc(doc(db, "products", p.id), {
+                 category_id: keptCategory.id,
+                 categoryId: keptCategory.id,
+                 category_slug: keptCategory.slug,
+                 category_name: keptCategory.name
+               }, { merge: true });
+               updatedProducts++;
+            }
+            
+            // Delete duplicate category
+            await deleteDoc(doc(db, "categories", duplicateCat.id));
+            deleted++;
+          }
+        }
+      }
+      alert(`Successfully deleted ${deleted} duplicate categories and reassigned ${updatedProducts} products.`);
+      window.location.reload();
+    } catch(e) {
+      console.error(e);
+      alert("Failed to clean duplicates");
+    }
+  };
+
   // Safe Delete Trigger with Linked Product Check
   const triggerDeleteCheck = (cat: Category) => {
     const categoryName = cat.name || "";
@@ -210,6 +263,19 @@ export default function CategoriesTab({
           >
             <Eye className="w-3.5 h-3.5 text-blue-400" />
             <span>Live Section Preview</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleCleanDuplicates}
+            className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-medium transition-all border ${
+              isLight
+                ? "bg-white hover:bg-slate-50 text-red-600 border-red-200 shadow-sm"
+                : "bg-[#121A25] hover:bg-[#1A2535] text-red-400 border-red-500/20"
+            }`}
+          >
+            <Trash2 className="w-3.5 h-3.5" />
+            <span>Clean Duplicates</span>
           </button>
 
           <button

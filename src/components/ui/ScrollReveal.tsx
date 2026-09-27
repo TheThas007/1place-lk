@@ -54,17 +54,11 @@ export default function ScrollReveal({
     const isMobile = window.innerWidth < 768;
     const finalDuration = isMobile ? Math.max(0.65, duration * 0.85) : duration;
     const finalY = motionSettings.motionIntensity === "minimal" ? 14 : yOffset;
-    const initialScale = enable3d ? (isMobile ? 0.95 : 0.92) : 1;
-    const initialRotateX = enable3d ? (isMobile ? 2.5 : 4) : 0;
 
     const ctx = gsap.context(() => {
       // 3D perspective setup on the section container
       gsap.set(el, {
-        transformPerspective: 1200,
-        transformOrigin: "center top",
-        opacity: 0.85,
-        scale: initialScale,
-        rotateX: initialRotateX,
+        opacity: 0,
         y: finalY,
       });
 
@@ -75,7 +69,6 @@ export default function ScrollReveal({
         gsap.set(items, {
           opacity: 0,
           y: Math.min(20, finalY),
-          scale: enable3d ? 0.96 : 1,
         });
       }
 
@@ -84,24 +77,20 @@ export default function ScrollReveal({
         start: "top 90%",
         once: true,
         onEnter: () => {
-          // Animate section into 3D space with cinematic zoom
+          // Animate section into view
           gsap.to(el, {
             opacity: 1,
-            scale: 1,
-            rotateX: 0,
             y: 0,
             duration: finalDuration,
             ease: "power2.out",
             delay: delay,
-            clearProps: "transformPerspective,rotateX",
           });
 
-          // Animate staggered child elements popping into 3D view
+          // Animate staggered child elements
           if (items.length > 0) {
             gsap.to(Array.from(items).slice(0, 16), {
               opacity: 1,
               y: 0,
-              scale: 1,
               duration: finalDuration,
               ease: "power2.out",
               stagger: isMobile ? Math.min(0.04, stagger) : stagger,
@@ -137,7 +126,6 @@ export default function ScrollReveal({
       className={className}
       style={{
         willChange: isReducedMotion ? "auto" : "opacity, transform",
-        transformStyle: enable3d && !isReducedMotion ? "preserve-3d" : "flat",
       }}
     >
       {children}

@@ -1261,4 +1261,22 @@ export interface Coupon {
   updatedAt?: string;
 }
 
+export interface WhatsAppCampaign {
+  id?: string; // or campaignId
+  campaignId?: string;
+  name: string;
+  productId: string;
+  productName?: string;
+  productImage?: string;
+  recipientIds: string[];
+  messageTemplate: string;
+  trackingUrl: string;
+  status: "draft" | "scheduled" | "active" | "completed" | "failed";
+  sentCount: number;
+  deliveredCount: number;
+  failedCount: number;
+  clickCount: number;
+  createdAt?: string;
+  scheduledAt?: string | null;
+}
 

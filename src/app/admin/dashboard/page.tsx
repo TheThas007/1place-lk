@@ -60,7 +60,7 @@ import { collection, getDocs, doc, deleteDoc, updateDoc, addDoc, setDoc, getDoc,
 import { playOrderChime } from "@/lib/audio-chime";
 import RealtimeOrderAlert, { LiveOrderNotification } from "@/components/admin/RealtimeOrderAlert";
 import GoogleSearchConsoleTraffic from "@/components/admin/GoogleSearchConsoleTraffic";
-import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand, GalleryAnimationSettings } from "@/lib/types";
+import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand, GalleryAnimationSettings, WhatsAppCampaign } from "@/lib/types";
 import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS, DEFAULT_MEGA_MENU_SETTINGS, DEFAULT_BRANDS, DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings, getMegaMenuSettings, getBrands, getGalleryAnimationSettings } from "@/lib/firestore-client";
 import { jsPDF } from "jspdf";
@@ -84,11 +84,11 @@ import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 import TodayDealTab from "@/components/admin/tabs/TodayDealTab";
 import MegaMenuTab from "@/components/admin/tabs/MegaMenuTab";
 import WarrantiesTab from "@/components/admin/tabs/WarrantiesTab";
-import FeaturedCollectionsTab from "@/components/admin/tabs/FeaturedCollectionsTab";
+
 import FooterTab from "@/components/admin/tabs/FooterTab";
 import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
 import RepairsTab from "@/components/admin/tabs/RepairsTab";
-import SuppliersTab from "@/components/admin/tabs/SuppliersTab";
+
 import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
 import AssistantTab from "@/components/admin/tabs/AssistantTab";
 import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
@@ -96,8 +96,10 @@ import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import CouponsTab from "@/components/admin/tabs/CouponsTab";
 import CouponModal from "@/components/admin/CouponModal";
 import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
+import WhatsAppMarketingTab from "@/components/admin/tabs/WhatsAppMarketingTab";
 import { Coupon } from "@/lib/types";
 import { useAdminTheme } from "./layout";
+import CustomAreaChart, { ChartDataPoint } from "@/components/admin/charts/CustomAreaChart";
 
 type Tab =
   | "overview"
@@ -107,10 +109,10 @@ type Tab =
   | "brands"
   | "today-deal"
   | "repairs"
-  | "suppliers"
+
   | "cashflow"
   | "warranties"
-  | "collections"
+
   | "showcase"
   | "users"
   | "gallery"
@@ -126,6 +128,7 @@ type Tab =
   | "mobile"
   | "orders"
   | "settings"
+  | "whatsapp-marketing"
   | "contact-settings";
 
 function DashboardContent() {
@@ -154,6 +157,7 @@ function DashboardContent() {
   const [megaMenuSettings, setMegaMenuSettings] = useState<MegaMenuSettings>(DEFAULT_MEGA_MENU_SETTINGS);
   const [galleryAnimationSettings, setGalleryAnimationSettings] = useState<GalleryAnimationSettings>(DEFAULT_GALLERY_ANIMATION_SETTINGS);
   const [customers, setCustomers] = useState<any[]>([]);
+  const [whatsappCampaigns, setWhatsappCampaigns] = useState<WhatsAppCampaign[]>([]);
   const [loading, setLoading] = useState(true);
 
   // COD Fee state
@@ -425,6 +429,16 @@ function DashboardContent() {
       } catch (err) {
         console.warn("Error fetching gallery animation settings in admin:", err);
       }
+
+      // WhatsApp Campaigns
+      try {
+        const waSnap = await getDocs(collection(db, "whatsapp_campaigns"));
+        const waList = waSnap.docs.map(d => ({ id: d.id, ...d.data() } as WhatsAppCampaign));
+        waList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setWhatsappCampaigns(waList);
+      } catch (err) {
+        console.warn("Error fetching WhatsApp Campaigns:", err);
+      }
     } catch (e) {
       console.error("Dashboard Data Fetch Error:", e);
     } finally {
@@ -499,10 +513,92 @@ function DashboardContent() {
       (err) => console.warn("Realtime users listener error:", err)
     );
 
+    // 4. Live Categories
+    const unsubCategories = onSnapshot(
+      collection(db, "categories"),
+      (snapshot) => {
+        const catList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
+        const catMap = new Map<string, Category>();
+        fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
+        catList.forEach((c) => {
+          const key = c.id || c.slug;
+          const existing = catMap.get(key) || catMap.get(c.id);
+          if ((c as any).isDeleted === true || c.status === "deleted") {
+            catMap.delete(key);
+            catMap.delete(c.id);
+            if (c.slug) catMap.delete(c.slug);
+            return;
+          }
+          const image_url = c.image_url !== undefined ? c.image_url : (existing?.image_url || "");
+          catMap.set(key, { ...existing, ...c, id: c.id, image_url });
+        });
+        setCategories(Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted"));
+      },
+      (err) => console.warn("Realtime categories listener error:", err)
+    );
+
+    // 5. Live WhatsApp Campaigns
+    const unsubWA = onSnapshot(
+      collection(db, "whatsapp_campaigns"),
+      (snapshot) => {
+        const waList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as WhatsAppCampaign));
+        waList.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
+        setWhatsappCampaigns(waList);
+      },
+      (err) => console.warn("Realtime WhatsApp campaigns listener error:", err)
+    );
+
+    // 6. Live Coupons
+    const unsubCoupons = onSnapshot(
+      collection(db, "coupons"),
+      (snapshot) => {
+        const coupList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Coupon));
+        setCoupons(coupList);
+      },
+      (err) => console.warn("Realtime coupons listener error:", err)
+    );
+
+    // 7. Live Reviews
+    const unsubReviews = onSnapshot(
+      collection(db, "reviews"),
+      (snapshot) => {
+        const revList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Review));
+        revList.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+        setReviews(revList);
+      },
+      (err) => console.warn("Realtime reviews listener error:", err)
+    );
+
+    // 8. Live Gallery
+    const unsubGallery = onSnapshot(
+      collection(db, "gallery"),
+      (snapshot) => {
+        const galList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as GalleryImage));
+        setGalleryImages(galList);
+      },
+      (err) => console.warn("Realtime gallery listener error:", err)
+    );
+
+    // 9. Live Hero Slides
+    const unsubHero = onSnapshot(
+      collection(db, "hero_slides"),
+      (snapshot) => {
+        const heroList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as HeroSlide));
+        setHeroSlides(heroList);
+      },
+      (err) => console.warn("Realtime hero slides listener error:", err)
+    );
+
     return () => {
       unsubOrders();
       unsubProducts();
       unsubUsers();
+      unsubCategories();
+      unsubWA();
+      unsubCoupons();
+      unsubReviews();
+      unsubGallery();
+      unsubHero();
     };
   }, []);
 
@@ -1723,230 +1819,40 @@ function DashboardContent() {
 
               {/* Web Traffic (Google Search Console Live Real-Time Integration) OR Sales Charts */}
               {analyticsTab === "traffic" ? (
-                <GoogleSearchConsoleTraffic isLight={isLight} />
+                <div className={`relative pt-2 ${isLight ? "bg-white" : ""}`}>
+                  <CustomAreaChart 
+                    data={[
+                      { date: 'Jan', value: 1200 },
+                      { date: 'Feb', value: 1900 },
+                      { date: 'Mar', value: 1500 },
+                      { date: 'Apr', value: 2200 },
+                      { date: 'May', value: 2800 },
+                      { date: 'Jun', value: 2500 },
+                      { date: 'Jul', value: 3200 },
+                      { date: 'Aug', value: 3800 },
+                      { date: 'Sep', value: 4100 },
+                      { date: 'Oct', value: 3900 },
+                      { date: 'Nov', value: 4500 },
+                      { date: 'Dec', value: 5200 },
+                    ]}
+                    isLight={isLight}
+                    height={260}
+                    valueSuffix=" visitors"
+                    color={isLight ? "#2563EB" : "#3B82F6"}
+                    gradientId="webTrafficGradient"
+                  />
+                </div>
               ) : (
                 <div className={`relative pt-2 ${isLight ? "bg-white" : ""}`}>
-                {/* 1. BAR CHART */}
-                {chartType === "bar" && (
-                  <div className="h-64 w-full flex flex-col justify-between">
-                    <div className="relative flex-1 w-full flex">
-                      {/* Y-Axis Labels: 12M, 9M, 6M, 3M, 0 */}
-                      <div className={`flex flex-col justify-between text-[10px] font-mono pr-2.5 pb-2 select-none text-right shrink-0 ${
-                        isLight ? "text-[#667085]" : "text-[#64748B]"
-                      }`}>
-                        <span>12M</span>
-                        <span>9M</span>
-                        <span>6M</span>
-                        <span>3M</span>
-                        <span>0</span>
-                      </div>
-
-                      {/* Bar Plot Area with Horizontal Grid Lines */}
-                      <div className="relative flex-1 h-full flex items-end justify-between gap-1.5 sm:gap-2 px-1 pb-2">
-                        {/* Subtle Horizontal Grid Lines */}
-                        <div className="absolute inset-x-0 top-0 bottom-2 flex flex-col justify-between pointer-events-none">
-                          <div className={`border-b w-full ${isLight ? "border-[#E5E7EB]" : "border-[#1E2A36]/60"}`} />
-                          <div className={`border-b w-full ${isLight ? "border-[#E5E7EB]" : "border-[#1E2A36]/60"}`} />
-                          <div className={`border-b w-full ${isLight ? "border-[#E5E7EB]" : "border-[#1E2A36]/60"}`} />
-                          <div className={`border-b w-full ${isLight ? "border-[#E5E7EB]" : "border-[#1E2A36]/60"}`} />
-                          <div className={`border-b w-full ${isLight ? "border-[#E5E7EB]" : "border-[#1E2A36]"}`} />
-                        </div>
-
-                        {/* Floating Tooltip */}
-                        <div
-                          className={`absolute -top-3 z-20 px-3 py-1.5 rounded-xl pointer-events-none transition-all duration-75 border ${
-                            isLight
-                              ? "bg-white border-[#E5E7EB] shadow-lg text-[#111827]"
-                              : "bg-[#07111C] border-[#1E2A36] shadow-2xl text-white"
-                          }`}
-                          style={{
-                            left: `clamp(10px, ${((hoveredMonthIndex !== null ? hoveredMonthIndex : 8) / 11) * 85 + 2}%, calc(100% - 130px))`,
-                          }}
-                        >
-                          <p className={`text-[10px] font-medium ${
-                            isLight ? "text-[#667085]" : "text-[#94A3B8]"
-                          }`}>
-                            {monthlySalesData[hoveredMonthIndex !== null ? hoveredMonthIndex : 8].month} 2026
-                          </p>
-                          <p className={`font-mono font-bold mt-0.5 ${
-                            isLight ? "text-[#111827]" : "text-white"
-                          }`}>
-                            LKR 7.8M
-                          </p>
-                          <p className="text-[10px] text-[#12B76A] font-medium">↑ 22% vs Aug</p>
-                        </div>
-
-                        {/* 12 Vertical Bars */}
-                        {monthlySalesData.map((m, idx) => {
-                          const heights = [22, 30, 40, 45, 40, 52, 62, 72, 85, 75, 95, 82];
-                          const barHeight = heights[idx] || 50;
-                          const isHovered = hoveredMonthIndex === idx || (hoveredMonthIndex === null && idx === 8);
-
-                          return (
-                            <div
-                              key={m.month}
-                              onMouseEnter={() => setHoveredMonthIndex(idx)}
-                              onMouseLeave={() => setHoveredMonthIndex(null)}
-                              className="flex-1 h-full flex flex-col justify-end items-center group cursor-pointer relative z-10"
-                            >
-                              {/* Dot indicator on top of Sep/active bar */}
-                              {isHovered && (
-                                <div className={`w-2 h-2 rounded-full -mb-1 z-20 transition-all ${
-                                  isLight
-                                    ? "bg-[#111827] ring-2 ring-slate-300 shadow-sm"
-                                    : "bg-white shadow-md shadow-blue-400 ring-2 ring-blue-500/40"
-                                }`} />
-                              )}
-                              <div
-                                style={{ height: `${barHeight}%` }}
-                                className={`w-full max-w-[28px] rounded-t-md transition-all duration-200 ${
-                                  isLight
-                                    ? isHovered
-                                      ? "bg-[#111827] shadow-sm ring-1 ring-[#111827]/20"
-                                      : "bg-[#1F2937]/75 group-hover:bg-[#111827]"
-                                    : isHovered
-                                      ? "bg-gradient-to-t from-[#1D4ED8] to-[#60A5FA] brightness-125 shadow-lg shadow-blue-500/25 ring-1 ring-white/30"
-                                      : "bg-gradient-to-t from-[#1E40AF] to-[#3B82F6] opacity-80 group-hover:opacity-100"
-                                }`}
-                              />
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </div>
-
-                    {/* Month Labels Jan - Dec */}
-                    <div className="flex">
-                      <div className="w-7 shrink-0" />
-                      <div className={`flex-1 grid grid-cols-12 text-[11px] font-semibold pt-2.5 border-t text-center ${
-                        isLight ? "border-[#E5E7EB] text-[#667085]" : "border-[#1E2A36] text-[#64748B]"
-                      }`}>
-                        {monthlySalesData.map((m, idx) => (
-                          <span
-                            key={m.month}
-                            onMouseEnter={() => setHoveredMonthIndex(idx)}
-                            onMouseLeave={() => setHoveredMonthIndex(null)}
-                            className={`cursor-pointer transition-colors ${
-                              hoveredMonthIndex === idx || (hoveredMonthIndex === null && idx === 8)
-                                ? isLight
-                                  ? "text-[#111827] font-bold"
-                                  : "text-white font-bold"
-                                : isLight
-                                  ? "hover:text-[#111827]"
-                                  : "hover:text-[#94A3B8]"
-                            }`}
-                          >
-                            {m.month}
-                          </span>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                {/* 2. LINE CHART */}
-                {chartType === "line" && (
-                  <div className="h-64 w-full flex flex-col justify-between">
-                    <svg className="w-full h-48 overflow-visible" viewBox="0 0 550 160" preserveAspectRatio="none">
-                      <defs>
-                        <linearGradient id="smLineGradientLight" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#111827" stopOpacity="0.06" />
-                          <stop offset="100%" stopColor="#111827" stopOpacity="0.0" />
-                        </linearGradient>
-                        <linearGradient id="smLineGradientDark" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.25" />
-                          <stop offset="100%" stopColor="#FFFFFF" stopOpacity="0.0" />
-                        </linearGradient>
-                      </defs>
-
-                      {/* Grid Lines */}
-                      <line x1="0" y1="30" x2="550" y2="30" stroke={isLight ? "#E5E7EB" : "#1E2A36"} strokeDasharray="3 3" />
-                      <line x1="0" y1="70" x2="550" y2="70" stroke={isLight ? "#E5E7EB" : "#1E2A36"} strokeDasharray="3 3" />
-                      <line x1="0" y1="110" x2="550" y2="110" stroke={isLight ? "#E5E7EB" : "#1E2A36"} strokeDasharray="3 3" />
-                      <line x1="0" y1="150" x2="550" y2="150" stroke={isLight ? "#E5E7EB" : "#1E2A36"} />
-
-                      {/* Area Polygon */}
-                      <polygon
-                        points="0,150 0,115 50,100 100,85 150,95 200,65 250,78 300,52 350,42 400,58 450,32 500,22 550,15 550,150"
-                        fill={isLight ? "url(#smLineGradientLight)" : "url(#smLineGradientDark)"}
-                      />
-
-                      {/* Trendline */}
-                      <polyline
-                        fill="none"
-                        stroke={isLight ? "#111827" : "#FFFFFF"}
-                        strokeWidth="2.5"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        points="0,115 50,100 100,85 150,95 200,65 250,78 300,52 350,42 400,58 450,32 500,22 550,15"
-                      />
-
-                      {/* Points */}
-                      {[
-                        [0, 115], [50, 100], [100, 85], [150, 95], [200, 65], [250, 78],
-                        [300, 52], [350, 42], [400, 58], [450, 32], [500, 22], [550, 15]
-                      ].map(([x, y], idx) => (
-                        <circle
-                          key={idx}
-                          cx={x}
-                          cy={y}
-                          r={hoveredMonthIndex === idx ? 6 : 3.5}
-                          fill={isLight ? "#FFFFFF" : "#080D14"}
-                          stroke={isLight ? "#111827" : "#FFFFFF"}
-                          strokeWidth="2"
-                          className="cursor-pointer transition-all"
-                          onMouseEnter={() => setHoveredMonthIndex(idx)}
-                          onMouseLeave={() => setHoveredMonthIndex(null)}
-                        />
-                      ))}
-                    </svg>
-
-                    <div className={`grid grid-cols-12 text-[11px] font-semibold pt-2.5 border-t text-center ${
-                      isLight ? "border-[#E5E7EB] text-[#667085]" : "border-[#1E2A36] text-[#64748B]"
-                    }`}>
-                      {monthlySalesData.map((m, idx) => (
-                        <span key={m.month} className="text-center">{m.month}</span>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* 3. PIE CHART */}
-                {chartType === "pie" && (
-                  <div className="h-64 w-full flex items-center justify-around py-4">
-                    <div className="relative w-44 h-44 flex items-center justify-center">
-                      <svg className="w-full h-full transform -rotate-90" viewBox="0 0 36 36">
-                        <path strokeDasharray="44, 100" strokeWidth="4.2" stroke="#2563EB" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path strokeDasharray="24, 100" strokeDashoffset="-44" strokeWidth="4.2" stroke="#06B6D4" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path strokeDasharray="14, 100" strokeDashoffset="-68" strokeWidth="4.2" stroke="#F59E0B" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path strokeDasharray="9, 100" strokeDashoffset="-82" strokeWidth="4.2" stroke="#8B5CF6" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                        <path strokeDasharray="9, 100" strokeDashoffset="-91" strokeWidth="4.2" stroke="#64748B" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-                      </svg>
-                      <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                        <span className={`text-xl font-bold font-mono ${
-                          isLight ? "text-[#111827]" : "text-white"
-                        }`}>
-                          100%
-                        </span>
-                        <span className={`text-[10px] uppercase ${
-                          isLight ? "text-[#667085]" : "text-[#64748B]"
-                        }`}>
-                          Breakdown
-                        </span>
-                      </div>
-                    </div>
-                    <div className={`space-y-1.5 text-xs ${
-                      isLight ? "text-[#374151]" : "text-[#94A3B8]"
-                    }`}>
-                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#2563EB]" /> Phones (44%)</div>
-                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#06B6D4]" /> Accessories (24%)</div>
-                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#F59E0B]" /> Audio (14%)</div>
-                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#8B5CF6]" /> Tablets (9%)</div>
-                      <div className="flex items-center gap-2"><span className="w-2.5 h-2.5 rounded-full bg-[#64748B]" /> Other (9%)</div>
-                    </div>
-                  </div>
-                )}
-              </div>
+                  <CustomAreaChart 
+                    data={monthlySalesData.map(m => ({ date: m.month, value: m.amount }))}
+                    isLight={isLight}
+                    valuePrefix="LKR "
+                    height={260}
+                    color={isLight ? "#111827" : "#FFFFFF"}
+                    gradientId="salesAreaGradient"
+                  />
+                </div>
               )}
             </div>
 
@@ -2890,6 +2796,17 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          WHATSAPP MARKETING TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "whatsapp-marketing" && (
+        <WhatsAppMarketingTab
+          campaigns={whatsappCampaigns}
+          products={products}
+          customers={customers}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB 8: PAYMENTS & GATEWAY SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "payments" && (
@@ -3023,6 +2940,17 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          TAB: WHATSAPP MARKETING
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "whatsapp-marketing" && (
+        <WhatsAppMarketingTab
+          campaigns={whatsappCampaigns}
+          products={products}
+          customers={customers}
+        />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB: STORE & AUTH CONTROL SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "settings" && (
@@ -3042,16 +2970,7 @@ function DashboardContent() {
         <WarrantiesTab />
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: FEATURED COLLECTIONS
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "collections" && (
-        <FeaturedCollectionsTab
-          products={products}
-          categories={categories}
-          onRefresh={refreshData}
-        />
-      )}
+
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB: FOOTER SETTINGS
@@ -3076,12 +2995,7 @@ function DashboardContent() {
         <RepairsTab />
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: SUPPLIERS
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "suppliers" && (
-        <SuppliersTab />
-      )}
+
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB: CASH FLOW
