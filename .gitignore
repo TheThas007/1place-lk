@@ -35,8 +35,7 @@ yarn-error.log*
 
 # vercel
 .vercel
-
-.vercel
 .vercel_team_backup/
 .env*
 scratch/
+*.tsbuildinfo

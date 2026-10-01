@@ -158,7 +158,7 @@ export default function ContactClient({ initialSettings }: { initialSettings?: S
                     <strong className="text-foreground">Mon – Sat:</strong> {settings.business_hours?.weekdays || "9:00 AM – 9:00 PM"}
                   </p>
                   <p className="text-muted-foreground text-xs sm:text-sm mt-0.5">
-                    <strong className="text-foreground">Sunday:</strong> {settings.business_hours?.sunday || "10:00 AM – 6:00 PM"}
+                    <strong className="text-foreground">Sunday:</strong> {settings.business_hours?.sunday || "10:00 AM – 7:00 PM"}
                   </p>
                   {settings.business_hours?.online_support && (
                     <p className="text-emerald-600 dark:text-emerald-400 text-xs font-bold mt-1">

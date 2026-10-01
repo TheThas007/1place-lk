@@ -22,6 +22,12 @@ import { db } from "@/lib/firebase";
 import { doc, setDoc, addDoc, deleteDoc, collection } from "firebase/firestore";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 import { useAdminTheme } from "@/app/admin/dashboard/layout";
+import {
+  deduplicateCategories,
+  generateCategorySlug,
+  getCategoryDocId,
+  normalizeCategoryName,
+} from "@/lib/category-utils";
 
 interface CategoriesTabProps {
   categories: Category[];
@@ -45,23 +51,9 @@ export default function CategoriesTab({
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [deleteWarningCategory, setDeleteWarningCategory] = useState<{ cat: Category; linkedCount: number } | null>(null);
 
-  // Clean Categories filter (excluding migration audit known brand names and deduplicating logical categories)
+  // Clean Categories filter with deterministic canonical deduplication
   const cleanCategories = useMemo(() => {
-    const seen = new Set<string>();
-    const result: Category[] = [];
-    (categories || []).forEach((c) => {
-      const cName = (c.name || "").trim().toLowerCase();
-      const cSlug = (c.slug || "").trim().toLowerCase();
-      if (!cName) return;
-      if (KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug)) {
-        return;
-      }
-      if (!seen.has(cName)) {
-        seen.add(cName);
-        result.push(c);
-      }
-    });
-    return result.length > 0 ? result : categories;
+    return deduplicateCategories(categories || []);
   }, [categories]);
 
   // Filtered & Sorted Categories List
@@ -120,19 +112,25 @@ export default function CategoriesTab({
   };
 
   // Duplicate Category
+  // Duplicate Category with deterministic ID and normalized naming
   const handleDuplicate = async (cat: Category) => {
-    const dupName = `${cat.name} (Copy)`;
-    const dupSlug = `${cat.slug}-copy-${Date.now().toString().slice(-4)}`;
-    const newCatData = {
+    const dupName = `${cat.name} Copy`;
+    const baseSlug = generateCategorySlug(cat.slug || cat.name);
+    const dupSlug = `${baseSlug}-copy`;
+    const docId = getCategoryDocId(dupSlug);
+
+    const newCatData: Category = {
       ...cat,
+      id: docId,
       name: dupName,
       slug: dupSlug,
       sort_order: (cat.sort_order || 0) + 1,
+      status: "active",
+      show_on_homepage: cat.show_on_homepage !== false,
     };
-    delete (newCatData as any).id;
 
     try {
-      await addDoc(collection(db, "categories"), newCatData);
+      await setDoc(doc(db, "categories", docId), newCatData, { merge: true });
       window.location.reload();
     } catch (e) {
       console.error("Duplicate error:", e);
@@ -141,14 +139,16 @@ export default function CategoriesTab({
   };
 
   const handleCleanDuplicates = async () => {
-    if (!confirm("Are you sure you want to clean up duplicate categories? This will merge duplicates and update all linked products safely.")) return;
+    if (!confirm("Are you sure you want to clean up duplicate categories? This will merge duplicates, preserve images/metadata, and update all linked products safely.")) return;
     try {
       const grouped: Record<string, Category[]> = {};
       categories.forEach(c => {
-        const name = (c.name || "").trim().toLowerCase();
-        if (!name) return;
-        if (!grouped[name]) grouped[name] = [];
-        grouped[name].push(c);
+        if (!c) return;
+        if ((c as any).isDeleted === true || c.status === "deleted") return;
+        const normKey = generateCategorySlug(c.slug || c.name);
+        if (!normKey) return;
+        if (!grouped[normKey]) grouped[normKey] = [];
+        grouped[normKey].push(c);
       });
       
       let deleted = 0;
@@ -156,16 +156,28 @@ export default function CategoriesTab({
       
       for (const docs of Object.values(grouped)) {
         if (docs.length > 1) {
-          // Sort categories by the number of products they have
+          // Sort categories by: 1) Has valid image, 2) Active status, 3) Product count
           const sortedDocs = docs.map(cat => {
             const count = products.filter(p => p.category_id === cat.id || p.categoryId === cat.id || p.category_name?.toLowerCase() === cat.name?.toLowerCase()).length;
-            return { cat, count };
-          }).sort((a, b) => b.count - a.count);
+            const hasImage = Boolean(cat.image_url && cat.image_url.trim());
+            const isActive = cat.status !== "deleted" && (cat as any).isDeleted !== true;
+            return { cat, count, score: (hasImage ? 100 : 0) + (isActive ? 50 : 0) + count };
+          }).sort((a, b) => b.score - a.score);
           
           const keptCategory = sortedDocs[0].cat;
           
           for (let i = 1; i < sortedDocs.length; i++) {
             const duplicateCat = sortedDocs[i].cat;
+            
+            // If duplicate has an image or description that keptCategory is missing, preserve it!
+            if (!keptCategory.image_url && duplicateCat.image_url) {
+              keptCategory.image_url = duplicateCat.image_url;
+              await setDoc(doc(db, "categories", keptCategory.id), { image_url: duplicateCat.image_url }, { merge: true });
+            }
+            if (!keptCategory.description && duplicateCat.description) {
+              keptCategory.description = duplicateCat.description;
+              await setDoc(doc(db, "categories", keptCategory.id), { description: duplicateCat.description }, { merge: true });
+            }
             
             // Update products that are pointing to the duplicate category
             const orphaned = products.filter(p => p.category_id === duplicateCat.id || p.categoryId === duplicateCat.id);

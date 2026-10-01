@@ -9,6 +9,7 @@ import { Category, Brand, Department } from "@/lib/types";
 import { DEFAULT_BRANDS } from "@/lib/data";
 import { DEFAULT_DEPARTMENTS, getDefaultBrandDepartments, getBrandsFromDb, getDepartmentsFromDb } from "@/lib/firestore-brands";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { uniqueById } from "@/lib/utils";
 
 interface CategoriesSectionProps {
   categories?: Category[];
@@ -183,7 +184,8 @@ export default function CategoriesSection({
   }, [departments]);
 
   const visibleBrands = useMemo(() => {
-    return liveBrands
+    const deduped = uniqueById(liveBrands);
+    return deduped
       .filter((b) => b.show_on_homepage !== false && b.status !== "inactive" && b.enabled !== false && (b as any).isDeleted !== true)
       .filter((b) => {
         const assigned =

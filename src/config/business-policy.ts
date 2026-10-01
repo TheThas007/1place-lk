@@ -1,4 +1,5 @@
 import { siteSettings } from "@/lib/data";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export interface BusinessPolicyConfig {
   legalName: string;
@@ -24,18 +25,18 @@ export interface BusinessPolicyConfig {
 }
 
 export const businessPolicyConfig: BusinessPolicyConfig = {
-  legalName: "STREET MOBILE (Pvt) Ltd",
-  tradingName: "Street Mobile",
-  address: siteSettings.address || "163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka",
-  phone: siteSettings.phone || "024 222 8118 / 075 454 1118",
-  whatsapp: siteSettings.whatsapp || "94774141118",
-  email: siteSettings.email || "streetmobilevavuniya@gmail.com",
-  googleMapsLink: siteSettings.google_maps_link || "https://maps.app.goo.gl/dvxBpsvxR86bGqar9",
+  legalName: BUSINESS_INFO.legalName,
+  tradingName: BUSINESS_INFO.name,
+  address: siteSettings.address || BUSINESS_INFO.address,
+  phone: siteSettings.phone || BUSINESS_INFO.phonePrimary,
+  whatsapp: siteSettings.whatsapp || BUSINESS_INFO.whatsappNumber,
+  email: siteSettings.email || BUSINESS_INFO.email,
+  googleMapsLink: siteSettings.google_maps_link || BUSINESS_INFO.maps.link,
   registrationNumber: "To be confirmed by Street Mobile",
   businessHours: {
-    weekdays: siteSettings.business_hours?.weekdays || "9:00 AM - 9:00 PM",
-    saturday: siteSettings.business_hours?.saturday || "9:00 AM - 9:00 PM",
-    sunday: siteSettings.business_hours?.sunday || "10:00 AM - 6:00 PM",
+    weekdays: siteSettings.business_hours?.weekdays || BUSINESS_INFO.hours.weekdays,
+    saturday: siteSettings.business_hours?.saturday || BUSINESS_INFO.hours.saturday,
+    sunday: siteSettings.business_hours?.sunday || BUSINESS_INFO.hours.sunday,
   },
   lastUpdated: "August 9, 2026",
   constants: {

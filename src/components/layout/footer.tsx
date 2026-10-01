@@ -102,45 +102,44 @@ function HomePageFooter() {
     });
   }, []);
 
-  // ── Scroll Reveal from Outside Screen via GSAP ScrollTrigger ──
+  // ── Subtle Footer Scroll Reveal via GSAP ScrollTrigger ──
   useEffect(() => {
     if (isReducedMotion) return;
 
     const ctx = gsap.context(() => {
-      // Desktop Footer Scroll Gliding Reveal
+      // Desktop Footer Scroll Subtle Reveal
       if (desktopFooterRef.current) {
         gsap.fromTo(
           desktopFooterRef.current,
-          { y: 80, scale: 0.95, opacity: 0.6 },
+          { y: 20, opacity: 0.88 },
           {
             y: 0,
-            scale: 1,
             opacity: 1,
-            ease: "power2.out",
+            ease: "power1.out",
             scrollTrigger: {
               trigger: desktopFooterRef.current,
               start: "top 98%",
-              end: "top 70%",
-              scrub: 0.8,
+              end: "top 82%",
+              scrub: 0.5,
             },
           }
         );
       }
 
-      // Mobile Footer Scroll Gliding Reveal
+      // Mobile Footer Scroll Subtle Reveal
       if (mobileFooterRef.current) {
         gsap.fromTo(
           mobileFooterRef.current,
-          { y: 50, opacity: 0.7 },
+          { y: 12, opacity: 0.92 },
           {
             y: 0,
             opacity: 1,
-            ease: "power2.out",
+            ease: "power1.out",
             scrollTrigger: {
               trigger: mobileFooterRef.current,
               start: "top 98%",
-              end: "top 75%",
-              scrub: 0.8,
+              end: "top 85%",
+              scrub: 0.5,
             },
           }
         );

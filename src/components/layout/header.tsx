@@ -31,6 +31,7 @@ import { getCategories, getMegaMenuSettings } from "@/lib/firestore-client";
 import { Category, MegaMenuSettings } from "@/lib/types";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export default function Header() {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -52,23 +53,16 @@ export default function Header() {
   const { itemCount } = useCart();
   const { wishlist } = useWishlist();
 
-  // ── ResizeObserver: dynamically update --navbar-height CSS variable ──
+  // ── Set stable --navbar-height CSS variable to prevent layout shift during scroll ──
   useEffect(() => {
-    const el = headerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const h = entry.contentRect.height;
-      if (h > 0) {
-        document.documentElement.style.setProperty("--navbar-height", `${h}px`);
-      }
-    });
-    observer.observe(el);
-    // Set initial value immediately
-    const initialH = el.getBoundingClientRect().height;
-    if (initialH > 0) {
-      document.documentElement.style.setProperty("--navbar-height", `${initialH}px`);
-    }
-    return () => observer.disconnect();
+    const updateNavbarHeight = () => {
+      const isMobile = window.innerWidth < 1024;
+      const baseHeight = isMobile ? 66 : 74;
+      document.documentElement.style.setProperty("--navbar-height", `${baseHeight}px`);
+    };
+    updateNavbarHeight();
+    window.addEventListener("resize", updateNavbarHeight);
+    return () => window.removeEventListener("resize", updateNavbarHeight);
   }, []);
 
   useEffect(() => {
@@ -857,12 +851,12 @@ export default function Header() {
 
               <div className="px-5 py-5 border-t border-white/[0.06] space-y-3">
                 <motion.a
-                  href="tel:+94774141118"
+                  href={`tel:${BUSINESS_INFO.phoneMobileIntl}`}
                   className="flex items-center gap-3 w-full px-4 py-3 rounded-xl bg-white text-black text-sm font-semibold relative overflow-hidden min-h-[44px]"
                   whileTap={{ scale: 0.97 }}
                 >
                   <Phone className="w-4 h-4" />
-                  +94 77 414 1118
+                  {BUSINESS_INFO.phoneMobile}
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-[-20deg]"
                     animate={{ x: ["-200%", "200%"] }}
@@ -871,7 +865,7 @@ export default function Header() {
                 </motion.a>
                 <p className="flex items-center gap-2 text-xs text-white/25 px-1">
                   <MapPin className="w-3.5 h-3.5" />
-                  Vavuniya, Sri Lanka
+                  {BUSINESS_INFO.addressLocality}, {BUSINESS_INFO.addressCountry === "LK" ? "Sri Lanka" : BUSINESS_INFO.addressCountry}
                 </p>
               </div>
             </motion.div>

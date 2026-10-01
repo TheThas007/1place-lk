@@ -1,4 +1,5 @@
 import { Category, Product, Review, Service, StoreFeature, Banner, SiteSettings, OfferBanner, Brand, VisualShowcaseSettings, ShowcaseTile, FeaturedCollectionsSettings, HeroSlide, GalleryImage, FooterSettings, MotionSettings, NewArrivalsSettings, MegaMenuSettings, TodayDealSettings, GalleryAnimationSettings } from "./types";
+import { BUSINESS_INFO } from "./business-info";
 
 export const DEFAULT_MEGA_MENU_SETTINGS: MegaMenuSettings = {
   enabled: true,
@@ -128,22 +129,22 @@ export const DEFAULT_NEW_ARRIVALS_SETTINGS: NewArrivalsSettings = {
 
 // ===== Site Settings =====
 export const siteSettings: SiteSettings = {
-  store_name: "STREET MOBILE",
-  phone: "024 222 8118 / 075 454 1118",
-  whatsapp: "94774141118",
-  address: "163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka",
-  email: "streetmobilevavuniya@gmail.com",
-  google_maps_link: "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
-  google_maps_embed:
-    "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed",
+  store_name: BUSINESS_INFO.brandName,
+  phone: BUSINESS_INFO.phonePrimary,
+  secondary_phone: BUSINESS_INFO.phoneMobile.replace(/\s+/g, ""),
+  whatsapp: BUSINESS_INFO.whatsappNumber,
+  address: BUSINESS_INFO.address,
+  email: BUSINESS_INFO.email,
+  google_maps_link: BUSINESS_INFO.maps.link,
+  google_maps_embed: BUSINESS_INFO.maps.embed,
   logo_url: "/logo.svg",
-  facebook: "https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr",
-  instagram: "https://www.instagram.com/streetmobile.lk?utm_source=qr",
-  tiktok: "https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9",
+  facebook: BUSINESS_INFO.social.facebook,
+  instagram: BUSINESS_INFO.social.instagram,
+  tiktok: BUSINESS_INFO.social.tiktok,
   business_hours: {
-    weekdays: "9:00 AM - 9:00 PM",
-    saturday: "9:00 AM - 9:00 PM",
-    sunday: "10:00 AM - 6:00 PM",
+    weekdays: BUSINESS_INFO.hours.weekdays,
+    saturday: BUSINESS_INFO.hours.saturday,
+    sunday: BUSINESS_INFO.hours.sunday,
   },
 };
 

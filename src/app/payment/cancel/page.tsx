@@ -13,6 +13,7 @@ import {
   Truck,
   ShieldAlert,
 } from "lucide-react";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 function PaymentCancelContent() {
   const searchParams = useSearchParams();
@@ -78,7 +79,7 @@ function PaymentCancelContent() {
             </Link>
 
             <a
-              href="https://wa.me/94754541118?text=Hello%20Street%20Mobile,%20my%20payment%20was%20cancelled%20and%20I%20need%20assistance"
+              href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent("Hello Street Mobile, my payment was cancelled and I need assistance")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full min-h-[50px] px-6 rounded-full font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"
@@ -98,7 +99,7 @@ function PaymentCancelContent() {
 
           <div className="pt-2 border-t border-neutral-100 text-[11px] text-neutral-400 flex items-center justify-center gap-2">
             <Phone className="w-3.5 h-3.5" />
-            <span>Store hotline: 075 454 1118 / 077 554 1118</span>
+            <span>Store helpline: {BUSINESS_INFO.phonePrimary} / {BUSINESS_INFO.phoneMobile}</span>
           </div>
 
         </div>

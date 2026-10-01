@@ -63,6 +63,8 @@ import GoogleSearchConsoleTraffic from "@/components/admin/GoogleSearchConsoleTr
 import { Product, Category, Review, OfferBanner, BannerStatus, HeroSlide, GalleryImage, GoogleReviewsSettings, VisualShowcaseSettings, TodayDealSettings, MegaMenuSettings, Brand, GalleryAnimationSettings, WhatsAppCampaign } from "@/lib/types";
 import { categories as fallbackCategories, fallbackOfferBanners, products as fallbackProducts, DEFAULT_SHOWCASE_SETTINGS, DEFAULT_TODAY_DEAL_SETTINGS, DEFAULT_MEGA_MENU_SETTINGS, DEFAULT_BRANDS, DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getShowcaseSettings, getTodayDealSettings, getMegaMenuSettings, getBrands, getGalleryAnimationSettings } from "@/lib/firestore-client";
+import { deduplicateCategories } from "@/lib/category-utils";
+import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 import { jsPDF } from "jspdf";
 
 // Admin Tabs
@@ -233,6 +235,28 @@ function DashboardContent() {
 
   // Stock Filter & Quick Stock Addition States
   const [productStockFilter, setProductStockFilter] = useState<"all" | "low_stock" | "in_stock">("all");
+  const [currentDateTime, setCurrentDateTime] = useState<string>("");
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const datePart = now.toLocaleDateString("en-GB", {
+        weekday: "short",
+        day: "numeric",
+        month: "short",
+        year: "numeric",
+      });
+      const timePart = now.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: true,
+      });
+      setCurrentDateTime(`${datePart} • ${timePart}`);
+    };
+    updateTime();
+    const timer = setInterval(updateTime, 10000);
+    return () => clearInterval(timer);
+  }, []);
   const [quickStockProduct, setQuickStockProduct] = useState<Product | null>(null);
   const [quickStockQty, setQuickStockQty] = useState<number>(10);
   const [isUpdatingStock, setIsUpdatingStock] = useState(false);
@@ -248,24 +272,20 @@ function DashboardContent() {
 
       // Categories
       const catSnap = await getDocs(collection(db, "categories"));
-      const catList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
-      const catMap = new Map<string, Category>();
-      fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
-      catList.forEach((c) => {
-        const key = c.id || c.slug;
-        const existing = catMap.get(key) || catMap.get(c.id);
-
-        if ((c as any).isDeleted === true || c.status === "deleted") {
-          catMap.delete(key);
-          catMap.delete(c.id);
-          if (c.slug) catMap.delete(c.slug);
-          return;
-        }
-
-        const image_url = c.image_url !== undefined ? c.image_url : (existing?.image_url || "");
-        catMap.set(key, { ...existing, ...c, id: c.id, image_url });
+      const rawCatList = catSnap.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
+      const validCats = rawCatList.filter((c) => {
+        if ((c as any).isDeleted === true || c.status === "deleted") return false;
+        const cName = (c.name || "").toLowerCase();
+        const cSlug = (c.slug || "").toLowerCase();
+        if (KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug)) return false;
+        return true;
       });
-      setCategories(Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted"));
+
+      if (validCats.length > 0) {
+        setCategories(deduplicateCategories(validCats));
+      } else {
+        setCategories(deduplicateCategories(fallbackCategories));
+      }
 
       // Orders
       const ordSnap = await getDocs(collection(db, "orders"));
@@ -517,22 +537,20 @@ function DashboardContent() {
     const unsubCategories = onSnapshot(
       collection(db, "categories"),
       (snapshot) => {
-        const catList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
-        const catMap = new Map<string, Category>();
-        fallbackCategories.forEach((c) => catMap.set(c.id || c.slug, c));
-        catList.forEach((c) => {
-          const key = c.id || c.slug;
-          const existing = catMap.get(key) || catMap.get(c.id);
-          if ((c as any).isDeleted === true || c.status === "deleted") {
-            catMap.delete(key);
-            catMap.delete(c.id);
-            if (c.slug) catMap.delete(c.slug);
-            return;
-          }
-          const image_url = c.image_url !== undefined ? c.image_url : (existing?.image_url || "");
-          catMap.set(key, { ...existing, ...c, id: c.id, image_url });
+        const rawCatList = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as Category));
+        const validCats = rawCatList.filter((c) => {
+          if ((c as any).isDeleted === true || c.status === "deleted") return false;
+          const cName = (c.name || "").toLowerCase();
+          const cSlug = (c.slug || "").toLowerCase();
+          if (KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug)) return false;
+          return true;
         });
-        setCategories(Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted"));
+
+        if (validCats.length > 0) {
+          setCategories(deduplicateCategories(validCats));
+        } else {
+          setCategories(deduplicateCategories(fallbackCategories));
+        }
       },
       (err) => console.warn("Realtime categories listener error:", err)
     );
@@ -774,7 +792,7 @@ function DashboardContent() {
     const salesMap = new Map<string, { id: string; name: string; category: string; unitsSold: number; revenue: number; lastSold: string; image: string }>();
 
     orders.forEach((o) => {
-      const orderDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : "15 Sep 2026";
+      const orderDate = o.createdAt ? new Date(o.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" }) : new Date().toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
       (o.items || []).forEach((it: any) => {
         const id = it.id || it.productId || it.name;
         const current = salesMap.get(id) || {
@@ -1399,7 +1417,7 @@ function DashboardContent() {
               <span className={`text-xs font-medium hidden sm:inline ${
                 isLight ? "text-[#64748B]" : "text-[#94A3B8]"
               }`}>
-                Mon, 15 Sep 2026
+                {currentDateTime || "System Live"}
               </span>
               <div
                 className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-semibold ${

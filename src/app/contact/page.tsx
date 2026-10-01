@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { getSiteSettings } from "@/lib/firestore-client";
 import { siteSettings as defaultSettings } from "@/lib/data";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import ContactClient from "@/components/contact/ContactClient";
 
 export const revalidate = 60;
@@ -8,7 +9,7 @@ export const revalidate = 60;
 export const metadata: Metadata = {
   title: "Contact Us & Store Location in Vavuniya | Street Mobile Sri Lanka",
   description:
-    "Visit Street Mobile flagship store at 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya. Call +94 77 414 1118 or WhatsApp for genuine smartphone prices, orders, and warranty repairs in Sri Lanka.",
+    "Visit Street Mobile flagship store at 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya. Call 024 222 8118 or WhatsApp +94 77 414 1118 for genuine smartphone prices, orders, and warranty repairs in Sri Lanka.",
   alternates: {
     canonical: "https://www.streetmobile.lk/contact",
   },
@@ -36,40 +37,40 @@ export default async function ContactPage() {
     "@context": "https://schema.org",
     "@type": "MobilePhoneStore",
     "@id": "https://www.streetmobile.lk/#localbusiness",
-    "name": settings.store_name || "Street Mobile",
+    "name": settings.store_name || BUSINESS_INFO.brandName,
     "image": "https://www.streetmobile.lk/logo.png",
     "url": "https://www.streetmobile.lk/contact",
-    "telephone": settings.phone || "+94774141118",
-    "email": settings.email || "streetmobilevavuniya@gmail.com",
+    "telephone": settings.phone || BUSINESS_INFO.phonePrimaryIntl,
+    "email": settings.email || BUSINESS_INFO.email,
     "priceRange": "LKR",
     "address": {
       "@type": "PostalAddress",
-      "streetAddress": settings.address || "163, Kandaswamy Kovil Road, Rambaikulam",
-      "addressLocality": "Vavuniya Town",
-      "addressRegion": "Northern Province",
-      "postalCode": "43000",
-      "addressCountry": "LK",
+      "streetAddress": settings.address || BUSINESS_INFO.address,
+      "addressLocality": BUSINESS_INFO.addressLocality,
+      "addressRegion": BUSINESS_INFO.addressRegion,
+      "postalCode": BUSINESS_INFO.postalCode,
+      "addressCountry": BUSINESS_INFO.addressCountry,
     },
     "geo": {
       "@type": "GeoCoordinates",
-      "latitude": 8.7514,
-      "longitude": 80.4971,
+      "latitude": BUSINESS_INFO.geo.latitude,
+      "longitude": BUSINESS_INFO.geo.longitude,
     },
     "openingHoursSpecification": [
       {
         "@type": "OpeningHoursSpecification",
         "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-        "opens": "09:00",
-        "closes": "21:00",
+        "opens": BUSINESS_INFO.hours.opensWeekdays,
+        "closes": BUSINESS_INFO.hours.closesWeekdays,
       },
       {
         "@type": "OpeningHoursSpecification",
         "dayOfWeek": "Sunday",
-        "opens": "10:00",
-        "closes": "18:00",
+        "opens": BUSINESS_INFO.hours.opensSunday,
+        "closes": BUSINESS_INFO.hours.closesSunday,
       },
     ],
-    "hasMap": settings.google_maps_link || "https://maps.app.goo.gl/dvxBpsvxR86bGqar9",
+    "hasMap": settings.google_maps_link || BUSINESS_INFO.maps.link,
   };
 
   const breadcrumbsJsonLd = {

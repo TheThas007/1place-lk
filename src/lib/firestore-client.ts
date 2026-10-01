@@ -42,7 +42,8 @@ import {
   DEFAULT_MOTION_SETTINGS,
 } from "./data";
 import { KNOWN_BRAND_NAMES } from "./migration-audit";
-import { generateProductSlug, normalizeImageUrl, normalizeImageUrls } from "./utils";
+import { deduplicateCategories } from "./category-utils";
+import { generateProductSlug, normalizeImageUrl, normalizeImageUrls, uniqueById } from "./utils";
 import { cachedFetch, getCachedData, setCachedData, clearDataCache, CACHE_TTL } from "./data-cache";
 
 export { clearDataCache } from "./data-cache";
@@ -118,55 +119,49 @@ export async function getProducts(): Promise<Product[]> {
       const q = query(collection(db, "products"));
       const snapshot = await getDocs(q);
       const docs = snapshot.docs.map((d) => normalizeProduct({ ...d.data(), id: d.id } as Product));
-      if (docs.length > 0) return docs;
+      const uniqueDocs = uniqueById(docs);
+      if (uniqueDocs.length > 0) return uniqueDocs;
     } catch (e) {
       console.warn("Offline/Error fetching products:", e);
     }
-    return fallbackProducts.map(normalizeProduct);
+    return uniqueById(fallbackProducts.map(normalizeProduct));
   }, CACHE_TTL.PRODUCTS);
 }
 
 // ── 3. Categories ──
 export async function getCategories(): Promise<Category[]> {
   return cachedFetch("categories:all", async () => {
-    const catMap = new Map<string, Category>();
-    fallbackCategories.forEach((c) => {
-      catMap.set(c.id || c.slug, c);
-    });
-
     try {
       const q = query(collection(db, "categories"));
       const snapshot = await getDocs(q);
-      snapshot.docs.forEach((d) => {
+      const rawDocs = snapshot.docs.map((d) => {
         const data = d.data() as Category;
         const id = d.id;
-        const key = id || data.slug || data.name;
-        const existing = catMap.get(key) || catMap.get(id);
-
-        if ((data as any).isDeleted === true || data.status === "deleted") {
-          catMap.delete(key);
-          catMap.delete(id);
-          if (data.slug) catMap.delete(data.slug);
-          return;
-        }
-
-        const rawImageUrl = data.image_url !== undefined ? data.image_url : (existing?.image_url || "");
+        const rawImageUrl = data.image_url !== undefined ? data.image_url : "";
         const image_url = normalizeImageUrl(rawImageUrl);
-
-        catMap.set(key, { ...existing, ...data, id, image_url });
+        return { ...data, id, image_url };
       });
+
+      const validDocs = rawDocs.filter((c) => {
+        if ((c as any).isDeleted === true || c.status === "deleted") return false;
+        const cName = (c.name || "").toLowerCase();
+        const cSlug = (c.slug || "").toLowerCase();
+        return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
+      });
+
+      if (validDocs.length > 0) {
+        const deduped = deduplicateCategories(validDocs);
+        return deduped.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+      }
     } catch (e) {
-      console.warn("Offline/Error fetching categories:", e);
+      console.warn("Offline/Error fetching categories from Firestore:", e);
     }
 
-    const docs = Array.from(catMap.values()).filter((c) => (c as any).isDeleted !== true && c.status !== "deleted");
-    const cleanDocs = docs.filter((c) => {
-      const cName = (c.name || "").toLowerCase();
-      const cSlug = (c.slug || "").toLowerCase();
-      return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
-    });
-
-    return cleanDocs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+    // Fallback only if offline or empty
+    const cleanFallbacks = fallbackCategories
+      .filter((c) => (c as any).isDeleted !== true && c.status !== "deleted")
+      .map((c) => ({ ...c, image_url: normalizeImageUrl(c.image_url || "") }));
+    return deduplicateCategories(cleanFallbacks).sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
   }, CACHE_TTL.CATEGORIES);
 }
 
@@ -220,14 +215,14 @@ export async function getReviews(): Promise<Review[]> {
     try {
       const q = query(collection(db, "reviews"));
       const snapshot = await getDocs(q);
-      const docs = snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Review));
+      const docs = uniqueById(snapshot.docs.map((d) => ({ ...d.data(), id: d.id } as Review)));
       if (docs.length > 0) {
         return docs.sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
       }
     } catch (e) {
       console.warn("Offline/Error fetching reviews, returning fallbacks:", e);
     }
-    return fallbackReviews;
+    return uniqueById(fallbackReviews);
   }, CACHE_TTL.REVIEWS);
 }
 
@@ -334,24 +329,24 @@ export async function getGalleryImages(): Promise<any[]> {
     try {
       const q = query(collection(db, "gallery"));
       const snapshot = await getDocs(q);
-      const images = snapshot.docs.map((d) => {
+      const images = uniqueById(snapshot.docs.map((d) => {
         const data = d.data();
         return {
           ...data,
           id: d.id,
           image_url: normalizeImageUrl(data.image_url || data.imageUrl || data.url),
         };
-      });
+      }));
       if (images.length > 0) {
         return images;
       }
     } catch (e) {
       console.warn("Offline/Error fetching gallery images:", e);
     }
-    return DEFAULT_GALLERY_IMAGES.map((g) => ({
+    return uniqueById(DEFAULT_GALLERY_IMAGES.map((g) => ({
       ...g,
       image_url: normalizeImageUrl(g.image_url),
-    }));
+    })));
   }, CACHE_TTL.GALLERY);
 }
 

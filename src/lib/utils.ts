@@ -256,3 +256,20 @@ export function normalizeImageUrls(urls?: (string | null | undefined)[] | null):
   return urls.map(normalizeImageUrl).filter(Boolean);
 }
 
+/**
+ * Stable deduplication helper by item id / productId / document id
+ */
+export function uniqueById<T extends { id?: string | number }>(items: T[]): T[] {
+  if (!Array.isArray(items)) return [];
+  const map = new Map<string | number, T>();
+  for (const item of items) {
+    if (!item) continue;
+    const id = item.id ?? (item as any).productId ?? (item as any).reviewId ?? (item as any).categoryId ?? (item as any)._id;
+    if (id !== undefined && id !== null && !map.has(id)) {
+      map.set(id, item);
+    }
+  }
+  return Array.from(map.values());
+}
+
+

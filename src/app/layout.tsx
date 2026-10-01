@@ -18,6 +18,7 @@ import DisableNumberScroll from "@/components/providers/DisableNumberScroll";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
 import BrowseHistoryTracker from "@/components/navigation/BrowseHistoryTracker";
 import Script from "next/script";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -121,68 +122,68 @@ const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
   "@id": "https://www.streetmobile.lk/#organization",
-  "name": "Street Mobile",
-  "legalName": "STREET MOBILE (Pvt) Ltd",
+  "name": BUSINESS_INFO.name,
+  "legalName": BUSINESS_INFO.legalName,
   "url": "https://www.streetmobile.lk",
   "logo": "https://www.streetmobile.lk/logo.png",
   "image": "https://www.streetmobile.lk/logo.png",
-  "description": "Your Trusted Mobile Store in Vavuniya, Sri Lanka. Retailer of genuine smartphones, gadgets, and premium accessories.",
-  "telephone": "+94242228118",
-  "email": "streetmobilevavuniya@gmail.com",
+  "description": BUSINESS_INFO.description,
+  "telephone": BUSINESS_INFO.phonePrimaryIntl,
+  "email": BUSINESS_INFO.email,
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "163, Kandaswamy Kovil Road, Rambaikulam",
-    "addressLocality": "Vavuniya Town",
-    "addressRegion": "Northern Province",
-    "postalCode": "43000",
-    "addressCountry": "LK"
+    "streetAddress": BUSINESS_INFO.address,
+    "addressLocality": BUSINESS_INFO.addressLocality,
+    "addressRegion": BUSINESS_INFO.addressRegion,
+    "postalCode": BUSINESS_INFO.postalCode,
+    "addressCountry": BUSINESS_INFO.addressCountry,
   },
   "sameAs": [
-    "https://instagram.com/streetmobile.lk",
-    "https://facebook.com/streetmobile.lk",
-    "https://tiktok.com/@streetmobile.lk"
-  ]
+    BUSINESS_INFO.social.instagram,
+    BUSINESS_INFO.social.facebook,
+    BUSINESS_INFO.social.tiktok,
+  ],
 };
 
 const localBusinessJsonLd = {
   "@context": "https://schema.org",
   "@type": "MobilePhoneStore",
   "@id": "https://www.streetmobile.lk/#localbusiness",
-  "name": "Street Mobile",
+  "name": BUSINESS_INFO.name,
   "image": "https://www.streetmobile.lk/logo.png",
   "url": "https://www.streetmobile.lk",
-  "telephone": "+94242228118",
+  "telephone": BUSINESS_INFO.phonePrimaryIntl,
   "priceRange": "LKR 1,000 - LKR 500,000",
   "address": {
     "@type": "PostalAddress",
-    "streetAddress": "163, Kandaswamy Kovil Road, Rambaikulam",
-    "addressLocality": "Vavuniya Town",
-    "addressRegion": "Northern Province",
-    "postalCode": "43000",
-    "addressCountry": "LK"
+    "streetAddress": BUSINESS_INFO.address,
+    "addressLocality": BUSINESS_INFO.addressLocality,
+    "addressRegion": BUSINESS_INFO.addressRegion,
+    "postalCode": BUSINESS_INFO.postalCode,
+    "addressCountry": BUSINESS_INFO.addressCountry,
   },
   "geo": {
     "@type": "GeoCoordinates",
-    "latitude": 8.7514,
-    "longitude": 80.4971
+    "latitude": BUSINESS_INFO.geo.latitude,
+    "longitude": BUSINESS_INFO.geo.longitude,
   },
   "openingHoursSpecification": [
     {
       "@type": "OpeningHoursSpecification",
       "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-      "opens": "09:00",
-      "closes": "21:00"
+      "opens": BUSINESS_INFO.hours.opensWeekdays,
+      "closes": BUSINESS_INFO.hours.closesWeekdays,
     },
     {
       "@type": "OpeningHoursSpecification",
       "dayOfWeek": "Sunday",
-      "opens": "10:00",
-      "closes": "18:00"
-    }
+      "opens": BUSINESS_INFO.hours.opensSunday,
+      "closes": BUSINESS_INFO.hours.closesSunday,
+    },
   ],
   "paymentAccepted": "Cash, Credit Card, Debit Card, Online Payment",
   "currenciesAccepted": "LKR",
-  "hasMap": "https://maps.app.goo.gl/dvxBpsvxR86bGqar9"
+  "hasMap": BUSINESS_INFO.maps.link,
 };
 
 const websiteJsonLd = {

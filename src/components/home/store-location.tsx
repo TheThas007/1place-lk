@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { MapPin, Phone, Clock } from "lucide-react";
+import { MapPin, Phone, Clock, ArrowRight, ExternalLink } from "lucide-react";
 import { siteSettings } from "@/lib/data";
 import { SiteSettings } from "@/lib/types";
 import { getSiteSettings } from "@/lib/firestore-client";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import { motion } from "framer-motion";
 
 export default function StoreLocation() {
@@ -38,226 +39,167 @@ export default function StoreLocation() {
           observer.disconnect();
         }
       },
-      { rootMargin: "200px" }
+      { rootMargin: "250px" }
     );
 
     observer.observe(el);
     return () => observer.disconnect();
   }, []);
 
+  const storeAddress = settings.address || BUSINESS_INFO.address;
+  const storePhone = settings.phone || BUSINESS_INFO.phonePrimary;
+  const storeMobile = settings.secondary_phone || BUSINESS_INFO.phoneMobile;
+  const weekdaysHours = settings.business_hours?.weekdays || BUSINESS_INFO.hours.weekdays;
+  const sundayHours = settings.business_hours?.sunday || BUSINESS_INFO.hours.sunday;
+  const mapsEmbedUrl = settings.google_maps_embed || BUSINESS_INFO.maps.embed;
+  const mapsLinkUrl = settings.google_maps_link || BUSINESS_INFO.maps.link;
+
   return (
-    <>
-      {/* ── Mobile Layout (< 768px): Google Maps & Store Details Card ── */}
-      <section
-        className="md:hidden w-full bg-white px-3 sm:px-4 py-4 select-none"
-        aria-label="Store Location & Contact"
-      >
-        <div className="bg-white border border-neutral-200/90 rounded-2xl p-4 flex flex-col gap-3.5 shadow-sm overflow-hidden">
-          {/* Header Badge & Title */}
-          <div className="flex items-center justify-between gap-2">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider">
-              <span className="flex h-2 w-2 rounded-full bg-neutral-900 animate-pulse" />
-              <span>Store Location</span>
-            </div>
-            <span className="text-[11px] font-bold text-neutral-900 flex items-center gap-1">
-              ★ 4.9 <span className="text-neutral-400 font-normal">(285+ Reviews)</span>
-            </span>
-          </div>
+    <section
+      id="store-location"
+      aria-label="Store Location & Contact"
+      className="w-full bg-background relative overflow-hidden py-6 sm:py-10 md:py-20 lg:py-28 select-none"
+    >
+      {/* Decorative gradient orb (desktop) */}
+      <div className="hidden md:block absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
 
-          <div>
-            <h3 className="text-lg font-black text-neutral-900 tracking-tight leading-tight">
-              Visit Our Store in Vavuniya
-            </h3>
-            <p className="text-xs text-neutral-500 mt-0.5">
-              Experience the latest smartphones and professional repair services.
-            </p>
-          </div>
-
-          {/* Google Maps Live Frame */}
-          <div className="relative w-full h-[200px] rounded-xl overflow-hidden bg-neutral-100 border border-neutral-200/80 shadow-xs">
-            <iframe
-              title="STREET MOBILE Google Maps Location Mobile"
-              src={
-                settings.google_maps_embed ||
-                "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed"
-              }
-              width="100%"
-              height="100%"
-              style={{ border: 0 }}
-              allowFullScreen={true}
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              className="w-full h-full block"
-            />
-          </div>
-
-          {/* Store Details List */}
-          <div className="space-y-2.5 pt-1">
-            {/* Address */}
-            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
-              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
-                <MapPin className="w-3.5 h-3.5 text-neutral-900" />
-              </div>
-              <div>
-                <span className="font-bold text-neutral-900 block text-xs">Address</span>
-                <span className="text-neutral-600 text-[11px] leading-relaxed">
-                  {settings.address || "No. 125, 2nd Cross Street, Vavuniya, Sri Lanka"}
-                </span>
-              </div>
-            </div>
-
-            {/* Opening Hours */}
-            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
-              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
-                <Clock className="w-3.5 h-3.5 text-neutral-900" />
-              </div>
-              <div>
-                <span className="font-bold text-neutral-900 block text-xs">Business Hours</span>
-                <span className="text-neutral-600 text-[11px] leading-relaxed block">
-                  Mon - Sat: {settings.business_hours?.weekdays || "9:00 AM - 8:30 PM"}
-                </span>
-                <span className="text-neutral-600 text-[11px] leading-relaxed block">
-                  Sun: {settings.business_hours?.sunday || "9:00 AM - 3:00 PM"}
-                </span>
-              </div>
-            </div>
-
-            {/* Phone */}
-            <div className="flex items-start gap-2.5 text-xs text-neutral-700 font-medium">
-              <div className="w-6 h-6 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
-                <Phone className="w-3.5 h-3.5 text-neutral-900" />
-              </div>
-              <div>
-                <span className="font-bold text-neutral-900 block text-xs">Direct Call & WhatsApp</span>
-                <a
-                  href={`tel:${settings.phone || "+94774141118"}`}
-                  className="text-neutral-900 font-bold text-xs hover:underline block"
-                >
-                  {settings.phone || "+94 77 414 1118"}
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* Action CTAs */}
-          <div className="grid grid-cols-2 gap-2 pt-1">
-            <a
-              href={settings.google_maps_link || "https://maps.google.com"}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="py-2.5 px-3 bg-neutral-900 hover:bg-black text-white font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
-            >
-              <MapPin className="w-3.5 h-3.5 shrink-0" />
-              <span>Get Directions</span>
-            </a>
-
-            <a
-              href={`tel:${settings.phone || "+94774141118"}`}
-              className="py-2.5 px-3 bg-white hover:bg-neutral-100 text-black border border-neutral-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-sm active:scale-95 transition-all cursor-pointer text-center"
-            >
-              <Phone className="w-3.5 h-3.5 shrink-0" />
-              <span>Call Store</span>
-            </a>
-          </div>
-        </div>
-      </section>
-
-      {/* ── Desktop Layout ── */}
-      <div className="hidden md:block">
-        <section className="py-20 lg:py-32 bg-background relative overflow-hidden">
-          {/* Decorative gradient orb */}
-          <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-gradient-to-bl from-gray-100 to-transparent rounded-full blur-3xl -z-10 opacity-60 translate-x-1/3 -translate-y-1/3 pointer-events-none" />
-
-          <div className="max-w-7xl mx-auto px-4 lg:px-6 relative z-10">
-            <motion.div
-              ref={containerRef}
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, margin: "-60px" }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-              className="bg-white/60 backdrop-blur-[24px] saturate-[180%] rounded-[32px] overflow-hidden shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-white/80"
-            >
-          <div className="grid lg:grid-cols-2">
-            {/* Map Area */}
-            <div className="h-[400px] lg:h-auto bg-gray-900 relative overflow-hidden min-h-[350px] flex items-center justify-center">
-              <iframe
-                title="STREET MOBILE Google Maps Location"
-                src={
-                  settings.google_maps_embed ||
-                  "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed"
-                }
-                width="100%"
-                height="100%"
-                style={{ border: 0 }}
-                allowFullScreen={true}
-                loading="lazy"
-                referrerPolicy="no-referrer-when-downgrade"
-                className="absolute inset-0 grayscale-0 opacity-100 transition-all duration-500 z-0"
-              />
-            </div>
-
-            {/* Info Area */}
-            <div className="p-8 lg:p-16 flex flex-col justify-center">
-              <div className="flex items-center justify-between gap-4 mb-6">
-                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-foreground/5 border border-foreground/10 text-xs font-semibold w-fit">
-                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  Store Location
-                </div>
-                <img
-                  src="/logo.png"
-                  alt="STREET MOBILE Logo"
-                  className="h-10 lg:h-14 w-auto object-contain shrink-0"
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 relative z-10">
+        <motion.div
+          ref={containerRef}
+          initial={{ opacity: 0, y: 16 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true, margin: "-40px" }}
+          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          className="bg-white md:bg-white/60 md:backdrop-blur-[24px] md:saturate-[180%] rounded-2xl md:rounded-[32px] overflow-hidden shadow-xs md:shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-neutral-200/90 md:border-white/80"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 items-stretch">
+            {/* Map Area - Single lazy-loaded iframe for both mobile & desktop */}
+            <div className="h-[220px] sm:h-[300px] md:h-auto min-h-[220px] md:min-h-[380px] bg-neutral-900 relative overflow-hidden flex items-center justify-center order-1 md:order-1">
+              {loadMap ? (
+                <iframe
+                  title="STREET MOBILE Google Maps Location"
+                  src={mapsEmbedUrl}
+                  width="100%"
+                  height="100%"
+                  style={{ border: 0 }}
+                  allowFullScreen={true}
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                  className="w-full h-full block absolute inset-0 grayscale-0 opacity-100 transition-opacity duration-500"
                 />
+              ) : (
+                <div className="flex flex-col items-center justify-center gap-2 text-white/50 text-xs">
+                  <MapPin className="w-6 h-6 animate-bounce text-emerald-400" />
+                  <span>Loading Street Mobile Map...</span>
+                </div>
+              )}
+            </div>
+
+            {/* Store Information Area */}
+            <div className="p-4 sm:p-6 md:p-10 lg:p-14 flex flex-col justify-center order-2 md:order-2">
+              {/* Header Badge & Rating/Logo */}
+              <div className="flex items-center justify-between gap-3 mb-3 md:mb-6">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[11px] font-bold uppercase tracking-wider">
+                  <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                  <span>Store Location</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] sm:text-xs font-bold text-neutral-900 flex items-center gap-1">
+                    ★ 4.9 <span className="text-neutral-400 font-normal">(285+ Reviews)</span>
+                  </span>
+                  <img
+                    src="/logo.png"
+                    alt="STREET MOBILE Logo"
+                    className="hidden lg:block h-8 w-auto object-contain shrink-0 ml-2"
+                  />
+                </div>
               </div>
 
-              <h2 className="text-3xl lg:text-4xl font-bold tracking-tight mb-8 text-foreground">
-                Visit Our Store in <br />Vavuniya
+              {/* Title & Subtitle */}
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-neutral-900 mb-1.5 md:mb-3">
+                Visit Our Store in Vavuniya
               </h2>
+              <p className="text-xs sm:text-sm text-neutral-500 mb-5 md:mb-8 leading-relaxed">
+                Experience the latest smartphones, authentic accessories, and professional express repair services.
+              </p>
 
-              <div className="space-y-6">
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
-                    <MapPin className="w-5 h-5 text-foreground" />
+              {/* Info Details List */}
+              <div className="space-y-3.5 md:space-y-5">
+                {/* Address */}
+                <div className="flex items-start gap-3 text-xs sm:text-sm">
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <MapPin className="w-4 h-4 text-neutral-900" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1 text-foreground">Address</h3>
-                    <p className="text-muted-foreground text-sm leading-relaxed max-w-xs">
-                      {settings.address}
+                    <span className="font-bold text-neutral-900 block text-xs sm:text-sm mb-0.5">
+                      Address
+                    </span>
+                    <p className="text-neutral-600 leading-relaxed text-xs sm:text-sm max-w-sm">
+                      {storeAddress}
                     </p>
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
-                    <Clock className="w-5 h-5 text-foreground" />
+                {/* Opening Hours */}
+                <div className="flex items-start gap-3 text-xs sm:text-sm">
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Clock className="w-4 h-4 text-neutral-900" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1 text-foreground">Business Hours</h3>
-                    <p className="text-muted-foreground text-sm">Mon-Sat: {settings.business_hours.weekdays}</p>
-                    <p className="text-muted-foreground text-sm">Sun: {settings.business_hours.sunday}</p>
+                    <span className="font-bold text-neutral-900 block text-xs sm:text-sm mb-0.5">
+                      Business Hours
+                    </span>
+                    <p className="text-neutral-600 text-xs sm:text-sm">
+                      <span className="font-medium text-neutral-800">Mon - Sat:</span> {weekdaysHours}
+                    </p>
+                    <p className="text-neutral-600 text-xs sm:text-sm">
+                      <span className="font-medium text-neutral-800">Sunday:</span> {sundayHours}
+                    </p>
                   </div>
                 </div>
 
-                <div className="flex gap-4">
-                  <div className="w-10 h-10 rounded-full bg-foreground/5 flex items-center justify-center shrink-0">
-                    <Phone className="w-5 h-5 text-foreground" />
+                {/* Phone & Helpline */}
+                <div className="flex items-start gap-3 text-xs sm:text-sm">
+                  <div className="w-8 h-8 md:w-9 md:h-9 rounded-full bg-neutral-100 flex items-center justify-center shrink-0 mt-0.5">
+                    <Phone className="w-4 h-4 text-neutral-900" />
                   </div>
                   <div>
-                    <h3 className="font-semibold mb-1 text-foreground">Contact</h3>
-                    <p className="text-muted-foreground text-sm">{settings.phone}</p>
+                    <span className="font-bold text-neutral-900 block text-xs sm:text-sm mb-0.5">
+                      Direct Helpline &amp; WhatsApp
+                    </span>
+                    <a
+                      href={`tel:${storePhone.replace(/[^0-9+]/g, "")}`}
+                      className="text-neutral-900 font-bold hover:underline block text-xs sm:text-sm"
+                    >
+                      {storePhone}
+                    </a>
+                    {storeMobile && (
+                      <span className="text-[11px] text-neutral-500 block mt-0.5">
+                        Mobile: {storeMobile}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
 
-              <div className="mt-10 pt-10 border-t border-gray-100/80">
+              {/* Action Buttons */}
+              <div className="mt-6 md:mt-8 pt-4 md:pt-6 border-t border-neutral-100 flex flex-row items-center gap-2.5 sm:gap-3">
                 <a
-                  href={settings.google_maps_link}
+                  href={mapsLinkUrl}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="group inline-flex items-center justify-center w-full sm:w-auto bg-black text-white px-8 py-4 rounded-2xl font-bold shadow-[0_4px_14px_0_rgb(0,0,0,0.1)] hover:shadow-[0_6px_20px_rgba(0,0,0,0.23)] hover:bg-black/90 transition-all duration-300 active:scale-[0.98]"
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center py-2.5 sm:py-3.5 px-4 sm:px-6 bg-neutral-900 hover:bg-black text-white font-bold text-xs sm:text-sm rounded-xl md:rounded-2xl shadow-xs transition-all duration-200 active:scale-[0.98]"
                 >
-                  Get Directions
-                  <MapPin className="ml-2 w-4 h-4 transition-transform group-hover:translate-x-1" />
+                  <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+                  <span>Get Directions</span>
+                </a>
+
+                <a
+                  href={`tel:${storePhone.replace(/[^0-9+]/g, "")}`}
+                  className="flex-1 sm:flex-initial inline-flex items-center justify-center py-2.5 sm:py-3.5 px-4 sm:px-6 bg-white hover:bg-neutral-100 text-neutral-900 border border-neutral-300 font-bold text-xs sm:text-sm rounded-xl md:rounded-2xl shadow-xs transition-all duration-200 active:scale-[0.98]"
+                >
+                  <Phone className="w-3.5 h-3.5 sm:w-4 sm:h-4 mr-1.5 shrink-0" />
+                  <span>Call Store</span>
                 </a>
               </div>
             </div>
@@ -265,7 +207,5 @@ export default function StoreLocation() {
         </motion.div>
       </div>
     </section>
-    </div>
-  </>
   );
 }

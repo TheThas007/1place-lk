@@ -23,6 +23,7 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { db } from "@/lib/firebase";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import { doc, getDoc, onSnapshot } from "firebase/firestore";
 import CheckoutProgress from "@/components/checkout/CheckoutProgress";
 
@@ -304,7 +305,7 @@ function PaymentSuccessContent() {
               <div className="pt-4 border-t border-neutral-100 flex items-center justify-center gap-6 text-xs text-neutral-500">
                 <span className="flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-neutral-700" />
-                  075 454 1118
+                  {BUSINESS_INFO.phoneHotline}
                 </span>
                 <span className="flex items-center gap-1.5">
                   <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />

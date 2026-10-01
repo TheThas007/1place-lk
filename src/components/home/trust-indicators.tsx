@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useEffect } from "react";
+import { useRef, useState } from "react";
 import {
   motion,
   useInView,
@@ -12,12 +12,6 @@ import {
   AnimatePresence,
 } from "framer-motion";
 import { Truck, ShieldCheck, Wrench, CreditCard, X, ArrowRight, Tag, RotateCcw } from "lucide-react";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
-}
 
 /* ─── Data ─── */
 const features = [
@@ -57,11 +51,11 @@ const features = [
 
 /* ─── Animation Variants ─── */
 const sectionTitleVar: Variants = {
-  hidden: { opacity: 0, y: 20 },
+  hidden: { opacity: 0, y: 16 },
   show: {
     opacity: 1,
     y: 0,
-    transition: { duration: 0.6, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.5, ease: [0.16, 1, 0.3, 1] },
   },
 };
 
@@ -69,12 +63,12 @@ const containerVar: Variants = {
   hidden: { opacity: 0 },
   show: {
     opacity: 1,
-    transition: { staggerChildren: 0.1, delayChildren: 0.1 },
+    transition: { staggerChildren: 0.08, delayChildren: 0.1 },
   },
 };
 
 const cardVar: Variants = {
-  hidden: { opacity: 0, y: 24 },
+  hidden: { opacity: 0, y: 20 },
   show: {
     opacity: 1,
     y: 0,
@@ -83,7 +77,7 @@ const cardVar: Variants = {
 };
 
 /* ─── Premium 3D Interactive Card Component (Desktop) ─── */
-function FeatureCard({
+function DesktopFeatureCard({
   feature,
   onClick,
   prefersReducedMotion,
@@ -94,7 +88,6 @@ function FeatureCard({
 }) {
   const Icon = feature.icon;
 
-  // 3D Interactive Mouse Tilt
   const x = useMotionValue(0);
   const y = useMotionValue(0);
 
@@ -148,54 +141,41 @@ function FeatureCard({
               onClick(feature);
             }
           }}
-          style={{ transformStyle: "preserve-3d" }}
-          className="silver-glow-inner group relative w-full h-full min-h-[310px] flex flex-col items-center text-center p-8 sm:p-[34px] cursor-pointer overflow-hidden
+          className="silver-glow-inner group relative w-full h-full min-h-[300px] flex flex-col items-center text-center p-6 sm:p-7 cursor-pointer overflow-hidden
             bg-white
-            focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+            hover:shadow-[0_20px_40px_-15px_rgba(0,0,0,0.07)]
+            transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
         >
-          {/* Subtle Monochrome Specular Top-Edge Reflection */}
-          <div
-            className="absolute inset-x-0 top-0 h-28 bg-gradient-to-b from-white/90 via-white/30 to-transparent pointer-events-none opacity-80 group-hover:opacity-100 transition-opacity"
-            aria-hidden="true"
-          />
+          {/* Top Subtle Light Reflection */}
+          <div className="absolute top-0 inset-x-0 h-[1px] bg-gradient-to-r from-transparent via-black/10 to-transparent pointer-events-none" />
 
-          {/* ── 60×60 Icon Container with Physical 3D Z-lift (30px) ── */}
+          {/* Icon Container with Silver Chrome Effect */}
           <div
             style={{ transform: "translateZ(30px)" }}
-            className="w-[62px] h-[62px] rounded-2xl flex items-center justify-center mb-5 border border-neutral-200/80 bg-neutral-50 shadow-[0_4px_12px_rgba(0,0,0,0.04)] transition-all duration-350 group-hover:bg-neutral-900 group-hover:border-neutral-900 group-hover:shadow-md shrink-0"
+            className="w-[58px] h-[58px] rounded-full flex items-center justify-center mb-5 border border-gray-900/10 bg-gray-50/80 shadow-[0_4px_12px_rgba(0,0,0,0.04)] group-hover:scale-105 transition-transform duration-300 ease-out"
           >
-            <motion.div
-              animate={prefersReducedMotion ? {} : undefined}
-              whileHover={prefersReducedMotion ? {} : { scale: 1.08 }}
-              transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
-            >
-              <Icon className="w-6 h-6 text-neutral-900 transition-colors duration-350 group-hover:text-white" />
-            </motion.div>
+            <Icon className="w-6 h-6 text-gray-900 transition-colors duration-300" />
           </div>
 
-          {/* ── 32px Thinner Divider Line ── */}
-          <div
-            style={{ transform: "translateZ(14px)" }}
-            className="w-8 h-[1px] bg-neutral-200 mb-4 rounded-full group-hover:bg-neutral-300 transition-colors"
-          />
+          <div className="w-8 h-[1px] bg-gray-200 mb-4 rounded-full group-hover:w-12 transition-all duration-300" />
 
-          {/* ── Heading with 3D Z-lift (22px) ── */}
+          {/* Title */}
           <h3
-            style={{ transform: "translateZ(22px)" }}
-            className="font-bold text-[18px] sm:text-[19px] mb-2 text-neutral-900 tracking-tight leading-tight transition-colors duration-300"
+            style={{ transform: "translateZ(24px)" }}
+            className="font-bold text-[17px] mb-2 text-gray-900 tracking-tight leading-tight group-hover:text-black transition-colors"
           >
             {feature.title}
           </h3>
 
-          {/* ── Body Copy with 3D Z-lift (14px) ── */}
+          {/* Description */}
           <p
-            style={{ transform: "translateZ(14px)" }}
-            className="text-[14px] sm:text-[14.5px] text-neutral-600 leading-[1.6] font-normal max-w-[240px] mx-auto mb-4 group-hover:text-neutral-900 transition-colors duration-300"
+            style={{ transform: "translateZ(16px)" }}
+            className="text-[13.5px] text-gray-600 leading-[1.55] font-normal max-w-[220px] mx-auto mb-4"
           >
             {feature.description}
           </p>
 
-          {/* ── CTA Link Aligned at Bottom with 3D Z-lift (18px) ── */}
+          {/* Learn More link */}
           <div
             style={{ transform: "translateZ(18px)" }}
             className="mt-auto pt-2 flex items-center justify-center gap-1.5 text-xs font-bold text-neutral-500 group-hover:text-neutral-900 transition-colors duration-300"
@@ -209,129 +189,31 @@ function FeatureCard({
   );
 }
 
-
-
-/* ─── Mobile Horizontal Swipe Track (Native Touch, Smooth Snap & Indicators) ─── */
-function MobileScrollDrivenTrack({
-  onCardClick,
+/* ─── Main Section ─── */
+export default function TrustIndicators({
+  mode = "both",
 }: {
-  onCardClick: (feature: (typeof features)[0]) => void;
+  mode?: "strip_only" | "full_only" | "both";
 }) {
+  const sectionRef = useRef<HTMLElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
-  const [activeIndex, setActiveIndex] = useState(0);
+  const [selectedFeature, setSelectedFeature] = useState<(typeof features)[0] | null>(null);
+  const [activeMobileIndex, setActiveMobileIndex] = useState(0);
+  const isInView = useInView(sectionRef, { once: true, margin: "-50px" });
+  const prefersReducedMotion = useReducedMotion();
 
-  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+  const handleMobileScroll = (e: React.UIEvent<HTMLDivElement>) => {
     const target = e.currentTarget;
     if (target.scrollWidth > 0) {
       const cardWidth = target.scrollWidth / features.length;
       const index = Math.round(target.scrollLeft / cardWidth);
-      setActiveIndex(Math.min(features.length - 1, Math.max(0, index)));
+      setActiveMobileIndex(Math.min(features.length - 1, Math.max(0, index)));
     }
   };
 
   return (
-    <div
-      className="md:hidden w-full bg-white pt-4 pb-2 select-none overflow-hidden"
-      aria-label="Why Choose Street Mobile"
-    >
-      {/* Section Header */}
-      <div className="text-center mb-3 px-4 shrink-0">
-        <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] font-semibold text-gray-900 tracking-wide uppercase mb-2 shadow-2xs">
-          <span className="w-1.5 h-1.5 rounded-full bg-neutral-900 animate-pulse" />
-          Why Choose Us
-        </div>
-        <h2 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight leading-tight mb-1">
-          Why Choose Street Mobile
-        </h2>
-        <p className="text-gray-600 text-xs sm:text-sm max-w-[320px] mx-auto leading-relaxed font-normal">
-          Premium quality, professional service, and total peace of mind — every time.
-        </p>
-      </div>
-
-      {/* Smooth Horizontal Swipe Container */}
-      <div
-        ref={scrollRef}
-        onScroll={handleScroll}
-        className="w-full overflow-x-auto scrollbar-none px-4 py-2 flex items-stretch gap-3.5 sm:gap-4 snap-x snap-mandatory scroll-smooth"
-        style={{
-          scrollbarWidth: "none",
-          msOverflowStyle: "none",
-          WebkitOverflowScrolling: "touch",
-          touchAction: "auto",
-        }}
-      >
-        {features.map((feature) => (
-          <div
-            key={`mob-feat-${feature.id}`}
-            className="w-[78vw] sm:w-[80vw] max-w-[300px] shrink-0 snap-center"
-          >
-            <div className="silver-glow-wrapper h-full">
-              <div
-                role="button"
-                tabIndex={0}
-                onClick={() => onCardClick(feature)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" || e.key === " ") {
-                    e.preventDefault();
-                    onCardClick(feature);
-                  }
-                }}
-                className="silver-glow-inner group relative w-full h-full min-h-[250px] flex flex-col items-center text-center p-5 cursor-pointer overflow-hidden
-                  bg-white
-                  active:scale-[0.98]
-                  transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
-              >
-                {/* Icon Container */}
-                <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
-                  <feature.icon className="w-5 h-5 text-gray-900" />
-                </div>
-
-                <div className="w-7 h-[1px] bg-gray-200 mb-2.5 rounded-full" />
-
-                {/* Title */}
-                <h3 className="font-semibold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
-                  {feature.title}
-                </h3>
-
-                <p className="text-[12.5px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
-                  {feature.description}
-                </p>
-
-                <div className="mt-auto pt-1 flex items-center justify-center gap-1.5 text-xs font-semibold text-gray-500">
-                  <span>Learn more</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Swipe Progress Dots */}
-      <div className="flex items-center justify-center gap-1.5 mt-2.5 pb-1">
-        {features.map((_, dotIdx) => (
-          <span
-            key={dotIdx}
-            className={`h-1.5 rounded-full transition-all duration-300 ${
-              activeIndex === dotIdx ? "w-5 bg-black" : "w-1.5 bg-neutral-300"
-            }`}
-          />
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/* ─── Main Section ─── */
-export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only" | "full_only" | "both" }) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [selectedFeature, setSelectedFeature] = useState<(typeof features)[0] | null>(null);
-  const isInView = useInView(sectionRef, { once: true, margin: "-60px" });
-  const prefersReducedMotion = useReducedMotion();
-
-  return (
     <>
-      {/* ── Mobile Feature Strip (Exact Reference Matching: 4 items in 1 row) ── */}
+      {/* ── Mobile Feature Strip (only if strip_only or both) ── */}
       {mode !== "full_only" && (
         <div className="md:hidden w-full bg-white px-3 sm:px-4 py-2 select-none">
           <div className="w-full py-2 px-2.5 bg-white border border-[#E8E8E8] rounded-xl flex items-center justify-between text-[10px] sm:text-[11px] font-medium text-neutral-800 shadow-2xs">
@@ -355,47 +237,105 @@ export default function TrustIndicators({ mode = "both" }: { mode?: "strip_only"
         </div>
       )}
 
-      {/* ── Mobile Why Choose Street Mobile Section (< 768px): Scroll-Driven Horizontal Slide ── */}
-      {mode !== "strip_only" && (
-        <MobileScrollDrivenTrack onCardClick={setSelectedFeature} />
-      )}
-
-      {/* ── Desktop Why Choose Section ── */}
+      {/* ── Single Unified "Why Choose Street Mobile" Section ── */}
       {mode !== "strip_only" && (
         <section
+          id="why-choose-us"
           ref={sectionRef}
           aria-label="Why Choose Street Mobile"
-          className="hidden md:block relative py-20 sm:py-24 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans"
+          className="relative py-8 sm:py-12 md:py-20 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans select-none"
         >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
-            {/* Section Header */}
+            {/* Single Unified Section Header across all screen sizes */}
             <motion.div
               variants={sectionTitleVar}
               initial="hidden"
               animate={isInView ? "show" : "hidden"}
-              className="text-center mb-10 sm:mb-12"
+              className="text-center mb-6 sm:mb-10 md:mb-12"
             >
-              <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-xs font-semibold text-gray-900 tracking-wide uppercase mb-3.5 shadow-2xs">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
+              <div className="inline-flex items-center gap-1.5 sm:gap-2 px-3 sm:px-3.5 py-1 rounded-full bg-gray-100 border border-gray-200 text-[11px] sm:text-xs font-semibold text-gray-900 tracking-wide uppercase mb-2.5 sm:mb-3.5 shadow-2xs">
+                <span className="w-1.5 sm:w-2 h-1.5 sm:h-2 rounded-full bg-green-500 animate-pulse" />
                 Why Choose Us
               </div>
-              <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight leading-tight mb-3">
+              <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight mb-2 sm:mb-3">
                 Why Choose Street Mobile
               </h2>
-              <p className="text-gray-600 text-sm sm:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
+              <p className="text-gray-600 text-xs sm:text-sm md:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
                 Premium quality, professional service, and total peace of mind — every time.
               </p>
             </motion.div>
 
-            {/* 4 Cards Grid */}
+            {/* Mobile Layout (< 768px): Horizontal Native Touch Snap Rail */}
+            <div className="md:hidden w-full overflow-hidden">
+              <div
+                ref={scrollRef}
+                onScroll={handleMobileScroll}
+                className="w-full overflow-x-auto scrollbar-none px-1 py-1 flex items-stretch gap-3 snap-x snap-mandatory scroll-smooth"
+                style={{
+                  scrollbarWidth: "none",
+                  WebkitOverflowScrolling: "touch",
+                }}
+              >
+                {features.map((feature) => (
+                  <div
+                    key={`mob-feat-${feature.id}`}
+                    className="w-[78vw] max-w-[280px] shrink-0 snap-center"
+                  >
+                    <div className="silver-glow-wrapper h-full">
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => setSelectedFeature(feature)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            setSelectedFeature(feature);
+                          }
+                        }}
+                        className="silver-glow-inner group relative w-full h-full min-h-[220px] flex flex-col items-center text-center p-5 cursor-pointer overflow-hidden bg-white active:scale-[0.98] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-black/40"
+                      >
+                        <div className="w-[46px] h-[46px] rounded-full flex items-center justify-center mb-2.5 border border-gray-900/10 bg-gray-50/80 shrink-0">
+                          <feature.icon className="w-5 h-5 text-gray-900" />
+                        </div>
+                        <div className="w-7 h-[1px] bg-gray-200 mb-2 rounded-full" />
+                        <h3 className="font-bold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
+                          {feature.title}
+                        </h3>
+                        <p className="text-[12px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
+                          {feature.description}
+                        </p>
+                        <div className="mt-auto pt-1 flex items-center justify-center gap-1 text-xs font-semibold text-gray-500">
+                          <span>Learn more</span>
+                          <ArrowRight className="w-3.5 h-3.5" />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Swipe Progress Dots */}
+              <div className="flex items-center justify-center gap-1.5 mt-2.5 pb-1">
+                {features.map((_, dotIdx) => (
+                  <span
+                    key={dotIdx}
+                    className={`h-1.5 rounded-full transition-all duration-300 ${
+                      activeMobileIndex === dotIdx ? "w-5 bg-black" : "w-1.5 bg-neutral-300"
+                    }`}
+                  />
+                ))}
+              </div>
+            </div>
+
+            {/* Desktop Layout (>= 768px): 4-Column 3D Tilt Grid */}
             <motion.div
               variants={containerVar}
               initial="hidden"
               animate={isInView ? "show" : "hidden"}
-              className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 auto-rows-fr"
+              className="hidden md:grid md:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 auto-rows-fr"
             >
               {features.map((feature) => (
-                <FeatureCard
+                <DesktopFeatureCard
                   key={feature.id}
                   feature={feature}
                   onClick={setSelectedFeature}

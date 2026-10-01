@@ -6,9 +6,10 @@ import { Review, GoogleReviewsSettings } from "@/lib/types";
 import { siteSettings } from "@/lib/data";
 import { DEFAULT_GOOGLE_REVIEWS_SETTINGS, getGoogleReviewsSettings } from "@/lib/firestore-client";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { uniqueById } from "@/lib/utils";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
-const DEFAULT_MAPS_URL =
-  "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D";
+const DEFAULT_MAPS_URL = BUSINESS_INFO.maps.link;
 
 const DEFAULT_REVIEWS: Review[] = [
   {
@@ -239,29 +240,20 @@ export default function ReviewsSection({
     return galleryDirection === "right" ? "left" : "right";
   }, [currentSettings.direction, galleryDirection]);
 
-  // Combine passed reviews with fallback reviews
+  // Combine passed reviews with fallback reviews, strictly deduplicated by unique ID
   const displayReviews = useMemo(() => {
-    const list = Array.isArray(reviews) && reviews.length > 0 ? reviews : DEFAULT_REVIEWS;
-    const seen = new Set<string>();
-    const filtered = list.filter((r) => {
-      if (!r.id || seen.has(r.id)) return false;
-      seen.add(r.id);
-      return r.visible !== false;
-    });
-    return filtered.length >= 3
-      ? filtered
-      : [...filtered, ...DEFAULT_REVIEWS.filter((r) => !seen.has(r.id))];
+    const rawList = Array.isArray(reviews) && reviews.length > 0 ? reviews : DEFAULT_REVIEWS;
+    const valid = rawList.filter((r) => r && r.visible !== false);
+    const deduped = uniqueById(valid);
+    if (deduped.length >= 3) return deduped;
+    const seenIds = new Set(deduped.map((r) => r.id));
+    const extraDefaults = DEFAULT_REVIEWS.filter((r) => !seenIds.has(r.id));
+    return [...deduped, ...extraDefaults];
   }, [reviews]);
 
-  // Expand sequence for seamless infinite loop
+  // Real items for Sequence A - each actual review appears strictly once
   const baseItems = useMemo(() => {
-    if (displayReviews.length === 0) return [];
-    if (displayReviews.length >= 6) return displayReviews;
-    const repeated: Review[] = [];
-    while (repeated.length < 6) {
-      repeated.push(...displayReviews);
-    }
-    return repeated;
+    return displayReviews;
   }, [displayReviews]);
 
   // Reduced motion preference

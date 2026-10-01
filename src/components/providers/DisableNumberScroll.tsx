@@ -25,13 +25,11 @@ export default function DisableNumberScroll() {
       }
     };
 
-    // Attach with passive: false to allow e.preventDefault()
+    // Attach with passive: false to allow e.preventDefault() only on number inputs
     window.addEventListener("wheel", handleWheel, { passive: false });
-    document.addEventListener("wheel", handleWheel, { passive: false });
 
     return () => {
       window.removeEventListener("wheel", handleWheel);
-      document.removeEventListener("wheel", handleWheel);
     };
   }, []);
 

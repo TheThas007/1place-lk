@@ -7,6 +7,7 @@ import { ArrowRight, Images, ChevronLeft, ChevronRight, Download } from "lucide-
 import { GalleryImage, GalleryAnimationSettings, UiSettings } from "@/lib/types";
 import { DEFAULT_GALLERY_ANIMATION_SETTINGS } from "@/lib/data";
 import ScrollReveal from "@/components/ui/ScrollReveal";
+import { uniqueById } from "@/lib/utils";
 
 async function downloadMedia(url: string, title?: string) {
   try {
@@ -186,18 +187,13 @@ export default function GallerySection({
   };
 
   const visibleImages = useMemo(() => {
-    return images.filter((img) => img.visible !== false);
+    if (!Array.isArray(images)) return [];
+    return uniqueById(images.filter((img) => img && img.visible !== false));
   }, [images]);
 
-  // Expand sequence to ensure seamless loop without gaps
+  // Real items for Sequence A - each actual image record appears strictly once
   const baseItems = useMemo(() => {
-    if (visibleImages.length === 0) return [];
-    if (visibleImages.length >= 6) return visibleImages;
-    const repeated: GalleryImage[] = [];
-    while (repeated.length < 6) {
-      repeated.push(...visibleImages);
-    }
-    return repeated;
+    return visibleImages;
   }, [visibleImages]);
 
   // Reduced motion preference

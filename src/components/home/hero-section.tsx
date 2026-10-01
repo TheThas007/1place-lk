@@ -17,6 +17,8 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
+const AUTOPLAY_DURATION = 5500; // 5.5s per slide for a relaxed, luxury Apple-style feel
+
 export default function HeroSection() {
   const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
   const [currentIndex, setCurrentIndex] = useState(0);
@@ -110,15 +112,15 @@ export default function HeroSection() {
       });
   }, []);
 
-  // Continuous auto-swipe rotation every 4.0 seconds (plays continuously even when hovering with cursor!)
+  // Continuous auto-swipe rotation: changes automatically even when mouse cursor is hovering!
   useEffect(() => {
-    if (slides.length <= 1) return;
+    if (slides.length <= 1 || isReducedMotion) return;
     const timer = setInterval(() => {
       setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % slides.length);
-    }, 4000);
+    }, AUTOPLAY_DURATION);
     return () => clearInterval(timer);
-  }, [slides.length]);
+  }, [slides.length, currentIndex, isReducedMotion]);
 
   if (slides.length === 0) {
     return null;
@@ -264,13 +266,13 @@ export default function HeroSection() {
         >
           {/* Full-Frame Edge-to-Edge Background Image */}
           <div className="absolute inset-0 z-0 overflow-hidden">
-            <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+            <AnimatePresence initial={false}>
               <motion.div
                 key={currentSlide.id || currentIndex}
-                initial={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * 50, scale: 1.03 }}
-                animate={{ opacity: 1, x: 0, scale: 1.0 }}
-                exit={isReducedMotion ? { opacity: 0.8 } : { opacity: 0, x: direction * -50, scale: 0.98 }}
-                transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+                initial={isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.05 }}
+                animate={{ opacity: 1, scale: 1.0 }}
+                exit={isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
+                transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
                 className="absolute inset-0 w-full h-full will-change-transform"
               >
                 <Image
@@ -306,55 +308,64 @@ export default function HeroSection() {
 
           {/* Left Text & CTA Content Overlay (Only if not hidden on mobile) */}
           {!hideAllMobile && (
-            <div className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4">
-              {!hideTextMobile && (
-                <>
-                  {currentSlide.show_badge !== false && (
-                    <span
-                      className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
-                    >
-                      {currentSlide.campaign_label || "NEW ARRIVAL"}
-                    </span>
-                  )}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentIndex}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4"
+              >
+                {!hideTextMobile && (
+                  <>
+                    {currentSlide.show_badge !== false && (
+                      <span
+                        className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
+                      >
+                        {currentSlide.campaign_label || "NEW ARRIVAL"}
+                      </span>
+                    )}
 
-                  {/* Responsive Clamp Heading: Max 3 lines */}
-                  <h1
-                    className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
-                    style={{ color: line1Color }}
+                    {/* Responsive Clamp Heading: Max 3 lines */}
+                    <h1
+                      className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
+                      style={{ color: line1Color }}
+                    >
+                      {line1Text || "Latest Smartphones."}
+                      {line2Text ? <br /> : " "}
+                      {line2Text || "Ultimate Performance."}
+                    </h1>
+
+                    {/* Full Subtitle in max 2 lines */}
+                    {currentSlide.show_description !== false && currentSlide.description && (
+                      <p
+                        className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
+                        style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
+                      >
+                        {currentSlide.description}
+                      </p>
+                    )}
+                  </>
+                )}
+
+                {/* Compact 44–48px CTA Button */}
+                {!hideButtonsMobile && currentSlide.show_primary_button !== false && (
+                  <Link
+                    href={currentSlide.primary_button_url || "/products"}
+                    className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
                   >
-                    {line1Text || "Latest Smartphones."}
-                    {line2Text ? <br /> : " "}
-                    {line2Text || "Ultimate Performance."}
-                  </h1>
-
-                  {/* Full Subtitle in max 2 lines */}
-                  {currentSlide.show_description !== false && currentSlide.description && (
-                    <p
-                      className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
-                      style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
-                    >
-                      {currentSlide.description}
-                    </p>
-                  )}
-                </>
-              )}
-
-              {/* Compact 44–48px CTA Button */}
-              {!hideButtonsMobile && currentSlide.show_primary_button !== false && (
-                <Link
-                  href={currentSlide.primary_button_url || "/products"}
-                  className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
-                >
-                  <span>{currentSlide.primary_button_text || "Shop Now"}</span>
-                  <ArrowRight className="w-3.5 h-3.5" />
-                </Link>
-              )}
-            </div>
+                    <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </Link>
+                )}
+              </motion.div>
+            </AnimatePresence>
           )}
 
-          {/* Fixed Bottom-Left Slider Indicator Dots (No overlap with content) */}
+          {/* Fixed Bottom-Left Slider Indicator Progress Pills */}
           {slides.length > 1 && (
-            <div className="absolute bottom-2.5 left-4 sm:left-5 z-20 flex items-center gap-1.5 pointer-events-auto">
+            <div className="absolute bottom-2.5 left-4 sm:left-5 z-20 flex items-center gap-1.5 pointer-events-auto px-2 py-1 rounded-full bg-black/40 backdrop-blur-xs border border-white/10">
               {slides.map((_, idx) => {
                 const isActive = idx === currentIndex;
                 return (
@@ -366,12 +377,22 @@ export default function HeroSection() {
                       setCurrentIndex(idx);
                     }}
                     aria-label={`Slide ${idx + 1}`}
-                    className={`transition-all duration-300 rounded-full cursor-pointer ${
-                      isActive
-                        ? "w-3 h-1.5 bg-white shadow-xs"
-                        : "w-1.5 h-1.5 bg-white/40 hover:bg-white/80"
-                    }`}
-                  />
+                    className="relative h-[3px] rounded-full overflow-hidden cursor-pointer transition-all duration-300"
+                    style={{
+                      width: isActive ? "22px" : "7px",
+                      backgroundColor: isActive ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.35)",
+                    }}
+                  >
+                    {isActive && (
+                      <div
+                        key={`mob-progress-${currentIndex}`}
+                        className="h-full bg-white rounded-full shadow-xs"
+                        style={{
+                          animation: `heroProgress ${AUTOPLAY_DURATION}ms linear forwards`,
+                        }}
+                      />
+                    )}
+                  </button>
                 );
               })}
             </div>
@@ -412,13 +433,13 @@ export default function HeroSection() {
       >
       {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
       <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
-        <AnimatePresence mode="popLayout" custom={direction} initial={false}>
+        <AnimatePresence initial={false}>
           <motion.div
             key={currentSlide.id || currentIndex}
-            initial={{ opacity: 0, scale: 1.04, x: direction * 60 }}
-            animate={{ opacity: 1, scale: 1, x: 0 }}
-            exit={{ opacity: 0, scale: 0.98, x: direction * -60 }}
-            transition={{ duration: 0.75, ease: [0.22, 1, 0.36, 1] }}
+            initial={{ opacity: 0, scale: 1.05 }}
+            animate={{ opacity: 1, scale: 1.0 }}
+            exit={{ opacity: 0, scale: 0.98 }}
+            transition={{ duration: 1.15, ease: [0.16, 1, 0.3, 1] }}
             className="absolute inset-0 w-full h-full will-change-transform"
           >
             {/* Desktop Background Image with subtle cinematic scale */}
@@ -468,10 +489,10 @@ export default function HeroSection() {
           <AnimatePresence mode="wait">
             <motion.div
               key={currentIndex}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: 0.4, ease: "easeOut" }}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
               className={`flex flex-col ${textAlignClass} w-full`}
               style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
             >
@@ -660,23 +681,36 @@ export default function HeroSection() {
         </>
       )}
 
-      {/* ── Premium Progress Indicators (30px x 4px Pill for Active, 5px Muted Dot for Inactive) ── */}
+      {/* ── Apple-Style Animated Progress Indicators ── */}
       {slides.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5">
+        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 shadow-xl">
           {slides.map((_, idx) => {
             const isActive = idx === currentIndex;
             return (
               <button
                 key={idx}
                 type="button"
-                onClick={() => setCurrentIndex(idx)}
+                onClick={() => {
+                  setDirection(idx > currentIndex ? 1 : -1);
+                  setCurrentIndex(idx);
+                }}
                 aria-label={`Go to slide ${idx + 1}`}
-                className={`transition-all duration-300 cursor-pointer ${
-                  isActive
-                    ? "w-[30px] h-[4px] rounded-full bg-white shadow-lg"
-                    : "w-[5px] h-[5px] rounded-full bg-white/40 hover:bg-white/70"
-                }`}
-              />
+                className="relative h-[4px] rounded-full overflow-hidden cursor-pointer transition-all duration-300"
+                style={{
+                  width: isActive ? "38px" : "10px",
+                  backgroundColor: isActive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.35)",
+                }}
+              >
+                {isActive && (
+                  <div
+                    key={`progress-${currentIndex}`}
+                    className="h-full bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                    style={{
+                      animation: `heroProgress ${AUTOPLAY_DURATION}ms linear forwards`,
+                    }}
+                  />
+                )}
+              </button>
             );
           })}
         </div>

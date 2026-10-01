@@ -26,13 +26,13 @@ export default function ScrollReveal({
   children,
   className = "",
   as: Component = "div",
-  yOffset = 24,
-  stagger = 0.06,
+  yOffset = 14,
+  stagger = 0.04,
   delay = 0,
-  duration = 0.85,
+  duration = 0.55,
   staggerSelector,
   id,
-  enable3d = true,
+  enable3d = false,
 }: ScrollRevealProps) {
   const containerRef = useRef<HTMLElement | null>(null);
   const { motionSettings, isReducedMotion } = useSmoothScroll();
@@ -52,11 +52,10 @@ export default function ScrollReveal({
     }
 
     const isMobile = window.innerWidth < 768;
-    const finalDuration = isMobile ? Math.max(0.65, duration * 0.85) : duration;
-    const finalY = motionSettings.motionIntensity === "minimal" ? 14 : yOffset;
+    const finalDuration = isMobile ? Math.min(0.48, duration * 0.9) : duration;
+    const finalY = motionSettings.motionIntensity === "minimal" ? 8 : (isMobile ? Math.min(12, yOffset) : yOffset);
 
     const ctx = gsap.context(() => {
-      // 3D perspective setup on the section container
       gsap.set(el, {
         opacity: 0,
         y: finalY,
@@ -68,13 +67,13 @@ export default function ScrollReveal({
       if (items.length > 0) {
         gsap.set(items, {
           opacity: 0,
-          y: Math.min(20, finalY),
+          y: Math.min(10, finalY),
         });
       }
 
       ScrollTrigger.create({
         trigger: el,
-        start: "top 90%",
+        start: "top 92%",
         once: true,
         onEnter: () => {
           // Animate section into view
@@ -84,6 +83,9 @@ export default function ScrollReveal({
             duration: finalDuration,
             ease: "power2.out",
             delay: delay,
+            onComplete: () => {
+              gsap.set(el, { clearProps: "transform,willChange" });
+            },
           });
 
           // Animate staggered child elements
@@ -93,9 +95,11 @@ export default function ScrollReveal({
               y: 0,
               duration: finalDuration,
               ease: "power2.out",
-              stagger: isMobile ? Math.min(0.04, stagger) : stagger,
-              delay: delay + 0.06,
-              clearProps: "willChange",
+              stagger: isMobile ? Math.min(0.025, stagger) : stagger,
+              delay: delay + 0.04,
+              onComplete: () => {
+                gsap.set(items, { clearProps: "transform,willChange" });
+              },
             });
           }
         },
@@ -124,9 +128,6 @@ export default function ScrollReveal({
       ref={containerRef}
       id={id}
       className={className}
-      style={{
-        willChange: isReducedMotion ? "auto" : "opacity, transform",
-      }}
     >
       {children}
     </Comp>

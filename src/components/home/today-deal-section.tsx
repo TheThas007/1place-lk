@@ -21,6 +21,32 @@ function padZero(num: number): string {
   return num < 10 ? `0${Math.max(0, num)}` : `${Math.max(0, num)}`;
 }
 
+/**
+ * Safely parse a date string or timestamp ensuring Sri Lanka Time (UTC+05:30)
+ * if no timezone offset is explicitly provided.
+ */
+function parseSriLankaTimestamp(dateStr?: string | number | null): number {
+  if (!dateStr) return 0;
+  if (typeof dateStr === "number") return dateStr;
+  const str = String(dateStr).trim();
+  if (!str) return 0;
+
+  // If ISO 8601 string already includes explicit timezone offset or Z
+  if (/Z|[+-]\d{2}:?\d{2}$/.test(str)) {
+    const t = new Date(str).getTime();
+    return isNaN(t) ? 0 : t;
+  }
+
+  // If string lacks timezone, assume Sri Lanka timezone (Asia/Colombo, UTC+05:30)
+  const normalized = str.replace(" ", "T");
+  const withTz = `${normalized}+05:30`;
+  const t = new Date(withTz).getTime();
+  if (!isNaN(t)) return t;
+
+  const fallback = new Date(str).getTime();
+  return isNaN(fallback) ? 0 : fallback;
+}
+
 export default function TodayDealSection({
   settings,
   className = "",
@@ -39,16 +65,16 @@ export default function TodayDealSection({
     }
   }, [settings]);
 
-  // Fetch latest settings from Firestore on public homepage mount to prevent stale cache
+  // Only fetch from Firestore client-side if settings prop was not already provided by server
   useEffect(() => {
-    if (!isLivePreview) {
+    if (!isLivePreview && !settings) {
       getTodayDealSettings()
         .then((fresh) => {
           if (fresh) setLiveSettings(fresh);
         })
         .catch(() => {});
     }
-  }, [isLivePreview]);
+  }, [isLivePreview, settings]);
 
   const deal = liveSettings;
 
@@ -73,8 +99,8 @@ export default function TodayDealSection({
 
   // Compute countdown time and status
   const { isLive, isScheduled, isExpired, days, hours, minutes, seconds } = useMemo(() => {
-    const startTime = deal.startsAt ? new Date(deal.startsAt).getTime() : 0;
-    let endTime = deal.endsAt ? new Date(deal.endsAt).getTime() : 0;
+    const startTime = parseSriLankaTimestamp(deal.startsAt);
+    let endTime = parseSriLankaTimestamp(deal.endsAt);
 
     let scheduled = false;
     let expired = false;
@@ -379,9 +405,7 @@ export default function TodayDealSection({
                       <span>DEAL ENDS IN</span>
                     </div>
                     <span className="font-extrabold text-xs tracking-wider">
-                      {mounted
-                        ? `${deal.showDays && days > 0 ? `${padZero(days)}d : ` : ""}${padZero(hours)}h : ${padZero(minutes)}m : ${padZero(seconds)}s`
-                        : "07h : 45m : 18s"}
+                      {`${deal.showDays && days > 0 ? `${padZero(days)}d : ` : ""}${padZero(hours)}h : ${padZero(minutes)}m : ${padZero(seconds)}s`}
                     </span>
                   </div>
                 )}

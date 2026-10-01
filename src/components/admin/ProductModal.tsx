@@ -39,6 +39,7 @@ import { PRESET_COLORS, getColorCSS, normalizeColor } from "@/lib/color-utils";
 import { formatLKR } from "@/lib/order-utils";
 import { KNOWN_BRAND_NAMES } from "@/lib/migration-audit";
 import { generateProductSlug } from "@/lib/utils";
+import { deduplicateCategories, generateCategorySlug, getCategoryDocId, formatCategoryTitle } from "@/lib/category-utils";
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -292,30 +293,18 @@ export default function ProductModal({
     };
   }, [isOpen]);
 
-  // Merged Categories List (Default 12 Categories + Props Categories + Extra Created Categories, filtered to exclude Brand names)
+  // Merged Categories List (Clean deduplicated list of categories excluding Brand names)
   const mergedCategories = React.useMemo(() => {
-    const map = new Map<string, Category>();
-    DEFAULT_PRODUCT_CATEGORIES.forEach((c) => map.set(c.id, c));
-    categories.forEach((c) => {
-      const cName = (c.name || "").toLowerCase();
-      const cSlug = (c.slug || "").toLowerCase();
-      const isBrand = KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
-      if (!isBrand) {
-        const existingKey = Array.from(map.keys()).find((k) => {
-          const item = map.get(k);
-          return item && (item.name.toLowerCase() === c.name.toLowerCase() || item.slug === c.slug);
-        });
-        if (existingKey) {
-          map.set(existingKey, c);
-        } else {
-          map.set(c.id || `c-${c.name}`, c);
-        }
-      }
+    const all = [
+      ...DEFAULT_PRODUCT_CATEGORIES,
+      ...categories,
+      ...extraCategories,
+    ].filter((c) => {
+      const cName = (c.name || '').toLowerCase();
+      const cSlug = (c.slug || '').toLowerCase();
+      return !KNOWN_BRAND_NAMES.some((b) => b.toLowerCase() === cName || b.toLowerCase() === cSlug);
     });
-    extraCategories.forEach((c) => {
-      map.set(c.id, c);
-    });
-    return Array.from(map.values());
+    return deduplicateCategories(all);
   }, [categories, extraCategories]);
 
   // Dynamic Brand Options (Clean List of Brands + Extra Created Brands)
@@ -325,46 +314,59 @@ export default function ProductModal({
 
   // Handler: Apply & Auto-Save Custom Category into the dropdown slot immediately
   const handleApplyCustomCategory = async (nameToAdd?: string) => {
-    const trimmed = (nameToAdd || customCategoryName).trim();
-    if (!trimmed) return;
-    const catSlug = trimmed.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-    const newCatId = `cat-${catSlug}`;
+    const raw = (nameToAdd || customCategoryName).trim();
+    if (!raw) return;
+    const catSlug = generateCategorySlug(raw);
+    const newCatId = getCategoryDocId(catSlug);
+    const formattedName = formatCategoryTitle(raw);
+
+    const existingMatch = mergedCategories.find(
+      (c) => generateCategorySlug(c.name || c.slug) === catSlug || c.id === newCatId
+    );
+
+    if (existingMatch) {
+      setCategoryId(existingMatch.id);
+      setIsCustomCategory(false);
+      setCustomCategoryName('');
+      return;
+    }
+
     const newCatObj: Category = {
       id: newCatId,
-      name: trimmed,
+      name: formattedName,
       slug: catSlug,
-      icon: "📱",
-      image_url: "",
+      icon: '📱',
+      image_url: '',
       sort_order: 99,
-      status: "active",
+      status: 'active',
       show_on_homepage: true,
       show_in_selector: true,
-      group: "product_categories",
+      group: 'product_categories',
     };
 
     setExtraCategories((prev) => [...prev.filter((c) => c.id !== newCatId), newCatObj]);
     setCategoryId(newCatId);
-    const detected = detectProductType(trimmed, name);
+    const detected = detectProductType(formattedName, name);
     setProductType(detected);
-    if (detected === "laptop" || detected === "phone") {
+    if (detected === 'laptop' || detected === 'phone') {
       setHasColorVariants(true);
       setHasStorageVariants(true);
     } else {
       setHasColorVariants(true);
-      const isStorageDevice = /storage|pen drive|flash drive|sd card|hard disk|ssd|memory card/i.test(trimmed);
+      const isStorageDevice = /storage|pen drive|flash drive|sd card|hard disk|ssd|memory card/i.test(formattedName);
       setHasStorageVariants(isStorageDevice);
     }
     setIsCustomCategory(false);
-    setCustomCategoryName("");
+    setCustomCategoryName('');
     setHasUnsavedChanges(true);
 
     try {
-      await setDoc(doc(db, "categories", newCatId), newCatObj, { merge: true });
-      if (typeof window !== "undefined") {
-        window.dispatchEvent(new CustomEvent("refresh-categories"));
+      await setDoc(doc(db, 'categories', newCatId), newCatObj, { merge: true });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('refresh-categories'));
       }
     } catch (err) {
-      console.warn("Failed to auto-save custom category to Firestore:", err);
+      console.warn('Failed to auto-save custom category to Firestore:', err);
     }
   };
 
@@ -890,10 +892,10 @@ export default function ProductModal({
 
       // Strip emoji prefix from category name for database consistency
       const finalCategoryName = rawCatName.replace(/[\u{1F600}-\u{1F64F}\u{1F300}-\u{1F5FF}\u{1F680}-\u{1F6FF}\u{1F1E0}-\u{1F1FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{1F900}-\u{1F9FF}\u{1F004}\u{1F0CF}\u{1F170}-\u{1F251}]/gu, "").trim() || "Smartphones";
-      const finalCategorySlug = finalCategoryName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
+      const finalCategorySlug = generateCategorySlug(finalCategoryName);
       const finalCategoryId = isCustomCategory
-        ? `cat-${finalCategorySlug}`
-        : (finalCategoryObj?.id || `cat-${finalCategorySlug}`);
+        ? getCategoryDocId(finalCategorySlug)
+        : (finalCategoryObj?.id || getCategoryDocId(finalCategorySlug));
 
       const finalBrand = isCustomBrand ? customBrandName.trim() : (brand.trim() || "Apple");
       const finalBrandSlug = finalBrand.toLowerCase().replace(/[^a-z0-9]+/g, "-");

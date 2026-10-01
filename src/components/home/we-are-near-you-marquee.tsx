@@ -167,9 +167,7 @@ export default function WeAreNearYouMarquee({
     () => [
       "WE ARE NEAR YOU",
       "STREET MOBILE VAVUNIYA",
-      "WE ARE NEAR YOU",
       "VISIT OUR SHOWROOM",
-      "WE ARE NEAR YOU",
       "PREMIUM TECH & REPAIRS",
     ],
     []

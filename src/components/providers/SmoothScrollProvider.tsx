@@ -119,12 +119,23 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     }
 
     const instance = new Lenis({
-      duration: 1.05,
+      duration: 1.15,
       smoothWheel: true,
-      wheelMultiplier: 0.9,
+      wheelMultiplier: 0.8,
       touchMultiplier: 1,
       infinite: false,
       syncTouch: false,
+      easing: (t) => 1 - Math.pow(1 - t, 3.5),
+      prevent: (node) => {
+        return (
+          node.hasAttribute("data-lenis-prevent") ||
+          Boolean(
+            node.closest(
+              "[data-lenis-prevent], [role='dialog'], [data-prevent-scroll], .lenis-prevent, [data-radix-popper-content-wrapper], [data-radix-select-content], [data-radix-dropdown-menu-content]"
+            )
+          )
+        );
+      },
     });
 
     lenisRef.current = instance;
@@ -140,7 +151,6 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
     };
 
     gsap.ticker.add(updateTicker);
-    gsap.ticker.lagSmoothing(0);
 
     return () => {
       gsap.ticker.remove(updateTicker);
@@ -171,14 +181,26 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
         const targetElement = document.querySelector(hash);
         if (targetElement) {
           e.preventDefault();
+          const navHeight =
+            parseInt(
+              getComputedStyle(document.documentElement).getPropertyValue("--navbar-height") || "74",
+              10
+            ) || 74;
+          const targetOffset = -(navHeight + 16);
+
           if (lenisRef.current) {
             lenisRef.current.scrollTo(targetElement as HTMLElement, {
-              offset: -74,
-              duration: 1.1,
-              easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+              offset: targetOffset,
+              duration: 1.15,
+              easing: (t) => 1 - Math.pow(1 - t, 3.5),
             });
           } else {
-            targetElement.scrollIntoView({ behavior: "smooth" });
+            const elementRect = targetElement.getBoundingClientRect();
+            const absoluteElementTop = elementRect.top + window.pageYOffset;
+            window.scrollTo({
+              top: absoluteElementTop + targetOffset,
+              behavior: isReducedMotion ? "auto" : "smooth",
+            });
           }
           window.history.pushState(null, "", hash);
         }
@@ -187,7 +209,7 @@ export default function SmoothScrollProvider({ children }: { children: React.Rea
 
     document.addEventListener("click", handleAnchorClick);
     return () => document.removeEventListener("click", handleAnchorClick);
-  }, [pathname]);
+  }, [pathname, isReducedMotion]);
 
   // 6. Route navigation handling (Scroll Restoration on Back, Scroll to Top on New Navigation)
   useEffect(() => {

@@ -6,6 +6,14 @@ import { Category } from "@/lib/types";
 import { db } from "@/lib/firebase";
 import { doc, setDoc } from "firebase/firestore";
 import { uploadImageWithFallback } from "@/lib/upload-utils";
+import {
+  normalizeCategoryName,
+  generateCategorySlug,
+  getCategoryDocId,
+  formatCategoryTitle,
+  isCategoryDuplicate,
+  checkCategoryExistsInDb,
+} from "@/lib/category-utils";
 
 interface CategoryModalProps {
   isOpen: boolean;
@@ -78,6 +86,7 @@ export default function CategoryModal({
   const [imagePreview, setImagePreview] = useState<string>("");
   const [imageError, setImageError] = useState<string>("");
   const [urlValidationError, setUrlValidationError] = useState<string>("");
+  const [formError, setFormError] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
@@ -117,6 +126,7 @@ export default function CategoryModal({
     setImageFile(null);
     setImageError("");
     setUrlValidationError("");
+    setFormError("");
   }, [initialData, isOpen]);
 
   if (!isOpen) return null;
@@ -149,42 +159,81 @@ export default function CategoryModal({
   };
 
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const name = e.target.value;
-    const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)+/g, "");
+    const rawVal = e.target.value;
+    const newSlug = generateCategorySlug(rawVal);
     setFormData((prev) => ({
       ...prev,
-      name,
-      slug: prev.slug || slug,
-      icon_alt_text: prev.icon_alt_text || `${name} Icon`,
-      link_destination: prev.link_destination || `/categories/${slug}`,
+      name: rawVal,
+      slug: prev.slug && prev.slug !== generateCategorySlug(prev.name) ? prev.slug : newSlug,
+      icon_alt_text: `${rawVal} Icon`,
+      link_destination: `/categories/${newSlug}`,
     }));
+    setFormError("");
   };
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError("");
+
+    if (isLoading) return; // Prevent double click
+
+    const rawName = (formData.name || "").trim();
+    if (!rawName) {
+      setFormError("Category name is required.");
+      return;
+    }
+
     if (urlValidationError) {
-      alert("Please fix the image URL error before saving.");
+      setFormError("Please fix the image URL error before saving.");
+      return;
+    }
+
+    const cleanTitle = formatCategoryTitle(rawName);
+    const slugVal = generateCategorySlug(formData.slug || rawName);
+
+    // 1. Client-Side Duplicate Validation
+    const localDup = isCategoryDuplicate(
+      cleanTitle,
+      slugVal,
+      existingCategories,
+      initialData?.id
+    );
+    if (localDup.isDuplicate) {
+      setFormError(localDup.reason || "Category already exists.");
       return;
     }
 
     setIsLoading(true);
 
     try {
+      // 2. Server/Database-level Duplicate & Race Condition Check
+      const dbDup = await checkCategoryExistsInDb(
+        db,
+        cleanTitle,
+        slugVal,
+        initialData?.id
+      );
+      if (dbDup.exists) {
+        setFormError(dbDup.reason || "Category already exists in database.");
+        setIsLoading(false);
+        return;
+      }
+
       let finalImageUrl = formData.image_url || "";
 
       if (imageFile) {
         finalImageUrl = await uploadImageWithFallback(imageFile, "categories");
       }
 
-      const slugVal = formData.slug ? formData.slug.trim() : formData.name?.toLowerCase().replace(/[^a-z0-9]+/g, "-") || "category";
+      const targetId = initialData?.id || getCategoryDocId(slugVal);
 
       const categoryData: Omit<Category, "id"> = {
-        name: formData.name ? formData.name.trim() : "Category",
+        name: cleanTitle,
         slug: slugVal,
         icon: formData.icon || "📱",
         image_url: finalImageUrl,
         hover_icon_url: formData.hover_icon_url ? formData.hover_icon_url.trim() : "",
-        icon_alt_text: formData.icon_alt_text ? formData.icon_alt_text.trim() : `${formData.name} Icon`,
+        icon_alt_text: formData.icon_alt_text ? formData.icon_alt_text.trim() : `${cleanTitle} Icon`,
         link_destination: formData.link_destination ? formData.link_destination.trim() : `/categories/${slugVal}`,
         target_category_id: formData.target_category_id || "",
         sort_order: Number(formData.sort_order) || 0,
@@ -196,14 +245,13 @@ export default function CategoryModal({
         description: formData.description ? formData.description.trim() : "",
       };
 
-      const targetId = initialData?.id || `cat-${slugVal}`;
       await setDoc(doc(db, "categories", targetId), { ...categoryData, id: targetId }, { merge: true });
 
       onSave();
       onClose();
     } catch (error) {
       console.error("Error saving category:", error);
-      alert("Failed to save category. Please check connection.");
+      setFormError("Failed to save category. Please check connection.");
     } finally {
       setIsLoading(false);
     }
@@ -233,6 +281,12 @@ export default function CategoryModal({
         </div>
 
         <form onSubmit={handleSave} className="p-6 space-y-6">
+          {formError && (
+            <div className="p-3.5 bg-red-500/10 border border-red-500/30 rounded-2xl flex items-center gap-2.5 text-red-400 text-xs font-semibold animate-shake shadow-lg">
+              <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+              <span>{formError}</span>
+            </div>
+          )}
           
           {/* Live Card Preview */}
           <div className="bg-black/30 border border-white/10 rounded-2xl p-4 text-center">
