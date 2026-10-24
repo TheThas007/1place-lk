@@ -38,9 +38,9 @@ export async function generateMetadata({ params }: CategoryPageProps) {
   });
 
   const categoryName = cat?.name || slug.replace(/-/g, " ").replace(/\b\w/g, (l) => l.toUpperCase());
-  const title = `${categoryName} in Sri Lanka | Street Mobile`;
-  const description = cat?.description || `Shop genuine ${categoryName} in Sri Lanka at Street Mobile. Best prices, official warranty, cash on delivery & express islandwide delivery from Vavuniya.`;
-  const canonicalUrl = `https://www.streetmobile.lk/category/${target}`;
+  const title = `${categoryName} in Sri Lanka | 1PLACE.LK`;
+  const description = cat?.description || `Shop genuine ${categoryName} in Sri Lanka at 1PLACE.LK. Best prices, official warranty, cash on delivery & express islandwide delivery.`;
+  const canonicalUrl = `https://www.1place.lk/category/${target}`;
 
   return {
     title,
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: CategoryPageProps) {
       description,
       url: canonicalUrl,
       type: "website",
-      siteName: "Street Mobile",
+      siteName: "1PLACE.LK",
       locale: "en_LK",
     },
     twitter: {
@@ -121,16 +121,16 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
   const collectionJsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "@id": `https://www.streetmobile.lk/category/${slug}#collection`,
+    "@id": `https://www.1place.lk/category/${slug}#collection`,
     "name": `${categoryName} in Sri Lanka`,
-    "description": `Browse genuine ${categoryName} available at Street Mobile Sri Lanka.`,
-    "url": `https://www.streetmobile.lk/category/${slug}`,
+    "description": `Browse genuine ${categoryName} available at 1PLACE.LK Sri Lanka.`,
+    "url": `https://www.1place.lk/category/${slug}`,
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": finalProducts.slice(0, 24).map((p, idx) => ({
         "@type": "ListItem",
         "position": idx + 1,
-        "url": `https://www.streetmobile.lk/products/${p.slug}`,
+        "url": `https://www.1place.lk/products/${p.slug}`,
         "name": p.name,
       })),
     },
@@ -144,19 +144,19 @@ export default async function CategoryPage({ params, searchParams }: CategoryPag
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk"
+        "item": "https://www.1place.lk"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Categories",
-        "item": "https://www.streetmobile.lk/categories"
+        "item": "https://www.1place.lk/categories"
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": categoryName,
-        "item": `https://www.streetmobile.lk/category/${slug}`
+        "item": `https://www.1place.lk/category/${slug}`
       }
     ]
   };

@@ -6,17 +6,17 @@ export const dynamic = "force-dynamic";
 export const fetchCache = "force-no-store";
 
 export const metadata: Metadata = {
-  title: "Customer Reviews & Ratings | Street Mobile Sri Lanka",
-  description: "Read genuine customer reviews, unboxing experiences, and verified ratings for smartphones and accessories purchased from Street Mobile Vavuniya.",
+  title: "Customer Reviews & Ratings | 1PLACE.LK Sri Lanka",
+  description: "Read genuine customer reviews, unboxing experiences, and verified ratings for smartphones and electronics purchased from 1PLACE.LK Sri Lanka.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/reviews",
+    canonical: "https://www.1place.lk/reviews",
   },
   openGraph: {
-    title: "Customer Reviews & Ratings | Street Mobile",
-    description: "Read genuine customer reviews and ratings for Street Mobile Vavuniya.",
-    url: "https://www.streetmobile.lk/reviews",
+    title: "Customer Reviews & Ratings | 1PLACE.LK",
+    description: "Read genuine customer reviews and ratings for 1PLACE.LK Sri Lanka.",
+    url: "https://www.1place.lk/reviews",
     type: "website",
-    siteName: "Street Mobile",
+    siteName: "1PLACE.LK",
   },
 };
 
@@ -27,14 +27,14 @@ export default async function ReviewsPage() {
   ]);
 
   const ratingVal = settings?.overall_rating || 4.9;
-  const reviewCount = settings?.total_reviews_count || (reviews.length > 0 ? reviews.length : 250);
+  const reviewCount = settings?.total_reviews_count || (reviews.length > 0 ? reviews.length : 500);
 
   const reviewsJsonLd = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "name": "Street Mobile Store Experience & Products",
-    "image": "https://www.streetmobile.lk/logo.png",
-    "description": "Customer reviews and verified ratings for genuine smartphones and services at Street Mobile Sri Lanka.",
+    "name": "1PLACE.LK Store Experience & Products",
+    "image": "https://www.1place.lk/logo.svg",
+    "description": "Customer reviews and verified ratings for genuine smartphones and electronics at 1PLACE.LK Sri Lanka.",
     "aggregateRating": {
       "@type": "AggregateRating",
       "ratingValue": ratingVal.toString(),
@@ -54,7 +54,7 @@ export default async function ReviewsPage() {
         "bestRating": "5",
         "worstRating": "1",
       },
-      "reviewBody": r.text || (r as any).comment || "Great service and authentic phones.",
+      "reviewBody": r.text || (r as any).comment || "Great service and authentic devices.",
     })),
   };
 
@@ -66,13 +66,13 @@ export default async function ReviewsPage() {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk",
+        "item": "https://www.1place.lk",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Customer Reviews",
-        "item": "https://www.streetmobile.lk/reviews",
+        "item": "https://www.1place.lk/reviews",
       },
     ],
   };

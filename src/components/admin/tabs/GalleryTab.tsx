@@ -165,7 +165,7 @@ export default function GalleryTab({
           </div>
           <p className="text-xs text-white/50">
             {animSettings.enabled !== false
-              ? `VISIBLE ON HOMEPAGE • Displays photo marquee on streetmobile.lk`
+              ? `VISIBLE ON HOMEPAGE • Displays photo marquee on 1place.lk`
               : "HIDDEN • Gallery section is currently hidden from the homepage"}
           </p>
         </div>
@@ -747,7 +747,7 @@ export function HeroTab({
               </div>
               <div className="p-4 flex items-center justify-between">
                 <p className="text-sm font-medium text-white truncate pr-2">
-                  {slide.alt || "Street Mobile Hero Banner"}
+                  {slide.alt || "1PLACE.LK Hero Banner"}
                 </p>
                 <span className="text-xs text-white/40 flex-shrink-0">ID: {slide.id.slice(0, 6)}</span>
               </div>

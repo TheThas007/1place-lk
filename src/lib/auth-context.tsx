@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import {
   User,
   onAuthStateChanged,
@@ -8,41 +8,48 @@ import {
   createUserWithEmailAndPassword,
   signOut as firebaseSignOut,
   updateProfile,
+  sendPasswordResetEmail,
   GoogleAuthProvider,
+  OAuthProvider,
   signInWithPopup,
 } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
-import { doc, setDoc, onSnapshot } from "firebase/firestore";
+import { doc, setDoc, onSnapshot, getDoc } from "firebase/firestore";
 import { UserProfile } from "@/lib/types";
 
 interface AuthContextType {
   user: User | null;
   profile: UserProfile | null;
-  gender: "male" | "female" | "other";
+  isAdmin: boolean;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
-  signUp: (name: string, email: string, password: string, gender?: "male" | "female") => Promise<void>;
+  signUp: (name: string, email: string, password: string, phone?: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
-  updateGender: (gender: "male" | "female" | "other") => Promise<void>;
+  signInWithApple: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+  gender: "male" | "female" | "other" | string | null;
+  updateGender: (g: "male" | "female" | "other") => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | null>(null);
 
+const STORAGE_KEYS = {
+  USER_LOGGED_IN: "oneplace_logged_in",
+  SAVED_PHONE: "oneplace_user_phone",
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
-  const [gender, setGender] = useState<"male" | "female" | "other">("male");
+  const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Initial local cache for instant render
-    const cachedGender = localStorage.getItem("sm_user_gender") as "male" | "female" | "other" | null;
-    if (cachedGender) setGender(cachedGender);
-
     let docUnsub: (() => void) | null = null;
 
-    const authUnsub = onAuthStateChanged(auth, (u) => {
+    const authUnsub = onAuthStateChanged(auth, async (u) => {
       setUser(u);
       if (docUnsub) {
         docUnsub();
@@ -50,23 +57,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       if (u) {
-        // Subscribe to live profile changes
+        // Check admin status from custom claims or adminUsers collection
+        try {
+          const idTokenResult = await u.getIdTokenResult();
+          const hasAdminClaim = Boolean(idTokenResult.claims.admin);
+          if (hasAdminClaim) {
+            setIsAdmin(true);
+          } else {
+            // Verify from adminUsers collection
+            const adminDoc = await getDoc(doc(db, "adminUsers", u.uid));
+            setIsAdmin(adminDoc.exists());
+          }
+        } catch {
+          setIsAdmin(false);
+        }
+
+        // Subscribe to live user profile changes
         docUnsub = onSnapshot(
           doc(db, "users", u.uid),
           (snap) => {
             if (snap.exists()) {
               const data = snap.data() as UserProfile;
               setProfile(data);
-              if (data.gender) {
-                setGender(data.gender);
-                localStorage.setItem("sm_user_gender", data.gender);
+              if (data.phone) {
+                localStorage.setItem(STORAGE_KEYS.SAVED_PHONE, data.phone);
               }
             } else {
               setProfile({
                 uid: u.uid,
-                displayName: u.displayName || "User",
+                displayName: u.displayName || "Valued Customer",
                 email: u.email || "",
-                gender: "male",
+                role: "customer",
+                createdAt: new Date().toISOString(),
               });
             }
           },
@@ -76,6 +98,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         );
       } else {
         setProfile(null);
+        setIsAdmin(false);
       }
       setLoading(false);
     });
@@ -86,91 +109,151 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  const signIn = async (email: string, password: string) => {
-    const cred = await signInWithEmailAndPassword(auth, email, password);
-    sessionStorage.setItem("sm_just_logged_in", "true");
-    if (typeof window !== "undefined") {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("open-gender-prompt"));
-      }, 100);
-    }
-  };
+  const signIn = useCallback(async (email: string, password: string) => {
+    await signInWithEmailAndPassword(auth, email.trim(), password);
+    sessionStorage.setItem(STORAGE_KEYS.USER_LOGGED_IN, "true");
+  }, []);
 
-  const signUp = async (name: string, email: string, password: string, selectedGender?: "male" | "female") => {
-    const cred = await createUserWithEmailAndPassword(auth, email, password);
-    await updateProfile(cred.user, { displayName: name });
-    
-    if (selectedGender) {
-      setGender(selectedGender);
-      localStorage.setItem("sm_user_gender", selectedGender);
+  const signUp = useCallback(async (name: string, email: string, password: string, phone?: string) => {
+    const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
+    await updateProfile(cred.user, { displayName: name.trim() });
+
+    sessionStorage.setItem(STORAGE_KEYS.USER_LOGGED_IN, "true");
+    if (phone) {
+      localStorage.setItem(STORAGE_KEYS.SAVED_PHONE, phone.trim());
     }
 
-    sessionStorage.setItem("sm_just_logged_in", "true");
-
-    // Save user data to Firestore
-    await setDoc(doc(db, "users", cred.user.uid), {
-      uid: cred.user.uid,
-      displayName: name,
-      email: email,
-      ...(selectedGender ? { gender: selectedGender } : {}),
-      createdAt: new Date().toISOString()
-    });
-
-    if (typeof window !== "undefined") {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("open-gender-prompt"));
-      }, 100);
+    // Persist new customer record to Firestore
+    try {
+      await setDoc(
+        doc(db, "users", cred.user.uid),
+        {
+          uid: cred.user.uid,
+          displayName: name.trim(),
+          email: email.trim().toLowerCase(),
+          phone: phone ? phone.trim() : "",
+          role: "customer",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (dbErr) {
+      console.warn("Could not write user profile to Firestore:", dbErr);
     }
-  };
+  }, []);
 
-  const signInWithGoogle = async () => {
+  const signInWithGoogle = useCallback(async () => {
     const provider = new GoogleAuthProvider();
     const cred = await signInWithPopup(auth, provider);
-    sessionStorage.setItem("sm_just_logged_in", "true");
-    
-    // Save/update Google user data in Firestore
-    await setDoc(doc(db, "users", cred.user.uid), {
-      uid: cred.user.uid,
-      displayName: cred.user.displayName || "Google User",
-      email: cred.user.email || "",
-      createdAt: new Date().toISOString()
-    }, { merge: true });
+    sessionStorage.setItem(STORAGE_KEYS.USER_LOGGED_IN, "true");
 
-    if (typeof window !== "undefined") {
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent("open-gender-prompt"));
-      }, 100);
+    try {
+      await setDoc(
+        doc(db, "users", cred.user.uid),
+        {
+          uid: cred.user.uid,
+          displayName: cred.user.displayName || "Google Customer",
+          email: cred.user.email || "",
+          photoURL: cred.user.photoURL || "",
+          role: "customer",
+          lastLoginAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (dbErr) {
+      console.warn("Could not sync Google user profile:", dbErr);
     }
-  };
+  }, []);
 
-  const updateGender = async (newGender: "male" | "female" | "other") => {
-    setGender(newGender);
-    localStorage.setItem("sm_user_gender", newGender);
+  const signInWithApple = useCallback(async () => {
+    const provider = new OAuthProvider("apple.com");
+    provider.addScope("email");
+    provider.addScope("name");
+    const cred = await signInWithPopup(auth, provider);
+    sessionStorage.setItem(STORAGE_KEYS.USER_LOGGED_IN, "true");
 
-    if (user) {
-      try {
-        await setDoc(
-          doc(db, "users", user.uid),
-          {
-            uid: user.uid,
-            gender: newGender,
-            updatedAt: new Date().toISOString(),
-          },
-          { merge: true }
-        );
-      } catch (e) {
-        console.warn("Could not save gender to Firestore:", e);
+    try {
+      await setDoc(
+        doc(db, "users", cred.user.uid),
+        {
+          uid: cred.user.uid,
+          displayName: cred.user.displayName || "Apple Customer",
+          email: cred.user.email || "",
+          photoURL: cred.user.photoURL || "",
+          role: "customer",
+          lastLoginAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    } catch (dbErr) {
+      console.warn("Could not sync Apple user profile:", dbErr);
+    }
+  }, []);
+
+  const resetPassword = useCallback(async (email: string) => {
+    if (!email || !email.includes("@")) {
+      throw new Error("Please enter a valid email address.");
+    }
+    await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+  }, []);
+
+  const updateUserProfile = useCallback(
+    async (data: Partial<UserProfile>) => {
+      if (!user) throw new Error("User is not signed in.");
+
+      if (data.displayName) {
+        await updateProfile(user, { displayName: data.displayName });
       }
-    }
-  };
 
-  const signOut = async () => {
+      await setDoc(
+        doc(db, "users", user.uid),
+        {
+          ...data,
+          updatedAt: new Date().toISOString(),
+        },
+        { merge: true }
+      );
+    },
+    [user]
+  );
+
+  const gender = profile?.gender || null;
+
+  const updateGender = useCallback(
+    async (g: "male" | "female" | "other") => {
+      if (user) {
+        await updateUserProfile({ gender: g });
+      }
+    },
+    [user, updateUserProfile]
+  );
+
+  const signOut = useCallback(async () => {
     await firebaseSignOut(auth);
     setProfile(null);
-  };
+    setIsAdmin(false);
+    sessionStorage.removeItem(STORAGE_KEYS.USER_LOGGED_IN);
+  }, []);
 
   return (
-    <AuthContext.Provider value={{ user, profile, gender, loading, signIn, signUp, signInWithGoogle, updateGender, signOut }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        profile,
+        isAdmin,
+        loading,
+        signIn,
+        signUp,
+        signInWithGoogle,
+        signInWithApple,
+        resetPassword,
+        updateUserProfile,
+        gender,
+        updateGender,
+        signOut,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
@@ -179,11 +262,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 const fallbackAuthContext: AuthContextType = {
   user: null,
   profile: null,
-  gender: "male",
-  loading: true,
+  isAdmin: false,
+  loading: false,
   signIn: async () => {},
   signUp: async () => {},
   signInWithGoogle: async () => {},
+  signInWithApple: async () => {},
+  resetPassword: async () => {},
+  updateUserProfile: async () => {},
+  gender: null,
   updateGender: async () => {},
   signOut: async () => {},
 };

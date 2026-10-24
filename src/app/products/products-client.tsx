@@ -535,17 +535,28 @@ export default function ProductsClient({
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24 w-full">
       <div className="max-w-[1440px] px-3 sm:px-6 lg:px-8 mx-auto pt-2 sm:pt-6 w-full">
         
-        {/* ── 1. Breadcrumb (Desktop Only) ── */}
+        {/* ── 1. Breadcrumb ── */}
         <nav
           aria-label="Breadcrumb"
-          className="hidden sm:flex items-center gap-2 text-xs font-medium text-neutral-500 mb-4 select-none"
+          className="flex items-center gap-2 text-xs font-medium text-neutral-500 mb-3 select-none"
         >
           <Link href="/" className="hover:text-black transition-colors">
             Home
           </Link>
           <span className="text-neutral-400">/</span>
-          <span className="text-black font-bold">Shop All</span>
+          <span className="text-black font-bold">
+            {activePrimaryTab !== "all"
+              ? PRIMARY_CATEGORY_TABS.find((t) => t.id === activePrimaryTab)?.label || "Products"
+              : "Shop All"}
+          </span>
         </nav>
+
+        {/* Accessible heading for SEO and screen readers */}
+        <h1 className="sr-only">
+          {activePrimaryTab !== "all"
+            ? `${PRIMARY_CATEGORY_TABS.find((t) => t.id === activePrimaryTab)?.label || "Products"} in Sri Lanka`
+            : "Mobile Phones & Accessories in Sri Lanka"}
+        </h1>
 
         {/* ── 2. Primary Category Tabs ── */}
         <div className="flex items-center justify-start border-b border-neutral-200 mb-4 sm:mb-6 overflow-x-auto whitespace-nowrap scrollbar-none">
@@ -708,7 +719,7 @@ export default function ProductsClient({
                 <div
                   className={
                     viewMode === "grid"
-                      ? "grid grid-cols-2 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-2.5 sm:gap-6"
+                      ? "grid grid-cols-2 sm:grid-cols-3 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-2.5 sm:gap-3.5 lg:gap-4"
                       : "grid grid-cols-1 gap-3 sm:gap-4"
                   }
                 >

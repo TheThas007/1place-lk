@@ -4,7 +4,7 @@ import { db } from "@/lib/firebase";
 import { collection, addDoc, getDocs, doc, getDoc, query, where, limit, setDoc, updateDoc, deleteDoc, writeBatch } from "firebase/firestore";
 import { deductProductStock } from "@/lib/stock-deduction";
 
-// GET /api/orders - returns all orders
+// GET /api/orders - returns orders with secure filtering
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -14,9 +14,9 @@ export async function GET(req: Request) {
     const includeUnpaid = searchParams.get("includeUnpaid") === "true";
 
     // 1. Read local persistent orders
-    let localList = getLocalOrders();
+    const localList = getLocalOrders();
 
-    // 2. Read Firestore orders with targeted queries
+    // 2. Read Firestore orders
     let firestoreList: OrderRecord[] = [];
     try {
       if (orderId) {
@@ -24,11 +24,11 @@ export async function GET(req: Request) {
         if (directDoc.exists()) {
           firestoreList = [{ ...directDoc.data(), id: directDoc.id } as OrderRecord];
         } else {
-          // Fallback query by suffix
+          // Fallback query matching suffix
           const snap = await getDocs(query(collection(db, "orders"), limit(100)));
           firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
         }
-      } else if (userId) {
+      } else if (userId && userId !== "guest") {
         const q = query(collection(db, "orders"), where("userId", "==", userId), limit(50));
         const snap = await getDocs(q);
         firestoreList = snap.docs.map((d) => ({ ...d.data(), id: d.id } as OrderRecord));
@@ -49,7 +49,7 @@ export async function GET(req: Request) {
       console.warn("API GET orders Firestore read error (using local store):", e);
     }
 
-    // Merge without duplicates (favoring Firestore or local)
+    // Merge without duplicates
     const map = new Map<string, OrderRecord>();
     [...localList, ...firestoreList].forEach((item) => {
       if (item && item.id) {
@@ -59,12 +59,12 @@ export async function GET(req: Request) {
 
     let result = Array.from(map.values());
 
-    // Filter out unpaid/abandoned PayHere card attempts from general order listings
+    // Filter out abandoned online payment attempts unless specifically requested
     if (!includeUnpaid && !orderId) {
       result = result.filter((o: any) => {
         const method = (o.paymentMethod || "").toString().toLowerCase();
-        const isCardOrPayHere = method.includes("payhere") || method.includes("card");
-        if (isCardOrPayHere) {
+        const isOnlineCard = method.includes("payhere") || method.includes("card") || method.includes("online");
+        if (isOnlineCard) {
           const payStatus = (o.paymentStatus || "").toString().toLowerCase();
           const ordStatus = (o.status || o.orderStatus || "").toString().toLowerCase();
           const isPaid = payStatus === "paid" || ordStatus === "paid" || o.payhereVerified || o.payhereStatusCode === "2";
@@ -74,9 +74,14 @@ export async function GET(req: Request) {
       });
     }
 
-    // Apply filtering if parameters provided
+    // Apply strict filtering
     if (orderId) {
-      result = result.filter((o) => o.id === orderId || o.id.slice(-6) === orderId || o.id.slice(-8) === orderId);
+      result = result.filter(
+        (o) =>
+          o.id.toLowerCase() === orderId.toLowerCase() ||
+          o.id.slice(-6).toLowerCase() === orderId.toLowerCase() ||
+          o.id.slice(-8).toLowerCase() === orderId.toLowerCase()
+      );
     } else if (phone) {
       result = result.filter(
         (o) =>
@@ -84,7 +89,7 @@ export async function GET(req: Request) {
           o.secondaryPhone?.includes(phone) ||
           phone.includes(o.primaryPhone || "___")
       );
-    } else if (userId) {
+    } else if (userId && userId !== "guest") {
       result = result.filter((o) => o.userId === userId);
     }
 
@@ -98,35 +103,113 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/orders - save new order
+// POST /api/orders - save new order (supports both Authenticated and Guest Checkout)
 export async function POST(req: Request) {
   try {
     const body = await req.json();
 
-    if (!body.userId || body.userId === "guest") {
-      return NextResponse.json(
-        { success: false, error: "Authentication required to place an order. Please sign in." },
-        { status: 401 }
-      );
-    }
-
+    // Validate items
     const items = Array.isArray(body.items) ? body.items : [];
     if (items.length === 0) {
       return NextResponse.json(
-        { success: false, error: "Order must contain at least one product." },
+        { success: false, error: "Your order must contain at least one item." },
         { status: 400 }
       );
     }
 
+    // Customer contact details validation
+    const customerName = (body.customerName || body.codName || body.cardName || "").trim();
+    const primaryPhone = (body.primaryPhone || body.phone || body.codPhone1 || "").trim();
+    const address = (body.address || body.codAddress || "").trim();
+    const district = (body.district || body.codDistrict || "Colombo").trim();
+
+    if (!customerName || customerName.length < 2) {
+      return NextResponse.json(
+        { success: false, error: "Please provide a valid customer full name." },
+        { status: 400 }
+      );
+    }
+
+    if (!primaryPhone || primaryPhone.replace(/\D/g, "").length < 9) {
+      return NextResponse.json(
+        { success: false, error: "Please provide a valid Sri Lankan mobile phone number." },
+        { status: 400 }
+      );
+    }
+
+    if (!address || address.length < 5) {
+      return NextResponse.json(
+        { success: false, error: "Please enter a complete delivery street address." },
+        { status: 400 }
+      );
+    }
+
+    // ── Promotional Free Gift & Standalone Validation ──
+    const giftItems = items.filter((i: any) => i.isFreeGift === true);
+    const paidItems = items.filter((i: any) => !i.isFreeGift && Number(i.price) > 0);
+
+    if (giftItems.length > 0) {
+      if (paidItems.length === 0) {
+        return NextResponse.json(
+          {
+            success: false,
+            error: "Promotional free gifts cannot be ordered alone. You must purchase at least one regular qualifying product in your order.",
+          },
+          { status: 400 }
+        );
+      }
+
+      // Verify reward on server
+      for (const gift of giftItems) {
+        const rewardId = gift.rewardId || body.giftRewardId;
+        if (rewardId) {
+          try {
+            const rewardDocRef = doc(db, "spin_rewards", rewardId);
+            const rewardSnap = await getDoc(rewardDocRef);
+            if (rewardSnap.exists()) {
+              const rData = rewardSnap.data();
+              if (rData.status === "redeemed") {
+                return NextResponse.json(
+                  { success: false, error: "This promotional free gift reward has already been redeemed." },
+                  { status: 400 }
+                );
+              }
+              if (new Date(rData.expiresAt).getTime() < Date.now()) {
+                return NextResponse.json(
+                  { success: false, error: "This promotional free gift reward has expired." },
+                  { status: 400 }
+                );
+              }
+            }
+          } catch (rErr) {
+            console.warn("Could not verify reward status from Firestore:", rErr);
+          }
+        }
+      }
+    }
+
     // Zero / Invalid Price & Quantity Protection
+    let serverSubtotal = 0;
     for (const item of items) {
       const itemPrice = Number(item.price);
       const itemQty = Number(item.quantity);
+
+      if (item.isFreeGift) {
+        if (itemQty !== 1) {
+          return NextResponse.json(
+            { success: false, error: "Promotional free gift quantity is limited to 1." },
+            { status: 400 }
+          );
+        }
+        // Price for verified free gift is 0
+        continue;
+      }
+
       if (isNaN(itemPrice) || itemPrice <= 0) {
         return NextResponse.json(
           {
             success: false,
-            error: `Invalid price detected for item "${item.name || "Product"}". Please refresh your cart or contact support.`,
+            error: `Invalid price detected for "${item.name || "Product"}". Please reload cart.`,
           },
           { status: 400 }
         );
@@ -135,96 +218,162 @@ export async function POST(req: Request) {
         return NextResponse.json(
           {
             success: false,
-            error: `Invalid quantity detected for item "${item.name || "Product"}".`,
+            error: `Invalid quantity for "${item.name || "Product"}".`,
           },
           { status: 400 }
         );
       }
+      serverSubtotal += itemPrice * itemQty;
     }
 
-    const calculatedTotal = Number(body.totalPrice ?? body.finalTotal);
-    if (isNaN(calculatedTotal) || calculatedTotal <= 0) {
-      return NextResponse.json(
-        { success: false, error: "Invalid order total amount." },
-        { status: 400 }
-      );
+    // Free Shipping Reward Verification
+    let deliveryFee = typeof body.deliveryFee === "number" ? body.deliveryFee : 450;
+    const shippingRewardId = body.shippingRewardId;
+    let isShippingRewardVerified = false;
+
+    if (shippingRewardId) {
+      try {
+        const shipSnap = await getDoc(doc(db, "spin_rewards", shippingRewardId));
+        if (shipSnap.exists()) {
+          const sData = shipSnap.data();
+          if (
+            sData.rewardType === "free_shipping" &&
+            sData.status !== "redeemed" &&
+            new Date(sData.expiresAt).getTime() > Date.now()
+          ) {
+            deliveryFee = 0;
+            isShippingRewardVerified = true;
+          }
+        }
+      } catch (sErr) {
+        console.warn("Could not verify shipping reward:", sErr);
+      }
     }
 
-    const orderId = body.id || `SM-${Math.floor(100000 + Math.random() * 900000)}`;
-
-    const isCard = (body.paymentMethod || "").toString().toLowerCase().includes("payhere") || (body.paymentMethod || "").toString().toLowerCase().includes("card");
+    const isCard =
+      (body.paymentMethod || "").toString().toLowerCase().includes("payhere") ||
+      (body.paymentMethod || "").toString().toLowerCase().includes("card") ||
+      (body.paymentMethod || "").toString().toLowerCase().includes("online");
     const isCod = !isCard;
+    const codFee = isCod ? (typeof body.codFee === "number" ? body.codFee : 250) : 0;
+    const couponDiscount = Math.max(0, Number(body.couponDiscount) || 0);
 
-    // For Card payments, client cannot unilaterally mark order as Paid/Verified.
-    // Server webhook (/api/payhere/notify) is the sole authority for Card payment verification.
+    const calculatedTotal = Math.max(0, serverSubtotal + deliveryFee + codFee - couponDiscount);
+
+    // 1place.lk Unique Order ID: 1P-XXXXXX
+    const randomDigits = Math.floor(100000 + Math.random() * 900000);
+    const orderId = body.id || `1P-${randomDigits}`;
+
+    const isGuest = !body.userId || body.userId === "guest";
+    const userId = isGuest ? "guest" : String(body.userId);
+
     const initialPaymentStatus = isCod
-      ? (body.paymentStatus || "Pending COD")
-      : (body.paymentStatus === "Cancelled" || body.paymentStatus === "Failed" ? body.paymentStatus : "Pending");
+      ? "Pending COD"
+      : body.paymentStatus === "Cancelled" || body.paymentStatus === "Failed"
+      ? body.paymentStatus
+      : "Pending";
 
-    const initialStatus = isCod
-      ? (body.status || "pending")
-      : (body.status === "cancelled" ? "cancelled" : "pending");
+    const initialOrderStatus = isCod ? "Processing" : "Payment Pending";
 
     const newOrder: OrderRecord = {
       id: orderId,
-      userId: body.userId,
-      customerName: body.customerName || body.codName || body.cardName || "Valued Customer",
-      address: body.address || body.codAddress || "Local Store Pick-up / Delivery",
-      district: body.district || body.codDistrict || "Vavuniya",
-      primaryPhone: body.primaryPhone || body.codPhone1 || "0774141118",
-      secondaryPhone: body.secondaryPhone || body.codPhone2 || "",
-      postalCode: body.postalCode || body.codPostal || "",
-      items: body.items || [],
-      totalPrice: Number(body.totalPrice ?? body.finalTotal) || 0,
-      paymentMethod: body.paymentMethod || (isCard ? "Card (PayHere)" : "COD"),
-      status: initialStatus,
+      userId,
+      customerName,
+      address,
+      district,
+      primaryPhone,
+      secondaryPhone: (body.secondaryPhone || body.codPhone2 || "").trim(),
+      postalCode: (body.postalCode || body.codPostal || "").trim(),
+      items,
+      totalPrice: calculatedTotal,
+      paymentMethod: isCard ? "Online Card (PayHere)" : "Cash on Delivery (COD)",
+      status: isCod ? "processing" : "pending",
       paymentStatus: initialPaymentStatus,
       payherePaymentId: body.payherePaymentId || "",
-      payhereVerified: isCod ? false : (body.payhereVerified === true && body.payhereStatusCode === "2"),
-      createdAt: body.createdAt || new Date().toISOString()
+      payhereVerified: false,
+      cardFee: 0,
+      payhereFee: 0,
+      createdAt: body.createdAt || new Date().toISOString(),
     };
 
     // 1. Save to local JSON store
     saveLocalOrder(newOrder);
 
-    // 2. Try saving to Firestore
+    // 2. Persist to Firestore
     try {
-      const cleanData = JSON.parse(JSON.stringify({
+      const orderPayload = {
         ...newOrder,
-        deliveryAddress: body.deliveryAddress || {
+        isGuest,
+        email: (body.email || "").trim().toLowerCase(),
+        deliveryAddress: {
           address: newOrder.address,
           district: newOrder.district,
           city: body.city || newOrder.district,
-          province: body.province || "Northern Province",
+          province: body.province || "Western Province",
           postalCode: newOrder.postalCode,
         },
         deliveryOption: body.deliveryOption || "standard",
-        deliveryFee: typeof body.deliveryFee === "number" ? body.deliveryFee : 450,
-        codFee: typeof body.codFee === "number" ? body.codFee : (isCod ? 250 : 0),
-        couponDiscount: typeof body.couponDiscount === "number" ? body.couponDiscount : 0,
+        deliveryFee,
+        codFee,
+        couponDiscount,
         couponCode: body.couponCode || "",
-        subtotal: typeof body.subtotal === "number" ? body.subtotal : newOrder.totalPrice,
-        finalTotal: typeof body.finalTotal === "number" ? body.finalTotal : newOrder.totalPrice,
-        orderStatus: initialStatus === "pending" ? (isCod ? "Processing" : "Payment Pending") : initialStatus,
-        payhereStatusCode: body.payhereStatusCode || "0",
-        ...(body.payherePaymentId ? { payherePaymentId: body.payherePaymentId } : {}),
-      }));
-      await setDoc(doc(db, "orders", newOrder.id), cleanData, { merge: true });
+        subtotal: serverSubtotal,
+        finalTotal: calculatedTotal,
+        orderStatus: initialOrderStatus,
+        payhereStatusCode: "0",
+        trackingNumber: `TRK-${randomDigits}`,
+        updatedAt: new Date().toISOString(),
+      };
+
+      await setDoc(doc(db, "orders", newOrder.id), orderPayload, { merge: true });
+
+      // 2b. Mark promotional spin rewards as redeemed
+      if (giftItems.length > 0) {
+        for (const gift of giftItems) {
+          const rId = (gift as any).rewardId || body.giftRewardId;
+          if (rId) {
+            try {
+              await updateDoc(doc(db, "spin_rewards", rId), {
+                status: "redeemed",
+                redeemedAt: new Date().toISOString(),
+                orderId: newOrder.id,
+              });
+            } catch (rErr) {
+              console.warn("Could not mark gift reward as redeemed:", rErr);
+            }
+          }
+        }
+      }
+
+      if (isShippingRewardVerified && shippingRewardId) {
+        try {
+          await updateDoc(doc(db, "spin_rewards", shippingRewardId), {
+            status: "redeemed",
+            redeemedAt: new Date().toISOString(),
+            orderId: newOrder.id,
+          });
+        } catch (sErr) {
+          console.warn("Could not mark shipping reward as redeemed:", sErr);
+        }
+      }
     } catch (fsErr) {
-      console.warn("Firestore save fallback error (saved to local store):", fsErr);
+      console.warn("Firestore save warning (order safely kept in local store):", fsErr);
     }
 
-    // 3. Automatically deduct product stock ONLY for confirmed COD orders
-    // (For Card payments, stock deduction is handled strictly upon verified webhook notification in /api/payhere/notify)
+    // 3. Automatically deduct inventory for confirmed COD orders
     try {
       if (isCod && newOrder.items && newOrder.items.length > 0) {
         await deductProductStock(newOrder.items);
       }
     } catch (stockErr) {
-      console.warn("[Stock Deduction Warning]:", stockErr);
+      console.warn("[Inventory Deduction Warning]:", stockErr);
     }
 
-    return NextResponse.json({ success: true, orderId: newOrder.id, order: newOrder });
+    return NextResponse.json({
+      success: true,
+      orderId: newOrder.id,
+      order: newOrder,
+    });
   } catch (err: any) {
     console.error("POST /api/orders error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });
@@ -234,15 +383,23 @@ export async function POST(req: Request) {
 // PATCH /api/orders - update status
 export async function PATCH(req: Request) {
   try {
-    const { id, status } = await req.json();
-    if (!id || !status) {
-      return NextResponse.json({ success: false, error: "Missing id or status" }, { status: 400 });
+    const { id, status, orderStatus, paymentStatus, trackingNumber } = await req.json();
+    if (!id) {
+      return NextResponse.json({ success: false, error: "Missing order id" }, { status: 400 });
     }
 
-    updateLocalOrderStatus(id, status);
+    const updates: Record<string, unknown> = {
+      updatedAt: new Date().toISOString(),
+    };
+    if (status) updates.status = status;
+    if (orderStatus) updates.orderStatus = orderStatus;
+    if (paymentStatus) updates.paymentStatus = paymentStatus;
+    if (trackingNumber) updates.trackingNumber = trackingNumber;
+
+    updateLocalOrderStatus(id, status || orderStatus);
 
     try {
-      await updateDoc(doc(db, "orders", id), { status });
+      await updateDoc(doc(db, "orders", id), updates);
     } catch (e) {
       console.warn("Firestore status update warning:", e);
     }
@@ -253,7 +410,7 @@ export async function PATCH(req: Request) {
   }
 }
 
-// DELETE /api/orders - permanent single or bulk order delete
+// DELETE /api/orders - delete order(s)
 export async function DELETE(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
@@ -265,81 +422,22 @@ export async function DELETE(req: Request) {
       idsToDelete = queryIds.split(",").map((s) => s.trim()).filter(Boolean);
     } else if (queryId) {
       idsToDelete = [queryId.trim()];
-    } else {
-      try {
-        const body = await req.json();
-        if (Array.isArray(body.ids)) {
-          idsToDelete = body.ids.map((s: any) => String(s).trim()).filter(Boolean);
-        } else if (body.id) {
-          idsToDelete = [String(body.id).trim()];
-        }
-      } catch {
-        // No body provided
-      }
     }
 
     if (idsToDelete.length === 0) {
-      return NextResponse.json({ success: false, error: "Missing order id or ids" }, { status: 400 });
+      return NextResponse.json({ success: false, error: "Missing order id(s)" }, { status: 400 });
     }
 
-    const ORDER_SUBCOLLECTIONS = ["items", "payments", "statusHistory", "notes", "tracking", "history", "audit"];
-    let deletedCount = 0;
-    const errors: string[] = [];
-
-    // Delete in chunks of 100 to stay safely below Firestore batch limits (500 ops)
-    const CHUNK_SIZE = 100;
-    for (let i = 0; i < idsToDelete.length; i += CHUNK_SIZE) {
-      const chunk = idsToDelete.slice(i, i + CHUNK_SIZE);
-      const batch = writeBatch(db);
-
-      for (const id of chunk) {
-        // Purge local file storage
-        try {
-          deleteLocalOrder(id);
-        } catch (localErr) {
-          console.warn(`Local store delete warning for ${id}:`, localErr);
-        }
-
-        // Clean any subcollection documents if they exist
-        for (const subName of ORDER_SUBCOLLECTIONS) {
-          try {
-            const subSnap = await getDocs(collection(db, "orders", id, subName));
-            for (const subDoc of subSnap.docs) {
-              batch.delete(subDoc.ref);
-            }
-          } catch {
-            // subcollection doesn't exist or isn't queryable
-          }
-        }
-
-        // Delete parent order document
-        batch.delete(doc(db, "orders", id));
-      }
-
+    for (const id of idsToDelete) {
+      deleteLocalOrder(id);
       try {
-        await batch.commit();
-        deletedCount += chunk.length;
-      } catch (batchErr: any) {
-        console.error("Firestore batch delete error:", batchErr);
-        errors.push(batchErr?.message || "Batch delete error");
-        // Fallback: delete individually
-        for (const id of chunk) {
-          try {
-            await deleteDoc(doc(db, "orders", id));
-            deletedCount++;
-          } catch (singleErr: any) {
-            console.error(`Single delete error for ${id}:`, singleErr);
-          }
-        }
+        await deleteDoc(doc(db, "orders", id));
+      } catch (err) {
+        console.warn(`Firestore delete error for ${id}:`, err);
       }
     }
 
-    return NextResponse.json({
-      success: deletedCount > 0,
-      deletedCount,
-      totalRequested: idsToDelete.length,
-      errors: errors.length > 0 ? errors : undefined,
-    });
+    return NextResponse.json({ success: true, deletedCount: idsToDelete.length });
   } catch (err: any) {
     console.error("DELETE /api/orders error:", err);
     return NextResponse.json({ success: false, error: err.message }, { status: 500 });

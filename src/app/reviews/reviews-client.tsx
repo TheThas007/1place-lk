@@ -14,7 +14,7 @@ import { DiagonalCarousel } from "@/components/ui/diagonal-carousel";
 
 const WHATSAPP_CHANNEL = "https://whatsapp.com/channel/0029VaDlUUfK0IBhEDemlN2A";
 
-const validateUrl = (url?: string, fallbackUrl: string = "https://www.google.com/maps/search/Street+Mobile+Vavuniya") => {
+const validateUrl = (url?: string, fallbackUrl: string = "https://www.google.com/maps/search/1Place+LK+Colombo") => {
   if (!url || typeof url !== "string") return fallbackUrl;
   try {
     const parsed = new URL(url);
@@ -223,8 +223,8 @@ export default function ReviewsClient({
               </h1>
 
               <p className="text-gray-500 text-lg max-w-lg leading-relaxed mb-8">
-                Real experiences from real customers. See why Street Mobile is
-                Vavuniya's most trusted phone store.
+                Real experiences from real customers. See why 1PLACE.LK is
+                Sri Lanka's most trusted premium electronics destination.
               </p>
 
               <div className="flex flex-wrap gap-3">
@@ -717,7 +717,7 @@ export default function ReviewsClient({
                           value={formData.text}
                           onChange={(e) => setFormData({ ...formData, text: e.target.value })}
                           className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-gray-900/10 focus:border-gray-300 outline-none transition-all resize-none placeholder:text-gray-300"
-                          placeholder="Tell us about your experience with Street Mobile..."
+                          placeholder="Tell us about your experience with 1PLACE.LK..."
                         />
                         <p className="mt-1 text-xs text-gray-300 text-right">{formData.text.length} chars</p>
                       </div>

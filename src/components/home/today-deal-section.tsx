@@ -171,10 +171,11 @@ export default function TodayDealSection({
   // Image Source Resolution:
   // - In "full_image" mode (default): Desktop MUST use desktopImageUrl first!
   // - In "custom_bg_with_square_image" mode: Use squareImageUrl first.
+  const fallbackPoster = "/images/today-deal-poster.png";
   const rawDesktop =
     deal.bannerMode === "custom_bg_with_square_image"
-      ? (deal.squareImageUrl?.trim() || deal.desktopImageUrl?.trim() || "/images/today-deal-phone-card.png")
-      : (deal.desktopImageUrl?.trim() || deal.squareImageUrl?.trim() || "/images/today-deal-phone-card.png");
+      ? (deal.squareImageUrl?.trim() || deal.desktopImageUrl?.trim() || fallbackPoster)
+      : (deal.desktopImageUrl?.trim() || deal.squareImageUrl?.trim() || fallbackPoster);
   const desktopImg = normalizeImageUrl(rawDesktop);
 
   const rawMobile = deal.mobileImageUrl?.trim() || rawDesktop;
@@ -203,19 +204,24 @@ export default function TodayDealSection({
 
   const imgScale = (deal.imageScale ?? 100) / 100;
 
-  // Background Banner Behind Both Cards
-  const hasBgBanner = Boolean(deal.backgroundBannerEnabled && deal.backgroundBannerUrl);
-  const bgOverlayOpacity = (deal.backgroundBannerOverlayOpacity ?? 30) / 100;
+  // Background Banner Behind Both Cards (Storefront photo by default as in screenshot)
+  const bgBannerUrl = deal.backgroundBannerUrl?.trim() || "/Street Mobile (980 x 360 px) (1240 x 472 px).png";
+  const hasBgBanner = deal.backgroundBannerEnabled !== false;
+  const bgOverlayOpacity = typeof deal.backgroundBannerOverlayOpacity === "number" ? deal.backgroundBannerOverlayOpacity / 100 : 0.45;
 
-  // Colors & Typography
-  const cardBgColor = deal.boxBackgroundColor || "#FFFFFF";
-  const headingTextColor = deal.headingColor || "#000000";
-  const descTextColor = deal.descriptionColor || "#525252";
-  const eyebrowTagColor = deal.eyebrowColor || "#ED0712";
-  const ctaBtnBg = deal.ctaBackgroundColor || "#ED0712";
+  // Colors & Typography strictly following the screenshot aesthetic
+  const isOldDarkDefault =
+    (deal.boxBackgroundColor === "#090909" || !deal.boxBackgroundColor) &&
+    (deal.headingColor === "#FFFFFF" || !deal.headingColor);
+
+  const cardBgColor = isOldDarkDefault ? "#FFFFFF" : (deal.boxBackgroundColor || "#FFFFFF");
+  const headingTextColor = isOldDarkDefault ? "#F1592A" : (deal.headingColor || "#F1592A");
+  const descTextColor = isOldDarkDefault ? "#F1592A" : (deal.descriptionColor || "#F1592A");
+  const eyebrowTagColor = isOldDarkDefault ? "#262626" : (deal.eyebrowColor || "#262626");
+  const ctaBtnBg = isOldDarkDefault ? "#F1592A" : (deal.ctaBackgroundColor || "#F1592A");
   const ctaBtnText = deal.ctaTextColor || "#FFFFFF";
-  const timerBg = deal.countdownBackgroundColor || "transparent";
-  const timerText = deal.countdownTextColor || "#ED0712";
+  const timerBg = isOldDarkDefault ? "#F1592A" : (deal.countdownBackgroundColor === "transparent" ? "#F1592A" : (deal.countdownBackgroundColor || "#F1592A"));
+  const timerText = isOldDarkDefault ? "#FFFFFF" : (deal.countdownTextColor === "#090909" ? "#FFFFFF" : (deal.countdownTextColor || "#FFFFFF"));
 
   // Fit and padding resolution
   const cardPaddingClass =
@@ -229,7 +235,7 @@ export default function TodayDealSection({
 
   const imageFitClass =
     deal.imageFit === "contain"
-      ? "max-h-full max-w-full object-contain"
+      ? "w-full h-full object-contain"
       : deal.imageFit === "fill"
       ? "w-full h-full object-fill"
       : "w-full h-full object-cover"; // default cover for 100% full frame fill
@@ -247,7 +253,7 @@ export default function TodayDealSection({
     <section
       id="todays-deal-section"
       aria-label="Today's Deal Promotional Showcase"
-      className={`w-full py-6 sm:py-12 lg:py-14 select-none relative ${className}`}
+      className={`w-full py-8 sm:py-12 lg:py-14 select-none relative overflow-hidden ${className}`}
     >
       {/* ── 100% Sharp 90-Degree Square Background Banner Behind Both Cards ── */}
       {hasBgBanner && (
@@ -256,9 +262,9 @@ export default function TodayDealSection({
           style={{ borderRadius: 0 }}
         >
           <img
-            src={normalizeImageUrl(deal.backgroundBannerUrl || "")}
+            src={normalizeImageUrl(bgBannerUrl)}
             alt="Today's Deal Background Banner"
-            className="w-full h-full object-cover rounded-none"
+            className="w-full h-full object-cover object-center rounded-none"
           />
           <div
             className="absolute inset-0 w-full h-full rounded-none"
@@ -279,7 +285,7 @@ export default function TodayDealSection({
               backgroundColor: cardBgColor,
               borderRadius: 0,
             }}
-            className={`border border-neutral-200/90 shadow-sm p-6 sm:p-10 lg:p-12 flex flex-col justify-between transition-all duration-300 rounded-none ${
+            className={`border border-neutral-200/90 shadow-sm p-6 sm:p-10 lg:p-12 flex flex-col justify-between transition-all duration-300 rounded-none w-full min-h-[480px] sm:min-h-[520px] md:min-h-[560px] lg:min-h-[580px] h-full ${
               isBoxOnRight ? "md:order-2" : "md:order-1"
             }`}
           >
@@ -294,7 +300,7 @@ export default function TodayDealSection({
                   style={{ color: eyebrowTagColor }}
                   className="font-black text-[11px] sm:text-xs tracking-[0.14em] uppercase font-mono"
                 >
-                  {deal.eyebrow || "TODAY'S DEAL"}
+                  {deal.eyebrow || "TODAY 'S DEAL"}
                 </span>
               </div>
 
@@ -343,7 +349,7 @@ export default function TodayDealSection({
                         color: ctaBtnText,
                         borderRadius: 0,
                       }}
-                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:shadow-md active:scale-98 rounded-none w-full sm:w-auto"
+                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:brightness-105 active:scale-98 rounded-none w-full sm:w-auto cursor-pointer"
                     >
                       <span>{activeCtaLabel}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -357,7 +363,7 @@ export default function TodayDealSection({
                         color: ctaBtnText,
                         borderRadius: 0,
                       }}
-                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:shadow-md active:scale-98 rounded-none w-full sm:w-auto"
+                      className="inline-flex items-center justify-center gap-2.5 px-6 sm:px-8 py-3.5 font-extrabold text-xs sm:text-sm tracking-wider uppercase transition-all duration-200 shadow-xs hover:brightness-105 active:scale-98 rounded-none w-full sm:w-auto cursor-pointer"
                     >
                       <span>{activeCtaLabel}</span>
                       <ArrowRight className="w-4 h-4" />
@@ -379,9 +385,9 @@ export default function TodayDealSection({
                 {isExpired && deal.expiryAction === "deal-ended" ? (
                   <div
                     style={{
-                      borderColor: `${eyebrowTagColor}70`,
-                      color: eyebrowTagColor,
-                      backgroundColor: timerBg,
+                      borderColor: ctaBtnBg,
+                      color: "#FFFFFF",
+                      backgroundColor: ctaBtnBg,
                       borderRadius: 0,
                     }}
                     className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-none border text-xs font-bold tracking-wider uppercase w-full sm:w-auto justify-center sm:justify-start"
@@ -393,12 +399,12 @@ export default function TodayDealSection({
                   <div
                     suppressHydrationWarning
                     style={{
-                      borderColor: `${eyebrowTagColor}70`,
-                      color: timerText,
-                      backgroundColor: timerBg,
+                      borderColor: timerBg || ctaBtnBg,
+                      color: timerText || "#FFFFFF",
+                      backgroundColor: timerBg || ctaBtnBg,
                       borderRadius: 0,
                     }}
-                    className="inline-flex items-center justify-between gap-4 px-4 py-2.5 rounded-none border text-xs font-bold font-mono tracking-wide w-full sm:w-auto"
+                    className="inline-flex items-center justify-between gap-4 px-4 py-2.5 rounded-none border text-xs font-bold font-mono tracking-wide w-full sm:w-auto shadow-xs"
                   >
                     <div className="flex items-center gap-1.5 uppercase font-bold text-[11px]">
                       <Clock className="w-3.5 h-3.5 animate-pulse" />
@@ -413,33 +419,13 @@ export default function TodayDealSection({
             </div>
           </div>
 
-          {/* ── Right Card: 100% Sharp 90-Degree Square Poster (0px Radius) ── */}
+          {/* ── Right Card: 100% Sharp 90-Degree Square Poster (0px Radius, Identical Equal Height) ── */}
           <div
             style={{
               backgroundColor: deal.bannerBgColor || cardBgColor,
               borderRadius: 0,
-              aspectRatio:
-                deal.bannerSizeRatio === "1080x1080"
-                  ? "1 / 1"
-                  : deal.bannerSizeRatio === "860x270"
-                  ? "860 / 270"
-                  : deal.bannerSizeRatio === "1920x850"
-                  ? "1920 / 850"
-                  : deal.bannerSizeRatio === "1080x1440"
-                  ? "1080 / 1440"
-                  : undefined,
             }}
-            className={`border border-neutral-200/90 shadow-sm ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 w-full rounded-none ${
-              deal.bannerSizeRatio === "1080x1080"
-                ? "aspect-square"
-                : deal.bannerSizeRatio === "860x270"
-                ? "aspect-[860/270] min-h-[180px]"
-                : deal.bannerSizeRatio === "1920x850"
-                ? "aspect-[1920/850] min-h-[240px]"
-                : deal.bannerSizeRatio === "1080x1440"
-                ? "aspect-[1080/1440] min-h-[340px]"
-                : "min-h-[360px]"
-            } ${
+            className={`border border-neutral-200/90 shadow-sm ${cardPaddingClass} flex items-center justify-center relative overflow-hidden group transition-all duration-300 w-full rounded-none min-h-[480px] sm:min-h-[520px] md:min-h-[560px] lg:min-h-[580px] h-full ${
               isBoxOnRight ? "md:order-1" : "md:order-2"
             }`}
           >
@@ -452,13 +438,13 @@ export default function TodayDealSection({
               {isLivePreview ? (
                 /* Live Preview Mode: Directly render previewImg honoring the preview device switcher */
                 <img
-                  src={!imgError ? previewImg : "/images/today-deal-phone-card.png"}
+                  src={!imgError ? previewImg : fallbackPoster}
                   alt={deal.imageAlt || deal.heading || "Today's Deal Product Mockup"}
                   style={{
                     transform: imgScale !== 1 ? `scale(${imgScale})` : undefined,
                     borderRadius: 0,
                   }}
-                  className={`${imageFitClass} ${activeFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full`}
+                  className={`${imageFitClass} ${activeFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full object-cover`}
                   onError={() => setImgError(true)}
                 />
               ) : (
@@ -471,13 +457,13 @@ export default function TodayDealSection({
                     />
                   )}
                   <img
-                    src={!imgError ? desktopImg : "/images/today-deal-phone-card.png"}
+                    src={!imgError ? desktopImg : fallbackPoster}
                     alt={deal.imageAlt || deal.heading || "Today's Deal Product Mockup"}
                     style={{
                       transform: imgScale !== 1 ? `scale(${imgScale})` : undefined,
                       borderRadius: 0,
                     }}
-                    className={`${imageFitClass} ${desktopFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full`}
+                    className={`${imageFitClass} ${desktopFocalClass} transition-transform duration-500 ease-out group-hover:scale-105 rounded-none w-full h-full object-cover`}
                     onError={() => setImgError(true)}
                   />
                 </picture>
@@ -494,5 +480,9 @@ export default function TodayDealSection({
     return content;
   }
 
-  return <ScrollReveal enable3d={true}>{content}</ScrollReveal>;
+  return (
+    <ScrollReveal className="w-full" enable3d={true}>
+      {content}
+    </ScrollReveal>
+  );
 }

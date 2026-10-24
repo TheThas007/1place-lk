@@ -1,6 +1,6 @@
-# 📱 StreetMobile.lk — Admin Panel UI Structure & Buttons Guide
+# 📱 1PLACE.LK — Admin Panel UI Structure & Buttons Guide
 
-This document provides a complete, UI-only breakdown of the **StreetMobile.lk Admin Panel**. It covers the layout architecture, color schemes, sidebar navigation, top header, all 26 dashboard tabs, data tables, cards, badges, and all interactive action buttons and modals.
+This document provides a complete, UI-only breakdown of the **1PLACE.LK Admin Panel**. It covers the layout architecture, color schemes, sidebar navigation, top header, all 26 dashboard tabs, data tables, cards, badges, and all interactive action buttons and modals.
 
 ---
 
@@ -31,7 +31,7 @@ The admin shell consists of 3 structural elements:
 ┌────────────────────────────────────────────────────────────────────────┐
 │  SIDEBAR (270px)    │  TOP HEADER BAR (h-16)                           │
 │  - Logo & Brand     │  - Hamburger (Mobile)                            │
-│  - WhatsApp Support │  - Title: "StreetMobile Admin"                   │
+│  - WhatsApp Support │  - Title: "1PLACE.LK Admin"                   │
 │  - 26 Scroll Tabs   │  - Global Search Input [ ⌘ K ]                   │
 │  - Sign Out Button  │  - Primary Button: [+ Add Product]               │
 ├─────────────────────┼──────────────────────────────────────────────────┤
@@ -48,12 +48,12 @@ The admin shell consists of 3 structural elements:
 ### A. Left Navigation Sidebar (`w-[270px] bg-[#0F172A]`)
 * **Brand Header**:
   * Blue rounded square box with `Smartphone` icon.
-  * Title: **StreetMobile.lk** (with blue `.lk`).
+  * Title: **1PLACE.LK** (with blue `.lk`).
   * Subtitle: `ADMIN PANEL` (small uppercase tracking).
   * Mobile Close button (`X` icon on screens `< 1024px`).
 * **Support Card**:
   * "Need Help? WhatsApp Support" card.
-  * **[ Contact ] Button**: `px-2.5 py-1 bg-white/10 hover:bg-blue-600` (Directly opens WhatsApp chat with `+94 77 414 1118`).
+  * **[ Contact ] Button**: `px-2.5 py-1 bg-white/10 hover:bg-blue-600` (Directly opens WhatsApp chat with `+94 77 123 4567`).
 * **Navigation Links (26 Items)**:
   * Inactive Item: `text-slate-300 hover:text-white hover:bg-white/10` with icon.
   * Active Item: `bg-blue-600 text-white font-bold shadow-md shadow-blue-600/30 ring-1 ring-blue-400/30` with white icon.
@@ -63,7 +63,7 @@ The admin shell consists of 3 structural elements:
 
 ### B. Top Header Bar (`h-16 bg-[#0F172A] border-b border-white/10`)
 * **Mobile Menu Trigger**: `Menu` hamburger icon for opening drawer on mobile.
-* **Admin Title**: `StreetMobile Admin` (bold white).
+* **Admin Title**: `1PLACE.LK Admin` (bold white).
 * **Global Search Box**:
   * `Search` icon on left.
   * Input placeholder: *"Search anything..."*.
@@ -575,7 +575,7 @@ The admin shell consists of 3 structural elements:
   * **[ 💾 Save Contact Settings ] Button**: Primary blue button.
 * **Form Sections**:
   * **Store Hotline & WhatsApp Numbers**: Phone inputs with country code.
-  * **Support Email Address**: e.g. `info@streetmobile.lk`.
+  * **Support Email Address**: e.g. `support@1place.lk`.
   * **Store Physical Address**: Street, City, Google Maps Embed URL.
   * **Daily Working Hours Table**:
     * Monday to Sunday open/close time pickers.

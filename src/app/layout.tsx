@@ -13,6 +13,7 @@ import SearchOverlay from "@/components/ui/SearchOverlay";
 import { WishlistProvider } from "@/lib/wishlist-context";
 import AnnouncementBar from "@/components/ui/AnnouncementBar";
 import CampaignPopup from "@/components/ui/CampaignPopup";
+import SpinWinModal from "@/components/promotions/SpinWinModal";
 import SmoothScrollProvider from "@/components/providers/SmoothScrollProvider";
 import DisableNumberScroll from "@/components/providers/DisableNumberScroll";
 import AppLoadingScreen from "@/components/ui/AppLoadingScreen";
@@ -48,59 +49,59 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://www.streetmobile.lk"),
+  metadataBase: new URL(BUSINESS_INFO.websiteUrl),
   title: {
-    default: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
-    template: "%s | Street Mobile",
+    default: "1place.lk — Sri Lanka's Premier Online Store | Electronics & Lifestyle",
+    template: "%s | 1place.lk",
   },
-  description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. Buy 100% genuine Apple, Samsung, Xiaomi smartphones, chargers, power banks, earbuds, and premium accessories with official warranty and fast islandwide delivery.",
+  description:
+    "Buy 100% genuine smartphones, Apple, Samsung, Xiaomi, audio gear, smart accessories, and lifestyle technology with official warranty and fast islandwide express delivery across Sri Lanka at 1place.lk.",
   keywords: [
+    "1place.lk",
+    "oneplace sri lanka",
+    "online shopping Sri Lanka",
+    "buy smartphones Sri Lanka",
     "mobile phones Sri Lanka",
-    "mobile phone price Sri Lanka",
-    "buy mobile phones Sri Lanka",
-    "smartphones Sri Lanka",
-    "mobile accessories Sri Lanka",
-    "iPhone price Sri Lanka",
-    "Samsung price Sri Lanka",
-    "Xiaomi price Sri Lanka",
-    "Google Pixel Sri Lanka",
-    "phone accessories Sri Lanka",
-    "chargers Sri Lanka",
-    "power banks Sri Lanka",
-    "wireless earbuds Sri Lanka",
-    "mobile phone shop Vavuniya",
-    "mobile shop Vavuniya",
-    "phone shop Vavuniya",
-    "iPhone shop Vavuniya",
-    "Samsung phone shop Vavuniya",
-    "mobile accessories Vavuniya",
-    "street mobile",
-    "streetmobile.lk",
+    "iPhone Sri Lanka price",
+    "Samsung Galaxy Sri Lanka",
+    "electronics store Colombo",
+    "earbuds Sri Lanka",
+    "charging accessories Sri Lanka",
+    "smart watches Sri Lanka",
+    "laptops Sri Lanka",
+    "islandwide delivery Sri Lanka",
+    "cash on delivery electronics Sri Lanka",
   ],
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg",
+  },
   alternates: {
-    canonical: "https://www.streetmobile.lk",
+    canonical: BUSINESS_INFO.websiteUrl,
   },
   openGraph: {
-    title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
-    description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. 100% Genuine Smartphones, Apple, Samsung, Xiaomi & Premium Accessories with islandwide delivery.",
-    url: "https://www.streetmobile.lk",
-    siteName: "Street Mobile",
+    title: "1place.lk — Sri Lanka's Premier Online Store",
+    description:
+      "100% Genuine Smartphones, Computing, Premium Audio & Lifestyle Accessories with islandwide express delivery and official warranty.",
+    url: BUSINESS_INFO.websiteUrl,
+    siteName: "1place.lk",
     locale: "en_LK",
     type: "website",
     images: [
       {
-        url: "https://www.streetmobile.lk/logo.png",
+        url: `${BUSINESS_INFO.websiteUrl}/logo.svg`,
         width: 1200,
         height: 630,
-        alt: "Street Mobile Vavuniya - Mobile Phones & Accessories in Sri Lanka",
+        alt: "1place.lk — Premier Online Store Sri Lanka",
       },
     ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
-    description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. 100% Genuine Smartphones, Apple, Samsung, Xiaomi & Premium Accessories.",
-    images: ["https://www.streetmobile.lk/logo.png"],
+    title: "1place.lk — Sri Lanka's Premier Online Store",
+    description: "Genuine Smartphones, Electronics & Accessories with islandwide delivery.",
+    images: [`${BUSINESS_INFO.websiteUrl}/logo.svg`],
   },
   robots: {
     index: true,
@@ -113,97 +114,75 @@ export const metadata: Metadata = {
       "max-snippet": -1,
     },
   },
-  verification: {
-    google: "YzSUb_wi1C3ZXkCndwwsgeKYZotb4zW6EvN_N-NnTOo",
-  },
 };
 
 const organizationJsonLd = {
   "@context": "https://schema.org",
   "@type": "Organization",
-  "@id": "https://www.streetmobile.lk/#organization",
-  "name": BUSINESS_INFO.name,
-  "legalName": BUSINESS_INFO.legalName,
-  "url": "https://www.streetmobile.lk",
-  "logo": "https://www.streetmobile.lk/logo.png",
-  "image": "https://www.streetmobile.lk/logo.png",
-  "description": BUSINESS_INFO.description,
-  "telephone": BUSINESS_INFO.phonePrimaryIntl,
-  "email": BUSINESS_INFO.email,
-  "address": {
+  "@id": `${BUSINESS_INFO.websiteUrl}/#organization`,
+  name: BUSINESS_INFO.name,
+  legalName: BUSINESS_INFO.legalName,
+  url: BUSINESS_INFO.websiteUrl,
+  logo: `${BUSINESS_INFO.websiteUrl}/logo.svg`,
+  image: `${BUSINESS_INFO.websiteUrl}/logo.svg`,
+  description: BUSINESS_INFO.description,
+  telephone: BUSINESS_INFO.phonePrimaryIntl,
+  email: BUSINESS_INFO.email,
+  address: {
     "@type": "PostalAddress",
-    "streetAddress": BUSINESS_INFO.address,
-    "addressLocality": BUSINESS_INFO.addressLocality,
-    "addressRegion": BUSINESS_INFO.addressRegion,
-    "postalCode": BUSINESS_INFO.postalCode,
-    "addressCountry": BUSINESS_INFO.addressCountry,
+    streetAddress: BUSINESS_INFO.address,
+    addressLocality: BUSINESS_INFO.addressLocality,
+    addressRegion: BUSINESS_INFO.addressRegion,
+    postalCode: BUSINESS_INFO.postalCode,
+    addressCountry: BUSINESS_INFO.addressCountry,
   },
-  "sameAs": [
+  sameAs: [
     BUSINESS_INFO.social.instagram,
     BUSINESS_INFO.social.facebook,
     BUSINESS_INFO.social.tiktok,
+    BUSINESS_INFO.social.twitter,
   ],
 };
 
-const localBusinessJsonLd = {
+const onlineStoreJsonLd = {
   "@context": "https://schema.org",
-  "@type": "MobilePhoneStore",
-  "@id": "https://www.streetmobile.lk/#localbusiness",
-  "name": BUSINESS_INFO.name,
-  "image": "https://www.streetmobile.lk/logo.png",
-  "url": "https://www.streetmobile.lk",
-  "telephone": BUSINESS_INFO.phonePrimaryIntl,
-  "priceRange": "LKR 1,000 - LKR 500,000",
-  "address": {
+  "@type": "OnlineStore",
+  "@id": `${BUSINESS_INFO.websiteUrl}/#onlinestore`,
+  name: BUSINESS_INFO.name,
+  image: `${BUSINESS_INFO.websiteUrl}/logo.svg`,
+  url: BUSINESS_INFO.websiteUrl,
+  telephone: BUSINESS_INFO.phonePrimaryIntl,
+  priceRange: "LKR 1,000 - LKR 1,500,000",
+  address: {
     "@type": "PostalAddress",
-    "streetAddress": BUSINESS_INFO.address,
-    "addressLocality": BUSINESS_INFO.addressLocality,
-    "addressRegion": BUSINESS_INFO.addressRegion,
-    "postalCode": BUSINESS_INFO.postalCode,
-    "addressCountry": BUSINESS_INFO.addressCountry,
+    streetAddress: BUSINESS_INFO.address,
+    addressLocality: BUSINESS_INFO.addressLocality,
+    addressRegion: BUSINESS_INFO.addressRegion,
+    postalCode: BUSINESS_INFO.postalCode,
+    addressCountry: BUSINESS_INFO.addressCountry,
   },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": BUSINESS_INFO.geo.latitude,
-    "longitude": BUSINESS_INFO.geo.longitude,
-  },
-  "openingHoursSpecification": [
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
-      "opens": BUSINESS_INFO.hours.opensWeekdays,
-      "closes": BUSINESS_INFO.hours.closesWeekdays,
-    },
-    {
-      "@type": "OpeningHoursSpecification",
-      "dayOfWeek": "Sunday",
-      "opens": BUSINESS_INFO.hours.opensSunday,
-      "closes": BUSINESS_INFO.hours.closesSunday,
-    },
-  ],
-  "paymentAccepted": "Cash, Credit Card, Debit Card, Online Payment",
-  "currenciesAccepted": "LKR",
-  "hasMap": BUSINESS_INFO.maps.link,
+  paymentAccepted: "Cash on Delivery, Credit Card, Debit Card, Online Payment",
+  currenciesAccepted: "LKR",
 };
 
 const websiteJsonLd = {
   "@context": "https://schema.org",
   "@type": "WebSite",
-  "@id": "https://www.streetmobile.lk/#website",
-  "url": "https://www.streetmobile.lk",
-  "name": "Street Mobile",
-  "description": "Mobile Phones & Accessories in Sri Lanka",
-  "publisher": {
-    "@id": "https://www.streetmobile.lk/#organization"
+  "@id": `${BUSINESS_INFO.websiteUrl}/#website`,
+  url: BUSINESS_INFO.websiteUrl,
+  name: "1place.lk",
+  description: "Sri Lanka's Premier Online Store",
+  publisher: {
+    "@id": `${BUSINESS_INFO.websiteUrl}/#organization`,
   },
-  "potentialAction": {
+  potentialAction: {
     "@type": "SearchAction",
-    "target": {
+    target: {
       "@type": "EntryPoint",
-      "urlTemplate": "https://www.streetmobile.lk/products?search={search_term_string}"
+      urlTemplate: `${BUSINESS_INFO.websiteUrl}/products?search={search_term_string}`,
     },
-    "query-input": "required name=search_term_string"
-  }
+    "query-input": "required name=search_term_string",
+  },
 };
 
 export default function RootLayout({
@@ -223,14 +202,14 @@ export default function RootLayout({
         />
         <script
           type="application/ld+json"
-          dangerouslySetInnerHTML={{ __html: JSON.stringify(localBusinessJsonLd) }}
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(onlineStoreJsonLd) }}
         />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteJsonLd) }}
         />
       </head>
-      <body className="min-h-full flex flex-col font-sans bg-black text-white">
+      <body className="min-h-full flex flex-col font-sans bg-[#F7F7F7] text-[#111111] selection:bg-[#64152F] selection:text-white">
         <DisableNumberScroll />
         <Script src="https://www.payhere.lk/lib/payhere.js" strategy="afterInteractive" />
         <AuthProvider>
@@ -239,7 +218,7 @@ export default function RootLayout({
               <ToastProvider>
                 <AppLoadingScreen />
                 <SmoothScrollProvider>
-                  {/* Screen reader live region for cart announcements */}
+                  {/* Screen reader live region for accessibility */}
                   <div id="cart-live-announce" className="sr-only" aria-live="polite" aria-atomic="true" />
                   <AnnouncementBar />
                   <Header />
@@ -251,6 +230,7 @@ export default function RootLayout({
                   <StreetAssistant />
                   <SearchOverlay />
                   <CampaignPopup />
+                  <SpinWinModal />
                   <BrowseHistoryTracker />
                 </SmoothScrollProvider>
               </ToastProvider>

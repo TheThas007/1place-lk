@@ -401,9 +401,9 @@ export default function MegaMenuTab({
     }
   };
 
-  // Restore Street Mobile Defaults
+  // Restore 1PLACE.LK Defaults
   const handleResetDefaults = () => {
-    if (confirm("Reset Category Mega Menu to Street Mobile official 3-column defaults?")) {
+    if (confirm("Reset Category Mega Menu to 1PLACE.LK official 3-column defaults?")) {
       setSettings(DEFAULT_MEGA_MENU_SETTINGS);
       setHasUnsavedChanges(true);
     }
@@ -569,7 +569,7 @@ export default function MegaMenuTab({
               <div className="bg-black border border-white/10 rounded-2xl p-4 text-white space-y-3 font-sans">
                 <div className="flex items-center justify-between pb-2 border-b border-white/10 text-xs font-extrabold text-white/50 uppercase">
                   <span>Mobile Drawer Menu</span>
-                  <span>Street Mobile</span>
+                  <span>1PLACE.LK</span>
                 </div>
                 {settings.columns?.map((col, idx) => (
                   <div key={col.id || idx} className="border border-white/10 rounded-xl p-3 bg-white/5 space-y-2">

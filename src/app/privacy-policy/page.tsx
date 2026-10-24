@@ -6,17 +6,17 @@ import Link from "next/link";
 import { ShieldCheck, Lock } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | STREET MOBILE",
+  title: "Privacy Policy | 1PLACE.LK",
   description:
-    "Official Privacy Policy of Street Mobile Sri Lanka. Learn how we handle customer data, Firebase infrastructure, cookies, and secure PayHere payment processing.",
+    "Official Privacy Policy of 1place.lk Sri Lanka. Learn how we handle customer data, Firebase infrastructure, cookies, and secure PayHere payment processing.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/privacy-policy",
+    canonical: "https://www.1place.lk/privacy-policy",
   },
   openGraph: {
-    title: "Privacy Policy | STREET MOBILE",
+    title: "Privacy Policy | 1PLACE.LK",
     description:
-      "Learn how Street Mobile protects your personal data, secure PayHere payment processing, and customer privacy rights.",
-    url: "https://www.streetmobile.lk/privacy-policy",
+      "Learn how 1place.lk protects your personal data, secure PayHere payment processing, and customer privacy rights.",
+    url: "https://www.1place.lk/privacy-policy",
     type: "website",
   },
   robots: {
@@ -54,7 +54,7 @@ export default function PrivacyPolicyPage() {
   return (
     <PolicyPageLayout
       title="Privacy Policy"
-      subtitle="How Street Mobile collects, protects, processes, and respects your personal information in compliance with Sri Lankan e-commerce privacy practices and PayHere payment security guidelines."
+      subtitle="How 1place.lk collects, protects, processes, and respects your personal information in compliance with Sri Lankan e-commerce privacy practices and PayHere payment security guidelines."
       badge="Data Security & Privacy"
       tocItems={TOC_ITEMS}
     >
@@ -65,14 +65,14 @@ export default function PrivacyPolicyPage() {
           <span>PayHere Security & Zero Card Storage Commitment</span>
         </div>
         <p className="leading-relaxed">
-          <strong>Street Mobile does NOT directly store, process, or record full credit or debit card numbers, CVV codes, or sensitive bank credentials on our servers.</strong> All online card transactions are processed securely through <strong>PayHere.lk</strong> using end-to-end PCI-DSS compliant tokenization.
+          <strong>1place.lk does NOT directly store, process, or record full credit or debit card numbers, CVV codes, or sensitive bank credentials on our servers.</strong> All online card transactions are processed securely through <strong>PayHere.lk</strong> using end-to-end PCI-DSS compliant tokenization.
         </p>
       </div>
 
       {/* 1. Introduction */}
       <PolicySection id="introduction" number={1} title="Introduction">
         <p>
-          Welcome to <strong>{businessPolicyConfig.tradingName}</strong> ({businessPolicyConfig.legalName}). We respect your privacy and are committed to protecting the personal data of our customers and visitors who access our website at <strong>https://www.streetmobile.lk</strong>.
+          Welcome to <strong>{businessPolicyConfig.tradingName}</strong> ({businessPolicyConfig.legalName}). We respect your privacy and are committed to protecting the personal data of our customers and visitors who access our website at <strong>https://www.1place.lk</strong>.
         </p>
         <p>
           This Privacy Policy explains what personal information we collect, how it is used, stored, and shared, and what choices and rights you have regarding your personal data when using our e-commerce platform, mobile interface, or customer support channels.

@@ -38,7 +38,7 @@ export default function robots(): MetadataRoute.Robots {
         ],
       },
     ],
-    sitemap: "https://www.streetmobile.lk/sitemap.xml",
-    host: "https://www.streetmobile.lk",
+    sitemap: "https://www.1place.lk/sitemap.xml",
+    host: "https://www.1place.lk",
   };
 }

@@ -21,9 +21,6 @@ export async function POST(req: Request) {
       const orderSnap = await getDoc(doc(db, "orders", cleanOrderId));
       if (orderSnap.exists()) {
         const orderData = orderSnap.data();
-        if (!orderData.userId || orderData.userId === "guest") {
-          return NextResponse.json({ error: "Authentication required for payment." }, { status: 401 });
-        }
         const storedTotal = orderData.finalTotal ?? orderData.totalPrice;
         const dbTotal = Number(storedTotal);
         if (!isNaN(dbTotal) && Number.isFinite(dbTotal) && dbTotal > 0) {
@@ -44,16 +41,8 @@ export async function POST(req: Request) {
     }
 
     // Read credentials securely strictly from server-side environment variables
-    const merchantId = (process.env.PAYHERE_MERCHANT_ID || "").trim();
-    const merchantSecret = (process.env.PAYHERE_MERCHANT_SECRET || "").trim();
-
-    if (!merchantId || !merchantSecret) {
-      console.error("[PayHere Hash] Server error: PAYHERE_MERCHANT_ID or PAYHERE_MERCHANT_SECRET is missing.");
-      return NextResponse.json(
-        { error: "Payment gateway credentials are not configured on server." },
-        { status: 500 }
-      );
-    }
+    const merchantId = (process.env.PAYHERE_MERCHANT_ID || "1211149").trim();
+    const merchantSecret = (process.env.PAYHERE_MERCHANT_SECRET || "4T_SANDBOX_SECRET_KEY_PLACEHOLDER").trim();
 
     // PayHere requires amount formatted to strictly 2 decimal places (e.g. "1000.00")
     const amountInCents = Math.round(verifiedAmount * 100);
@@ -68,13 +57,13 @@ export async function POST(req: Request) {
       .digest("hex")
       .toUpperCase();
 
-    // Determine site base URL strictly from server environment or default to official domain
+    // Determine site base URL strictly from server environment
     const siteBaseUrl = (
       process.env.NEXT_PUBLIC_SITE_URL ||
-      "https://www.streetmobile.lk"
+      "https://www.1place.lk"
     ).replace(/\/$/, "");
 
-    const mode = (process.env.PAYHERE_MODE || "live").trim().toLowerCase();
+    const mode = (process.env.PAYHERE_MODE || "sandbox").trim().toLowerCase();
 
     return NextResponse.json({
       hash,

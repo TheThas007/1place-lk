@@ -6,14 +6,14 @@ VOICE = "en-US-JennyNeural"
 RATE = "+3%"
 PITCH = "+2Hz"
 
-# Using phonetic "Street-lah" so neural TTS pronounces it 100% naturally as "Streetla" without spelling letters!
+# Neural TTS audio generation script for 1PLACE.LK
 phrases = {
-    "phase1_welcome.mp3": "Hey everyone! A super warm welcome to Street Mobile! I'm Street-lah, your friendly assistant, and we are always right near you!",
+    "phase1_welcome.mp3": "Hey everyone! A super warm welcome to 1PLACE.LK! I'm your friendly AI assistant, and we are always right near you!",
     "phase2_products.mp3": "Looking for the latest flagship smartphones, crystal-clear audio, or authentic accessories? We've got unbeatable prices you will love!",
     "phase3_warranty.mp3": "Every single device comes with official company warranty, fast island-wide delivery, and friendly care you can trust!",
     "phase4_deals.mp3": "To celebrate our grand launch, enjoy exclusive discount deals, interest-free installment plans, and express doorstep delivery!",
     "phase5_buildup.mp3": "The wait is finally over! Get ready to step into the future of shopping. Let's count down together in 3, 2, 1!",
-    "phase_reveal.mp3": "And we are officially live! Welcome to the brand new Street Mobile! I'm Street-lah, your virtual shopping companion. Whenever you need help finding anything, simply chat with me right at the bottom corner. Have a wonderful time, and enjoy your shopping!",
+    "phase_reveal.mp3": "And we are officially live! Welcome to the brand new 1PLACE.LK! I'm your virtual shopping companion. Whenever you need help finding anything, simply chat with me right at the bottom corner. Have a wonderful time, and enjoy your shopping!",
     "count_10.mp3": "Ten!",
     "count_9.mp3": "Nine!",
     "count_8.mp3": "Eight!",

@@ -22,59 +22,73 @@ interface WishlistContextType {
 
 const WishlistContext = createContext<WishlistContextType | null>(null);
 
-const WISHLIST_KEY = "sm_guest_wishlist";
+const WISHLIST_KEY = "oneplace_guest_wishlist";
 
 export function WishlistProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
   const [wishlist, setWishlist] = useState<string[]>([]);
-  const loaded = useRef(false);
+  const isInitialized = useRef(false);
 
-  // Load wishlist on user change
+  // Load wishlist on mount or user change
   useEffect(() => {
-    loaded.current = false;
-    const load = async () => {
+    isInitialized.current = false;
+    const loadWishlist = async () => {
+      let localItems: string[] = [];
+      try {
+        const stored = localStorage.getItem(WISHLIST_KEY);
+        if (stored) {
+          localItems = JSON.parse(stored);
+        }
+      } catch (e) {
+        console.warn("Could not read local wishlist:", e);
+      }
+
       if (user) {
         try {
-          const ref = doc(db, "carts", user.uid);
+          const ref = doc(db, "wishlists", user.uid);
           const snap = await getDoc(ref);
-          if (snap.exists()) {
-            setWishlist(snap.data().wishlist || []);
+          let remoteItems: string[] = [];
+          if (snap.exists() && Array.isArray(snap.data().items)) {
+            remoteItems = snap.data().items;
+          }
+
+          if (localItems.length > 0) {
+            const combined = Array.from(new Set([...remoteItems, ...localItems]));
+            setWishlist(combined);
+            await setDoc(ref, { items: combined, updatedAt: new Date().toISOString() }, { merge: true });
+            localStorage.removeItem(WISHLIST_KEY);
           } else {
-            // Merge guest wishlist into user wishlist on first sign in
-            const guest = localStorage.getItem(WISHLIST_KEY);
-            const guestItems: string[] = guest ? JSON.parse(guest) : [];
-            setWishlist(guestItems);
-            if (guestItems.length > 0) {
-              await setDoc(ref, { wishlist: guestItems }, { merge: true });
-              localStorage.removeItem(WISHLIST_KEY);
-            }
+            setWishlist(remoteItems);
           }
         } catch (e) {
-          console.error("Error loading wishlist:", e);
-          setWishlist([]);
+          console.warn("Error loading remote wishlist:", e);
+          setWishlist(localItems);
         }
       } else {
-        const guest = localStorage.getItem(WISHLIST_KEY);
-        setWishlist(guest ? JSON.parse(guest) : []);
+        setWishlist(localItems);
       }
-      loaded.current = true;
+      isInitialized.current = true;
     };
-    load();
-  }, [user]);
 
-  // Persist wishlist whenever it changes — but only after initial load
+    loadWishlist();
+  }, [user?.uid]);
+
+  // Persist changes
   useEffect(() => {
-    if (!loaded.current) return;
+    if (!isInitialized.current) return;
+
     if (user) {
-      const ref = doc(db, "carts", user.uid);
-      const cleanWishlist = JSON.parse(JSON.stringify(wishlist));
-      setDoc(ref, { wishlist: cleanWishlist }, { merge: true }).catch(() => {});
+      const ref = doc(db, "wishlists", user.uid);
+      setDoc(ref, { items: wishlist, updatedAt: new Date().toISOString() }, { merge: true }).catch(() => {});
     } else {
-      localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+      try {
+        localStorage.setItem(WISHLIST_KEY, JSON.stringify(wishlist));
+      } catch {}
     }
   }, [wishlist, user]);
 
   const toggleWishlist = useCallback((productId: string) => {
+    if (!productId) return;
     setWishlist((prev) => {
       if (prev.includes(productId)) {
         return prev.filter((id) => id !== productId);
@@ -84,11 +98,20 @@ export function WishlistProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const isInWishlist = useCallback((productId: string) => {
-    return wishlist.includes(productId);
-  }, [wishlist]);
+  const isInWishlist = useCallback(
+    (productId: string) => {
+      if (!productId) return false;
+      return wishlist.includes(productId);
+    },
+    [wishlist]
+  );
 
-  const clearWishlist = useCallback(() => setWishlist([]), []);
+  const clearWishlist = useCallback(() => {
+    setWishlist([]);
+    try {
+      localStorage.removeItem(WISHLIST_KEY);
+    } catch {}
+  }, []);
 
   return (
     <WishlistContext.Provider
@@ -108,8 +131,5 @@ const defaultWishlistContext: WishlistContextType = {
 
 export function useWishlist() {
   const ctx = useContext(WishlistContext);
-  if (!ctx) {
-    return defaultWishlistContext;
-  }
-  return ctx;
+  return ctx || defaultWishlistContext;
 }

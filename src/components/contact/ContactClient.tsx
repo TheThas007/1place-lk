@@ -38,7 +38,7 @@ export default function ContactClient({ initialSettings }: { initialSettings?: S
     if (!formData.contact.trim() || !formData.message.trim()) return;
     
     // Auto redirect to WhatsApp with pre-filled message
-    const msg = `Hello Street Mobile Vavuniya,\n\n*Name:* ${formData.firstName} ${formData.lastName}\n*Contact:* ${formData.contact}\n*Message:* ${formData.message}`;
+    const msg = `Hello ${settings.store_name || "1place.lk"},\n\n*Name:* ${formData.firstName} ${formData.lastName}\n*Contact:* ${formData.contact}\n*Message:* ${formData.message}`;
     const waUrl = `https://wa.me/${settings.whatsapp}?text=${encodeURIComponent(msg)}`;
     window.open(waUrl, "_blank");
     setSentSuccess(true);
@@ -58,7 +58,7 @@ export default function ContactClient({ initialSettings }: { initialSettings?: S
             Contact {settings.store_name}
           </h1>
           <p className="text-muted-foreground max-w-2xl mx-auto text-sm sm:text-base leading-relaxed">
-            {settings.tagline || "Experience genuine devices, official warranties, and express repair support in Vavuniya."}
+            {settings.tagline || "Experience genuine devices, official warranties, and express nationwide delivery."}
           </p>
         </div>
       </div>
@@ -274,7 +274,7 @@ export default function ContactClient({ initialSettings }: { initialSettings?: S
               loading="lazy" 
               referrerPolicy="no-referrer-when-downgrade"
               className="absolute inset-0 w-full h-full border-0"
-              title="Street Mobile Vavuniya Store Location"
+              title="1PLACE.LK Colombo Flagship Store Location"
             />
           </div>
         </div>

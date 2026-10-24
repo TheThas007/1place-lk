@@ -32,15 +32,15 @@ export const businessPolicyConfig: BusinessPolicyConfig = {
   whatsapp: siteSettings.whatsapp || BUSINESS_INFO.whatsappNumber,
   email: siteSettings.email || BUSINESS_INFO.email,
   googleMapsLink: siteSettings.google_maps_link || BUSINESS_INFO.maps.link,
-  registrationNumber: "To be confirmed by Street Mobile",
+  registrationNumber: "To be confirmed by 1place.lk",
   businessHours: {
     weekdays: siteSettings.business_hours?.weekdays || BUSINESS_INFO.hours.weekdays,
     saturday: siteSettings.business_hours?.saturday || BUSINESS_INFO.hours.saturday,
     sunday: siteSettings.business_hours?.sunday || BUSINESS_INFO.hours.sunday,
   },
-  lastUpdated: "August 9, 2026",
+  lastUpdated: "October 23, 2026",
   constants: {
-    RETURN_REQUEST_DAYS: "7 Days from delivery date (To be confirmed by Street Mobile)",
+    RETURN_REQUEST_DAYS: "7 Days from delivery date",
     REFUND_PROCESSING_DAYS: "3 - 7 Business Days (Subject to PayHere & issuing bank timelines)",
     CANCELLATION_CUTOFF: "Before dispatch / handover to delivery partner",
     RETURN_DELIVERY_FEE_POLICY: "Customer pays return delivery unless item delivered was defective or incorrect",

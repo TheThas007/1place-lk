@@ -1,11 +1,11 @@
 # ADMIN PANEL UI/UX DESIGN SYSTEM (V2)
-**Next-Generation POS + SaaS Architecture for StreetMobile.lk**
+**Next-Generation POS + SaaS Architecture for 1PLACE.LK**
 
 ---
 
 ## 1. Design Vision
 
-The StreetMobile.lk Admin Panel V2 redesign elevates an existing, high-capacity e-commerce backend into an elite, **POS-inspired SaaS operating dashboard**. Taking inspiration from **Stripe Dashboard's data density & clarity**, **Linear's ultra-crisp typography & keyboard navigation**, and **Apple's restrained visual calm**, this design transforms 26 expansive operational tabs into an intuitive, frictionless control center.
+The 1PLACE.LK Admin Panel V2 redesign elevates an existing, high-capacity e-commerce backend into an elite, **POS-inspired SaaS operating dashboard**. Taking inspiration from **Stripe Dashboard's data density & clarity**, **Linear's ultra-crisp typography & keyboard navigation**, and **Apple's restrained visual calm**, this design transforms 26 expansive operational tabs into an intuitive, frictionless control center.
 
 ### Core Visual Tenets
 * **Clarity over Flash:** Zero distracting multi-color glowing blobs, zero unreadable glassmorphism, and zero exaggerated 3D card tilts. Form follows speed and operational precision.
@@ -153,7 +153,7 @@ Optimized for **fast, snappy interaction** (150ms–200ms) with zero sluggish mo
 The sidebar organizes 26 tabs into **6 logical, high-level domain groups** with uppercase section dividers. This eliminates the infinite, overwhelming single-list scrollbar while preserving **100% of all routes and features**.
 
 ```
-[ StreetMobile.lk ]  (Store Icon + Live Green Indicator)
+[ 1PLACE.LK ]  (Store Icon + Live Green Indicator)
 
 ── OVERVIEW ──────────────────────────
   [▣] Dashboard              (?tab=overview)
@@ -444,7 +444,7 @@ High-speed daily order fulfillment, packing slip generation, courier tracking en
 ### Action Controls
 * **[ 💬 WhatsApp Chat ]:** Directly opens WhatsApp Web / App with dynamic pre-filled order status greeting and order breakdown.
 * **[ 🖨 Print Packing Slip ]:** Opens clean formatted 80mm / A4 thermal packing voucher.
-* **[ 🖨 Print Invoice ]:** Generates formal StreetMobile.lk corporate PDF invoice.
+* **[ 🖨 Print Invoice ]:** Generates formal 1PLACE.LK corporate PDF invoice.
 * **Status Dropdown:** Instantly updates Firestore order status and dispatches automated customer email.
 
 ---
@@ -801,4 +801,4 @@ Whenever a search or filter yields zero results:
 
 ---
 
-*This specification serves as the complete, authoritative blueprint for the StreetMobile.lk Admin Panel V2. All 26 existing tabs, database hooks, API contracts, and user interactions are 100% preserved.*
+*This specification serves as the complete, authoritative blueprint for the 1PLACE.LK Admin Panel V2. All 26 existing tabs, database hooks, API contracts, and user interactions are 100% preserved.*

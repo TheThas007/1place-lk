@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * PayHere Client Integration Utilities for StreetMobile.lk
+ * PayHere Sri Lanka Payment Gateway Client Integration for 1place.lk
  */
 
 export interface PayHereSDK {
@@ -93,7 +93,7 @@ export function sanitizePhoneNumber(phone: string): string {
  * Truncates and sanitizes item description for PayHere iframe URL compatibility
  */
 export function sanitizeItemsDescription(items: string, maxLength = 200): string {
-  if (!items || !items.trim()) return "Street Mobile Purchase";
+  if (!items || !items.trim()) return "1place.lk Purchase";
   const singleLine = items.replace(/[\r\n\t]+/g, " ").replace(/"/g, "'").trim();
   if (singleLine.length > maxLength) {
     return singleLine.slice(0, maxLength - 3) + "...";
@@ -156,13 +156,13 @@ export async function launchPayHerePayment(options: PayHerePaymentOptions): Prom
   // 2. Load PayHere SDK script
   const payhere = await loadPayHereScript();
 
-  // 3. Prepare sanitized names
-  const cleanFirstName = customerFirstName?.trim() || "Customer";
-  const cleanLastName = customerLastName?.trim() || cleanFirstName;
+  // 3. Prepare sanitized customer details
+  const cleanFirstName = customerFirstName?.trim() || "Valued";
+  const cleanLastName = customerLastName?.trim() || "Customer";
   const cleanPhone = sanitizePhoneNumber(phone);
-  const cleanAddress = address?.trim() || "163 Kandaswamy Kovil Road";
-  const cleanCity = city?.trim() || "Vavuniya";
-  const cleanItems = sanitizeItemsDescription(items || `Order #${orderId.slice(0, 8)}`);
+  const cleanAddress = address?.trim() || "Colombo, Sri Lanka";
+  const cleanCity = city?.trim() || "Colombo";
+  const cleanItems = sanitizeItemsDescription(items || `1place.lk Order #${orderId}`);
 
   // 4. Construct PayHere Payment Payload
   const payment: Record<string, unknown> = {
@@ -178,7 +178,7 @@ export async function launchPayHerePayment(options: PayHerePaymentOptions): Prom
     hash: hashData.hash,
     first_name: cleanFirstName,
     last_name: cleanLastName,
-    email: email?.trim() || "customer@streetmobile.lk",
+    email: email?.trim() || "customer@1place.lk",
     phone: cleanPhone,
     address: cleanAddress,
     city: cleanCity,
@@ -192,12 +192,12 @@ export async function launchPayHerePayment(options: PayHerePaymentOptions): Prom
   };
 
   payhere.onDismissed = function () {
-    console.log("[PayHere SDK] Payment dismissed/closed by user.");
+    console.log("[PayHere SDK] Payment dismissed by user.");
     if (onDismissed) onDismissed();
   };
 
   payhere.onError = function (error: unknown) {
-    console.error("[PayHere SDK] Payment error returned:", error);
+    console.error("[PayHere SDK] Payment error:", error);
     if (onError) onError(error);
   };
 

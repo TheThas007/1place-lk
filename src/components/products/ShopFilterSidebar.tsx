@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useMemo } from "react";
-import { ChevronDown, ChevronUp, Check } from "lucide-react";
+import React, { useState } from "react";
+import { ChevronDown, ChevronUp } from "lucide-react";
 import { Category, Product } from "@/lib/types";
 
 export function detectProductBrand(product: Product): string {
@@ -31,16 +31,16 @@ function fmtLKR(val: number) {
 }
 
 export interface ShopFilterSidebarProps {
-  allProducts: Product[];
-  categories: Category[];
-  selectedCategories: string[];
-  onToggleCategory: (catId: string) => void;
-  onClearCategories: () => void;
-  selectedBrands: string[];
-  onToggleBrand: (brand: string) => void;
-  onClearBrands: () => void;
-  priceMin: number;
-  priceMax: number;
+  allProducts?: Product[];
+  categories?: Category[];
+  selectedCategories?: string[];
+  onToggleCategory?: (catId: string) => void;
+  onClearCategories?: () => void;
+  selectedBrands?: string[];
+  onToggleBrand?: (brand: string) => void;
+  onClearBrands?: () => void;
+  priceMin?: number;
+  priceMax?: number;
   sliderLow: number;
   sliderHigh: number;
   onSliderChange: (low: number, high: number) => void;
@@ -50,20 +50,14 @@ export interface ShopFilterSidebarProps {
   setPendingMax: (val: string) => void;
   priceError: string;
   onApplyPrice: () => void;
-  selectedAvailability: string[];
-  onToggleAvailability: (avail: string) => void;
+  selectedAvailability?: string[];
+  onToggleAvailability?: (avail: string) => void;
   onApplyAll?: () => void;
   onClearAll: () => void;
   onClose?: () => void;
 }
 
 export default function ShopFilterSidebar({
-  allProducts = [],
-  categories = [],
-  selectedCategories = [],
-  onToggleCategory,
-  selectedBrands = [],
-  onToggleBrand,
   sliderLow,
   sliderHigh,
   onSliderChange,
@@ -73,92 +67,13 @@ export default function ShopFilterSidebar({
   setPendingMax,
   priceError,
   onApplyPrice,
-  selectedAvailability = [],
-  onToggleAvailability,
   onClearAll,
 }: ShopFilterSidebarProps) {
-  // Collapsible sections state
-  const [openSections, setOpenSections] = useState({
-    category: true,
-    brand: true,
-    price: true,
-    availability: true,
-  });
+  const [openPrice, setOpenPrice] = useState(true);
 
-  const [showAllCategories, setShowAllCategories] = useState(false);
-  const [showAllBrands, setShowAllBrands] = useState(false);
-
-  const toggleSection = (section: keyof typeof openSections) => {
-    setOpenSections((prev) => ({ ...prev, [section]: !prev[section] }));
-  };
-
-  // Deduplicated Categories with counts
-  const categoryCounts = useMemo(() => {
-    const map = new Map<string, { id: string; name: string; count: number }>();
-
-    // Normalization mapping for case/synonym duplicates
-    const normalize = (name: string) => {
-      const lower = name.toLowerCase().trim();
-      if (lower.includes("smart phone") || lower.includes("smartphone") || lower.includes("phone")) return "Smartphones";
-      if (lower.includes("laptop") || lower.includes("macbook") || lower.includes("tablet") || lower.includes("tab") || lower.includes("ipad")) return "Laptops & Tablets";
-      if (lower.includes("audio") || lower.includes("headphone") || lower.includes("earphone") || lower.includes("speaker") || lower.includes("airpod")) return "Audio";
-      if (lower.includes("wearable") || lower.includes("watch") || lower.includes("band")) return "Wearables";
-      if (lower.includes("power") || lower.includes("battery") || lower.includes("charger") || lower.includes("cable") || lower.includes("adapter")) return "Power Banks & Cables";
-      if (lower.includes("case") || lower.includes("cover") || lower.includes("tempered") || lower.includes("gimbal") || lower.includes("selfie")) return "Accessories";
-      return name.trim();
-    };
-
-    allProducts.forEach((p) => {
-      const rawName = p.category_name || p.categoryName || "Accessories";
-      const normalizedName = normalize(rawName);
-      const rawId = p.category_id || p.category_slug || normalizedName.toLowerCase().replace(/[^a-z0-9]+/g, "-");
-
-      const existing = map.get(normalizedName);
-      if (existing) {
-        existing.count += 1;
-      } else {
-        map.set(normalizedName, { id: rawId, name: normalizedName, count: 1 });
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [allProducts]);
-
-  // Deduplicated Brands with counts
-  const brandCounts = useMemo(() => {
-    const map = new Map<string, { name: string; count: number }>();
-
-    allProducts.forEach((p) => {
-      const brand = detectProductBrand(p);
-      if (brand && brand !== "Other") {
-        const existing = map.get(brand);
-        if (existing) {
-          existing.count += 1;
-        } else {
-          map.set(brand, { name: brand, count: 1 });
-        }
-      }
-    });
-
-    return Array.from(map.values()).sort((a, b) => b.count - a.count);
-  }, [allProducts]);
-
-  // Total In-stock count
-  const inStockCount = useMemo(() => {
-    return allProducts.filter(
-      (p) => p.stock_status !== "out_of_stock" && (typeof p.stock_count !== "number" || p.stock_count > 0)
-    ).length;
-  }, [allProducts]);
-
-  const visibleCategories = showAllCategories ? categoryCounts : categoryCounts.slice(0, 5);
-  const visibleBrands = showAllBrands ? brandCounts : brandCounts.slice(0, 5);
-
-  const hasAnyFilter =
-    selectedCategories.length > 0 ||
-    selectedBrands.length > 0 ||
-    selectedAvailability.length > 0 ||
-    pendingMin ||
-    pendingMax;
+  const hasAnyFilter = Boolean(
+    pendingMin || pendingMax || sliderLow > 0 || sliderHigh < 1000000
+  );
 
   return (
     <div className="w-full text-neutral-900 select-none text-xs">
@@ -179,136 +94,22 @@ export default function ShopFilterSidebar({
         )}
       </div>
 
-      {/* ── 1. Category Section ── */}
-      <div className="py-3 border-b border-neutral-100">
+      {/* ── Price Range Section ── */}
+      <div className="py-3">
         <button
           type="button"
-          onClick={() => toggleSection("category")}
-          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
-        >
-          <span>Category</span>
-          {openSections.category ? (
-            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-          )}
-        </button>
-
-        {openSections.category && (
-          <div className="mt-2.5 space-y-2">
-            {visibleCategories.map((cat) => {
-              const isSelected = selectedCategories.includes(cat.id) || selectedCategories.includes(cat.name);
-              return (
-                <label
-                  key={cat.id}
-                  className="flex items-center justify-between cursor-pointer group py-0.5"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleCategory(cat.id)}
-                      className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
-                    />
-                    <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
-                      {cat.name}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-neutral-400 font-medium font-mono">
-                    ({cat.count})
-                  </span>
-                </label>
-              );
-            })}
-
-            {categoryCounts.length > 5 && (
-              <button
-                type="button"
-                onClick={() => setShowAllCategories(!showAllCategories)}
-                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 block cursor-pointer"
-              >
-                {showAllCategories ? "Show less" : "Show more"}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── 2. Brand Section ── */}
-      <div className="py-3 border-b border-neutral-100">
-        <button
-          type="button"
-          onClick={() => toggleSection("brand")}
-          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
-        >
-          <span>Brand</span>
-          {openSections.brand ? (
-            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-          )}
-        </button>
-
-        {openSections.brand && (
-          <div className="mt-2.5 space-y-2">
-            {visibleBrands.map((b) => {
-              const isSelected = selectedBrands.some(
-                (sb) =>
-                  sb.toLowerCase() === b.name.toLowerCase() ||
-                  sb.toLowerCase().replace(/^brand-/, "") === b.name.toLowerCase()
-              );
-              return (
-                <label
-                  key={b.name}
-                  className="flex items-center justify-between cursor-pointer group py-0.5"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <input
-                      type="checkbox"
-                      checked={isSelected}
-                      onChange={() => onToggleBrand(b.name)}
-                      className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
-                    />
-                    <span className={`text-xs ${isSelected ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
-                      {b.name}
-                    </span>
-                  </div>
-                  <span className="text-[11px] text-neutral-400 font-medium font-mono">
-                    ({b.count})
-                  </span>
-                </label>
-              );
-            })}
-
-            {brandCounts.length > 5 && (
-              <button
-                type="button"
-                onClick={() => setShowAllBrands(!showAllBrands)}
-                className="text-[11px] font-bold text-neutral-500 hover:text-black pt-1 block cursor-pointer"
-              >
-                {showAllBrands ? "Show less" : "Show more"}
-              </button>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* ── 3. Price Range Section ── */}
-      <div className="py-3 border-b border-neutral-100">
-        <button
-          type="button"
-          onClick={() => toggleSection("price")}
+          onClick={() => setOpenPrice((prev) => !prev)}
           className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
         >
           <span>Price</span>
-          {openSections.price ? (
+          {openPrice ? (
             <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
           ) : (
             <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
           )}
         </button>
 
-        {openSections.price && (
+        {openPrice && (
           <div className="mt-2.5 space-y-2">
             {[
               { label: "Under LKR 50,000", min: 0, max: 50000 },
@@ -376,43 +177,6 @@ export default function ShopFilterSidebar({
               </button>
             </div>
             {priceError && <p className="text-[10px] text-red-500">{priceError}</p>}
-          </div>
-        )}
-      </div>
-
-      {/* ── 4. Availability Section ── */}
-      <div className="py-3">
-        <button
-          type="button"
-          onClick={() => toggleSection("availability")}
-          className="w-full flex items-center justify-between font-bold text-xs text-neutral-900 py-1 cursor-pointer"
-        >
-          <span>Availability</span>
-          {openSections.availability ? (
-            <ChevronUp className="w-3.5 h-3.5 text-neutral-400" />
-          ) : (
-            <ChevronDown className="w-3.5 h-3.5 text-neutral-400" />
-          )}
-        </button>
-
-        {openSections.availability && (
-          <div className="mt-2.5 space-y-2">
-            <label className="flex items-center justify-between cursor-pointer group py-0.5">
-              <div className="flex items-center gap-2.5">
-                <input
-                  type="checkbox"
-                  checked={selectedAvailability.includes("in_stock")}
-                  onChange={() => onToggleAvailability("in_stock")}
-                  className="w-3.5 h-3.5 rounded border-neutral-300 accent-black cursor-pointer"
-                />
-                <span className={`text-xs ${selectedAvailability.includes("in_stock") ? "font-bold text-black" : "text-neutral-700 group-hover:text-black"}`}>
-                  In Stock
-                </span>
-              </div>
-              <span className="text-[11px] text-neutral-400 font-medium font-mono">
-                ({inStockCount})
-              </span>
-            </label>
           </div>
         )}
       </div>

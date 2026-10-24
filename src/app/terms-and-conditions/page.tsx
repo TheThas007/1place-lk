@@ -6,17 +6,17 @@ import Link from "next/link";
 import { ShieldCheck, FileText } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Business Terms & Conditions | STREET MOBILE",
+  title: "Business Terms & Conditions | 1PLACE.LK",
   description:
-    "Official Business Terms & Conditions of Street Mobile Sri Lanka. Governs online orders, LKR currency pricing, PayHere online payments, delivery, and store operations.",
+    "Official Business Terms & Conditions of 1place.lk Sri Lanka. Governs online orders, LKR currency pricing, PayHere online payments, delivery, and store operations.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/terms-and-conditions",
+    canonical: "https://www.1place.lk/terms-and-conditions",
   },
   openGraph: {
-    title: "Business Terms & Conditions | STREET MOBILE",
+    title: "Business Terms & Conditions | 1PLACE.LK",
     description:
-      "Review the official e-commerce terms, LKR pricing policy, PayHere payment terms, and delivery guidelines of Street Mobile.",
-    url: "https://www.streetmobile.lk/terms-and-conditions",
+      "Review the official e-commerce terms, LKR pricing policy, PayHere payment terms, and delivery guidelines of 1place.lk.",
+    url: "https://www.1place.lk/terms-and-conditions",
     type: "website",
   },
   robots: {
@@ -60,7 +60,7 @@ export default function TermsAndConditionsPage() {
   return (
     <PolicyPageLayout
       title="Business Terms & Conditions"
-      subtitle="The official terms and conditions governing online transactions, product pricing in Sri Lankan Rupees (LKR), PayHere payment processing, delivery terms, and customer rights at Street Mobile."
+      subtitle="The official terms and conditions governing online transactions, product pricing in Sri Lankan Rupees (LKR), PayHere payment processing, delivery terms, and customer rights at 1place.lk."
       badge="PayHere & Merchant Terms"
       tocItems={TOC_ITEMS}
     >
@@ -71,17 +71,17 @@ export default function TermsAndConditionsPage() {
           <span>PayHere E-Commerce Compliance Commitment</span>
         </div>
         <p className="leading-relaxed">
-          Placing an order on <strong>https://www.streetmobile.lk</strong> constitutes a binding agreement under these Terms & Conditions. Online card payments are securely processed by <strong>PayHere.lk</strong>. All prices are listed in <strong>Sri Lankan Rupees (LKR)</strong>.
+          Placing an order on <strong>https://www.1place.lk</strong> constitutes a binding agreement under these Terms & Conditions. Online card payments are securely processed by <strong>PayHere.lk</strong>. All prices are listed in <strong>Sri Lankan Rupees (LKR)</strong>.
         </p>
       </div>
 
       {/* 1. Introduction */}
       <PolicySection id="introduction" number={1} title="Introduction">
         <p>
-          These Business Terms & Conditions ("Terms") govern your use of the website located at <strong>https://www.streetmobile.lk</strong> ("Website") and all product orders, purchases, and services provided by <strong>{businessPolicyConfig.legalName}</strong> (operating as "{businessPolicyConfig.tradingName}").
+          These Business Terms & Conditions ("Terms") govern your use of the website located at <strong>https://www.1place.lk</strong> ("Website") and all product orders, purchases, and services provided by <strong>{businessPolicyConfig.legalName}</strong> (operating as "{businessPolicyConfig.tradingName}").
         </p>
         <p>
-          {businessPolicyConfig.tradingName} is a licensed mobile phone, gadget, and accessory retailer located at {businessPolicyConfig.address}, Sri Lanka.
+          {businessPolicyConfig.tradingName} is a licensed technology, gadget, and lifestyle device retailer located at {businessPolicyConfig.address}, Sri Lanka.
         </p>
       </PolicySection>
 
@@ -126,7 +126,7 @@ export default function TermsAndConditionsPage() {
       {/* 7. Pricing and Availability */}
       <PolicySection id="pricing-availability" number={7} title="Pricing & LKR Currency">
         <p>
-          <strong>All prices listed on https://www.streetmobile.lk are strictly quoted in Sri Lankan Rupees (LKR).</strong>
+          <strong>All prices listed on https://www.1place.lk are strictly quoted in Sri Lankan Rupees (LKR).</strong>
         </p>
         <p>
           Prices include applicable local sales taxes unless otherwise stated. {businessPolicyConfig.tradingName} reserves the right to update product prices at any time without prior notice. However, once an order receives formal order confirmation, the price agreed upon at the time of checkout will remain fixed for that order.

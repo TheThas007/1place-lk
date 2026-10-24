@@ -242,7 +242,7 @@ export function generateDefaultDepartmentPageConfig(
 
   // Contextual default headlines
   let productSectionHeading = `${brandName} ${deptName}`;
-  let productSectionDescription = `Explore genuine ${brandName} ${deptName.toLowerCase()} models available at Street Mobile.`;
+  let productSectionDescription = `Explore genuine ${brandName} ${deptName.toLowerCase()} models available at 1PLACE.LK.`;
   
   const bSlug = (brand.slug || "").toLowerCase();
   const defaultBannerUrl =

@@ -19,6 +19,7 @@ import {
 import { formatPrice } from "@/lib/utils";
 import { db } from "@/lib/firebase";
 import { doc, getDoc } from "firebase/firestore";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import CheckoutProgress from "@/components/checkout/CheckoutProgress";
 
 function SuccessContent() {
@@ -69,7 +70,7 @@ function SuccessContent() {
               Thank You for Your Order!
             </h1>
             <p className="text-xs sm:text-sm text-neutral-500 max-w-md mx-auto mt-2">
-              We&apos;ve received your order and our team at STREET MOBILE is preparing it for dispatch.
+              We&apos;ve received your order and our team at {BUSINESS_INFO.brandName} is preparing it for dispatch.
             </p>
           </div>
 
@@ -167,6 +168,16 @@ function SuccessContent() {
                       </div>
                     ))}
                   </div>
+                </div>
+              )}
+
+              {/* Fee Breakdown if present */}
+              {((order.cardFee || order.payhereFee) && Number(order.cardFee || order.payhereFee) > 0) && (
+                <div className="flex justify-between text-xs text-neutral-500 pt-1">
+                  <span>PayHere Fee (2%)</span>
+                  <span className="font-semibold text-neutral-800">
+                    +{formatPrice(order.cardFee || order.payhereFee)}
+                  </span>
                 </div>
               )}
 

@@ -275,7 +275,9 @@ export interface UserProfile {
   gender?: "male" | "female" | "other";
   avatarUrl?: string;
   phone?: string;
+  role?: "customer" | "admin" | "staff" | string;
   createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface ProductVariantCombo {
@@ -556,7 +558,7 @@ export interface HeroSlide {
   image_url: string;
   desktop_image_url?: string;
   mobile_image_url?: string;
-  alt: string;
+  alt?: string;
   sort_order: number;
   active: boolean;
   campaign_label?: string;
@@ -625,6 +627,16 @@ export interface HeroSlide {
   letter_spacing?: string;
   banner_size_ratio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
   bannerSizeRatio?: "1080x1080" | "860x270" | "1920x850" | "1080x1440" | "default";
+
+  // Full-width Admin Banner Controls
+  banner_bg_color?: string;
+  bg_color?: string;
+  desktop_banner_height?: string;
+  mobile_banner_height?: string;
+  image_fit_mode?: "contain" | "cover";
+  banner_layout?: "split" | "full_image" | "auto";
+  description_size?: string;
+  autoplay_duration?: number;
 }
 
 export interface ProductBanner {
@@ -996,7 +1008,7 @@ export interface VisualShowcaseSettings {
   updated_at?: string;
 }
 
-// ===== Street Assistant AI Shopping Chatbot Types =====
+// ===== 1Place AI Shopping Assistant Types =====
 export type AssistantLanguage = "en" | "ta" | "si";
 
 export type AssistantMessageType =
@@ -1278,5 +1290,62 @@ export interface WhatsAppCampaign {
   clickCount: number;
   createdAt?: string;
   scheduledAt?: string | null;
+}
+
+export type SpinRewardType = "gift" | "free_shipping" | "discount";
+
+export interface SpinSegment {
+  id: string;
+  label: string;
+  subLabel?: string;
+  type: SpinRewardType;
+  color: string;
+  textColor: string;
+  icon?: string;
+  productId?: string;
+  productName?: string;
+  productImage?: string;
+  discountPercent?: number;
+  discountAmount?: number;
+  probability: number;
+  inventory: number;
+  claimedCount?: number;
+}
+
+export interface SpinPromotionSettings {
+  enabled: boolean;
+  popupEnabled: boolean;
+  heading: string;
+  badgeText: string;
+  description: string;
+  minOrderAmount: number;
+  maxSpinsPerCustomer: number;
+  rewardExpiryDays: number;
+  termsAndConditions: string;
+  desktopBannerUrl?: string;
+  mobileBannerUrl?: string;
+  segments: SpinSegment[];
+  updatedAt?: string;
+}
+
+export interface SpinReward {
+  id: string;
+  userId: string;
+  customerName?: string;
+  customerEmail?: string;
+  customerPhone?: string;
+  rewardType: SpinRewardType;
+  segmentId: string;
+  segmentLabel: string;
+  productId?: string;
+  productName?: string;
+  productImage?: string;
+  discountPercent?: number;
+  discountAmount?: number;
+  status: "issued" | "redeemed" | "expired";
+  issuedAt: string;
+  expiresAt: string;
+  redeemedAt?: string;
+  orderId?: string;
 }
 

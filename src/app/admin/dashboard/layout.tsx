@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, useMemo, Suspense, createContext, useContext } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export interface AdminThemeContextType {
   theme: "dark" | "light";
@@ -88,9 +90,6 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: Package,
     items: [
       { id: "products", label: "Products", href: "/admin/dashboard?tab=products" },
-      { id: "categories", label: "Shop by Category", href: "/admin/dashboard?tab=categories" },
-      { id: "mega-menu", label: "Category Mega Menu", href: "/admin/dashboard?tab=mega-menu" },
-      { id: "brands", label: "Shop by Brand", href: "/admin/dashboard?tab=brands" },
       { id: "showcase", label: "Visual Showcase", href: "/admin/dashboard?tab=showcase" },
     ],
   },
@@ -110,7 +109,6 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: Settings,
     items: [
       { id: "inventory", label: "Inventory Levels", href: "/admin/dashboard?tab=inventory" },
-      { id: "warranties", label: "Warranty Management", href: "/admin/dashboard?tab=warranties" },
     ],
   },
   {
@@ -119,7 +117,6 @@ const SIDEBAR_SECTIONS: NavSection[] = [
     icon: Users,
     items: [
       { id: "users", label: "Customers Directory", href: "/admin/dashboard?tab=users" },
-      { id: "reviews", label: "Reviews", href: "/admin/dashboard?tab=reviews" },
     ],
   },
   {
@@ -130,19 +127,7 @@ const SIDEBAR_SECTIONS: NavSection[] = [
       { id: "gallery", label: "Store Gallery Wall", href: "/admin/dashboard?tab=gallery" },
       { id: "whatsapp-marketing", label: "WhatsApp Marketing", href: "/admin/dashboard?tab=whatsapp-marketing" },
       { id: "hero", label: "Homepage Hero Slider", href: "/admin/dashboard?tab=hero" },
-      { id: "banners", label: "Offers & Banners", href: "/admin/dashboard?tab=banners" },
-      { id: "reviews", label: "Google Reviews", href: "/admin/dashboard?tab=reviews" },
-      { id: "footer", label: "Footer Configuration", href: "/admin/dashboard?tab=footer" },
-    ],
-  },
-  {
-    id: "system",
-    title: "System",
-    icon: ShieldCheck,
-    items: [
-      { id: "assistant", label: "Streetla AI Assistant", href: "/admin/dashboard?tab=assistant" },
-      { id: "settings", label: "Store & Auth Settings", href: "/admin/dashboard?tab=settings" },
-      { id: "contact-settings", label: "Contact Details & Store Times", href: "/admin/dashboard?tab=contact-settings" },
+      { id: "spin-win", label: "Spin & Win Promotion", href: "/admin/dashboard?tab=spin-win" },
     ],
   },
 ];
@@ -367,31 +352,30 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
             } ${sidebarCollapsed ? "justify-center" : "justify-between"}`}
           >
             <Link href="/admin/dashboard" className="flex items-center gap-3 group">
-              {/* Cube icon from reference screenshot */}
               <div
-                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs shrink-0 bg-[#2563EB] text-white"
+                className="w-8 h-8 rounded-lg flex items-center justify-center shadow-xs shrink-0 bg-[#111111] border border-white/10 text-white p-1 overflow-hidden"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-                  <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-                  <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-                  <line x1="12" y1="22.08" x2="12" y2="12" />
-                </svg>
+                <img
+                  src="/icon.svg"
+                  alt="ONEPLACE"
+                  className="w-full h-full object-contain"
+                />
               </div>
               {!sidebarCollapsed && (
                 <div className="min-w-0">
-                  <h1
-                    className={`text-sm font-bold tracking-tight leading-tight ${
-                      isLight ? "text-[#0F172A]" : "text-white"
+                  <img
+                    src="/logo.png"
+                    alt="ONEPLACE"
+                    className={`h-5 w-auto max-w-[130px] object-contain block ${
+                      !isLight ? "brightness-0 invert" : ""
                     }`}
-                  >
-                    StreetMobile<span className={isLight ? "text-[#64748B]" : "text-white/80"}>.lk</span>
-                  </h1>
+                  />
                   <span
-                    className={`text-[9px] font-semibold tracking-wider uppercase block mt-0.5 ${
-                      isLight ? "text-[#64748B]" : "text-[#94A3B8]"
+                    className={`text-[8px] font-bold tracking-widest uppercase block mt-1 ${
+                      isLight ? "text-[#64748B]" : "text-white/50"
                     }`}
                   >
-                    ADMIN OPERATING SYSTEM
+                    CONTROL CENTER
                   </span>
                 </div>
               )}
@@ -541,7 +525,7 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
               <>
                 {/* WhatsApp Support Row */}
                 <a
-                  href="https://wa.me/94774141118"
+                  href={`https://wa.me/${BUSINESS_INFO.whatsappNumber.replace(/[^0-9]/g, "")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`w-full flex items-center justify-between px-2.5 py-2 rounded-xl text-xs transition-colors ${
@@ -728,9 +712,9 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     <div className={`px-3 py-2 border-b ${isLight ? "border-[#E2E8F0]" : "border-white/[0.08]"}`}>
-                      <p className="text-xs font-bold truncate">StreetMobile Admin</p>
+                      <p className="text-xs font-bold truncate">1place.lk Control Center</p>
                       <p className={`text-[11px] truncate mt-0.5 ${isLight ? "text-[#64748B]" : "text-[#94A3B8]"}`}>
-                        admin@streetmobile.lk
+                        admin@1place.lk
                       </p>
                       <span className="inline-block mt-1.5 text-[9px] font-semibold uppercase tracking-wider px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
                         Store Superadmin
@@ -738,34 +722,8 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                     </div>
 
                     <div className="py-1 space-y-0.5 text-xs font-medium">
-                      <Link
-                        href="/admin/dashboard?tab=settings"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                          isLight
-                            ? "hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A]"
-                            : "hover:bg-white/5 text-[#94A3B8] hover:text-white"
-                        }`}
-                      >
-                        <Settings className="w-3.5 h-3.5 opacity-70" />
-                        <span>Store Settings</span>
-                      </Link>
-
-                      <Link
-                        href="/admin/dashboard?tab=contact-settings"
-                        onClick={() => setProfileDropdownOpen(false)}
-                        className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-colors ${
-                          isLight
-                            ? "hover:bg-[#F8FAFC] text-[#475569] hover:text-[#0F172A]"
-                            : "hover:bg-white/5 text-[#94A3B8] hover:text-white"
-                        }`}
-                      >
-                        <Clock className="w-3.5 h-3.5 opacity-70" />
-                        <span>Contact & Times</span>
-                      </Link>
-
                       <a
-                        href="https://wa.me/94774141118"
+                        href={BUSINESS_INFO.whatsappUrl}
                         target="_blank"
                         rel="noopener noreferrer"
                         onClick={() => setProfileDropdownOpen(false)}
@@ -828,17 +786,10 @@ function DashboardLayoutContent({ children }: { children: React.ReactNode }) {
                 isLight ? "border-[#E2E8F0] text-[#64748B]" : "border-white/[0.08] text-[#94A3B8]"
               }`}
             >
-              <p>© 2026 StreetMobile.lk Admin Operating System.</p>
+              <p>© 2026 1place.lk Control Center Operating System.</p>
               <div className="flex items-center gap-3 text-xs font-medium">
-                <Link
-                  href="/admin/dashboard?tab=settings"
-                  className={`transition-colors ${isLight ? "hover:text-[#0F172A]" : "hover:text-white"}`}
-                >
-                  System Settings
-                </Link>
-                <span>•</span>
                 <a
-                  href="https://wa.me/94774141118"
+                  href="https://wa.me/94771234567"
                   target="_blank"
                   rel="noopener noreferrer"
                   className={`transition-colors ${isLight ? "hover:text-[#0F172A]" : "hover:text-white"}`}

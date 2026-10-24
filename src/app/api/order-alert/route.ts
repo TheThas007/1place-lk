@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     ).join("\n");
 
     const mailContent = `
-🚨 NEW ORDER PLACED ON STREET MOBILE
+🚨 NEW ORDER PLACED ON 1PLACE.LK
 
 Order Details:
 ----------------------------------------
@@ -30,22 +30,25 @@ Items Ordered:
 ----------------------------------------
 ${itemsText}
 
-Please login to your Street Mobile Admin Panel to view full details.
+Please login to your 1place.lk Admin Panel to view full details.
 `;
 
     // Configure Nodemailer transporter
+    const adminEmail = process.env.ADMIN_ALERT_EMAIL || process.env.EMAIL_USER || "orders@1place.lk";
+    const senderEmail = process.env.EMAIL_USER || "orders@1place.lk";
+
     const transporter = nodemailer.createTransport({
       service: "gmail",
       auth: {
-        user: "streetmobilevavuniya@gmail.com",
+        user: senderEmail,
         pass: process.env.EMAIL_PASSWORD || "" // App password required
       }
     });
 
     const mailOptions = {
-      from: "streetmobilevavuniya@gmail.com",
-      to: "streetmobilevavuniya@gmail.com",
-      subject: `🚨 New Order Alert: #${orderId?.slice(-6) || "Street Mobile"}`,
+      from: `"1PLACE.LK Alert" <${senderEmail}>`,
+      to: adminEmail,
+      subject: `🚨 New Order Alert: #${orderId?.slice(-6) || "1PLACE.LK"}`,
       text: mailContent
     };
 

@@ -69,36 +69,24 @@ import { jsPDF } from "jspdf";
 
 // Admin Tabs
 import ProductModal from "@/components/admin/ProductModal";
-import CategoryModal from "@/components/admin/CategoryModal";
-import OfferBannerModal from "@/components/admin/OfferBannerModal";
 import HeroModal from "@/components/admin/HeroModal";
 import GalleryModal from "@/components/admin/GalleryModal";
-import ReviewModal from "@/components/admin/ReviewModal";
 import OrdersTab from "@/components/admin/tabs/OrdersTab";
-import BannersTab from "@/components/admin/tabs/BannersTab";
-import CategoriesTab from "@/components/admin/tabs/CategoriesTab";
 import ProductsTab from "@/components/admin/tabs/ProductsTab";
 import HeroTab from "@/components/admin/tabs/HeroTab";
-import BrandsTab from "@/components/admin/tabs/BrandsTab";
 import GalleryTab from "@/components/admin/tabs/GalleryTab";
-import ReviewsTab from "@/components/admin/tabs/ReviewsTab";
 import ShowcaseTab from "@/components/admin/tabs/ShowcaseTab";
 import TodayDealTab from "@/components/admin/tabs/TodayDealTab";
-import MegaMenuTab from "@/components/admin/tabs/MegaMenuTab";
-import WarrantiesTab from "@/components/admin/tabs/WarrantiesTab";
 
-import FooterTab from "@/components/admin/tabs/FooterTab";
 import MobileExperienceTab from "@/components/admin/tabs/MobileExperienceTab";
 import RepairsTab from "@/components/admin/tabs/RepairsTab";
 
 import CashFlowTab from "@/components/admin/tabs/CashFlowTab";
-import AssistantTab from "@/components/admin/tabs/AssistantTab";
-import ContactSettingsTab from "@/components/admin/tabs/ContactSettingsTab";
-import SettingsTab from "@/components/admin/tabs/SettingsTab";
 import CouponsTab from "@/components/admin/tabs/CouponsTab";
 import CouponModal from "@/components/admin/CouponModal";
 import FeaturedGridBannerControl from "@/components/admin/FeaturedGridBannerControl";
 import WhatsAppMarketingTab from "@/components/admin/tabs/WhatsAppMarketingTab";
+import SpinWinTab from "@/components/admin/tabs/SpinWinTab";
 import { Coupon } from "@/lib/types";
 import { useAdminTheme } from "./layout";
 import CustomAreaChart, { ChartDataPoint } from "@/components/admin/charts/CustomAreaChart";
@@ -106,37 +94,47 @@ import CustomAreaChart, { ChartDataPoint } from "@/components/admin/charts/Custo
 type Tab =
   | "overview"
   | "products"
-  | "categories"
-  | "mega-menu"
-  | "brands"
   | "today-deal"
   | "repairs"
-
   | "cashflow"
-  | "warranties"
-
   | "showcase"
   | "users"
   | "gallery"
   | "hero"
-  | "banners"
   | "coupons"
-  | "footer"
   | "inventory"
   | "payments"
-  | "reviews"
   | "analytics"
-  | "assistant"
   | "mobile"
   | "orders"
-  | "settings"
   | "whatsapp-marketing"
-  | "contact-settings";
+  | "spin-win";
+
+const VALID_ADMIN_TABS = new Set<string>([
+  "overview",
+  "products",
+  "today-deal",
+  "repairs",
+  "cashflow",
+  "showcase",
+  "users",
+  "gallery",
+  "hero",
+  "coupons",
+  "inventory",
+  "payments",
+  "analytics",
+  "mobile",
+  "orders",
+  "whatsapp-marketing",
+  "spin-win",
+]);
 
 function DashboardContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const tabParam = (searchParams.get("tab") as Tab) || "overview";
+  const rawParam = searchParams.get("tab") || "overview";
+  const tabParam = (VALID_ADMIN_TABS.has(rawParam) ? rawParam : "overview") as Tab;
 
   const [activeTab, setActiveTab] = useState<Tab>(tabParam);
   const { theme, isLight } = useAdminTheme();
@@ -388,7 +386,7 @@ function DashboardContent() {
             id: d.id,
             isGuest: true,
             displayName: data.name || data.fullName || data.customerName || "Guest Customer",
-            email: data.email || "guest@streetmobile.lk",
+            email: data.email || "guest@1place.lk",
             phoneNumber: data.phone || data.phoneNumber || "",
             createdAt: data.createdAt || data.updatedAt || "",
             ...data,
@@ -928,7 +926,7 @@ function DashboardContent() {
     const doc = new jsPDF();
     doc.setFont("helvetica", "bold");
     doc.setFontSize(18);
-    doc.text("STREET MOBILE — CUSTOMER DIRECTORY", 14, 20);
+    doc.text("1PLACE.LK — CUSTOMER DIRECTORY", 14, 20);
 
     const customerList = customers.length > 0 ? customers : orders;
     doc.setFontSize(9);
@@ -957,13 +955,13 @@ function DashboardContent() {
       }
       doc.text(`${i + 1}`, 14, y);
       doc.text((c.displayName || c.customerName || `Customer #${i + 1}`).slice(0, 25), 25, y);
-      doc.text((c.email || "customer@streetmobile.lk").slice(0, 30), 85, y);
-      doc.text((c.phoneNumber || c.phone || "077 414 1118").slice(0, 18), 145, y);
+      doc.text((c.email || "customer@1place.lk").slice(0, 30), 85, y);
+      doc.text((c.phoneNumber || c.phone || "N/A").slice(0, 18), 145, y);
       doc.text("VIP Customer", 180, y);
       y += 7;
     });
 
-    doc.save(`street-mobile-customers-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`1place-lk-customers-${new Date().toISOString().slice(0, 10)}.pdf`);
   };
 
   const exportCustomersCSV = () => {
@@ -972,8 +970,8 @@ function DashboardContent() {
     const rows = customerList.map((c: any, i: number) => [
       `"${i + 1}"`,
       `"${c.displayName || c.customerName || `Customer #${i + 1}`}"`,
-      `"${c.email || "customer@streetmobile.lk"}"`,
-      `"${c.phoneNumber || c.phone || "077 414 1118"}"`,
+      `"${c.email || "customer@1place.lk"}"`,
+      `"${c.phoneNumber || c.phone || "N/A"}"`,
       `"VIP Customer"`,
     ]);
 
@@ -981,7 +979,7 @@ function DashboardContent() {
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `street-mobile-customers-${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute("download", `1place-lk-customers-${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -1898,7 +1896,7 @@ function DashboardContent() {
                   </p>
                 </div>
                 <Link
-                  href="/admin/dashboard?tab=categories"
+                  href="/admin/dashboard?tab=products"
                   className={`text-xs font-semibold flex items-center gap-1 transition-colors ${
                     isLight
                       ? "text-[#667085] hover:text-[#111827]"
@@ -2480,54 +2478,6 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB 4: CATEGORIES TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "categories" && (
-        <CategoriesTab
-          categories={categories}
-          products={products}
-          onAdd={() => {
-            setEditingCategory(null);
-            setIsCategoryModalOpen(true);
-          }}
-          onEdit={(cat: Category) => {
-            setEditingCategory(cat);
-            setIsCategoryModalOpen(true);
-          }}
-          onDelete={handleDeleteCategory}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 4B: BRANDS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "brands" && (
-        <BrandsTab products={products} />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5: OFFERS & BANNERS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "banners" && (
-        <BannersTab
-          banners={banners}
-          products={products}
-          onAdd={() => {
-            setEditingBanner(null);
-            setIsBannerModalOpen(true);
-          }}
-          onEdit={(b: OfferBanner) => {
-            setEditingBanner(b);
-            setIsBannerModalOpen(true);
-          }}
-          onDelete={handleDeleteBanner}
-          onDuplicate={handleDuplicateBanner}
-          onToggleStatus={handleToggleBannerStatus}
-        />
-      )}
-
-
-      {/* ════════════════════════════════════════════════════════════════════
           TAB 5A: PROMO CODES & COUPONS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "coupons" && (
@@ -2604,19 +2554,6 @@ function DashboardContent() {
       {activeTab === "today-deal" && (
         <TodayDealTab
           initialSettings={todayDealSettings}
-          onRefresh={refreshData}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 5F: CATEGORY MEGA MENU MANAGEMENT
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "mega-menu" && (
-        <MegaMenuTab
-          initialSettings={megaMenuSettings}
-          categories={categories}
-          brands={brands}
-          products={products}
           onRefresh={refreshData}
         />
       )}
@@ -2825,6 +2762,13 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
+          SPIN & WIN PROMOTION TAB
+      ════════════════════════════════════════════════════════════════════ */}
+      {activeTab === "spin-win" && (
+        <SpinWinTab products={products} />
+      )}
+
+      {/* ════════════════════════════════════════════════════════════════════
           TAB 8: PAYMENTS & GATEWAY SETTINGS TAB
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "payments" && (
@@ -2894,28 +2838,7 @@ function DashboardContent() {
         </div>
       )}
 
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB 10: REVIEWS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "reviews" && (
-        <ReviewsTab
-          reviews={reviews}
-          settings={googleReviewsSettings}
-          onAdd={() => {
-            setEditingReview(null);
-            setIsReviewModalOpen(true);
-          }}
-          onEdit={(review: Review) => {
-            setEditingReview(review);
-            setIsReviewModalOpen(true);
-          }}
-          onDelete={handleDeleteReview}
-          onToggleVisibility={handleToggleReviewVisibility}
-          onToggleFeatured={handleToggleReviewFeatured}
-          onReorder={handleReorderReview}
-          onSaveSettings={(newSettings) => setGoogleReviewsSettings(newSettings)}
-        />
-      )}
+
 
       {/* ════════════════════════════════════════════════════════════════════
           TAB 11: ANALYTICS TAB
@@ -2958,48 +2881,6 @@ function DashboardContent() {
       )}
 
       {/* ════════════════════════════════════════════════════════════════════
-          TAB: WHATSAPP MARKETING
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "whatsapp-marketing" && (
-        <WhatsAppMarketingTab
-          campaigns={whatsappCampaigns}
-          products={products}
-          customers={customers}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: STORE & AUTH CONTROL SETTINGS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "settings" && (
-        <SettingsTab />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: STORE CONTACT DETAILS & WORKING HOURS SETTINGS TAB
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "contact-settings" && (
-        <ContactSettingsTab onRefresh={refreshData} />
-      )}
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: WARRANTY MANAGEMENT
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "warranties" && (
-        <WarrantiesTab />
-      )}
-
-
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: FOOTER SETTINGS
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "footer" && (
-        <FooterTab
-          onRefresh={refreshData}
-        />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
           TAB: MOBILE EXPERIENCE
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "mobile" && (
@@ -3013,20 +2894,11 @@ function DashboardContent() {
         <RepairsTab />
       )}
 
-
-
       {/* ════════════════════════════════════════════════════════════════════
           TAB: CASH FLOW
       ════════════════════════════════════════════════════════════════════ */}
       {activeTab === "cashflow" && (
         <CashFlowTab />
-      )}
-
-      {/* ════════════════════════════════════════════════════════════════════
-          TAB: STREETLA AI ASSISTANT
-      ════════════════════════════════════════════════════════════════════ */}
-      {activeTab === "assistant" && (
-        <AssistantTab />
       )}
 
       {/* Global Product Modal */}
@@ -3046,26 +2918,6 @@ function DashboardContent() {
         initialData={editingProduct}
       />
 
-      {/* Category Modal */}
-      <CategoryModal
-        isOpen={isCategoryModalOpen}
-        onClose={() => setIsCategoryModalOpen(false)}
-        onSave={() => {
-          setIsCategoryModalOpen(false);
-          refreshData();
-        }}
-        initialData={editingCategory}
-        existingCategories={categories}
-      />
-
-      {/* Offer Banner Modal */}
-      <OfferBannerModal
-        isOpen={isBannerModalOpen}
-        onClose={() => setIsBannerModalOpen(false)}
-        onSave={handleSaveBanner}
-        initialData={editingBanner}
-      />
-
       {/* Hero Modal */}
       <HeroModal
         isOpen={isHeroModalOpen}
@@ -3083,17 +2935,6 @@ function DashboardContent() {
           refreshData();
         }}
         initialData={editingGalleryImage}
-      />
-
-      {/* Review Modal */}
-      <ReviewModal
-        isOpen={isReviewModalOpen}
-        onClose={() => setIsReviewModalOpen(false)}
-        onSave={() => {
-          setIsReviewModalOpen(false);
-          refreshData();
-        }}
-        initialData={editingReview}
       />
 
       {/* Coupon Modal */}

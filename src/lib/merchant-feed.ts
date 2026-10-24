@@ -19,7 +19,7 @@ function stripHtml(html: string): string {
  * Compliant with Google Merchant Center XML Specifications.
  */
 export async function generateGoogleMerchantFeed(): Promise<string> {
-  const baseUrl = "https://www.streetmobile.lk";
+  const baseUrl = "https://www.1place.lk";
   const products = await getProducts().catch(() => []);
 
   // Filter for eligible products:
@@ -43,7 +43,7 @@ export async function generateGoogleMerchantFeed(): Promise<string> {
       const title = product.name;
       const rawDesc = product.description
         ? stripHtml(product.description)
-        : `${product.name} available at Street Mobile Sri Lanka. 100% genuine with official warranty and fast islandwide delivery.`;
+        : `${product.name} available at 1place.lk Sri Lanka. 100% genuine with official warranty and fast islandwide delivery.`;
       const description = rawDesc.slice(0, 4900);
       const link = `${baseUrl}/products/${product.slug}`;
 
@@ -52,7 +52,7 @@ export async function generateGoogleMerchantFeed(): Promise<string> {
         product.primary_image ||
         product.image_url ||
         product.thumbnail ||
-        `${baseUrl}/logo.png`;
+        `${baseUrl}/icon.svg`;
 
       // Price calculation
       const hasSale =
@@ -147,9 +147,9 @@ export async function generateGoogleMerchantFeed(): Promise<string> {
   return `<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0" xmlns:g="http://base.google.com/ns/1.0">
   <channel>
-    <title>StreetMobile Sri Lanka - Official Google Merchant Center Product Feed</title>
+    <title>1place.lk Sri Lanka - Official Google Merchant Center Product Feed</title>
     <link>${baseUrl}</link>
-    <description>100% Genuine Smartphones, Apple, Samsung, Xiaomi &amp; Premium Accessories in Sri Lanka with Official Warranty.</description>
+    <description>100% Genuine Smartphones, Apple, Samsung, Xiaomi &amp; Premium Electronics in Sri Lanka with Official Warranty.</description>
 ${itemsXml}
   </channel>
 </rss>`;

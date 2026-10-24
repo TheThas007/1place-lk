@@ -196,7 +196,7 @@ function CollectionCard({ card }: { card: FeaturedCollectionCard; index: number 
           </>
         ) : (
           <div className="w-full h-full flex items-center justify-center bg-neutral-900 text-neutral-400 font-mono text-xs rounded-none">
-            Street Mobile Collection
+            1PLACE.LK Collection
           </div>
         )}
       </div>
@@ -360,10 +360,10 @@ export default function FeaturedCollections({ settings }: FeaturedCollectionsPro
               </span>
             )}
             <h3 className="text-[16px] sm:text-[19px] font-black text-white leading-tight tracking-tight mb-1 drop-shadow-md">
-              {firstCard?.title || "Welcome to Street Mobile!"}
+              {firstCard?.title || "Welcome to 1PLACE.LK!"}
             </h3>
             <p className="text-white/80 text-[10px] sm:text-[11px] leading-snug line-clamp-2 mb-2.5 font-medium drop-shadow-xs">
-              {firstCard?.subtitle || "Your trusted destination for the latest tech."}
+              {firstCard?.subtitle || "Your premium destination for the latest technology."}
             </p>
             <div>
               <Link

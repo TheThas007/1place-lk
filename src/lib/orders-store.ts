@@ -27,6 +27,8 @@ export interface OrderRecord {
   paymentStatus?: string;
   payherePaymentId?: string;
   payhereVerified?: boolean;
+  cardFee?: number;
+  payhereFee?: number;
   createdAt: string;
 }
 
@@ -39,14 +41,14 @@ export function getLocalOrders(): OrderRecord[] {
       // Seed with initial sample orders if empty
       const initialOrders: OrderRecord[] = [
         {
-          id: "SM-7821A",
+          id: "1P-78210A",
           userId: "guest",
           customerName: "Kamal Perera",
-          primaryPhone: "0774141118",
+          primaryPhone: "0771234567",
           secondaryPhone: "0712345678",
-          district: "Vavuniya",
-          address: "No 45, Station Road, Vavuniya",
-          postalCode: "43000",
+          district: "Colombo",
+          address: "No 45, Duplication Road, Colombo 03",
+          postalCode: "00300",
           paymentMethod: "COD",
           status: "pending",
           totalPrice: 285000,
@@ -64,7 +66,7 @@ export function getLocalOrders(): OrderRecord[] {
           ]
         },
         {
-          id: "SM-4912B",
+          id: "1P-49120B",
           userId: "guest",
           customerName: "Sivakumar N.",
           primaryPhone: "0768901234",

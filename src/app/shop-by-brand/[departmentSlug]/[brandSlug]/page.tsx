@@ -47,14 +47,14 @@ export async function generateMetadata({
 
   const title =
     config?.seoTitle ||
-    `${brandName} ${deptName} in Sri Lanka | Official Store | Street Mobile`;
+    `${brandName} ${deptName} in Sri Lanka | Official Store | 1PLACE.LK`;
   const description =
     config?.seoDescription ||
     config?.productSectionDescription ||
     config?.description ||
-    `Shop 100% genuine ${brandName} ${deptName} with official company warranty, best prices, and islandwide fast delivery at Street Mobile Vavuniya.`;
+    `Shop 100% genuine ${brandName} ${deptName} with official company warranty, best prices, and islandwide fast delivery at 1PLACE.LK.`;
 
-  const canonicalUrl = `https://www.streetmobile.lk/shop-by-brand/${departmentSlug.toLowerCase()}/${brandSlug.toLowerCase()}`;
+  const canonicalUrl = `https://www.1place.lk/shop-by-brand/${departmentSlug.toLowerCase()}/${brandSlug.toLowerCase()}`;
 
   return {
     title,
@@ -67,17 +67,17 @@ export async function generateMetadata({
       description,
       url: canonicalUrl,
       type: "website",
-      siteName: "Street Mobile",
+      siteName: "1PLACE.LK",
       locale: "en_LK",
       images: config?.desktopBannerUrl
         ? [{ url: config.desktopBannerUrl, alt: `${brandName} ${deptName}` }]
-        : [{ url: "https://www.streetmobile.lk/logo.png", alt: `${brandName} - Street Mobile` }],
+        : [{ url: "https://www.1place.lk/logo.svg", alt: `${brandName} - 1PLACE.LK` }],
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: config?.desktopBannerUrl ? [config.desktopBannerUrl] : ["https://www.streetmobile.lk/logo.png"],
+      images: config?.desktopBannerUrl ? [config.desktopBannerUrl] : ["https://www.1place.lk/logo.svg"],
     },
   };
 }
@@ -163,16 +163,16 @@ export default async function DepartmentBrandRoute({
   const collectionJsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "@id": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}#collection`,
+    "@id": `https://www.1place.lk/shop-by-brand/${departmentSlug}/${brandSlug}#collection`,
     "name": `${brandName} ${deptName} in Sri Lanka`,
-    "description": `Shop genuine ${brandName} ${deptName} with warranty and fast delivery in Sri Lanka at Street Mobile.`,
-    "url": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}`,
+    "description": `Shop genuine ${brandName} ${deptName} with warranty and fast delivery in Sri Lanka at 1PLACE.LK.`,
+    "url": `https://www.1place.lk/shop-by-brand/${departmentSlug}/${brandSlug}`,
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": finalProducts.slice(0, 24).map((p, idx) => ({
         "@type": "ListItem",
         "position": idx + 1,
-        "url": `https://www.streetmobile.lk/products/${p.slug}`,
+        "url": `https://www.1place.lk/products/${p.slug}`,
         "name": p.name,
       })),
     },
@@ -186,19 +186,19 @@ export default async function DepartmentBrandRoute({
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk"
+        "item": "https://www.1place.lk"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": deptName,
-        "item": `https://www.streetmobile.lk/products?department=${departmentSlug}`
+        "item": `https://www.1place.lk/products?department=${departmentSlug}`
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": `${brandName} ${deptName}`,
-        "item": `https://www.streetmobile.lk/shop-by-brand/${departmentSlug}/${brandSlug}`
+        "item": `https://www.1place.lk/shop-by-brand/${departmentSlug}/${brandSlug}`
       }
     ]
   };

@@ -79,7 +79,7 @@ function PaymentCancelContent() {
             </Link>
 
             <a
-              href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent("Hello Street Mobile, my payment was cancelled and I need assistance")}`}
+              href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent("Hello 1PLACE.LK, my payment was cancelled and I need assistance")}`}
               target="_blank"
               rel="noopener noreferrer"
               className="w-full min-h-[50px] px-6 rounded-full font-bold text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2 shadow-sm active:scale-95"

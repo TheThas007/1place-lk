@@ -488,7 +488,7 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
                 type="text"
                 value={settings.copyright_text || ""}
                 onChange={(e) => setSettings({ ...settings, copyright_text: e.target.value })}
-                placeholder="© 2026 Street Mobile. All rights reserved."
+                placeholder="© 2026 1PLACE.LK. All rights reserved."
                 className="w-full px-3.5 py-2.5 bg-black/40 border border-white/10 rounded-xl text-xs text-white focus:outline-none"
               />
             </div>
@@ -570,8 +570,8 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
                 >
                   <img
                     src={settings.logo_url || "/logo.png"}
-                    alt="Street Mobile"
-                    className="w-full h-auto max-h-[64px] object-contain object-left block opacity-100"
+                    alt="1PLACE.LK"
+                    className="w-full h-auto max-h-[64px] object-contain object-left block opacity-100 brightness-0 invert"
                   />
                 </div>
                 <p className="text-[11px] text-white/60 leading-relaxed max-w-[240px]">
@@ -618,7 +618,7 @@ export default function FooterTab({ onRefresh }: { onRefresh?: () => void }) {
 
             {/* Bottom Bar Divider */}
             <div className="mt-6 pt-4 border-t border-white/10 flex flex-col gap-2 text-[10px] text-white/60">
-              <p className="m-0">{settings.copyright_text || "© 2026 Street Mobile. All rights reserved."}</p>
+              <p className="m-0">{settings.copyright_text || "© 2026 1PLACE.LK. All rights reserved."}</p>
               <p className="m-0">
                 Designed &amp; Developed by <span className="text-white font-medium">Aevonix</span>
               </p>

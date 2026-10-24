@@ -17,7 +17,7 @@ const DEFAULT_REVIEWS: Review[] = [
     author_name: "Kavinth Raj",
     author_photo: "",
     rating: 5,
-    text: "Best mobile shop in Vavuniya! Bought my new iPhone here with original warranty and got an unbeatable price. The customer service and after-sales support are top notch.",
+    text: "Best electronics store in Sri Lanka! Bought my new iPhone here with original warranty and got an unbeatable price. The customer service and after-sales support are top notch.",
     review_date: "2026-02-10",
     visible: true,
     featured: true,
@@ -597,103 +597,30 @@ export default function ReviewsSection({
     >
       {/* ── Centred Content Container (1240px max-width) ── */}
       <div className="max-w-[1240px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto relative z-10">
-        {/* Mobile Header (< 768px) */}
-        <div data-reveal-item className="md:hidden flex flex-col items-center text-center mb-5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-2 select-none">
-            <GoogleIcon className="w-3 h-3 shrink-0" />
+        {/* ── Single Responsive Header with One Canonical H2 ── */}
+        <div data-reveal-item className="flex flex-col items-center text-center max-w-3xl mx-auto mb-6 sm:mb-10">
+          {/* Eyebrow */}
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full md:rounded-[6px] bg-neutral-100 border border-neutral-200 text-neutral-800 text-[10px] sm:text-xs font-bold uppercase tracking-[0.09em] mb-2 sm:mb-3.5 select-none">
+            <GoogleIcon className="w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0" />
             <span>Google Reviews</span>
           </div>
 
-          <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight mb-2">
-            Loved by Customers Across Sri Lanka
-          </h2>
-
-          <div className="flex items-center justify-center gap-1.5 text-xs text-neutral-600 font-bold mb-3 flex-wrap">
-            <div className="flex items-center gap-1">
-              <span className="text-amber-500 font-black text-base leading-none">
-                {overallRating.toFixed(1)}
-              </span>
-              <div className="flex items-center">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-3.5 h-3.5 fill-amber-400 text-amber-400" />
-                ))}
-              </div>
-            </div>
-            <span className="text-neutral-300">•</span>
-            <span className="font-medium text-neutral-500">
-              Based on {totalReviewsCount}+ Verified Reviews
-            </span>
-          </div>
-
-          <div className="flex items-center justify-between w-full pt-1 px-1">
-            <div className="flex items-center gap-2">
-              <a
-                href={mainViewAllUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-neutral-900 text-white active:scale-95 shadow-xs transition-transform"
-              >
-                <span>View All</span>
-                <ExternalLink className="w-3 h-3" />
-              </a>
-              <a
-                href={mainWriteReviewUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium border border-neutral-300 text-neutral-800 active:scale-95 transition-transform"
-              >
-                <Edit3 className="w-3 h-3" />
-                <span>Write Review</span>
-              </a>
-            </div>
-
-            {/* Mobile Touch Navigation Buttons */}
-            <div className="flex items-center gap-1.5 shrink-0">
-              <button
-                type="button"
-                onClick={handlePrev}
-                className="w-7 h-7 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
-                aria-label="Previous Review"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                onClick={handleNext}
-                className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
-                aria-label="Next Review"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Desktop Header (>= 768px) */}
-        <div data-reveal-item className="hidden md:flex flex-col items-center text-center max-w-3xl mx-auto mb-8 sm:mb-10">
-          {/* Eyebrow */}
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-neutral-100 border border-neutral-200 text-neutral-800 text-[11px] sm:text-xs font-bold uppercase tracking-[0.09em] mb-3.5 select-none">
-            <GoogleIcon className="w-3.5 h-3.5 shrink-0" />
-            <span>Reviews from Google</span>
-          </div>
-
-          {/* Heading */}
+          {/* Single Canonical H2 */}
           <h2
-            className="text-neutral-900 font-bold tracking-[-0.04em] leading-[1.05] mb-3.5 m-0 p-0"
-            style={{ fontSize: "clamp(34px, 3vw, 50px)" }}
+            className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-tight mb-2 sm:mb-3.5 m-0 p-0"
           >
             Loved by Customers Across Sri Lanka
           </h2>
 
           {/* Rating Summary */}
-          <div className="flex items-center justify-center gap-2 text-sm sm:text-base font-semibold text-neutral-600 mb-5 flex-wrap">
+          <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-xs sm:text-base font-semibold text-neutral-600 mb-4 sm:mb-5 flex-wrap">
             <div className="flex items-center gap-1">
-              <span className="text-amber-500 font-black text-xl leading-none">
+              <span className="text-amber-500 font-black text-base sm:text-xl leading-none">
                 {overallRating.toFixed(1)}
               </span>
               <div className="flex items-center gap-0.5">
                 {[...Array(5)].map((_, i) => (
-                  <Star key={i} className="w-4 h-4 fill-amber-400 text-amber-400" />
+                  <Star key={i} className="w-3.5 h-3.5 sm:w-4 sm:h-4 fill-amber-400 text-amber-400" />
                 ))}
               </div>
             </div>
@@ -706,14 +633,14 @@ export default function ReviewsSection({
           </div>
 
           {/* Action Links & Controls */}
-          <div className="flex items-center justify-center gap-3 flex-wrap">
+          <div className="flex items-center justify-between sm:justify-center gap-2 sm:gap-3 flex-wrap w-full sm:w-auto">
             <a
               href={mainViewAllUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-semibold transition-all shadow-sm active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-2 rounded-full sm:rounded-lg bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-semibold transition-all shadow-xs active:scale-95"
             >
-              <span>View All Google Reviews</span>
+              <span>View All Reviews</span>
               <ExternalLink className="w-3.5 h-3.5" />
             </a>
 
@@ -721,28 +648,28 @@ export default function ReviewsSection({
               href={mainWriteReviewUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-5 py-2 rounded-[8px] bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 text-xs sm:text-sm font-semibold transition-all shadow-2xs active:scale-[0.98]"
+              className="inline-flex items-center gap-1.5 px-3.5 sm:px-5 py-2 rounded-full sm:rounded-lg bg-white hover:bg-neutral-50 text-neutral-800 border border-neutral-300 text-xs sm:text-sm font-semibold transition-all shadow-2xs active:scale-95"
             >
               <Edit3 className="w-3.5 h-3.5 text-neutral-600" />
               <span>Write a Review</span>
             </a>
 
-            <div className="flex items-center gap-1.5 ml-2">
+            <div className="flex items-center gap-1.5 ml-auto sm:ml-2">
               <button
                 type="button"
                 onClick={handlePrev}
-                className="w-10 h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Previous Review"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 type="button"
                 onClick={handleNext}
-                className="w-10 h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Next Review"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>

@@ -323,7 +323,7 @@ ${alternatives.length > 0 ? `🥈 **වෙනත් හොඳම විකල්
 
 🥇 **${topPick.name}**
 💰 **Price**: ${formatPrice(topPickPrice)}${topPick.old_price ? ` (Was: ~~${formatPrice(topPick.old_price)}~~)` : ""}
-• **Stock**: ${topPick.stock_status === "in_stock" ? "✅ In Stock in Vavuniya" : "⚠️ Limited Stock"}
+• **Stock**: ${topPick.stock_status === "in_stock" ? "✅ In Stock for Express Dispatch" : "⚠️ Limited Stock"}
 • **Warranty**: ${topPick.warranty || "1-Year Genuine Company Warranty"}
 ${specsSnippet ? `\n🔍 **Key Specs:**\n${specsSnippet}\n` : ""}
 ⭐ **Why it stands out:**
@@ -375,7 +375,7 @@ ${alternatives.length > 0 ? `🥈 **Great Alternatives in this Range:**\n${alter
       if (matchedAccessories.length > 0) {
         const accText =
           style === "thanglish"
-            ? `🔌 **${targetDevice}-kaga Street Mobile-la available-a irukkura compatible accessories:**
+            ? `🔌 **${targetDevice}-kaga 1PLACE.LK-la available-a irukkura compatible accessories:**
 
 • **Fast Chargers & Adapters**: Apple 20W USB-C, Anker Fast Chargers, Baseus GaN Adapters.
 • **Protection**: Premium Shockproof Cases & 9H Tempered Glass.
@@ -419,7 +419,7 @@ You can inspect or add them directly to your cart below 👇`;
       const effPrice = p.sale_price && p.sale_price > 0 ? p.sale_price : p.price;
       const stockText =
         p.stock_status === "in_stock"
-          ? "✅ In Stock in Vavuniya Showroom"
+          ? "✅ In Stock in Colombo Showroom"
           : p.stock_status === "low_stock"
           ? "⚠️ Limited Stock Available"
           : "📦 Available on Request / Pre-Order";
@@ -474,7 +474,7 @@ Itha direct-a cart-la add panna or view panna keezha ulla card-a use pannalam �
     // ── Default Friendly Welcome / Fallback ──
     const fallbackText =
       style === "thanglish"
-        ? `Vanakkam! Naan **Streetla** 👋 Street Mobile-oda Smart AI Shopping Assistant.
+        ? `Vanakkam! Naan **1Place AI** 👋 1PLACE.LK-oda Smart AI Shopping Assistant.
 
 Ungaluku epdi help panna mudiyum?
 • 💰 **Budget Recommendations**: "100k budget kulla best phone enna?"
@@ -484,7 +484,7 @@ Ungaluku epdi help panna mudiyum?
 
 Keezha irukkura buttons-a click pannalam or unga questions-a type pannunga!`
         : style === "ta"
-        ? `வணக்கம்! நான் **Streetla** 👋 Street Mobile-ன் Smart AI Shopping Assistant.
+        ? `வணக்கம்! நான் **1Place AI** 👋 1PLACE.LK-ன் Smart AI Shopping Assistant.
 
 நான் உங்களுக்கு உதவ முடியும்:
 • 💰 **பட்ஜெட் பரிந்துரை**: "100k-க்குள் சிறந்த Phone எது?"
@@ -494,9 +494,9 @@ Keezha irukkura buttons-a click pannalam or unga questions-a type pannunga!`
 
 கீழ்வரும் button-களில் ஒன்றைத் தேர்வு செய்யலாம் அல்லது உங்கள் கேள்வியைத் தட்டச்சு செய்யவும்:`
         : style === "si" || style === "singlish"
-        ? `ආයුබෝවන්! මම **Streetla** 👋 Street Mobile AI සහයකයා.
+        ? `ආයුබෝවන්! මම **1Place AI** 👋 1PLACE.LK AI සහයකයා.
 දුරකථන නිර්දේශ, මිල ගණන්, සංසන්දනය සහ Accessories පිළිබඳව මගෙන් විමසන්න.`
-        : `Hi! I’m **Streetla** 👋 your personal AI Shopping Assistant at **Street Mobile**.
+        : `Hi! I’m **1Place AI** 👋 your personal AI Shopping Assistant at **1PLACE.LK**.
 
 How can I help you today?
 • 💰 **Budget Advice**: "Best phone under 100,000 LKR"

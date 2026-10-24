@@ -1,4 +1,5 @@
 import { jsPDF } from "jspdf";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export interface NormalizedOrderItem {
   productId: string;
@@ -47,6 +48,7 @@ export interface NormalizedOrder {
   warrantyTotal: number;
   deliveryFee: number;
   codFee: number;
+  cardFee?: number;
   discountTotal: number;
   grandTotal: number;
   currency: string;
@@ -99,10 +101,10 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
   const addrObj = data.deliveryAddress || data.shippingAddress || {};
   const deliveryAddress = {
     address: addrObj.address || data.address || "No street address provided",
-    city: addrObj.city || data.city || "Vavuniya",
-    district: addrObj.district || data.district || "Vavuniya",
-    province: addrObj.province || data.province || "Northern Province",
-    postalCode: addrObj.postalCode || data.postalCode || "43000",
+    city: addrObj.city || data.city || "Colombo",
+    district: addrObj.district || data.district || "Colombo",
+    province: addrObj.province || data.province || "Western Province",
+    postalCode: addrObj.postalCode || data.postalCode || "00300",
     landmark: addrObj.landmark || data.landmark || "",
     instructions: addrObj.instructions || data.instructions || "",
   };
@@ -136,6 +138,7 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
   // 5. Resolve Fees & Discounts
   const deliveryFee = typeof data.deliveryFee === "number" ? data.deliveryFee : data.deliveryOption === "pickup" ? 0 : 450;
   const codFee = typeof data.codFee === "number" ? data.codFee : data.paymentMethod === "cod" || data.paymentMethod === "COD" ? 250 : 0;
+  const cardFee = typeof data.cardFee === "number" ? data.cardFee : typeof data.payhereFee === "number" ? data.payhereFee : 0;
   const warrantyTotal = typeof data.warrantyTotal === "number" ? data.warrantyTotal : 0;
   const discountTotal = typeof data.discountTotal === "number" ? data.discountTotal : data.couponDiscount || 0;
 
@@ -143,7 +146,7 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
   let grandTotal = typeof data.grandTotal === "number" ? data.grandTotal : typeof data.totalPrice === "number" ? data.totalPrice : 0;
   let needsReview = false;
 
-  const reconstructedTotal = calculatedSubtotal + deliveryFee + codFee + warrantyTotal - discountTotal;
+  const reconstructedTotal = calculatedSubtotal + deliveryFee + codFee + cardFee + warrantyTotal - discountTotal;
 
   if (grandTotal === 0 && reconstructedTotal > 0) {
     grandTotal = reconstructedTotal;
@@ -212,6 +215,7 @@ export function normalizeOrder(docData: any, docId: string): NormalizedOrder {
     warrantyTotal,
     deliveryFee,
     codFee,
+    cardFee,
     discountTotal,
     grandTotal,
     currency: "LKR",
@@ -245,14 +249,14 @@ export function printOrderInvoice(order: NormalizedOrder) {
   // Header Branding
   doc.setFont("helvetica", "bold");
   doc.setFontSize(22);
-  doc.text("STREET MOBILE", 14, 20);
+  doc.text(BUSINESS_INFO.name.toUpperCase(), 14, 20);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(100);
-  doc.text("163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya, Sri Lanka", 14, 26);
-  doc.text("Tel: +94 77 414 1118 | Email: streetmobilevavuniya@gmail.com", 14, 31);
-  doc.text("Web: www.streetmobile.lk", 14, 36);
+  doc.text(BUSINESS_INFO.address, 14, 26);
+  doc.text(`Tel: ${BUSINESS_INFO.phonePrimary} | Email: ${BUSINESS_INFO.email}`, 14, 31);
+  doc.text(`Web: ${BUSINESS_INFO.website}`, 14, 36);
 
   // Invoice Details Header (Right Side)
   doc.setFont("helvetica", "bold");
@@ -338,7 +342,7 @@ export function printOrderInvoice(order: NormalizedOrder) {
   }
   y += 7;
   doc.setFontSize(12);
-  doc.setTextColor(0, 102, 204);
+  doc.setTextColor(17, 17, 17);
   doc.text(`Grand Total: ${formatLKR(order.grandTotal)}`, 140, y);
 
   // Save PDF
@@ -353,7 +357,7 @@ export function printPackingSlip(order: NormalizedOrder) {
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(20);
-  doc.text("STREET MOBILE — PACKING SLIP", 14, 20);
+  doc.text(`${BUSINESS_INFO.name.toUpperCase()} — PACKING SLIP`, 14, 20);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");

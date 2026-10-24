@@ -1,17 +1,17 @@
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact Us & Store Location in Vavuniya | Street Mobile",
-  description: "Visit Street Mobile at 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya. Contact us via phone (+94 24 222 8118) or WhatsApp for mobile inquiries, orders, and support.",
+  title: "Contact Us & Colombo Flagship Store | 1PLACE.LK",
+  description: "Visit 1PLACE.LK at 42, Galle Road, Colombo 03, Sri Lanka. Contact us via phone (+94 11 234 5678) or WhatsApp for inquiries, premium orders, and certified support.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/contact",
+    canonical: "https://www.1place.lk/contact",
   },
   openGraph: {
-    title: "Contact Street Mobile Vavuniya | Mobile Shop in Sri Lanka",
-    description: "Visit our physical store in Vavuniya or contact our customer support for inquiries, orders, and repair services.",
-    url: "https://www.streetmobile.lk/contact",
+    title: "Contact 1PLACE.LK Colombo Flagship | Premium E-Commerce Platform",
+    description: "Visit our flagship showroom in Colombo or contact our customer support for inquiries, orders, and nationwide delivery support.",
+    url: "https://www.1place.lk/contact",
     type: "website",
-    siteName: "Street Mobile",
+    siteName: "1PLACE.LK",
   },
 };
 

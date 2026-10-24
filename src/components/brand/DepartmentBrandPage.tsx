@@ -422,7 +422,7 @@ export default function DepartmentBrandPage({
 
   const sectionDescription =
     config.productSectionDescription ||
-    `Explore genuine ${brand.name} ${department.name.toLowerCase()} models available at Street Mobile.`;
+    `Explore genuine ${brand.name} ${department.name.toLowerCase()} models available at 1PLACE.LK.`;
 
   return (
     <div className="min-h-screen bg-white text-neutral-900 font-sans pb-24">

@@ -1,6 +1,6 @@
-# StreetMobile.lk — Comprehensive Technical & E-commerce SEO Audit & Implementation Report
+# 1PLACE.LK — Comprehensive Technical & E-commerce SEO Audit & Implementation Report
 
-**Domain:** [https://www.streetmobile.lk](https://www.streetmobile.lk)  
+**Domain:** [https://www.1place.lk](https://www.1place.lk)  
 **Location Target:** Sri Lanka (Islandwide) & Vavuniya (Physical Store Presence)  
 **Framework:** Next.js (App Router), React, Tailwind CSS, Firebase Firestore  
 **Audit & Implementation Date:** September 2026  
@@ -10,7 +10,7 @@
 
 ## Executive Summary
 
-StreetMobile.lk is a specialized Sri Lankan e-commerce retailer offering genuine Apple, Samsung, Xiaomi, and Google Pixel smartphones, smart accessories, and repair services with a flagship showroom in Vavuniya.
+1PLACE.LK is a specialized Sri Lankan e-commerce retailer offering genuine Apple, Samsung, Xiaomi, and Google Pixel smartphones, smart accessories, and repair services with a flagship showroom in Vavuniya.
 
 This comprehensive audit and implementation cycle addressed critical technical crawling bottlenecks, structured data inconsistencies, zero-price anomalies (`LKR 0`), out-of-stock pre-order conversions, and launched an automated Google Merchant Center XML product feed compliant with Google Shopping specifications.
 
@@ -83,7 +83,7 @@ Generated dynamically on `src/app/products/[slug]/page.tsx`:
     * `availability`: `https://schema.org/InStock`, `https://schema.org/PreOrder`, or `https://schema.org/OutOfStock`
     * `itemCondition`: `https://schema.org/NewCondition`
     * `url`: Canonical product link
-    * `seller`: `{"@type": "Organization", "name": "Street Mobile"}`
+    * `seller`: `{"@type": "Organization", "name": "1PLACE.LK"}`
   * `aggregateRating`: Included if genuine customer reviews exist.
 
 ### B. BreadcrumbList Schema
@@ -95,21 +95,21 @@ Generated dynamically on `src/app/products/[slug]/page.tsx`:
 
 ---
 
-## 4. Local SEO & Organization Schema (Sri Lanka & Vavuniya Targeting)
+## 4. Local SEO & Organization Schema (Sri Lanka & Colombo Targeting)
 
 ### A. Verified Physical Store Data
-* **Name:** Street Mobile
-* **Legal Entity:** STREET MOBILE (Pvt) Ltd
-* **Store Address:** 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Northern Province 43000, Sri Lanka
-* **Hotline:** +94 24 222 8118 / +94 77 414 1118
-* **Coordinates:** Latitude `8.7514`, Longitude `80.4971`
-* **Google Maps:** [https://maps.app.goo.gl/dvxBpsvxR86bGqar9](https://maps.app.goo.gl/dvxBpsvxR86bGqar9)
-* **Opening Hours:** Mon–Sat 09:00–21:00, Sun 10:00–18:00
+* **Name:** 1PLACE.LK
+* **Legal Entity:** 1PLACE.LK (Pvt) Ltd
+* **Store Address:** 42, Galle Road, Colombo 03, Western Province 00300, Sri Lanka
+* **Hotline:** +94 11 234 5678 / +94 77 123 4567
+* **Coordinates:** Latitude `6.9010`, Longitude `79.8528`
+* **Google Maps:** [https://maps.google.com/?q=Colombo+03+Sri+Lanka](https://maps.google.com/?q=Colombo+03+Sri+Lanka)
+* **Opening Hours:** Mon–Sat 09:00–20:00, Sun 10:00–18:00
 * **Currencies:** LKR (Sri Lankan Rupee)
 
 ### B. Schema Implementations
 * In `src/app/layout.tsx`:
-  * `Organization` Schema: Official logo, telephone, corporate email, and verified social media links (`facebook.com/streetmobile.lk`, `instagram.com/streetmobile.lk`, `tiktok.com/@streetmobile.lk`).
+  * `Organization` Schema: Official logo, telephone, corporate email, and verified social media links (`facebook.com/1place.lk`, `instagram.com/1place.lk`, `tiktok.com/@1place.lk`).
   * `MobilePhoneStore` Schema: Precise geolocation, opening hours, accepted payment methods (Cash, Card, Online, COD), price range, and Google Maps pin.
   * `WebSite` Schema with `SearchAction` deep-link.
 * In `src/app/contact/page.tsx`:
@@ -121,8 +121,8 @@ Generated dynamically on `src/app/products/[slug]/page.tsx`:
 
 ### A. Automated RSS 2.0 Product Feed
 * **Endpoints:**
-  * Primary: `https://www.streetmobile.lk/feed.xml`
-  * Secondary / API: `https://www.streetmobile.lk/api/products/feed`
+  * Primary: `https://www.1place.lk/feed.xml`
+  * Secondary / API: `https://www.1place.lk/api/products/feed`
 * **Specification:** Compliant with Google Merchant Center RSS 2.0 with XML namespace `xmlns:g="http://base.google.com/ns/1.0"`.
 * **Output Attributes:**
   * `<g:id>`: Unique SKU or product ID
@@ -206,10 +206,10 @@ Generated dynamically on `src/app/products/[slug]/page.tsx`:
 1. **Google Search Console Verification:**
    * Verification meta tag is already present in `src/app/layout.tsx`:
      `<meta name="google-site-verification" content="YzSUb_wi1C3ZXkCndwwsgeKYZotb4zW6EvN_N-NnTOo" />`.
-   * Submit `https://www.streetmobile.lk/sitemap.xml` in Search Console > Sitemaps.
+   * Submit `https://www.1place.lk/sitemap.xml` in Search Console > Sitemaps.
 2. **Google Merchant Center:**
    * Create an account at [merchants.google.com](https://merchants.google.com).
    * Verify website ownership and add product feed URL:
-     `https://www.streetmobile.lk/feed.xml` with daily refresh schedule.
+     `https://www.1place.lk/feed.xml` with daily refresh schedule.
 3. **Google Business Profile:**
    * Ensure the Vavuniya physical store address (163, Kandaswamy Kovil Road, Rambaikulam) exactly matches the schema in `src/app/layout.tsx` for maximum local pack ranking power.

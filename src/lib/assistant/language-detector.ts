@@ -1,5 +1,5 @@
 /**
- * Language & Writing Style Detector for Street Assistant
+ * Language & Writing Style Detector for 1Place AI Shopping Assistant
  * Supports:
  * - "en" (English)
  * - "ta" (Tamil Unicode Script)

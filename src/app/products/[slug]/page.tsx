@@ -32,7 +32,7 @@ function resolveProductBrand(product: any): string {
   if (name.includes("lenyes")) return "Lenyes";
   if (name.includes("oraimo")) return "Oraimo";
 
-  return product.category_name || "Street Mobile";
+  return product.category_name || "1PLACE.LK";
 }
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
@@ -41,8 +41,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 
   if (!product) {
     return {
-      title: "Product Not Found | Street Mobile Sri Lanka",
-      description: "The requested smartphone or mobile accessory could not be found at Street Mobile Sri Lanka.",
+      title: "Product Not Found | 1PLACE.LK Sri Lanka",
+      description: "The requested smartphone or mobile accessory could not be found at 1PLACE.LK Sri Lanka.",
       robots: { index: false, follow: true },
     };
   }
@@ -61,16 +61,16 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   const warranty = product.warranty || product.brand_warranty || "Official Company Warranty";
   const stockText = product.stock_status === "out_of_stock" ? "Available for Pre-Order" : "In Stock & Ready for Delivery";
 
-  const title = `${fullName} Price in Sri Lanka | Street Mobile`;
+  const title = `${fullName} Price in Sri Lanka | 1PLACE.LK`;
   const description =
     product.description && product.description.length > 40
-      ? `${fullName} price in Sri Lanka: ${priceStr}. ${stockText} with ${warranty}. Buy genuine ${brand} devices at Street Mobile Vavuniya with express islandwide delivery.`
-      : `Buy original ${fullName} (${brand}) in Sri Lanka at Street Mobile. Best price ${priceStr}, ${warranty}, and express islandwide delivery.`;
+      ? `${fullName} price in Sri Lanka: ${priceStr}. ${stockText} with ${warranty}. Buy genuine ${brand} devices at 1PLACE.LK with express islandwide delivery.`
+      : `Buy original ${fullName} (${brand}) in Sri Lanka at 1PLACE.LK. Best price ${priceStr}, ${warranty}, and express islandwide delivery.`;
 
-  const canonicalUrl = `https://www.streetmobile.lk/products/${product.slug || slug}`;
+  const canonicalUrl = `https://www.1place.lk/products/${product.slug || slug}`;
   const images = product.images && product.images.length > 0
-    ? product.images.map((img) => ({ url: img, alt: `${fullName} - Street Mobile Sri Lanka` }))
-    : [{ url: "https://www.streetmobile.lk/logo.png", alt: fullName }];
+    ? product.images.map((img) => ({ url: img, alt: `${fullName} - 1PLACE.LK Sri Lanka` }))
+    : [{ url: "https://www.1place.lk/logo.svg", alt: fullName }];
 
   return {
     title,
@@ -84,14 +84,14 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
       images,
       url: canonicalUrl,
       type: "website",
-      siteName: "Street Mobile",
+      siteName: "1PLACE.LK",
       locale: "en_LK",
     },
     twitter: {
       card: "summary_large_image",
       title,
       description,
-      images: product.images?.[0] ? [product.images[0]] : ["https://www.streetmobile.lk/logo.png"],
+      images: product.images?.[0] ? [product.images[0]] : ["https://www.1place.lk/logo.svg"],
     },
   };
 }
@@ -129,10 +129,10 @@ export default async function ProductDetailPage({
   const productJsonLd: Record<string, any> = {
     "@context": "https://schema.org",
     "@type": "Product",
-    "@id": `https://www.streetmobile.lk/products/${product.slug || slug}#product`,
+    "@id": `https://www.1place.lk/products/${product.slug || slug}#product`,
     "name": product.name,
-    "image": product.images && product.images.length > 0 ? product.images : ["https://www.streetmobile.lk/logo.png"],
-    "description": product.description || `Buy ${product.name} at Street Mobile in Sri Lanka with warranty and islandwide delivery.`,
+    "image": product.images && product.images.length > 0 ? product.images : ["https://www.1place.lk/logo.svg"],
+    "description": product.description || `Buy ${product.name} at 1PLACE.LK in Sri Lanka with warranty and islandwide delivery.`,
     "sku": validSku,
     "mpn": validSku,
     "brand": {
@@ -143,7 +143,7 @@ export default async function ProductDetailPage({
       ? {
           "offers": {
             "@type": "Offer",
-            "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
+            "url": `https://www.1place.lk/products/${product.slug || slug}`,
             "priceCurrency": "LKR",
             "price": effectivePrice,
             "priceValidUntil": new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0],
@@ -153,24 +153,24 @@ export default async function ProductDetailPage({
               : "https://schema.org/InStock",
             "seller": {
               "@type": "Organization",
-              "@id": "https://www.streetmobile.lk/#organization",
-              "name": "Street Mobile",
-              "url": "https://www.streetmobile.lk"
+              "@id": "https://www.1place.lk/#organization",
+              "name": "1PLACE.LK",
+              "url": "https://www.1place.lk"
             }
           }
         }
       : {
           "offers": {
             "@type": "Offer",
-            "url": `https://www.streetmobile.lk/products/${product.slug || slug}`,
+            "url": `https://www.1place.lk/products/${product.slug || slug}`,
             "priceCurrency": "LKR",
             "availability": isPreOrder ? "https://schema.org/PreOrder" : "https://schema.org/OutOfStock",
             "itemCondition": "https://schema.org/NewCondition",
             "seller": {
               "@type": "Organization",
-              "@id": "https://www.streetmobile.lk/#organization",
-              "name": "Street Mobile",
-              "url": "https://www.streetmobile.lk"
+              "@id": "https://www.1place.lk/#organization",
+              "name": "1PLACE.LK",
+              "url": "https://www.1place.lk"
             }
           }
         }),
@@ -195,25 +195,25 @@ export default async function ProductDetailPage({
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk"
+        "item": "https://www.1place.lk"
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": categoryName,
-        "item": `https://www.streetmobile.lk/category/${categorySlug}`
+        "item": `https://www.1place.lk/category/${categorySlug}`
       },
       {
         "@type": "ListItem",
         "position": 3,
         "name": brand,
-        "item": `https://www.streetmobile.lk/products?brand=${encodeURIComponent(brand)}`
+        "item": `https://www.1place.lk/products?brand=${encodeURIComponent(brand)}`
       },
       {
         "@type": "ListItem",
         "position": 4,
         "name": product.name,
-        "item": `https://www.streetmobile.lk/products/${product.slug || slug}`
+        "item": `https://www.1place.lk/products/${product.slug || slug}`
       }
     ]
   };

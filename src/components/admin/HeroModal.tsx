@@ -88,6 +88,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
   const [hideTextOnMobile, setHideTextOnMobile] = useState(false);
   const [hideButtonsOnMobile, setHideButtonsOnMobile] = useState(false);
 
+  // Full-Width Banner & Image Fit Controls
+  const [bannerBgColor, setBannerBgColor] = useState("#64152F");
+  const [desktopBannerHeight, setDesktopBannerHeight] = useState("620px");
+  const [mobileBannerHeight, setMobileBannerHeight] = useState("440px");
+  const [imageFitMode, setImageFitMode] = useState<"contain" | "cover">("cover");
+  const [descriptionSize, setDescriptionSize] = useState("16px");
+  const [autoplayDuration, setAutoplayDuration] = useState<number>(5.5);
+
   const [desktopFile, setDesktopFile] = useState<File | null>(null);
   const [mobileFile, setMobileFile] = useState<File | null>(null);
   const [desktopPreview, setDesktopPreview] = useState<string>("");
@@ -142,6 +150,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setHideContentOnMobile(slide.hide_content_on_mobile ?? false);
       setHideTextOnMobile(slide.hide_text_on_mobile ?? false);
       setHideButtonsOnMobile(slide.hide_buttons_on_mobile ?? false);
+
+      // Full-Width Banner & Image Fit Controls
+      setBannerBgColor(slide.banner_bg_color || slide.bg_color || "#64152F");
+      setDesktopBannerHeight(slide.desktop_banner_height || "620px");
+      setMobileBannerHeight(slide.mobile_banner_height || "440px");
+      setImageFitMode(slide.image_fit_mode || "cover");
+      setDescriptionSize(slide.description_size || "16px");
+      setAutoplayDuration(slide.autoplay_duration ?? 5.5);
 
       // Custom Styling
       setBadgeTextColor(slide.badge_text_color || "#FFFFFF");
@@ -208,6 +224,14 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
       setHideContentOnMobile(false);
       setHideTextOnMobile(false);
       setHideButtonsOnMobile(false);
+
+      // Full-Width Banner & Image Fit Controls Defaults
+      setBannerBgColor("#64152F");
+      setDesktopBannerHeight("620px");
+      setMobileBannerHeight("440px");
+      setImageFitMode("contain");
+      setDescriptionSize("16px");
+      setAutoplayDuration(5.5);
 
       // Default Custom Styling
       setBadgeTextColor("#FFFFFF");
@@ -285,7 +309,7 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         image_url: mainImg,
         desktop_image_url: mainImg,
         mobile_image_url: finalMobileUrl || mainImg,
-        alt: alt.trim() || computedHeading || "Street Mobile Hero Banner",
+        alt: alt.trim() || computedHeading || "1PLACE.LK Hero Banner",
         campaign_label: campaignLabel.trim(),
         heading: computedHeading,
         heading_line_1: headingLine1.trim(),
@@ -353,6 +377,15 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
         letter_spacing: letterSpacing,
         banner_size_ratio: bannerSizeRatio,
         bannerSizeRatio: bannerSizeRatio,
+
+        // Full-Width Banner & Image Fit Controls
+        banner_bg_color: bannerBgColor.trim(),
+        bg_color: bannerBgColor.trim(),
+        desktop_banner_height: desktopBannerHeight,
+        mobile_banner_height: mobileBannerHeight,
+        image_fit_mode: imageFitMode,
+        description_size: descriptionSize,
+        autoplay_duration: Number(autoplayDuration) || 5.5,
       });
 
       onClose();
@@ -422,14 +455,22 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
             </div>
 
             {/* Live Banner Box */}
-            <div className={`relative w-full rounded-2xl overflow-hidden bg-black border border-white/20 shadow-xl transition-all ${
-              previewDevice === "mobile" ? "aspect-[9/10] max-w-xs mx-auto" : "aspect-[21/9]"
-            }`}>
-              {/* Background Image */}
+            <div
+              className={`relative w-full rounded-2xl overflow-hidden border border-white/20 shadow-xl transition-all ${
+                previewDevice === "mobile" ? "aspect-[9/11] max-w-xs mx-auto" : "aspect-[21/9]"
+              }`}
+              style={{ background: bannerBgColor }}
+            >
+              {/* Background / Product Image */}
               <img
                 src={currentPreviewImage}
                 alt="Banner preview"
-                className="absolute inset-0 w-full h-full object-cover"
+                className={`absolute inset-0 w-full h-full transition-all ${
+                  imageFitMode === "contain" ? "object-contain" : "object-cover"
+                }`}
+                style={{
+                  objectPosition: previewDevice === "mobile" ? mobileImagePosition : desktopImagePosition,
+                }}
                 onError={(e) => {
                   (e.target as HTMLImageElement).src = "/hero-slide-1.png";
                 }}
@@ -437,7 +478,7 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
 
               {/* Overlay with custom opacity */}
               <div
-                className="absolute inset-0 z-10 transition-colors"
+                className="absolute inset-0 z-10 transition-colors pointer-events-none"
                 style={{
                   backgroundColor: overlayColor,
                   opacity: overlayOpacity / 100,
@@ -445,47 +486,247 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
               />
 
               {/* Text Layer */}
-              <div className="relative z-20 p-6 sm:p-8 h-full flex flex-col justify-center">
-                <div className="max-w-md space-y-2">
-                  {campaignLabel && (
+              <div className="relative z-20 p-5 sm:p-7 h-full flex flex-col justify-between pointer-events-none">
+                <div className="max-w-md space-y-1.5">
+                  {campaignLabel && showBadge && (
                     <span
-                      className="inline-block px-3 py-1 text-[10px] font-black uppercase tracking-wider rounded-md"
+                      className="inline-block px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider rounded-md"
                       style={{ color: badgeTextColor, backgroundColor: badgeBgColor }}
                     >
                       {campaignLabel}
                     </span>
                   )}
                   <h4
-                    className="text-lg sm:text-2xl font-black leading-tight tracking-tight drop-shadow-md"
-                    style={{ color: headingColor }}
+                    className="text-base sm:text-xl font-black leading-tight tracking-tight drop-shadow-md"
+                    style={{ color: headingLine1Color || headingColor }}
                   >
-                    {heading || "Banner Heading"}
+                    {headingLine1 || heading || "Banner Heading"}
+                    {headingLine2 && (
+                      <span className="block" style={{ color: headingLine2Color || headingColor }}>
+                        {headingLine2}
+                      </span>
+                    )}
                   </h4>
-                  <p
-                    className="text-xs sm:text-sm line-clamp-2 font-medium"
-                    style={{ color: descriptionColor }}
-                  >
-                    {description || "Supporting campaign text description goes here."}
-                  </p>
+                  {description && showDescription && (
+                    <p
+                      className="line-clamp-2 font-medium"
+                      style={{
+                        color: descriptionColor,
+                        fontSize: descriptionSize,
+                      }}
+                    >
+                      {description}
+                    </p>
+                  )}
                   {promoText && (
-                    <span className="text-xs font-bold text-red-500 block">
-                      {promoText}
+                    <span className="text-xs font-bold text-yellow-400 block drop-shadow-xs">
+                      Starting at {promoText.replace(/^Starting\s+at\s+/i, "")}
                     </span>
                   )}
-                  <div className="flex items-center gap-2 pt-2">
+                </div>
+
+                <div className="flex items-center gap-2 pt-2">
+                  {showPrimaryButton && (
                     <span
-                      className="px-4 py-2 text-xs font-bold rounded-xl shadow-sm"
+                      className="px-4 py-1.5 text-xs font-bold rounded-full shadow-sm"
                       style={{ color: buttonTextColor, backgroundColor: buttonBgColor }}
                     >
                       {primaryButtonText || "Shop Now"}
                     </span>
-                    {showSecondaryButton && (
-                      <span className="px-4 py-2 border border-white/30 text-white text-xs font-bold rounded-xl bg-black/30 backdrop-blur-md">
-                        {secondaryButtonText || "View Product"}
-                      </span>
-                    )}
-                  </div>
+                  )}
+                  {showSecondaryButton && (
+                    <span className="px-3.5 py-1.5 border border-white/30 text-white text-xs font-bold rounded-full bg-black/30 backdrop-blur-md">
+                      {secondaryButtonText || "View"}
+                    </span>
+                  )}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* ════════════════════════════════════════════════════════════════════
+              FULL-WIDTH BANNER & IMAGE CONTROLS (Requirements 1, 2, 3, 4)
+          ════════════════════════════════════════════════════════════════════ */}
+          <div className="p-4 bg-gradient-to-br from-[#64152F]/25 via-slate-900 to-black/40 border border-[#64152F]/50 rounded-2xl space-y-4">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-black uppercase tracking-wider text-rose-300 flex items-center gap-2">
+                <Sliders className="w-4 h-4 text-rose-400" /> Full-Width Banner &amp; Image Display Controls
+              </h4>
+              <span className="px-2 py-0.5 rounded bg-rose-500/20 text-rose-300 font-mono text-[10px] font-bold">
+                100% Viewport Width
+              </span>
+            </div>
+
+            {/* Background Color & Blending */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-bold text-white/90">
+                  Banner Background Color (Blends with Uploaded Artwork)
+                </label>
+                <span className="text-[10px] text-white/50 font-mono">{bannerBgColor}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="color"
+                  value={bannerBgColor.startsWith("#") ? bannerBgColor : "#64152F"}
+                  onChange={(e) => setBannerBgColor(e.target.value)}
+                  className="w-10 h-10 rounded-xl border border-white/20 cursor-pointer bg-transparent shrink-0"
+                />
+                <input
+                  type="text"
+                  value={bannerBgColor}
+                  onChange={(e) => setBannerBgColor(e.target.value)}
+                  placeholder="#64152F"
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono font-bold focus:ring-1 focus:ring-rose-500 outline-none uppercase"
+                />
+              </div>
+
+              {/* Quick Brand Color Presets */}
+              <div className="flex items-center gap-1.5 pt-1 flex-wrap">
+                <span className="text-[10px] text-white/50 font-medium mr-1">Brand Presets:</span>
+                {[
+                  { label: "1PLACE Burgundy", color: "#64152F" },
+                  { label: "Deep Wine", color: "#4A0E22" },
+                  { label: "Jet Black", color: "#111111" },
+                  { label: "Midnight Slate", color: "#0F172A" },
+                  { label: "Pure White", color: "#FFFFFF" },
+                ].map((preset) => (
+                  <button
+                    key={preset.color}
+                    type="button"
+                    onClick={() => setBannerBgColor(preset.color)}
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[10px] font-bold border border-white/10 bg-white/5 hover:bg-white/10 text-white/80 transition-all cursor-pointer"
+                  >
+                    <span
+                      className="w-2.5 h-2.5 rounded-full border border-white/20"
+                      style={{ backgroundColor: preset.color }}
+                    />
+                    <span>{preset.label}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Image Fit Mode: Contain vs Cover */}
+            <div className="pt-3 border-t border-white/10 space-y-2">
+              <label className="block text-xs font-bold text-white/90">
+                Image Fit Mode (Display Mode for Uploaded Image)
+              </label>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <button
+                  type="button"
+                  onClick={() => setImageFitMode("cover")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                    imageFitMode === "cover"
+                      ? "bg-rose-600/30 border-rose-500 text-white shadow-md ring-1 ring-rose-500"
+                      : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-white">Cover (Full Frame)</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-emerald-500 text-white">Recommended</span>
+                  </div>
+                  <p className="text-[10px] text-white/60 leading-tight">
+                    Fills the entire hero section edge-to-edge as a background image with text overlaid on top.
+                  </p>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setImageFitMode("contain")}
+                  className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between gap-1 ${
+                    imageFitMode === "contain"
+                      ? "bg-rose-600/30 border-rose-500 text-white shadow-md ring-1 ring-rose-500"
+                      : "bg-black/30 border-white/10 text-white/60 hover:bg-white/5 hover:text-white"
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-white">Contain (Letterboxed)</span>
+                    <span className="text-[9px] font-bold px-1.5 py-0.2 rounded bg-neutral-600 text-white">No Crop</span>
+                  </div>
+                  <p className="text-[10px] text-white/60 leading-tight">
+                    Preserves original aspect ratio without cropping, blending with the background color.
+                  </p>
+                </button>
+              </div>
+            </div>
+
+            {/* Desktop & Mobile Banner Heights */}
+            <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/80 mb-1">
+                  Desktop Banner Height
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={desktopBannerHeight}
+                    onChange={(e) => setDesktopBannerHeight(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-rose-500 outline-none"
+                  >
+                    <option value="560px">560px (Compact)</option>
+                    <option value="600px">600px (Medium)</option>
+                    <option value="620px">620px (Default Standard)</option>
+                    <option value="680px">680px (Spacious)</option>
+                    <option value="740px">740px (Hero Cinematic)</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/80 mb-1">
+                  Mobile Banner Height
+                </label>
+                <div className="flex items-center gap-1.5">
+                  <select
+                    value={mobileBannerHeight}
+                    onChange={(e) => setMobileBannerHeight(e.target.value)}
+                    className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-rose-500 outline-none"
+                  >
+                    <option value="380px">380px (Compact)</option>
+                    <option value="420px">420px (Standard)</option>
+                    <option value="440px">440px (Default Balanced)</option>
+                    <option value="480px">480px (Large)</option>
+                    <option value="520px">520px (Tall Showcase)</option>
+                    <option value="auto">Auto</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Autoplay Duration & Description Font Size */}
+            <div className="pt-3 border-t border-white/10 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-[11px] font-bold text-white/80 mb-1">
+                  Autoplay Duration (Slide Rotation Timer)
+                </label>
+                <select
+                  value={String(autoplayDuration)}
+                  onChange={(e) => setAutoplayDuration(Number(e.target.value))}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-rose-500 outline-none"
+                >
+                  <option value="3">3 Seconds (Fast)</option>
+                  <option value="4">4 Seconds (Brisk)</option>
+                  <option value="5.5">5.5 Seconds (Default Balanced)</option>
+                  <option value="7">7 Seconds (Relaxed)</option>
+                  <option value="10">10 Seconds (Slow Showcase)</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-bold text-white/80 mb-1">
+                  Description Font Size
+                </label>
+                <select
+                  value={descriptionSize}
+                  onChange={(e) => setDescriptionSize(e.target.value)}
+                  className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-rose-500 outline-none"
+                >
+                  <option value="14px">14px (Compact)</option>
+                  <option value="16px">16px (Standard Default)</option>
+                  <option value="18px">18px (Large &amp; Clear)</option>
+                  <option value="20px">20px (Lead Prominent)</option>
+                </select>
               </div>
             </div>
           </div>
@@ -799,67 +1040,86 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
             </div>
           </div>
 
-          {/* Desktop & Mobile Images */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-white/70">
-                Desktop Image (URL or File) *
+          {/* ════════════════════════════════════════════════════════════════════
+              ADMIN-CONFIGURED BANNER IMAGE (Requirement 2)
+          ════════════════════════════════════════════════════════════════════ */}
+          <div className="p-4 bg-white/5 border border-white/10 rounded-2xl space-y-3.5">
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-bold uppercase tracking-wider text-white/90 flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 text-sky-400" />
+                Admin-Uploaded Banner Image (External URL or Direct Upload)
               </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  id="desktopUpload"
-                  accept="image/*"
-                  onChange={handleDesktopFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="desktopUpload"
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 flex items-center gap-1.5"
-                >
-                  <Upload className="w-3.5 h-3.5 text-emerald-400" /> Upload
-                </label>
-                <input
-                  type="text"
-                  value={imageUrl}
-                  onChange={(e) => {
-                    setImageUrl(e.target.value);
-                    setDesktopPreview(e.target.value);
-                  }}
-                  placeholder="https://..."
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none"
-                />
-              </div>
+              <span className="text-[10px] text-sky-300 font-mono font-bold bg-sky-500/10 px-2 py-0.5 rounded border border-sky-500/20">
+                Live Sync
+              </span>
             </div>
+            <p className="text-[11px] text-white/60 leading-relaxed">
+              Paste an external image URL (e.g. from Cloudinary, Imgur, AWS S3, or Firebase) or upload directly from your device. The hero banner updates automatically in real-time when saved.
+            </p>
 
-            <div className="space-y-2">
-              <label className="block text-xs font-bold text-white/70">
-                Mobile Image (Optional)
-              </label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  id="mobileUpload"
-                  accept="image/*"
-                  onChange={handleMobileFileChange}
-                  className="hidden"
-                />
-                <label
-                  htmlFor="mobileUpload"
-                  className="px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 flex items-center gap-1.5"
-                >
-                  <Upload className="w-3.5 h-3.5 text-emerald-400" /> Upload
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+              {/* Desktop Image */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-white/80">
+                  Desktop Banner Image URL *
                 </label>
-                <input
-                  type="text"
-                  value={mobileImageUrl}
-                  onChange={(e) => {
-                    setMobileImageUrl(e.target.value);
-                    setMobilePreview(e.target.value);
-                  }}
-                  placeholder="https://... (Leave blank for Desktop image)"
-                  className="w-full px-3 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none"
-                />
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="desktopUpload"
+                    accept="image/*"
+                    onChange={handleDesktopFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="desktopUpload"
+                    className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 flex items-center gap-1.5 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" /> Upload
+                  </label>
+                  <input
+                    type="text"
+                    value={imageUrl}
+                    onChange={(e) => {
+                      setImageUrl(e.target.value);
+                      setDesktopPreview(e.target.value);
+                    }}
+                    placeholder="https://images.unsplash.com/..."
+                    className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
+              </div>
+
+              {/* Mobile Image */}
+              <div className="space-y-2">
+                <label className="block text-xs font-bold text-white/80">
+                  Mobile Banner Image URL (Optional)
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="mobileUpload"
+                    accept="image/*"
+                    onChange={handleMobileFileChange}
+                    className="hidden"
+                  />
+                  <label
+                    htmlFor="mobileUpload"
+                    className="px-3.5 py-2 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold cursor-pointer shrink-0 flex items-center gap-1.5 transition-colors"
+                  >
+                    <Upload className="w-3.5 h-3.5 text-emerald-400" /> Upload
+                  </label>
+                  <input
+                    type="text"
+                    value={mobileImageUrl}
+                    onChange={(e) => {
+                      setMobileImageUrl(e.target.value);
+                      setMobilePreview(e.target.value);
+                    }}
+                    placeholder="https://... (Leave blank to use Desktop image)"
+                    className="w-full px-3 py-2 bg-neutral-900 border border-white/10 rounded-xl text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none"
+                  />
+                </div>
               </div>
             </div>
           </div>
@@ -880,7 +1140,7 @@ export default function HeroModal({ isOpen, onClose, onSave, slide }: HeroModalP
                   type="text"
                   value={campaignLabel}
                   onChange={(e) => setCampaignLabel(e.target.value)}
-                  placeholder="e.g. YOUR TRUSTED STORE IN VAVUNIYA"
+                  placeholder="e.g. YOUR TRUSTED TECH STORE IN SRI LANKA"
                   className="w-full px-3.5 py-2 bg-white/5 border border-white/10 rounded-xl text-white text-xs font-semibold focus:ring-1 focus:ring-emerald-500 outline-none"
                 />
               </div>

@@ -23,11 +23,11 @@ import { setSelectedCheckoutItems } from "@/lib/checkout-store";
 export default function CartClient() {
   const router = useRouter();
   const { user } = useAuth();
-  const { cart, updateQuantity, removeFromCart } = useCart();
+  const { cart, updateQuantity, removeFromCart, hasFreeGift, hasQualifyingPaidItems } = useCart();
   const { wishlist, toggleWishlist } = useWishlist();
 
   // Selected item IDs (by unique key: productId + variantId)
-  const getItemKey = (item: CartItem) => `${item.productId}_${item.variantId || ""}_${item.color || ""}_${item.storage || ""}`;
+  const getItemKey = (item: CartItem) => `${item.productId}_${item.variantId || ""}_${item.color || ""}_${item.storage || ""}_${item.isFreeGift ? "gift" : "regular"}`;
 
   const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
 
@@ -65,8 +65,17 @@ export default function CartClient() {
     return selectedItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
   }, [selectedItems]);
 
+  const selectedHasOnlyFreeGift = useMemo(() => {
+    if (selectedItems.length === 0) return false;
+    return selectedItems.every((i) => i.isFreeGift);
+  }, [selectedItems]);
+
   const handleProceedToCheckout = () => {
     if (selectedItems.length === 0) return;
+    if (selectedHasOnlyFreeGift) {
+      alert("A free gift cannot be ordered alone. Please select at least one regular product to complete checkout.");
+      return;
+    }
     if (!user) {
       router.push("/login?redirect=/checkout");
       return;
@@ -152,6 +161,21 @@ export default function CartClient() {
                 </span>
               </div>
 
+              {/* Free Gift Notification Banner */}
+              {hasFreeGift && !hasQualifyingPaidItems && (
+                <div className="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/30 text-amber-900 text-xs sm:text-sm flex items-start gap-3 shadow-xs">
+                  <div className="w-8 h-8 rounded-xl bg-amber-500/20 text-amber-700 font-bold flex items-center justify-center shrink-0">
+                    🎁
+                  </div>
+                  <div>
+                    <p className="font-bold text-amber-950">Add an eligible regular product to claim your free gift!</p>
+                    <p className="text-amber-800 text-xs mt-0.5 leading-relaxed">
+                      Promotional free gifts cannot be ordered as a standalone item. Add any regular smartphone or accessory to complete checkout.
+                    </p>
+                  </div>
+                </div>
+              )}
+
               {/* Product Cards */}
               <div className="space-y-3 sm:space-y-4">
                 {cart.map((item) => {
@@ -163,7 +187,9 @@ export default function CartClient() {
                     <div
                       key={key}
                       className={`p-3.5 sm:p-5 rounded-2xl border transition-all ${
-                        isSelected
+                        item.isFreeGift
+                          ? "border-[#64152F] bg-rose-50/50 shadow-xs"
+                          : isSelected
                           ? "border-neutral-900 bg-white shadow-xs"
                           : "border-neutral-200/80 bg-white/70 opacity-75"
                       }`}
@@ -186,7 +212,7 @@ export default function CartClient() {
                         </button>
 
                         {/* Product Image */}
-                        <div className="w-18 h-18 sm:w-24 sm:h-24 rounded-xl bg-[#F7F7F7] border border-neutral-200/80 p-1.5 shrink-0 flex items-center justify-center overflow-hidden">
+                        <div className="w-18 h-18 sm:w-24 sm:h-24 rounded-xl bg-[#F7F7F7] border border-neutral-200/80 p-1.5 shrink-0 flex items-center justify-center overflow-hidden relative">
                           <img
                             src={item.image}
                             alt={item.name}
@@ -195,17 +221,40 @@ export default function CartClient() {
                               (e.target as HTMLImageElement).src = "/placeholder-phone.webp";
                             }}
                           />
+                          {item.isFreeGift && (
+                            <div className="absolute top-1 left-1 bg-rose-600 text-white text-[8px] font-black px-1.5 py-0.5 rounded shadow">
+                              FREE
+                            </div>
+                          )}
                         </div>
 
                         {/* Details */}
                         <div className="flex-1 min-w-0">
+                          {item.isFreeGift && (
+                            <span className="inline-block px-2 py-0.5 rounded bg-rose-600 text-white text-[9.5px] font-black tracking-wider uppercase mb-1">
+                              🎁 Spin & Win Free Gift
+                            </span>
+                          )}
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <h3 className="font-bold text-xs sm:text-base text-neutral-950 truncate leading-snug">
                               {item.name}
                             </h3>
-                            <span className="font-black text-xs sm:text-base text-neutral-950 shrink-0">
-                              {formatPrice(item.price * item.quantity)}
-                            </span>
+                            {item.isFreeGift ? (
+                              <div className="flex items-baseline gap-1.5 shrink-0">
+                                <span className="font-black text-xs sm:text-base text-emerald-600">
+                                  FREE (LKR 0)
+                                </span>
+                                {item.originalPrice ? (
+                                  <span className="line-through text-neutral-400 text-xs">
+                                    {formatPrice(item.originalPrice)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <span className="font-black text-xs sm:text-base text-neutral-950 shrink-0">
+                                {formatPrice(item.price * item.quantity)}
+                              </span>
+                            )}
                           </div>
 
                           {/* Variants & Warranty tags */}
@@ -234,7 +283,7 @@ export default function CartClient() {
                               {/* Remove */}
                               <button
                                 type="button"
-                                onClick={() => removeFromCart(item.productId)}
+                                onClick={() => removeFromCart(item.productId, item.variantId, item.color, item.storage, item.isFreeGift)}
                                 className="text-[11px] sm:text-xs text-neutral-400 hover:text-neutral-900 transition-colors flex items-center gap-1 cursor-pointer"
                               >
                                 <Trash2 className="w-3.5 h-3.5" />
@@ -242,40 +291,48 @@ export default function CartClient() {
                               </button>
 
                               {/* Wishlist */}
-                              <button
-                                type="button"
-                                onClick={() => toggleWishlist(item.productId)}
-                                className={`text-[11px] sm:text-xs flex items-center gap-1 transition-colors cursor-pointer ${
-                                  isWishlisted ? "text-neutral-950 font-bold" : "text-neutral-400 hover:text-neutral-900"
-                                }`}
-                              >
-                                <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-neutral-950 text-neutral-950" : ""}`} />
-                                <span>{isWishlisted ? "Saved" : "Save for later"}</span>
-                              </button>
+                              {!item.isFreeGift && (
+                                <button
+                                  type="button"
+                                  onClick={() => toggleWishlist(item.productId)}
+                                  className={`text-[11px] sm:text-xs flex items-center gap-1 transition-colors cursor-pointer ${
+                                    isWishlisted ? "text-neutral-950 font-bold" : "text-neutral-400 hover:text-neutral-900"
+                                  }`}
+                                >
+                                  <Heart className={`w-3.5 h-3.5 ${isWishlisted ? "fill-neutral-950 text-neutral-950" : ""}`} />
+                                  <span>{isWishlisted ? "Saved" : "Save for later"}</span>
+                                </button>
+                              )}
                             </div>
 
                             {/* Quantity Controls */}
-                            <div className="inline-flex items-center border border-neutral-200 rounded-full p-0.5 bg-neutral-50 shadow-2xs">
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item.productId, item.quantity - 1)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
-                                aria-label="Decrease quantity"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="w-7 text-center text-xs font-bold text-black">
-                                {item.quantity}
+                            {item.isFreeGift ? (
+                              <span className="text-[11px] font-bold text-neutral-600 bg-neutral-100 px-2.5 py-1 rounded-full">
+                                Qty: 1 (Promotional)
                               </span>
-                              <button
-                                type="button"
-                                onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                                className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
-                                aria-label="Increase quantity"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
+                            ) : (
+                              <div className="inline-flex items-center border border-neutral-200 rounded-full p-0.5 bg-neutral-50 shadow-2xs">
+                                <button
+                                  type="button"
+                                  onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId, item.color, item.storage, item.isFreeGift)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
+                                  aria-label="Decrease quantity"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="w-7 text-center text-xs font-bold text-black">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId, item.color, item.storage, item.isFreeGift)}
+                                  className="w-6 h-6 rounded-full flex items-center justify-center text-neutral-700 hover:text-black hover:bg-neutral-200 transition-colors cursor-pointer"
+                                  aria-label="Increase quantity"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -313,20 +370,24 @@ export default function CartClient() {
                 {/* Primary CTA */}
                 <button
                   type="button"
-                  disabled={selectedItems.length === 0}
+                  disabled={selectedItems.length === 0 || selectedHasOnlyFreeGift}
                   onClick={handleProceedToCheckout}
                   className={`w-full py-4 px-6 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 transition-all shadow-md active:scale-[0.98] cursor-pointer ${
-                    selectedItems.length === 0
-                      ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                      : "bg-black text-white hover:bg-gray-800"
+                    selectedItems.length === 0 || selectedHasOnlyFreeGift
+                      ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                      : "bg-[#64152F] text-white hover:bg-[#350713]"
                   }`}
                 >
-                  <span>Proceed to Buy ({selectedItems.length} Items)</span>
+                  {selectedHasOnlyFreeGift ? (
+                    <span>Add Regular Item to Claim Free Gift</span>
+                  ) : (
+                    <span>Proceed to Checkout ({selectedItems.length} Items)</span>
+                  )}
                   <ArrowRight className="w-4 h-4" />
                 </button>
 
                 <p className="text-[11px] text-gray-400 text-center">
-                  🔒 Safe & Secure Checkout with Street Mobile
+                  🔒 Safe & Secure Checkout with 1PLACE.LK
                 </p>
               </div>
             </div>
@@ -349,11 +410,15 @@ export default function CartClient() {
 
           <button
             type="button"
-            disabled={selectedItems.length === 0}
+            disabled={selectedItems.length === 0 || selectedHasOnlyFreeGift}
             onClick={handleProceedToCheckout}
-            className="px-6 py-3 rounded-full bg-black text-white font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-40 active:scale-95 transition-all shrink-0 cursor-pointer"
+            className={`px-6 py-3 rounded-full font-bold text-xs sm:text-sm flex items-center justify-center gap-2 shadow-md disabled:opacity-50 active:scale-95 transition-all shrink-0 cursor-pointer ${
+              selectedHasOnlyFreeGift
+                ? "bg-amber-600 text-white"
+                : "bg-[#64152F] hover:bg-[#350713] text-white"
+            }`}
           >
-            <span>Proceed to Buy</span>
+            <span>{selectedHasOnlyFreeGift ? "Add Regular Item" : "Proceed to Checkout"}</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

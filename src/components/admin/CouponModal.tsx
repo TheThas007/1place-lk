@@ -82,7 +82,7 @@ export default function CouponModal({
     e.preventDefault();
     const cleanCode = (formData.code || "").trim().toUpperCase();
     if (!cleanCode) {
-      setError("Please provide a promo code (e.g. STREET10)");
+      setError("Please provide a promo code (e.g. 1PLACE10)");
       return;
     }
 
@@ -176,7 +176,7 @@ export default function CouponModal({
               <input
                 type="text"
                 required
-                placeholder="e.g. STREET10"
+                placeholder="e.g. 1PLACE10"
                 value={formData.code || ""}
                 onChange={(e) =>
                   setFormData({ ...formData, code: e.target.value.toUpperCase().replace(/\s+/g, "") })

@@ -192,7 +192,7 @@ export default function CampaignPopupControl() {
               rows={2}
               value={settings.description || ""}
               onChange={(e) => setSettings({ ...settings, description: e.target.value })}
-              placeholder="Use coupon code STREET10 at checkout..."
+              placeholder="Use coupon code 1PLACE10 at checkout..."
               className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white focus:outline-none focus:border-purple-400"
             />
           </div>
@@ -215,7 +215,7 @@ export default function CampaignPopupControl() {
                 type="text"
                 value={settings.couponCode || ""}
                 onChange={(e) => setSettings({ ...settings, couponCode: e.target.value.toUpperCase() })}
-                placeholder="e.g. STREET10"
+                placeholder="e.g. 1PLACE10"
                 className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-xs text-white focus:outline-none uppercase font-mono"
               />
             </div>

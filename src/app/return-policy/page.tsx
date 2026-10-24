@@ -6,17 +6,17 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, ShieldCheck } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Return, Refund & Warranty Policy | STREET MOBILE",
+  title: "Return, Refund & Warranty Policy | 1PLACE.LK",
   description:
-    "Official Return, Refund, Order Cancellation and Warranty Policy of Street Mobile Sri Lanka. Review return eligibility, PayHere refund processes, and warranty claims.",
+    "Official Return, Refund, Order Cancellation and Warranty Policy of 1place.lk Sri Lanka. Review return eligibility, PayHere refund processes, and warranty claims.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/return-policy",
+    canonical: "https://www.1place.lk/return-policy",
   },
   openGraph: {
-    title: "Return, Refund & Warranty Policy | STREET MOBILE",
+    title: "Return, Refund & Warranty Policy | 1PLACE.LK",
     description:
-      "Review the official return eligibility, warranty claims, and PayHere refund policies of Street Mobile.",
-    url: "https://www.streetmobile.lk/return-policy",
+      "Review the official return eligibility, warranty claims, and PayHere refund policies of 1place.lk.",
+    url: "https://www.1place.lk/return-policy",
     type: "website",
   },
   robots: {
@@ -54,7 +54,7 @@ export default function ReturnPolicyPage() {
   return (
     <PolicyPageLayout
       title="Return, Refund & Warranty Policy"
-      subtitle="Complete guidelines on product returns, order cancellations, PayHere refund processing, and comprehensive warranty coverage at Street Mobile."
+      subtitle="Complete guidelines on product returns, order cancellations, PayHere refund processing, and comprehensive warranty coverage at 1place.lk."
       badge="PayHere & Customer Terms"
       tocItems={TOC_ITEMS}
     >
@@ -87,7 +87,7 @@ export default function ReturnPolicyPage() {
       {/* 1. Policy Overview */}
       <PolicySection id="overview" number={1} title="Policy Overview">
         <p>
-          At <strong>{businessPolicyConfig.tradingName}</strong> ({businessPolicyConfig.legalName}), customer satisfaction, product authenticity, and compliance with Sri Lankan electronic consumer guidelines are our highest priorities. This Return, Refund & Warranty Policy governs all product purchases made online at <strong>https://www.streetmobile.lk</strong>, via our mobile checkout, or directly at our physical store in Vavuniya.
+          At <strong>{businessPolicyConfig.tradingName}</strong> ({businessPolicyConfig.legalName}), customer satisfaction, product authenticity, and compliance with Sri Lankan electronic consumer guidelines are our highest priorities. This Return, Refund & Warranty Policy governs all product purchases made online at <strong>https://www.1place.lk</strong>, via our mobile checkout, or directly at our flagship showroom in Colombo.
         </p>
         <p>
           Please read this policy carefully before making a purchase. By placing an order with {businessPolicyConfig.tradingName}, you agree to the terms outlined below regarding returns, order cancellations, PayHere refund processing, and warranty servicing.
@@ -241,7 +241,7 @@ export default function ReturnPolicyPage() {
       {/* 15. Shop Warranty */}
       <PolicySection id="shop-warranty" number={15} title="Shop Warranty">
         <p>
-          Products designated with <strong>Shop Warranty</strong> are serviced directly by {businessPolicyConfig.tradingName}'s in-house technical department in Vavuniya.
+          Products designated with <strong>Shop Warranty</strong> are serviced directly by {businessPolicyConfig.tradingName}'s in-house technical department in Colombo.
         </p>
         <p>
           Shop Warranty covers internal hardware defects and component failures under normal operating conditions. Repairs or replacements under Shop Warranty are fulfilled using high-grade, genuine parts by experienced technicians.

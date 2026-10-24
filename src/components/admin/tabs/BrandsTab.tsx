@@ -441,7 +441,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
         order: Number(formData.order) || 1,
         sort_order: Number(formData.order) || 1,
         department_order: formData.department_order || {},
-        seo_title: formData.seo_title || `${formData.name.trim()} Products | Street Mobile`,
+        seo_title: formData.seo_title || `${formData.name.trim()} Products | 1PLACE.LK`,
         seo_description: formData.seo_description || "",
         updatedAt: new Date().toISOString(),
       };
@@ -2142,7 +2142,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                               type="text"
                               value={activePageConfig.bannerAlt || ""}
                               onChange={(e) => handleUpdateActivePageConfig({ bannerAlt: e.target.value })}
-                              placeholder={`e.g. ${formData.name} ${activeDepartment.name} models available at Street Mobile`}
+                              placeholder={`e.g. ${formData.name} ${activeDepartment.name} models available at 1PLACE.LK`}
                               className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 text-xs"
                             />
                             <div className="text-[10px] text-white/40 mt-1 text-right">
@@ -2224,7 +2224,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                             rows={2}
                             value={activePageConfig.productSectionDescription || ""}
                             onChange={(e) => handleUpdateActivePageConfig({ productSectionDescription: e.target.value })}
-                            placeholder={`Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
+                            placeholder={`Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at 1PLACE.LK.`}
                             className="w-full bg-white/5 border border-white/10 px-3.5 py-2 rounded-xl text-white outline-none focus:border-blue-500 resize-none"
                           />
                         </div>
@@ -2309,7 +2309,7 @@ export default function BrandsTab({ products = [] }: { products?: Product[] }) {
                         {activePageConfig.productSectionHeading || `${formData.name} ${activeDepartment.name}`}
                       </h3>
                       <p className="text-xs text-neutral-500 mt-0.5">
-                        {activePageConfig.productSectionDescription || `Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at Street Mobile.`}
+                        {activePageConfig.productSectionDescription || `Explore genuine ${formData.name} ${activeDepartment.name.toLowerCase()} available at 1PLACE.LK.`}
                       </p>
                     </div>
                   </div>

@@ -165,10 +165,11 @@ export default function WeAreNearYouMarquee({
   // Phrases for the sequence
   const phrases = useMemo(
     () => [
-      "WE ARE NEAR YOU",
-      "STREET MOBILE VAVUNIYA",
-      "VISIT OUR SHOWROOM",
-      "PREMIUM TECH & REPAIRS",
+      "1PLACE.LK",
+      "CURATED ELECTRONICS",
+      "ISLANDWIDE EXPRESS DELIVERY",
+      "100% GENUINE WARRANTY",
+      "PREMIER SHOPPING DESTINATION",
     ],
     []
   );
@@ -176,20 +177,20 @@ export default function WeAreNearYouMarquee({
   const renderPhraseSequence = (keyPrefix: string) => (
     <div className="flex items-center gap-8 sm:gap-14 shrink-0 select-none py-3">
       {phrases.map((phrase, idx) => {
-        const isMain = phrase === "WE ARE NEAR YOU";
+        const isMain = phrase === "1PLACE.LK";
         return (
           <div key={`${keyPrefix}-${idx}`} className="flex items-center gap-8 sm:gap-14 shrink-0 group/item">
             <span
               className={`text-3xl sm:text-5xl md:text-6xl lg:text-7xl font-black uppercase tracking-[0.06em] sm:tracking-[0.10em] transition-all duration-300 select-none cursor-default font-sans leading-none whitespace-nowrap ${
                 isMain
-                  ? "text-[#0A0A0A] group-hover/item:text-neutral-700"
-                  : "text-neutral-900 group-hover/item:text-black"
+                  ? "text-white/20 group-hover/item:text-white/40"
+                  : "text-white/10 group-hover/item:text-white/30"
               }`}
             >
               {phrase}
             </span>
             <span
-              className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-red-600 shadow-xs shrink-0 select-none ring-2 ring-red-600/20"
+              className="w-2 sm:w-2.5 h-2 sm:h-2.5 rounded-full bg-white/40 shadow-xs shrink-0 select-none ring-2 ring-white/10"
               aria-hidden="true"
             />
           </div>

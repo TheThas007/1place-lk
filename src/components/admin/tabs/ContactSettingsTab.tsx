@@ -227,7 +227,7 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
                   type="text"
                   value={settings.store_name}
                   onChange={(e) => setSettings({ ...settings, store_name: e.target.value })}
-                  placeholder="e.g. STREET MOBILE"
+                  placeholder="e.g. 1PLACE.LK"
                   required
                   className={`w-full border px-3.5 py-2 rounded-xl font-bold text-xs outline-none transition-colors ${
                     isLight
@@ -320,7 +320,7 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
                     type="text"
                     value={settings.whatsapp}
                     onChange={(e) => setSettings({ ...settings, whatsapp: e.target.value })}
-                    placeholder="94774141118"
+                    placeholder="94771234567"
                     required
                     className={`w-full pl-10 pr-4 py-2 border rounded-xl font-mono font-bold text-xs outline-none transition-colors ${
                       isLight
@@ -329,7 +329,7 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
                     }`}
                   />
                 </div>
-                <p className="text-[10px] text-slate-400 mt-1">Format with country code (e.g. 94774141118)</p>
+                <p className="text-[10px] text-slate-400 mt-1">Format with country code (e.g. 94771234567)</p>
               </div>
 
               <div>
@@ -342,7 +342,7 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
                     type="email"
                     value={settings.email}
                     onChange={(e) => setSettings({ ...settings, email: e.target.value })}
-                    placeholder="streetmobilevavuniya@gmail.com"
+                    placeholder="info@1place.lk"
                     required
                     className={`w-full pl-10 pr-4 py-2 border rounded-xl text-xs outline-none transition-colors ${
                       isLight
@@ -503,7 +503,7 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
                   rows={2}
                   value={settings.address}
                   onChange={(e) => setSettings({ ...settings, address: e.target.value })}
-                  placeholder="163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka"
+                  placeholder="42, Galle Road, Colombo 03, Sri Lanka"
                   required
                   className={`w-full border px-3.5 py-2.5 rounded-xl text-xs font-medium outline-none transition-colors resize-none ${
                     isLight
@@ -656,10 +656,10 @@ export default function ContactSettingsTab({ onRefresh }: { onRefresh?: () => vo
             }`}>
               <div>
                 <span className="text-[10px] font-bold text-blue-600 dark:text-blue-400 uppercase tracking-widest block">
-                  {settings.store_name || "STREET MOBILE"}
+                  {settings.store_name || "1PLACE.LK"}
                 </span>
                 <p className={`text-sm font-bold mt-0.5 ${isLight ? "text-slate-900" : "text-white"}`}>
-                  Visit Our Store in Vavuniya
+                  Visit Our Flagship Store in Colombo 03
                 </p>
                 <p className={`text-[11px] mt-0.5 ${isLight ? "text-slate-500" : "text-slate-400"}`}>
                   {settings.tagline || "Experience genuine devices & repair services"}

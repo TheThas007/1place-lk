@@ -145,7 +145,7 @@ export default function ReviewsTab({
           </div>
           <p className={`text-xs ${isLight ? "text-slate-600" : "text-slate-400"}`}>
             {googleSettings.enabled !== false
-              ? `VISIBLE ON HOMEPAGE • Displays customer ratings & reviews marquee on streetmobile.lk`
+              ? `VISIBLE ON HOMEPAGE • Displays customer ratings & reviews marquee on 1place.lk`
               : "HIDDEN • Google Reviews section is currently hidden from the homepage"}
           </p>
         </div>

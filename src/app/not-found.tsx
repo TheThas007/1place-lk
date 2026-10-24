@@ -1,5 +1,15 @@
 import Link from "next/link";
 import { ShoppingBag, ArrowRight, Search, Home } from "lucide-react";
+import { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "Page Not Found | 1PLACE.LK Sri Lanka",
+  description: "The page or product you are looking for is not available. Explore the latest smartphones, electronics, and premium accessories at 1PLACE.LK Sri Lanka.",
+  robots: {
+    index: false,
+    follow: false,
+  },
+};
 
 export default function NotFound() {
   return (

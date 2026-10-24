@@ -65,7 +65,7 @@ export default function DeliveryMethodCard({
         </div>
       </div>
 
-      {/* Option 2: Store Pickup — Vavuniya */}
+      {/* Option 2: Store Pickup — Colombo Flagship */}
       <div
         onClick={() => onChange("pickup")}
         className={`relative p-4 sm:p-5 rounded-2xl border transition-all duration-200 cursor-pointer select-none ${
@@ -92,7 +92,7 @@ export default function DeliveryMethodCard({
               <div className="flex items-center gap-2">
                 <Store className="w-4 h-4 text-neutral-800" />
                 <span className="text-sm sm:text-base font-bold text-neutral-950">
-                  Store Pickup — Vavuniya
+                  Store Pickup — Colombo Flagship
                 </span>
                 <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                   Ready Same Day

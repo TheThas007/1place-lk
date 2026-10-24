@@ -1,21 +1,13 @@
 import HeroSection from "@/components/home/hero-section";
+import CircularCategories from "@/components/home/circular-categories";
+import StoreBenefitsBar from "@/components/home/store-benefits-bar";
 import AnnouncementTicker from "@/components/home/announcement-ticker";
-import TrustIndicators from "@/components/home/trust-indicators";
-import CategoriesSection from "@/components/home/categories-section";
 import NewArrivalsSection from "@/components/home/new-arrivals-section";
-import FeaturedProducts from "@/components/home/featured-products";
-import FeaturedCollections from "@/components/home/featured-collections";
-import FeaturedAccessories from "@/components/home/featured-accessories";
-import ShopByCategoryCarousel from "@/components/home/shop-by-category-carousel";
-import ReviewsSection from "@/components/home/reviews-section";
 import GallerySection from "@/components/home/gallery-section";
-import QuickCategoriesMobile from "@/components/home/quick-categories-mobile";
 import CampaignPlacement from "@/components/ui/CampaignPlacement";
 import HomeScrollReset from "@/components/home/HomeScrollReset";
-import TodayDealSection from "@/components/home/today-deal-section";
-import WeAreNearYouMarquee from "@/components/home/we-are-near-you-marquee";
-import StoreLocation from "@/components/home/store-location";
-import FinishingZoomWrapper from "@/components/home/FinishingZoomWrapper";
+import ShopAllProductsSection from "@/components/home/shop-all-products-section";
+import CategoryWiseSections from "@/components/home/category-wise-sections";
 
 import VisualProductShowcase from "@/components/home/visual-product-showcase";
 import {
@@ -29,8 +21,8 @@ import {
   getShowcaseSettings,
   getFeaturedCollections,
   getNewArrivalsSettings,
-  getTodayDealSettings,
   getGalleryAnimationSettings,
+  getTodayDealSettings,
 } from "@/lib/firestore-client";
 import { siteSettings } from "@/lib/data";
 import { GalleryImage } from "@/lib/types";
@@ -39,18 +31,24 @@ import { Metadata } from "next";
 export const revalidate = 60; // Revalidate cache every 60s for high performance
 
 export const metadata: Metadata = {
-  title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
-  description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. Buy 100% genuine Apple, Samsung, Xiaomi smartphones, chargers, power banks, earbuds, and premium accessories with official warranty and fast islandwide delivery.",
+  title: "1place.lk | Sri Lanka's Curated Tech, Smartphones & Lifestyle Store",
+  description: "1place.lk is Sri Lanka's premier destination for authentic technology, flagship smartphones, laptops, and premium accessories. Official warranty, secure PayHere payment & express islandwide delivery.",
   alternates: {
-    canonical: "https://www.streetmobile.lk",
+    canonical: "https://www.1place.lk",
   },
   openGraph: {
-    title: "Mobile Phones & Accessories in Sri Lanka | Street Mobile",
-    description: "Your Trusted Mobile Store in Vavuniya, Sri Lanka. 100% Genuine Smartphones, Apple, Samsung, Xiaomi & Premium Accessories.",
-    url: "https://www.streetmobile.lk",
-    siteName: "Street Mobile",
+    title: "1place.lk | Sri Lanka's Curated Tech & Lifestyle Store",
+    description: "1place.lk is Sri Lanka's premier destination for authentic technology, flagship smartphones, laptops, and premium accessories.",
+    url: "https://www.1place.lk",
+    siteName: "1place.lk",
     locale: "en_LK",
     type: "website",
+    images: [{ url: "/logo.svg", width: 1200, height: 630, alt: "1place.lk Sri Lanka" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "1place.lk | Curated Technology & Electronics Store",
+    description: "Authentic smartphones, premium audio, laptops, and tech accessories with islandwide express delivery.",
   },
 };
 
@@ -66,130 +64,70 @@ export default async function HomePage() {
     showcaseSettings,
     featuredCollectionsSettings,
     newArrivalsSettings,
-    todayDealSettings,
     galleryAnimationSettings,
+    todayDealSettings,
   ] = await Promise.all([
-    getCategories(),
-    getBrands(),
-    getProducts(),
-    getReviews(),
-    getGalleryImages(),
-    getUiSettings(),
-    getGoogleReviewsSettings(),
-    getShowcaseSettings(),
-    getFeaturedCollections(),
-    getNewArrivalsSettings(),
-    getTodayDealSettings(),
-    getGalleryAnimationSettings(),
+    getCategories().catch(() => []),
+    getBrands().catch(() => []),
+    getProducts().catch(() => []),
+    getReviews().catch(() => []),
+    getGalleryImages().catch(() => []),
+    getUiSettings().catch(() => null),
+    getGoogleReviewsSettings().catch(() => null),
+    getShowcaseSettings().catch(() => null),
+    getFeaturedCollections().catch(() => null),
+    getNewArrivalsSettings().catch(() => null),
+    getGalleryAnimationSettings().catch(() => null),
+    getTodayDealSettings().catch(() => null),
   ]);
 
   return (
     <>
       <HomeScrollReset />
 
-      {/* Quick Mobile Search & Discovery Shortcuts (Under 768px - Placed right below Top Navbar) */}
-      <QuickCategoriesMobile categories={categories} />
-
-      {/* 1. Premium hero banner slider */}
+      {/* 1. Full-Width Hero Banner (Matching Reference Layout) */}
       <HeroSection />
 
-      {/* 2. Announcement Ticker (Running text bar right below hero) */}
-      <AnnouncementTicker />
+      {/* 2. Circular Category Navigation Strip (Overlaid 50% on bottom of Hero Banner) */}
+      <CircularCategories categories={categories} />
 
-      {/* Showcase position: Below Hero */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_hero" />
+      {/* 3. Complete Shop All Products Catalogue (Today's Deal banner placed after 4 rows) */}
+      <ShopAllProductsSection
+        initialProducts={products}
+        categories={categories}
+        todayDealSettings={todayDealSettings}
+      />
 
-      {/* 3. New Arrivals */}
-      {newArrivalsSettings?.enabled !== false && (
+      {/* 4. Category-Wise Sections (Auto-hides empty categories, 6-col responsive) */}
+      <CategoryWiseSections initialProducts={products} categories={categories} />
+
+      {/* 5. New Arrivals Collection (If Enabled) */}
+      {newArrivalsSettings?.enabled === true && (
         <NewArrivalsSection initialProducts={products} initialSettings={newArrivalsSettings} />
       )}
 
-      {/* Today's Deal Promotional Banner (Below New Arrivals) */}
-      <TodayDealSection settings={todayDealSettings} />
-
-      {/* Showcase position: Below New Arrivals */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_new_arrivals" />
-
-      {/* Showcase position: Above Shop by Brand */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_brand" />
-
-      {/* 4. Shop by Brand */}
-      <CategoriesSection categories={categories} brands={brands} />
-
-      {/* Showcase position: Below Shop by Brand */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_brand" />
-
-      {/* 5. Featured Mobile Phones */}
-      <FeaturedProducts
-        initialProducts={products}
-        initialVisible={uiSettings?.showFeaturedProducts !== false}
-      />
-
-      {/* Featured Collections (2-Column Editorial Grid) */}
-      <FeaturedCollections settings={featuredCollectionsSettings} />
-
-      {/* Showcase position: Below Featured Phones */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_featured_phones" />
-
-      {/* 6. Mobile Accessories promotional banner */}
-      <CampaignPlacement placement="homepage_after_categories" />
-
-      {/* 7. Best Selling Products / Featured Accessories */}
-      <FeaturedAccessories initialProducts={products} />
-
-      {/* Showcase position: Below Featured Accessories */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_featured_accessories" />
-
-      {/* Showcase position: Below Shop by Category */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_category" />
-
-      {/* 9. Store Gallery (Life at Street Mobile) */}
+      {/* Store Gallery (Life at 1PLACE.LK) */}
       {(galleryAnimationSettings?.enabled ?? true) && (
         <>
           <GallerySection
             images={galleryImages as GalleryImage[]}
-            animationSettings={galleryAnimationSettings}
-            uiSettings={uiSettings}
+            animationSettings={galleryAnimationSettings || undefined}
+            uiSettings={uiSettings || undefined}
           />
 
-          {/* Showcase position: Below Life at Street Mobile */}
+          {/* Showcase position: Below Life at 1PLACE.LK */}
           <VisualProductShowcase settings={showcaseSettings} placement="below_gallery" />
         </>
       )}
 
-      {/* 10. Google customer reviews (Continuously moves in opposite direction of gallery) */}
-      {(googleReviewsSettings?.enabled ?? true) && (
-        <>
-          <ReviewsSection
-            reviews={reviews}
-            settings={googleReviewsSettings}
-            galleryDirection={galleryAnimationSettings?.direction || "left"}
-          />
+      {/* Campaign Placement */}
+      <CampaignPlacement placement="homepage_after_categories" />
 
-          {/* Showcase position: Below Google Reviews */}
-          <VisualProductShowcase settings={showcaseSettings} placement="below_reviews" />
-        </>
-      )}
+      {/* 6. Customer Trust & Shopping Benefits Bar */}
+      <StoreBenefitsBar />
 
-      {/* Showcase position: Above Why Choose Street Mobile */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_why_choose" />
-
-      {/* 11. Trust/service strip (Why Choose Street Mobile - Desktop Full Grid) */}
-      <TrustIndicators mode="full_only" />
-
-      {/* 11B. Continuous Stylish Marquee: WE ARE NEAR YOU (No background, transparent text) */}
-      <WeAreNearYouMarquee />
-
-      {/* Showcase position: Below Why Choose */}
-      <VisualProductShowcase settings={showcaseSettings} placement="below_why_choose" />
-
-      {/* Showcase position: Above Store Location / Footer */}
-      <VisualProductShowcase settings={showcaseSettings} placement="above_location" />
-
-      {/* 12. Store Location & Contact with Grand Finale Page Zoom Effect */}
-      <FinishingZoomWrapper>
-        <StoreLocation />
-      </FinishingZoomWrapper>
+      {/* 7. Scrolling Announcement Bar (Sits directly above Footer) */}
+      <AnnouncementTicker />
     </>
   );
 }

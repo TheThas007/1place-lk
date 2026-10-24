@@ -14,7 +14,7 @@ const DEFAULT_SHOP_BANNERS: OfferBanner[] = [
     internalName: "Mega Sale 2026",
     headline: "PREMIUM SMARTPHONES & ACCESSORIES",
     highlightText: "UP TO 35% OFF",
-    description: "Exclusive deals on Apple, Samsung, Xiaomi & Original Accessories in Vavuniya.",
+    description: "Exclusive deals on Apple, Samsung, Xiaomi & Original Accessories in Sri Lanka.",
     badgeText: "HOT DEAL",
     primaryCtaText: "Explore Offers",
     primaryCtaUrl: "/products",

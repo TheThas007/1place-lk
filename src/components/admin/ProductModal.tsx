@@ -568,7 +568,7 @@ export default function ProductModal({
             duration_value: 1,
             duration_unit: "months",
             additional_price: 0,
-            coverage_details: "Hardware defect warranty from Street Mobile main store.",
+            coverage_details: "Hardware defect warranty from 1place.lk official support.",
             status: "active",
             is_default: true,
           },
@@ -593,7 +593,7 @@ export default function ProductModal({
     } else {
       // Reset New Product
       setName("");
-      setCode(`SM-${Math.floor(1000 + Math.random() * 9000)}`);
+      setCode(`1P-${Math.floor(1000 + Math.random() * 9000)}`);
       setSlug("");
       const defaultCatId = categories[0]?.id || "";
       const defaultCatName = categories[0]?.name || "Smartphones";
@@ -1205,7 +1205,7 @@ export default function ProductModal({
                     type="text"
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
-                    placeholder="e.g. SM-S24U"
+                    placeholder="e.g. 1P-S24U"
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-xs font-mono font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
                 </div>
@@ -2956,7 +2956,7 @@ export default function ProductModal({
                       duration_value: 6,
                       duration_unit: "months",
                       additional_price: 0,
-                      coverage_details: "Hardware defect warranty from Street Mobile.",
+                      coverage_details: "Hardware defect warranty from 1PLACE.LK.",
                       status: "active",
                       is_default: warrantyOptions.length === 0,
                     };
@@ -3124,7 +3124,7 @@ export default function ProductModal({
                               setWarrantyOptions(updated);
                               setHasUnsavedChanges(true);
                             }}
-                            placeholder="e.g. Hardware defect warranty covered by Street Mobile main store."
+                            placeholder="e.g. Hardware defect warranty covered by 1PLACE.LK flagship store."
                             className="w-full px-3 py-2 bg-white border border-gray-200 rounded-xl font-medium text-gray-800 outline-none focus:border-blue-500 shadow-xs"
                           />
                         </div>
@@ -3213,7 +3213,7 @@ export default function ProductModal({
                       setMetaTitle(e.target.value);
                       setHasUnsavedChanges(true);
                     }}
-                    placeholder={name || "STREET MOBILE - Buy Phone Online"}
+                    placeholder={name || "1PLACE.LK - Premium Electronics"}
                     className="w-full px-3.5 py-2.5 bg-gray-50 border border-gray-200 rounded-xl font-semibold text-gray-900 outline-none focus:border-blue-500"
                   />
                   <p className="text-[11px] text-gray-400 mt-1">Leaves default product name if empty, or type custom text to override.</p>

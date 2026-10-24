@@ -3,8 +3,8 @@ import Script from "next/script";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Checkout | STREET MOBILE",
-  description: "Complete your order securely at STREET MOBILE.",
+  title: "Checkout | 1PLACE.LK",
+  description: "Complete your order securely at 1PLACE.LK.",
 };
 
 export default function CheckoutPage() {

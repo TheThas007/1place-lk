@@ -32,12 +32,13 @@ import {
   ASSISTANT_QUICK_ACTIONS,
 } from "@/lib/assistant-knowledge";
 import { siteSettings } from "@/lib/data";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import { ChatMessageRenderer } from "./ChatMessageRenderer";
 
-const STORAGE_SESSION_KEY = "sm_streetla_session_id";
-const STORAGE_LANG_KEY = "sm_streetla_language";
-const STORAGE_MSGS_KEY = "sm_streetla_messages_cache";
-const SESSION_TOOLTIP_KEY = "sm_streetla_tooltip_shown";
+const STORAGE_SESSION_KEY = "oneplace_assistant_session_id";
+const STORAGE_LANG_KEY = "oneplace_assistant_language";
+const STORAGE_MSGS_KEY = "oneplace_assistant_messages_cache";
+const SESSION_TOOLTIP_KEY = "oneplace_assistant_tooltip_shown";
 
 export default function StreetAssistant() {
   const pathname = usePathname();
@@ -61,8 +62,8 @@ export default function StreetAssistant() {
   const [messages, setMessages] = useState<AssistantMessage[]>([]);
   const [inputVal, setInputVal] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string>("/streetla.png");
-  const [assistantName, setAssistantName] = useState<string>("STREETLA");
+  const [avatarUrl, setAvatarUrl] = useState<string>("/icon.svg");
+  const [assistantName, setAssistantName] = useState<string>("1PLACE AI");
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -135,11 +136,11 @@ export default function StreetAssistant() {
       } catch (e) {}
     }
 
-    // Default welcome message for Streetla
+    // Default welcome message for 1PLACE AI
     const welcomeMsg: AssistantMessage = {
       id: "welcome-1",
       sender: "assistant",
-      text: DEFAULT_ASSISTANT_SETTINGS.welcome_message_en || "Hi! I’m Streetla 👋\nI can help you find the right device, compare products, check prices and stock, track orders, and answer warranty questions. How can I help you today?",
+      text: DEFAULT_ASSISTANT_SETTINGS.welcome_message_en || "Hi! I’m 1Place AI 👋\nI can help you find the right device, compare products, check prices and stock, track orders, and answer warranty questions. How can I help you today?",
       timestamp: new Date().toISOString(),
       language: "en",
       type: "quick_actions",
@@ -289,7 +290,7 @@ export default function StreetAssistant() {
       const errMsg: AssistantMessage = {
         id: `err-${Date.now()}`,
         sender: "assistant",
-        text: "I couldn't complete that request right now. Feel free to chat with our showroom team on WhatsApp or call our Vavuniya store directly.",
+        text: "I couldn't complete that request right now. Feel free to chat with our showroom team on WhatsApp or call our Colombo store directly.",
         timestamp: new Date().toISOString(),
         language,
         type: "human_handoff",
@@ -305,21 +306,21 @@ export default function StreetAssistant() {
   const handleActionClick = (action: string, payload?: any, label?: string) => {
     if (action === "open_whatsapp") {
       window.open(
-        `https://wa.me/${siteSettings.whatsapp}?text=Hello%20Street%20Mobile,%20I%20need%20assistance`,
+        `https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent("Hello 1PLACE.LK, I need assistance")}`,
         "_blank"
       );
       return;
     }
     if (action === "call_store") {
-      window.location.href = "tel:+94774141118";
+      window.location.href = `tel:${BUSINESS_INFO.phonePrimaryIntl}`;
       return;
     }
     if (action === "open_maps") {
-      window.open(payload || siteSettings.google_maps_link, "_blank");
+      window.open(payload || BUSINESS_INFO.googleMapsUrl, "_blank");
       return;
     }
     if (action === "email_store") {
-      window.location.href = `mailto:${siteSettings.email}`;
+      window.location.href = `mailto:${BUSINESS_INFO.emailPrimary}`;
       return;
     }
 
@@ -486,7 +487,7 @@ export default function StreetAssistant() {
                 <div>
                   <div className="flex items-center gap-2">
                     <h3 className="font-extrabold text-sm sm:text-base tracking-tight text-white leading-none">
-                      {assistantName || "STREETLA"}
+                      {assistantName || "1PLACE AI"}
                     </h3>
                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 text-[9px] font-bold tracking-wider uppercase flex items-center gap-1">
                       <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
@@ -494,7 +495,7 @@ export default function StreetAssistant() {
                     </span>
                   </div>
                   <span className="text-[11px] text-neutral-400 font-medium leading-none block mt-1">
-                    Street Mobile Virtual AI Assistant
+                    1PLACE.LK Virtual AI Assistant
                   </span>
                 </div>
               </div>

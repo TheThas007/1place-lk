@@ -46,18 +46,26 @@ import {
   isValidSriLankanPhone,
 } from "@/lib/sri-lanka-geo";
 import { launchPayHerePayment } from "@/lib/payhere";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export default function CheckoutClient() {
   const router = useRouter();
-  const { cart, removeFromCart, updateQuantity, clearCart } = useCart();
+  const { cart, removeFromCart, updateQuantity, clearCart, shippingReward } = useCart();
   const { user, loading } = useAuth();
 
-  // Redirect guest users to login immediately
+  // Prefill contact details if authenticated user is present (allows guest checkout)
   useEffect(() => {
-    if (!loading && !user) {
-      router.push("/login?redirect=/checkout");
+    if (user) {
+      if (user.displayName) {
+        const parts = user.displayName.split(" ");
+        setFirstName(parts[0] || "");
+        setLastName(parts.slice(1).join(" ") || "");
+      }
+      if (user.email) {
+        setEmail(user.email);
+      }
     }
-  }, [user, loading, router]);
+  }, [user]);
 
   // Selected checkout items from store or fallback to cart
   const [checkoutItems, setCheckoutItems] = useState<CartItem[]>([]);
@@ -83,10 +91,10 @@ export default function CheckoutClient() {
   const [email, setEmail] = useState("");
 
   // ── Delivery Address State ──
-  const [province, setProvince] = useState("Northern Province");
-  const [district, setDistrict] = useState("Vavuniya");
-  const [city, setCity] = useState("Vavuniya");
-  const [postalCode, setPostalCode] = useState("43000");
+  const [province, setProvince] = useState("Western Province");
+  const [district, setDistrict] = useState("Colombo");
+  const [city, setCity] = useState("Colombo");
+  const [postalCode, setPostalCode] = useState("00100");
   const [address, setAddress] = useState("");
   const [landmark, setLandmark] = useState("");
   const [instructions, setInstructions] = useState("");
@@ -185,7 +193,7 @@ export default function CheckoutClient() {
     if (districts.length > 0) {
       setDistrict(districts[0].name);
       setPostalCode(districts[0].postalCode);
-      if (!city || city === "Vavuniya") {
+      if (!city || city === "Colombo") {
         setCity(districts[0].name);
       }
     }
@@ -214,8 +222,8 @@ export default function CheckoutClient() {
     setPhone(addr.phone || "");
     setAltPhone(addr.altPhone || "");
     setEmail(addr.email || "");
-    setProvince(addr.province || "Northern Province");
-    setDistrict(addr.district || "Vavuniya");
+    setProvince(addr.province || "Western Province");
+    setDistrict(addr.district || "Colombo");
     setCity(addr.city || "");
     setPostalCode(addr.postalCode || "");
     setAddress(addr.address || "");
@@ -248,9 +256,18 @@ export default function CheckoutClient() {
     return itemsToUse.reduce((sum, item) => sum + item.price * item.quantity, 0);
   }, [itemsToUse]);
 
-  const deliveryFee = deliveryOption === "pickup" ? 0 : standardDeliveryFee;
+  const isShippingRewardApplied = Boolean(
+    shippingReward &&
+    shippingReward.rewardType === "free_shipping" &&
+    shippingReward.status === "issued" &&
+    new Date(shippingReward.expiresAt).getTime() > Date.now()
+  );
+  const deliveryFee = deliveryOption === "pickup" || isShippingRewardApplied ? 0 : standardDeliveryFee;
   const codFee = (paymentMethod === "cod" && deliveryOption !== "pickup") ? codFeeAmount : 0;
-  const finalTotal = Math.max(0, subtotal + deliveryFee + codFee - couponDiscount);
+  const baseOrderTotal = Math.max(0, subtotal + deliveryFee - couponDiscount);
+  // PayHere card payment surcharge: 2%
+  const cardFee = paymentMethod === "card" ? Math.round(baseOrderTotal * 0.02) : 0;
+  const finalTotal = Math.max(0, baseOrderTotal + codFee + cardFee);
 
   // Field Validation
   const errors = useMemo(() => {
@@ -326,7 +343,7 @@ export default function CheckoutClient() {
     if (!couponInput.trim()) return;
 
     const normalizedCode = couponInput.trim().toUpperCase().replace(/\s+/g, "");
-    if (normalizedCode === "STREET10" || couponInput.trim().toUpperCase() === "STREET 10") {
+    if (normalizedCode === "EXPIRED10") {
       setCouponMessage({
         type: "error",
         text: "This promo code is currently disabled or inactive.",
@@ -404,6 +421,13 @@ export default function CheckoutClient() {
       return;
     }
 
+    const hasOnlyFreeGifts = itemsToUse.length > 0 && itemsToUse.every((i) => i.isFreeGift);
+    if (hasOnlyFreeGifts) {
+      alert("A promotional free gift cannot be ordered alone. Please add at least one qualifying regular product to your shopping bag to claim your gift.");
+      setSubmitting(false);
+      return;
+    }
+
     setSubmitting(true);
 
     try {
@@ -420,13 +444,13 @@ export default function CheckoutClient() {
           phone: phone.trim(),
           altPhone: altPhone.trim() || "",
           email: email.trim(),
-          province: deliveryOption === "pickup" ? "Northern Province" : province,
-          district: deliveryOption === "pickup" ? "Vavuniya" : district,
-          city: deliveryOption === "pickup" ? "Vavuniya" : city.trim(),
-          postalCode: deliveryOption === "pickup" ? "43000" : postalCode.trim(),
+          province: deliveryOption === "pickup" ? "Western Province" : province,
+          district: deliveryOption === "pickup" ? "Colombo" : district,
+          city: deliveryOption === "pickup" ? "Colombo" : city.trim(),
+          postalCode: deliveryOption === "pickup" ? "00300" : postalCode.trim(),
           address:
             deliveryOption === "pickup"
-              ? "Store Pickup at 163, Kandaswamy Kovil Road, Vavuniya"
+              ? "Store Pickup at 42, Galle Road, Colombo 03"
               : address.trim(),
           landmark: landmark.trim() || "",
           instructions: instructions.trim() || "",
@@ -443,9 +467,16 @@ export default function CheckoutClient() {
           variantId: item.variantId || "",
           warrantyTitle: item.warrantyTitle || "",
           warrantyPrice: item.warrantyPrice || 0,
+          isFreeGift: Boolean(item.isFreeGift),
+          rewardId: item.rewardId || "",
+          promotionalBadge: item.promotionalBadge || "",
         })),
+        shippingRewardId: isShippingRewardApplied ? (shippingReward?.id || "") : "",
+        giftRewardId: itemsToUse.find((i) => i.isFreeGift)?.rewardId || "",
         deliveryFee,
         codFee,
+        cardFee,
+        payhereFee: cardFee,
         couponDiscount,
         couponCode: appliedCoupon || "",
         subtotal,
@@ -458,7 +489,7 @@ export default function CheckoutClient() {
         createdAt: new Date().toISOString(),
       };
 
-      let generatedOrderId = `SM-${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
+      let generatedOrderId = `1P-${Date.now().toString().slice(-6)}${Math.floor(100 + Math.random() * 900)}`;
 
       // 1. Create order in Database (Firestore + Local Store) before payment
       try {
@@ -468,13 +499,15 @@ export default function CheckoutClient() {
           body: JSON.stringify({
             ...orderPayload,
             id: generatedOrderId,
-            userId: user?.uid || "guest_authenticated",
+            userId: user?.uid || "guest",
             customerName: orderPayload.customerName,
             primaryPhone: orderPayload.phone,
             secondaryPhone: orderPayload.altPhone,
             address: orderPayload.deliveryAddress.address,
             district: orderPayload.deliveryAddress.district,
             totalPrice: orderPayload.finalTotal,
+            cardFee: orderPayload.cardFee,
+            payhereFee: orderPayload.payhereFee,
             status: paymentMethod === "card" ? "pending" : "processing",
             paymentStatus: orderPayload.paymentStatus,
             payhereVerified: false,
@@ -495,9 +528,9 @@ export default function CheckoutClient() {
 
       // Store in user's recent orders in local storage
       try {
-        const stored = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+        const stored = JSON.parse(localStorage.getItem("oneplace_recent_orders") || "[]");
         if (!stored.includes(generatedOrderId)) {
-          localStorage.setItem("sm_recent_orders", JSON.stringify([generatedOrderId, ...stored]));
+          localStorage.setItem("oneplace_recent_orders", JSON.stringify([generatedOrderId, ...stored]));
         }
       } catch {}
 
@@ -559,12 +592,12 @@ export default function CheckoutClient() {
             phone: phone.trim(),
             address:
               deliveryOption === "pickup"
-                ? "163, Kandaswamy Kovil Road, Vavuniya"
+                ? BUSINESS_INFO.address
                 : address.trim(),
-            city: deliveryOption === "pickup" ? "Vavuniya" : city.trim() || district,
+            city: deliveryOption === "pickup" ? BUSINESS_INFO.city : city.trim() || district,
             items:
               itemsToUse.map((i) => `${i.name} (${i.quantity})`).join(", ") ||
-              `Street Mobile Order #${generatedOrderId.slice(0, 8)}`,
+              `${BUSINESS_INFO.brandName} Order #${generatedOrderId.slice(0, 8)}`,
             onCompleted: async (completedOrderId) => {
               console.log("[Checkout] PayHere payment modal closed/submitted for order:", completedOrderId || generatedOrderId);
               try {
@@ -742,6 +775,12 @@ export default function CheckoutClient() {
                 <div className="flex justify-between">
                   <span>COD Fee</span>
                   <span className="font-semibold text-neutral-900">+{formatPrice(codFeeAmount)}</span>
+                </div>
+              )}
+              {paymentMethod === "card" && cardFee > 0 && (
+                <div className="flex justify-between text-neutral-600">
+                  <span>PayHere Fee (2%)</span>
+                  <span className="font-semibold text-neutral-900">+{formatPrice(cardFee)}</span>
                 </div>
               )}
               {couponDiscount > 0 && (
@@ -1010,7 +1049,7 @@ export default function CheckoutClient() {
                         type="text"
                         name="address-level2"
                         autoComplete="address-level2"
-                        placeholder="e.g. Vavuniya Town"
+                        placeholder="e.g. Colombo 03"
                         value={city}
                         onChange={(e) => setCity(e.target.value)}
                         onBlur={() => markTouched("city")}
@@ -1037,7 +1076,7 @@ export default function CheckoutClient() {
                         type="text"
                         name="postal-code"
                         autoComplete="postal-code"
-                        placeholder="43000"
+                        placeholder="00300"
                         value={postalCode}
                         onChange={(e) => setPostalCode(e.target.value)}
                         onBlur={() => markTouched("postalCode")}
@@ -1169,6 +1208,7 @@ export default function CheckoutClient() {
                     markTouched("paymentMethod");
                   }}
                   codFee={codFeeAmount}
+                  cardFee={cardFee > 0 ? cardFee : Math.round(baseOrderTotal * 0.02)}
                   isCodAllowed={isCodAllowed}
                   isCardAllowed={isCardAllowed}
                   deliveryOption={deliveryOption}
@@ -1219,6 +1259,11 @@ export default function CheckoutClient() {
 
                       {/* Info & Quantity */}
                       <div className="flex-1 min-w-0">
+                        {item.isFreeGift && (
+                          <span className="inline-block px-2 py-0.5 rounded bg-rose-600 text-white text-[9px] font-black tracking-wider uppercase mb-1">
+                            🎁 Spin & Win Free Gift
+                          </span>
+                        )}
                         <h4 className="text-xs sm:text-sm font-bold text-neutral-900 truncate leading-tight">
                           {item.name}
                         </h4>
@@ -1241,36 +1286,46 @@ export default function CheckoutClient() {
 
                         {/* Price & Quantity Adjuster */}
                         <div className="flex items-center justify-between mt-2">
-                          <div className="inline-flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 text-xs">
-                            <button
-                              type="button"
-                              onClick={() => {
-                                if (item.quantity > 1) {
-                                  updateQuantity(item.productId, item.quantity - 1);
-                                } else {
-                                  removeFromCart(item.productId);
-                                }
-                              }}
-                              className="px-2 py-0.5 hover:bg-neutral-200 transition-colors text-neutral-700"
-                              title="Decrease"
-                            >
-                              <Minus className="w-3 h-3" />
-                            </button>
-                            <span className="px-2 font-bold text-neutral-900">
-                              {item.quantity}
+                          {item.isFreeGift ? (
+                            <span className="text-xs font-bold text-neutral-500 bg-neutral-100 px-2 py-0.5 rounded">
+                              Qty: 1 (Promotional)
                             </span>
-                            <button
-                              type="button"
-                              onClick={() => updateQuantity(item.productId, item.quantity + 1)}
-                              className="px-2 py-0.5 hover:bg-neutral-200 transition-colors text-neutral-700"
-                              title="Increase"
-                            >
-                              <Plus className="w-3 h-3" />
-                            </button>
-                          </div>
+                          ) : (
+                            <div className="inline-flex items-center border border-neutral-200 rounded-lg overflow-hidden bg-neutral-50 text-xs">
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  if (item.quantity > 1) {
+                                    updateQuantity(item.productId, item.quantity - 1, item.variantId, item.color, item.storage, item.isFreeGift);
+                                  } else {
+                                    removeFromCart(item.productId, item.variantId, item.color, item.storage, item.isFreeGift);
+                                  }
+                                }}
+                                className="px-2 py-0.5 hover:bg-neutral-200 transition-colors text-neutral-700"
+                                title="Decrease"
+                              >
+                                <Minus className="w-3 h-3" />
+                              </button>
+                              <span className="px-2 font-bold text-neutral-900">
+                                {item.quantity}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId, item.color, item.storage, item.isFreeGift)}
+                                className="px-2 py-0.5 hover:bg-neutral-200 transition-colors text-neutral-700"
+                                title="Increase"
+                              >
+                                <Plus className="w-3 h-3" />
+                              </button>
+                            </div>
+                          )}
 
                           <span className="text-xs sm:text-sm font-extrabold text-neutral-950">
-                            {formatPrice(item.price * item.quantity)}
+                            {item.isFreeGift ? (
+                              <span className="text-emerald-600 font-black">FREE (LKR 0)</span>
+                            ) : (
+                              formatPrice(item.price * item.quantity)
+                            )}
                           </span>
                         </div>
                       </div>
@@ -1337,8 +1392,15 @@ export default function CheckoutClient() {
                   </div>
 
                   <div className="flex justify-between text-neutral-600">
-                    <span>Delivery Fee</span>
-                    <span className="font-semibold text-neutral-900">
+                    <span className="flex items-center gap-1.5">
+                      <span>Delivery Fee</span>
+                      {isShippingRewardApplied && (
+                        <span className="text-[10px] bg-emerald-100 text-emerald-800 font-extrabold px-1.5 py-0.5 rounded">
+                          SPIN & WIN
+                        </span>
+                      )}
+                    </span>
+                    <span className={`font-semibold ${isShippingRewardApplied ? "text-emerald-700 font-bold" : "text-neutral-900"}`}>
                       {deliveryFee === 0 ? "FREE" : formatPrice(deliveryFee)}
                     </span>
                   </div>
@@ -1348,6 +1410,15 @@ export default function CheckoutClient() {
                       <span>COD Handling Fee</span>
                       <span className="font-semibold text-neutral-900">
                         +{formatPrice(codFeeAmount)}
+                      </span>
+                    </div>
+                  )}
+
+                  {paymentMethod === "card" && cardFee > 0 && (
+                    <div className="flex justify-between text-neutral-600">
+                      <span>PayHere Fee (2%)</span>
+                      <span className="font-semibold text-neutral-900">
+                        +{formatPrice(cardFee)}
                       </span>
                     </div>
                   )}

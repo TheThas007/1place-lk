@@ -22,7 +22,7 @@ export default function GoogleSearchConsoleTraffic({
   isLight = false,
 }: GoogleSearchConsoleTrafficProps) {
   const gscUrl =
-    "https://search.google.com/search-console?resource_id=https%3A%2F%2Fwww.streetmobile.lk%2F&after_verification_success=";
+    "https://search.google.com/search-console?resource_id=https%3A%2F%2Fwww.1place.lk%2F&after_verification_success=";
 
   return (
     <div className="space-y-4 pt-1">
@@ -48,7 +48,7 @@ export default function GoogleSearchConsoleTraffic({
               </span>
             </div>
             <h3 className="text-lg sm:text-xl font-bold tracking-tight">
-              StreetMobile.lk Search Performance & Live Web Traffic
+              1place.lk Search Performance & Live Web Traffic
             </h3>
             <p className={`text-xs max-w-2xl leading-relaxed ${isLight ? "text-slate-600" : "text-slate-400"}`}>
               Official organic search traffic, queries, impressions, and crawler indexing from Google Search. Access your verified production Search Console property in real time.
@@ -74,7 +74,7 @@ export default function GoogleSearchConsoleTraffic({
           <div className="flex items-center gap-1.5">
             <Globe className="w-3.5 h-3.5 text-blue-500" />
             <span>Property:</span>
-            <span className="font-bold text-blue-600 dark:text-blue-400">https://www.streetmobile.lk/</span>
+            <span className="font-bold text-blue-600 dark:text-blue-400">https://www.1place.lk/</span>
           </div>
           <div className="flex items-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-500" />
@@ -176,7 +176,7 @@ export default function GoogleSearchConsoleTraffic({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         {/* Performance Report */}
         <a
-          href="https://search.google.com/search-console/performance/search-result?resource_id=https%3A%2F%2Fwww.streetmobile.lk%2F"
+          href="https://search.google.com/search-console/performance/search-result?resource_id=https%3A%2F%2Fwww.1place.lk%2F"
           target="_blank"
           rel="noopener noreferrer"
           className={`p-3.5 rounded-xl border flex items-center justify-between transition-all hover:scale-[1.01] ${
@@ -198,7 +198,7 @@ export default function GoogleSearchConsoleTraffic({
 
         {/* Index Coverage & Sitemaps */}
         <a
-          href="https://search.google.com/search-console/sitemaps?resource_id=https%3A%2F%2Fwww.streetmobile.lk%2F"
+          href="https://search.google.com/search-console/sitemaps?resource_id=https%3A%2F%2Fwww.1place.lk%2F"
           target="_blank"
           rel="noopener noreferrer"
           className={`p-3.5 rounded-xl border flex items-center justify-between transition-all hover:scale-[1.01] ${

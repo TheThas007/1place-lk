@@ -77,7 +77,7 @@ export default function StoreLocation() {
             <div className="h-[220px] sm:h-[300px] md:h-auto min-h-[220px] md:min-h-[380px] bg-neutral-900 relative overflow-hidden flex items-center justify-center order-1 md:order-1">
               {loadMap ? (
                 <iframe
-                  title="STREET MOBILE Google Maps Location"
+                  title="1PLACE.LK Flagship Store Google Maps Location"
                   src={mapsEmbedUrl}
                   width="100%"
                   height="100%"
@@ -89,8 +89,8 @@ export default function StoreLocation() {
                 />
               ) : (
                 <div className="flex flex-col items-center justify-center gap-2 text-white/50 text-xs">
-                  <MapPin className="w-6 h-6 animate-bounce text-emerald-400" />
-                  <span>Loading Street Mobile Map...</span>
+                  <MapPin className="w-6 h-6 animate-bounce text-neutral-400" />
+                  <span>Loading 1place.lk Map...</span>
                 </div>
               )}
             </div>
@@ -101,26 +101,26 @@ export default function StoreLocation() {
               <div className="flex items-center justify-between gap-3 mb-3 md:mb-6">
                 <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-neutral-100 border border-neutral-200 text-neutral-800 text-[11px] font-bold uppercase tracking-wider">
                   <span className="flex h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span>Store Location</span>
+                  <span>Flagship Store</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] sm:text-xs font-bold text-neutral-900 flex items-center gap-1">
-                    ★ 4.9 <span className="text-neutral-400 font-normal">(285+ Reviews)</span>
+                    ★ 4.9 <span className="text-neutral-400 font-normal">(500+ Verified Reviews)</span>
                   </span>
                   <img
                     src="/logo.png"
-                    alt="STREET MOBILE Logo"
-                    className="hidden lg:block h-8 w-auto object-contain shrink-0 ml-2"
+                    alt="ONEPLACE"
+                    className="hidden lg:block h-6 w-auto object-contain shrink-0 ml-2"
                   />
                 </div>
               </div>
 
               {/* Title & Subtitle */}
               <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold tracking-tight text-neutral-900 mb-1.5 md:mb-3">
-                Visit Our Store in Vavuniya
+                Visit Our Colombo Flagship
               </h2>
               <p className="text-xs sm:text-sm text-neutral-500 mb-5 md:mb-8 leading-relaxed">
-                Experience the latest smartphones, authentic accessories, and professional express repair services.
+                Experience the latest smartphones, premium electronics, authentic accessories, and certified warranty support.
               </p>
 
               {/* Info Details List */}

@@ -17,59 +17,7 @@ interface CategoriesSectionProps {
   departments?: Department[];
 }
 
-function MobileBrandCard({
-  brand,
-  activeDepartmentSlug,
-}: {
-  brand: Brand;
-  activeDepartmentSlug: string;
-}) {
-  const [imgError, setImgError] = useState(false);
-  const logoUrl =
-    brand.logo_url ||
-    (brand as any).logo ||
-    (brand as any).image_url ||
-    (brand as any).imageUrl ||
-    (brand as any).icon_url ||
-    (brand as any).iconUrl ||
-    (brand as any).image ||
-    "";
-
-  useEffect(() => {
-    setImgError(false);
-  }, [logoUrl, brand.id, brand.slug]);
-
-  const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
-
-  return (
-    <Link
-      href={targetLink}
-      title={brand.name}
-      className="group relative flex items-center justify-center p-2 sm:p-2.5 rounded-xl bg-white border border-[#E8E8E8] shadow-2xs hover:border-neutral-400 active:scale-95 transition-all w-full aspect-square min-h-[44px]"
-    >
-      <div className="w-full h-full flex items-center justify-center p-1 overflow-hidden">
-        {!imgError && logoUrl ? (
-          <div className="relative w-[78%] h-[60%] flex items-center justify-center">
-            <Image
-              src={logoUrl}
-              alt={brand.logo_alt_text || `${brand.name} logo`}
-              fill
-              sizes="(max-width: 640px) 33vw, 0px"
-              className="object-contain transition-transform duration-200 group-hover:scale-105"
-              onError={() => setImgError(true)}
-            />
-          </div>
-        ) : (
-          <span className="text-[11px] sm:text-xs font-black text-black tracking-tight text-center truncate px-1 select-none">
-            {brand.name}
-          </span>
-        )}
-      </div>
-    </Link>
-  );
-}
-
-function BrandCard({
+function UnifiedBrandCard({
   brand,
   index,
   activeDepartmentSlug,
@@ -93,37 +41,35 @@ function BrandCard({
     setImgError(false);
   }, [logoUrl, brand.id, brand.slug]);
 
-  // Department-specific SEO-friendly brand route
   const targetLink = `/shop-by-brand/${activeDepartmentSlug}/${brand.slug}`;
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 12 }}
+      initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -6 }}
-      transition={{ duration: 0.25, delay: Math.min(index * 0.02, 0.25), ease: "easeOut" }}
+      transition={{ duration: 0.22, delay: Math.min(index * 0.02, 0.2), ease: "easeOut" }}
       className="h-full"
     >
       <Link
         href={targetLink}
-        title={`${brand.name}`}
-        className="group relative flex items-center justify-center p-4 sm:p-6 md:p-7 rounded-2xl sm:rounded-3xl bg-white border border-neutral-100/90 shadow-[0_3px_14px_rgba(0,0,0,0.04)] hover:shadow-[0_16px_36px_rgba(0,0,0,0.09)] hover:border-neutral-300 hover:-translate-y-1.5 transition-all duration-300 w-full aspect-[4/3] min-h-[110px] sm:min-h-[140px] md:min-h-[155px]"
+        title={brand.name}
+        className="group relative flex items-center justify-center p-2.5 sm:p-5 md:p-6 rounded-xl sm:rounded-2xl md:rounded-3xl bg-white border border-[#E8E8E8] md:border-neutral-100/90 shadow-2xs md:shadow-[0_3px_14px_rgba(0,0,0,0.04)] hover:shadow-md md:hover:shadow-[0_16px_36px_rgba(0,0,0,0.09)] hover:border-neutral-400 md:hover:border-neutral-300 active:scale-95 md:hover:-translate-y-1.5 transition-all duration-300 w-full aspect-square sm:aspect-[4/3] min-h-[50px] sm:min-h-[110px]"
       >
-        {/* Centered Genuine Brand Logo or High-Contrast Brand Name */}
         <div className="w-full h-full flex items-center justify-center p-1 sm:p-2 overflow-hidden">
           {!imgError && logoUrl ? (
-            <div className="relative w-[86%] sm:w-[85%] h-14 sm:h-[72px] md:h-20 flex items-center justify-center">
+            <div className="relative w-[82%] sm:w-[85%] h-9 sm:h-14 md:h-16 flex items-center justify-center">
               <Image
                 src={logoUrl}
                 alt={brand.logo_alt_text || `${brand.name} logo`}
                 fill
-                sizes="(max-width: 768px) 33vw, 15vw"
-                className="object-contain transition-transform duration-300 ease-out group-hover:scale-110"
+                sizes="(max-width: 640px) 33vw, (max-width: 1024px) 25vw, 16vw"
+                className="object-contain transition-transform duration-300 ease-out group-hover:scale-105 sm:group-hover:scale-110"
                 onError={() => setImgError(true)}
               />
             </div>
           ) : (
-            <span className="text-base sm:text-xl font-black text-neutral-900 font-sans tracking-tight select-none uppercase text-center px-1">
+            <span className="text-[11px] sm:text-base md:text-lg font-black text-neutral-900 font-sans tracking-tight select-none uppercase text-center px-1 truncate">
               {brand.name}
             </span>
           )}
@@ -139,8 +85,7 @@ export default function CategoriesSection({
   departments = DEFAULT_DEPARTMENTS,
 }: CategoriesSectionProps) {
   const [activeDeptSlug, setActiveDeptSlug] = useState<string>("phones");
-  const [isMobileExpanded, setIsMobileExpanded] = useState(false);
-  const [isDesktopExpanded, setIsDesktopExpanded] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(false);
   const [liveBrands, setLiveBrands] = useState<Brand[]>(() => {
     return (brands && brands.length > 0 ? brands : DEFAULT_BRANDS).map((b) => ({
       ...b,
@@ -206,130 +151,31 @@ export default function CategoriesSection({
       });
   }, [liveBrands, activeDeptSlug]);
 
-  const mobileVisibleBrands = isMobileExpanded ? visibleBrands : visibleBrands.slice(0, 6);
-  const desktopVisibleBrands = isDesktopExpanded ? visibleBrands : visibleBrands.slice(0, 12);
+  const displayedBrands = isExpanded ? visibleBrands : visibleBrands.slice(0, 12);
 
   return (
-    <>
-      {/* ── Mobile Layout (< 768px): Approved 3-Column Grid with Category Selector & Show More ── */}
-      <div id="mobile-shop-by-brand" data-section="shop-by-brand" className="md:hidden w-full bg-white px-4 py-4 select-none scroll-mt-20">
-        {/* 1. Mobile Header: Left-Aligned Title & Subtitle */}
-        <div className="mb-3">
-          <h2 className="text-[20px] font-black text-neutral-900 tracking-tight leading-tight">
-            Shop by Brand
-          </h2>
-          <p className="text-neutral-500 text-xs mt-0.5 font-medium leading-relaxed">
-            Browse our full lineup of genuine products from top global manufacturers.
-          </p>
-        </div>
-
-        {/* 2. Category Selector: Horizontally Scrollable Pills */}
-        <div
-          role="tablist"
-          aria-label="Brand categories"
-          className="flex items-center gap-2 overflow-x-auto scrollbar-none pb-1 mb-3.5 -mx-4 px-4 whitespace-nowrap snap-x"
-        >
-          {liveDepts
-            .filter((d) => d.enabled !== false)
-            .map((dept) => {
-              const isActive = activeDeptSlug === dept.slug;
-
-              return (
-                <button
-                  key={`mob-tab-${dept.slug}`}
-                  role="tab"
-                  aria-selected={isActive}
-                  type="button"
-                  onClick={() => {
-                    setActiveDeptSlug(dept.slug);
-                    setIsMobileExpanded(false);
-                    setIsDesktopExpanded(false);
-                  }}
-                  className={`inline-flex items-center justify-center px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-200 shrink-0 cursor-pointer snap-start ${
-                    isActive
-                      ? "bg-black text-white shadow-xs"
-                      : "bg-[#F1F3F5] text-neutral-700 hover:text-black border border-neutral-200/60"
-                  }`}
-                >
-                  <span>{dept.name}</span>
-                </button>
-              );
-            })}
-        </div>
-
-        {/* 3. Mobile Brand Grid (3 Columns, Equal Squares, 6 Logos by Default) */}
-        <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
-          {visibleBrands.length > 0 ? (
-            mobileVisibleBrands.map((brand) => (
-              <MobileBrandCard
-                key={`mob-brand-${activeDeptSlug}-${brand.id || brand.slug}`}
-                brand={brand}
-                activeDepartmentSlug={activeDeptSlug}
-              />
-            ))
-          ) : (
-            <div className="col-span-3 py-6 text-center text-neutral-400 text-xs font-medium bg-[#FAFAFA] rounded-xl border border-neutral-100">
-              No brands available in this category.
-            </div>
-          )}
-        </div>
-
-        {/* 4. Show More / Show Less Button (If more than 6 active brands exist) */}
-        {visibleBrands.length > 6 && (
-          <div className="mt-3">
-            <button
-              type="button"
-              onClick={() => {
-                if (isMobileExpanded) {
-                  setIsMobileExpanded(false);
-                  const el = document.getElementById("mobile-shop-by-brand");
-                  if (el) {
-                    el.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }
-                } else {
-                  setIsMobileExpanded(true);
-                }
-              }}
-              className="w-full h-[40px] rounded-xl bg-[#F8F9FA] hover:bg-[#F1F3F5] border border-neutral-200/80 text-neutral-800 text-xs font-bold flex items-center justify-center gap-1.5 active:scale-[0.99] transition-all cursor-pointer shadow-2xs"
-            >
-              <span>
-                {isMobileExpanded
-                  ? "Show Less"
-                  : `Show More Brands (+${visibleBrands.length - 6})`}
-              </span>
-              {isMobileExpanded ? (
-                <ChevronUp className="w-4 h-4 text-neutral-600" />
-              ) : (
-                <ChevronDown className="w-4 h-4 text-neutral-600" />
-              )}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Desktop Layout ── */}
-      <div className="hidden md:block">
-        <ScrollReveal
-          as="section"
-          id="shop-by-brand"
-          stagger={0.05}
-          yOffset={20}
-          className="py-12 sm:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans scroll-mt-20"
-        >
+    <ScrollReveal
+      as="section"
+      id="shop-by-brand"
+      aria-label="Shop by Brand"
+      stagger={0.05}
+      yOffset={18}
+      className="py-6 sm:py-12 md:py-16 bg-[#F8FAFC] border-b border-neutral-200/60 font-sans select-none scroll-mt-20"
+    >
       <div className="max-w-7xl mx-auto px-4 lg:px-6">
-        {/* Header Title & Subtitle */}
-        <div data-reveal-item className="text-center mb-8 space-y-2">
-          <h2 className="text-3xl sm:text-4xl font-black text-[#090909] tracking-tight">
+        {/* Single Canonical Header across all screen sizes */}
+        <div data-reveal-item className="text-left sm:text-center mb-4 sm:mb-8 space-y-1 sm:space-y-2">
+          <h2 className="text-xl sm:text-3xl lg:text-4xl font-black text-[#090909] tracking-tight">
             Shop by Brand
           </h2>
-          <p className="text-neutral-500 text-sm sm:text-base font-medium max-w-xl mx-auto">
+          <p className="text-neutral-500 text-xs sm:text-base font-medium max-w-xl sm:mx-auto">
             Browse our full lineup of genuine products from top global manufacturers.
           </p>
         </div>
 
-        {/* Department Switcher Tabs */}
-        <div data-reveal-item className="flex justify-center mb-10">
-          <div className="inline-flex items-center p-1.5 rounded-full bg-white/90 border border-neutral-200/80 shadow-xs relative">
+        {/* Department Switcher Tabs: Scrollable on mobile, Centered pill on desktop */}
+        <div data-reveal-item className="flex items-center overflow-x-auto scrollbar-none pb-2 sm:pb-0 sm:justify-center mb-4 sm:mb-10 -mx-4 px-4 sm:mx-0 sm:px-0 snap-x">
+          <div className="inline-flex items-center p-1 sm:p-1.5 rounded-full bg-white/90 border border-neutral-200/80 shadow-xs relative shrink-0">
             {liveDepts
               .filter((d) => d.enabled !== false)
               .map((dept) => {
@@ -341,10 +187,9 @@ export default function CategoriesSection({
                     type="button"
                     onClick={() => {
                       setActiveDeptSlug(dept.slug);
-                      setIsDesktopExpanded(false);
-                      setIsMobileExpanded(false);
+                      setIsExpanded(false);
                     }}
-                    className={`relative px-6 py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 z-10 cursor-pointer ${
+                    className={`relative px-4 sm:px-6 py-1.5 sm:py-2.5 rounded-full text-xs sm:text-sm font-bold transition-all duration-300 z-10 cursor-pointer snap-start shrink-0 ${
                       isActive ? "text-white" : "text-neutral-600 hover:text-black"
                     }`}
                   >
@@ -355,28 +200,26 @@ export default function CategoriesSection({
                         transition={{ type: "spring", bounce: 0.15, duration: 0.4 }}
                       />
                     )}
-                    <span className="relative z-10">
-                      {dept.name}
-                    </span>
+                    <span className="relative z-10">{dept.name}</span>
                   </button>
                 );
               })}
           </div>
         </div>
 
-        {/* Brand Grid - 6 columns matching Apple-style badges (Shows 12 brands initially) */}
+        {/* Brand Grid: 3-column mobile, 4-column tablet, 6-column desktop */}
         <AnimatePresence mode="wait">
           <motion.div
-            key={`${activeDeptSlug}-${isDesktopExpanded ? "expanded" : "collapsed"}`}
+            key={`${activeDeptSlug}-${isExpanded ? "expanded" : "collapsed"}`}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
-            transition={{ duration: 0.25 }}
-            className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-4 sm:gap-5 lg:gap-6"
+            transition={{ duration: 0.22 }}
+            className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-4 lg:grid-cols-6 gap-2.5 sm:gap-4 lg:gap-6"
           >
-            {desktopVisibleBrands.length > 0 ? (
-              desktopVisibleBrands.map((brand, idx) => (
-                <BrandCard
+            {displayedBrands.length > 0 ? (
+              displayedBrands.map((brand, idx) => (
+                <UnifiedBrandCard
                   key={`${activeDeptSlug}-${brand.id || brand.slug}`}
                   brand={brand}
                   index={idx}
@@ -391,40 +234,38 @@ export default function CategoriesSection({
           </motion.div>
         </AnimatePresence>
 
-        {/* Desktop Show More / Show Less Button (If more than 12 active brands exist) */}
+        {/* Single Show More / Show Less Button if > 12 brands */}
         {visibleBrands.length > 12 && (
-          <div className="mt-10 flex justify-center">
+          <div className="mt-6 sm:mt-10 flex justify-center">
             <button
               type="button"
               onClick={() => {
-                if (isDesktopExpanded) {
-                  setIsDesktopExpanded(false);
-                  const el = document.getElementById("categories-section");
+                if (isExpanded) {
+                  setIsExpanded(false);
+                  const el = document.getElementById("shop-by-brand");
                   if (el) {
                     el.scrollIntoView({ behavior: "smooth", block: "start" });
                   }
                 } else {
-                  setIsDesktopExpanded(true);
+                  setIsExpanded(true);
                 }
               }}
-              className="inline-flex items-center gap-2 px-8 py-3.5 rounded-full bg-white hover:bg-black text-neutral-900 hover:text-white border border-neutral-300 hover:border-black font-bold text-xs sm:text-sm shadow-xs hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-95"
+              className="inline-flex items-center gap-1.5 sm:gap-2 px-5 sm:px-8 py-2.5 sm:py-3.5 rounded-full bg-white hover:bg-black text-neutral-900 hover:text-white border border-neutral-300 hover:border-black font-bold text-xs sm:text-sm shadow-xs hover:shadow-lg transition-all duration-300 cursor-pointer active:scale-95"
             >
               <span>
-                {isDesktopExpanded
+                {isExpanded
                   ? "Show Less Brands"
                   : `Show More Brands (+${visibleBrands.length - 12})`}
               </span>
-              {isDesktopExpanded ? (
-                <ChevronUp className="w-4 h-4" />
+              {isExpanded ? (
+                <ChevronUp className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               ) : (
-                <ChevronDown className="w-4 h-4" />
+                <ChevronDown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               )}
             </button>
           </div>
         )}
       </div>
     </ScrollReveal>
-    </div>
-  </>
   );
 }

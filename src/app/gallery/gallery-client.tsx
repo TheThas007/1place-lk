@@ -82,12 +82,12 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
 
       const isVideo = mediaUrl.toLowerCase().includes(".mp4") || mediaUrl.toLowerCase().includes(".webm");
       const ext = isVideo ? ".mp4" : ".jpg";
-      const cleanTitle = (title || "street-mobile")
+      const cleanTitle = (title || "1place-lk")
         .toLowerCase()
         .replace(/[^a-z0-9]/g, "-")
         .replace(/-+/g, "-")
         .slice(0, 40);
-      link.download = `${cleanTitle || "street-mobile-gallery"}${ext}`;
+      link.download = `${cleanTitle || "1place-gallery"}${ext}`;
 
       document.body.appendChild(link);
       link.click();
@@ -102,7 +102,7 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
       link.href = mediaUrl;
       link.target = "_blank";
       link.rel = "noopener noreferrer";
-      link.download = (title || "street-mobile-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
+      link.download = (title || "1place-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -182,8 +182,8 @@ export default function GalleryClient({ images }: { images: GalleryImage[] }) {
             <h1 className="text-5xl sm:text-6xl md:text-7xl font-black tracking-tight leading-none mb-5">
               Inside{" "}
               <span className="relative inline-block">
-                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-violet-600 via-fuchsia-600 to-pink-600">
-                  Street Mobile
+                <span className="relative z-10 text-transparent bg-clip-text bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-950">
+                  1PLACE.LK
                 </span>
                 <motion.span
                   initial={{ scaleX: 0 }} animate={{ scaleX: 1 }}

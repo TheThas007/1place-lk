@@ -237,12 +237,12 @@ export default function TrustIndicators({
         </div>
       )}
 
-      {/* ── Single Unified "Why Choose Street Mobile" Section ── */}
+      {/* ── Single Unified "Why Choose 1place.lk" Section ── */}
       {mode !== "strip_only" && (
         <section
           id="why-choose-us"
           ref={sectionRef}
-          aria-label="Why Choose Street Mobile"
+          aria-label="Why Choose 1place.lk"
           className="relative py-8 sm:py-12 md:py-20 lg:py-28 overflow-hidden bg-white text-gray-900 font-sans select-none"
         >
           <div className="max-w-[1280px] mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
@@ -258,7 +258,7 @@ export default function TrustIndicators({
                 Why Choose Us
               </div>
               <h2 className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-extrabold text-gray-900 tracking-tight leading-tight mb-2 sm:mb-3">
-                Why Choose Street Mobile
+                Why Choose 1place.lk
               </h2>
               <p className="text-gray-600 text-xs sm:text-sm md:text-base max-w-[600px] mx-auto leading-relaxed font-normal">
                 Premium quality, professional service, and total peace of mind — every time.
@@ -298,9 +298,9 @@ export default function TrustIndicators({
                           <feature.icon className="w-5 h-5 text-gray-900" />
                         </div>
                         <div className="w-7 h-[1px] bg-gray-200 mb-2 rounded-full" />
-                        <h3 className="font-bold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
+                        <p className="font-bold text-[15px] mb-1 text-gray-900 tracking-tight leading-tight">
                           {feature.title}
-                        </h3>
+                        </p>
                         <p className="text-[12px] text-gray-600 leading-[1.45] font-normal max-w-[240px] mx-auto mb-2">
                           {feature.description}
                         </p>

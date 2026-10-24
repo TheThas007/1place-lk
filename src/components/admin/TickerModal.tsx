@@ -59,7 +59,7 @@ const DEFAULT_SETTINGS: TickerSettings = {
     { id: "t1", text: "Genuine Products with Warranty", icon: "ShieldCheck", active: true, sort_order: 0 },
     { id: "t2", text: "Islandwide Delivery Available", icon: "Truck", active: true, sort_order: 1 },
     { id: "t3", text: "Secure Online Payments", icon: "Lock", active: true, sort_order: 2 },
-    { id: "t4", text: "Visit Street Mobile — Vavuniya", icon: "MapPin", active: true, sort_order: 3 },
+    { id: "t4", text: "Visit 1PLACE.LK — Colombo 03", icon: "MapPin", active: true, sort_order: 3 },
     { id: "t5", text: "Latest Smartphones & Accessories", icon: "Smartphone", active: true, sort_order: 4 },
   ],
   text_color: "#FFFFFF",

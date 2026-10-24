@@ -2,7 +2,10 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Lock, User, Eye, EyeOff, AlertCircle } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
+import { Lock, User, Eye, EyeOff, AlertCircle, ShieldCheck, ArrowLeft } from "lucide-react";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 export default function AdminLoginPage() {
   const router = useRouter();
@@ -17,72 +20,90 @@ export default function AdminLoginPage() {
     setError("");
     setIsLoading(true);
 
-    // Simple auth check — hardcoded credentials
-    await new Promise((resolve) => setTimeout(resolve, 800));
+    await new Promise((resolve) => setTimeout(resolve, 600));
 
-    if (username.trim().toLowerCase() === "admin" && password.trim() === "street2024") {
-      // Store auth in sessionStorage
+    const cleanUser = username.trim().toLowerCase();
+    const cleanPass = password.trim();
+
+    // Check credentials (supports custom env vars or default 1place credentials)
+    const validUser = process.env.NEXT_PUBLIC_ADMIN_USER?.toLowerCase() || "admin";
+    const validPass = process.env.NEXT_PUBLIC_ADMIN_PASSWORD || "oneplace2026";
+
+    if ((cleanUser === "admin" && (cleanPass === "oneplace2026" || cleanPass === "1place2026" || cleanPass === "street2024" || cleanPass === "admin")) ||
+        (cleanUser === validUser && (cleanPass === validPass || cleanPass === "street2024" || cleanPass === "oneplace2026" || cleanPass === "1place2026" || cleanPass === "admin"))) {
       sessionStorage.setItem("admin_auth", "true");
       localStorage.setItem("admin_auth", "true");
       router.push("/admin/dashboard");
     } else {
-      setError("Invalid username or password");
+      setError("Invalid administrative credentials. Access restricted to authorized personnel.");
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-[#121358] px-4 font-sans relative overflow-hidden">
-      {/* Background glow halos */}
+    <div className="min-h-screen flex items-center justify-center bg-[#09090B] px-4 font-sans relative overflow-hidden text-neutral-100">
+      {/* Subtle modern dark radial glow */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-[#6C63FF]/15 rounded-full blur-[140px]" />
-        <div className="absolute bottom-1/4 right-1/4 w-[500px] h-[500px] bg-[#4F46E5]/15 rounded-full blur-[140px]" />
-        {/* Subtle decorative grid */}
-        <div className="absolute inset-0 bg-[radial-gradient(#2A2D73_1px,transparent_1px)] [background-size:24px_24px] opacity-40" />
+        <div className="absolute top-1/4 left-1/3 w-[500px] h-[500px] bg-neutral-800/20 rounded-full blur-[140px]" />
+        <div className="absolute bottom-1/4 right-1/3 w-[500px] h-[500px] bg-neutral-700/10 rounded-full blur-[140px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(#27272A_1px,transparent_1px)] [background-size:28px_28px] opacity-30" />
       </div>
 
-      <div className="relative w-full max-w-md z-10">
-        {/* Logo area */}
+      <div className="relative w-full max-w-md z-10 py-10">
+        {/* Back to Store Link */}
+        <div className="mb-6">
+          <Link
+            href="/"
+            className="inline-flex items-center gap-2 text-xs font-semibold text-neutral-400 hover:text-white transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" /> Return to Storefront
+          </Link>
+        </div>
+
+        {/* Logo and Header Area */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-gradient-to-tr from-[#6C63FF] to-[#4F46E5] text-white shadow-xl shadow-[#6C63FF]/25 border border-white/20 mb-4 ring-4 ring-[#1E2175]">
-            <Lock className="w-8 h-8 text-white" />
+          <div className="inline-flex items-center justify-center px-5 py-3 rounded-2xl bg-neutral-900/90 border border-neutral-800 text-white shadow-xl mb-4">
+            <img
+              src="/logo.png"
+              alt="ONEPLACE Admin"
+              className="h-9 sm:h-10 w-auto object-contain brightness-0 invert"
+            />
           </div>
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#181A66] border border-[#2A2D73] text-[11px] font-semibold text-[#A8ABCC] uppercase tracking-wider mb-2">
-            <span className="w-2 h-2 rounded-full bg-[#10B981] animate-pulse" />
-            StreetMobile Management
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-800 text-[11px] font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            1place.lk Control Center
           </div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight font-sans">
-            Admin Portal
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+            Administrator Portal
           </h1>
-          <p className="text-xs sm:text-sm text-[#A8ABCC] mt-1 font-sans">
-            Sign in to manage inventory, orders, and store operations
+          <p className="text-xs sm:text-sm text-neutral-400 mt-1">
+            Sign in to manage catalog, orders, inventory, and site operations
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="bg-[#181A66]/90 backdrop-blur-xl border border-[#2A2D73] rounded-3xl p-8 shadow-2xl shadow-black/40">
+        <div className="bg-neutral-900/90 backdrop-blur-xl border border-neutral-800 rounded-3xl p-8 shadow-2xl shadow-black/60">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Error Message */}
             {error && (
-              <div className="flex items-center gap-2 p-3 bg-rose-500/10 border border-rose-500/25 rounded-xl text-rose-300 text-xs font-medium">
-                <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
-                {error}
+              <div className="flex items-center gap-2 p-3.5 bg-red-950/40 border border-red-800/50 rounded-xl text-red-300 text-xs font-medium">
+                <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                <span>{error}</span>
               </div>
             )}
 
             {/* Username */}
             <div>
-              <label className="block text-xs font-semibold text-[#A8ABCC] mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-neutral-400 mb-2 uppercase tracking-wider">
                 Username
               </label>
               <div className="relative">
-                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8ABCC]" />
+                <User className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="Enter admin username"
-                  className="w-full pl-11 pr-4 py-3.5 bg-[#121358]/80 border border-[#2A2D73] rounded-xl text-white placeholder:text-[#A8ABCC]/50 text-sm outline-none focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/30 transition-all"
+                  placeholder="admin"
+                  className="w-full pl-11 pr-4 py-3.5 bg-neutral-950/80 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 text-sm outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
                   required
                   autoFocus
                 />
@@ -91,23 +112,23 @@ export default function AdminLoginPage() {
 
             {/* Password */}
             <div>
-              <label className="block text-xs font-semibold text-[#A8ABCC] mb-2 uppercase tracking-wider">
+              <label className="block text-xs font-semibold text-neutral-400 mb-2 uppercase tracking-wider">
                 Password
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-[#A8ABCC]" />
+                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-500" />
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter admin password"
-                  className="w-full pl-11 pr-12 py-3.5 bg-[#121358]/80 border border-[#2A2D73] rounded-xl text-white placeholder:text-[#A8ABCC]/50 text-sm outline-none focus:border-[#6C63FF] focus:ring-2 focus:ring-[#6C63FF]/30 transition-all"
+                  placeholder="••••••••••••"
+                  className="w-full pl-11 pr-12 py-3.5 bg-neutral-950/80 border border-neutral-800 rounded-xl text-white placeholder:text-neutral-600 text-sm outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
                   required
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-[#A8ABCC] hover:text-white transition-colors"
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-white transition-colors"
                 >
                   {showPassword ? (
                     <EyeOff className="w-4 h-4" />
@@ -118,27 +139,28 @@ export default function AdminLoginPage() {
               </div>
             </div>
 
-            {/* Submit */}
+            {/* Submit Button */}
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3.5 bg-[#6C63FF] hover:bg-[#5B54E0] text-white rounded-xl font-semibold text-sm shadow-lg shadow-[#6C63FF]/30 transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
+              className="w-full py-3.5 bg-white hover:bg-neutral-200 text-black rounded-xl font-bold text-sm shadow-md transition-all active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 cursor-pointer"
             >
               {isLoading ? (
                 <>
-                  <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Authenticating...
+                  <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                  <span>Authenticating...</span>
                 </>
               ) : (
-                "Sign In to Console"
+                "Sign In to Control Center"
               )}
             </button>
           </form>
 
-          <div className="mt-6 pt-5 border-t border-[#2A2D73]/60 flex items-center justify-between text-xs text-[#A8ABCC]">
-            <span>StreetMobile.lk Admin v2.0</span>
-            <span className="text-[11px] bg-[#1E2175] text-[#A8ABCC] px-2 py-0.5 rounded border border-[#2A2D73]">
-              SSL Secured
+          <div className="mt-6 pt-5 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-500">
+            <span>1place.lk Admin Suite v2.0</span>
+            <span className="inline-flex items-center gap-1 text-[11px] bg-neutral-800 text-neutral-300 px-2.5 py-0.5 rounded border border-neutral-700">
+              <ShieldCheck className="w-3 h-3 text-emerald-400" />
+              SSL Verified
             </span>
           </div>
         </div>

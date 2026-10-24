@@ -25,12 +25,12 @@ async function downloadMedia(url: string, title?: string) {
     const blobUrl = window.URL.createObjectURL(blob);
     const link = document.createElement("a");
     link.href = blobUrl;
-    const cleanTitle = (title || "street-mobile")
+    const cleanTitle = (title || "1place-lk")
       .toLowerCase()
       .replace(/[^a-z0-9]/g, "-")
       .replace(/-+/g, "-")
       .slice(0, 40);
-    link.download = `${cleanTitle || "street-mobile-gallery"}.jpg`;
+    link.download = `${cleanTitle || "1place-gallery"}.jpg`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -40,7 +40,7 @@ async function downloadMedia(url: string, title?: string) {
     link.href = url;
     link.target = "_blank";
     link.rel = "noopener noreferrer";
-    link.download = (title || "street-mobile-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
+    link.download = (title || "1place-gallery").toLowerCase().replace(/[^a-z0-9]/g, "-") + ".jpg";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -88,7 +88,7 @@ function GalleryCard({ image, index, onLinkClick }: GalleryCardProps) {
   const isInstagram =
     image.platform === "instagram" ||
     (validPostUrl && validPostUrl.includes("instagram.com"));
-  const titleText = image.caption || image.title || "Life at Street Mobile";
+  const titleText = image.caption || image.title || "Life at 1PLACE.LK";
 
   const CardContent = (
     <div className="relative w-full h-full overflow-hidden bg-neutral-100 select-none rounded-[12px] sm:rounded-[14px]">
@@ -544,106 +544,52 @@ export default function GallerySection({
       className="relative py-8 sm:py-14 lg:py-[72px] bg-[#F2F2F2] border-y border-neutral-200/80 overflow-hidden font-sans select-none"
     >
       {/* ── Content Header Container (Responsive 1320px Max-Width) ── */}
-      <div className="relative max-w-[1320px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto">
-        {/* Mobile Header (< 768px) */}
-        <div data-reveal-item className="md:hidden flex flex-col items-start mb-4 sm:mb-5">
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white border border-neutral-200 text-neutral-800 text-[10px] font-bold uppercase tracking-wider mb-2 shadow-2xs select-none">
-            <Images className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-            <span>Store Highlights</span>
-          </div>
-
-          <div className="w-full flex items-center justify-between gap-2">
-            <h2 className="text-xl sm:text-2xl font-black text-neutral-900 tracking-tight leading-tight m-0">
-              Life at Street Mobile
-            </h2>
-
-            {/* Mobile Actions: View all + Prev/Next Touch Buttons */}
-            <div className="flex items-center gap-2 shrink-0">
-              <Link
-                href="/gallery"
-                className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-bold bg-white border border-neutral-300 text-neutral-800 hover:text-black shrink-0 active:scale-95 transition-transform"
-              >
-                <span>View all</span>
-                <ArrowRight className="w-3 h-3" />
-              </Link>
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={handlePrev}
-                  className="w-7 h-7 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
-                  aria-label="Previous Photo"
-                >
-                  <ChevronLeft className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={handleNext}
-                  className="w-7 h-7 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
-                  aria-label="Next Photo"
-                >
-                  <ChevronRight className="w-4 h-4" />
-                </button>
-              </div>
-            </div>
-          </div>
-
-          <p className="text-xs text-neutral-500 font-normal mt-1.5 max-w-xs leading-relaxed m-0">
-            Moments from our showroom, repair lab, and customer deliveries.
-          </p>
-        </div>
-
-        {/* Desktop Header (>= 768px) */}
-        <div
-          data-reveal-item
-          className="hidden md:flex flex-col md:flex-row md:items-center justify-between gap-6 mb-8 sm:mb-10"
-        >
+      <div className="relative max-w-[1320px] w-[calc(100%-32px)] sm:w-[calc(100%-48px)] mx-auto mb-6 sm:mb-10">
+        <div data-reveal-item className="flex flex-col md:flex-row md:items-end justify-between gap-4 sm:gap-6">
           <div className="flex flex-col items-start text-left">
             {/* Eyebrow */}
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-[6px] bg-white border border-neutral-200/80 text-neutral-800 text-[11px] font-bold uppercase tracking-[0.08em] shadow-2xs mb-2.5 select-none">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full md:rounded-[6px] bg-white border border-neutral-200/80 text-neutral-800 text-[10px] sm:text-[11px] font-bold uppercase tracking-[0.08em] shadow-2xs mb-2 sm:mb-2.5 select-none">
               <Images className="w-3.5 h-3.5 text-blue-600 shrink-0" />
-              <span>STORE HIGHLIGHTS &amp; SOCIAL MEDIA</span>
+              <span>Store Highlights &amp; Moments</span>
             </div>
 
-            {/* Main Heading */}
-            <h2
-              className="text-neutral-900 font-bold tracking-[-0.035em] leading-[1.0] m-0 p-0"
-              style={{ fontSize: "clamp(34px, 3vw, 50px)" }}
-            >
-              Life at Street Mobile
+            {/* Single Canonical H2 */}
+            <h2 className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black text-neutral-900 tracking-tight leading-tight m-0 p-0">
+              Life at 1PLACE.LK
             </h2>
 
             {/* Supporting Description */}
-            <p className="text-[15px] sm:text-[16px] leading-[1.55] text-neutral-600 mt-2 max-w-[560px] font-normal m-0">
-              Explore recent moments from our Vavuniya showroom, repair lab, and customer deliveries.
+            <p className="text-xs sm:text-sm md:text-base leading-relaxed text-neutral-600 mt-1.5 sm:mt-2 max-w-[560px] font-normal m-0">
+              Explore recent moments from our Colombo flagship showroom, unboxings, and nationwide customer deliveries.
             </p>
           </div>
 
           {/* Action Buttons & Manual Controls */}
-          <div className="flex items-center gap-3 shrink-0 self-start md:self-auto">
+          <div className="flex items-center justify-between md:justify-end gap-2 sm:gap-3 shrink-0 w-full md:w-auto">
             <Link
               href="/gallery"
-              className="group inline-flex items-center justify-center gap-2 h-[44px] sm:h-[46px] px-5 sm:px-6 rounded-[8px] bg-black hover:bg-neutral-800 text-white text-xs sm:text-sm font-bold transition-all shadow-sm active:scale-[0.98]"
+              className="inline-flex items-center justify-center gap-1.5 px-3.5 sm:px-5 py-2 sm:py-2.5 rounded-full md:rounded-lg bg-neutral-900 hover:bg-black text-white text-xs sm:text-sm font-bold transition-all shadow-xs active:scale-95"
             >
-              <span>View Complete Gallery</span>
-              <ArrowRight className="w-4 h-4 transition-transform duration-200 group-hover:translate-x-[3px]" />
+              <span>View Gallery</span>
+              <ArrowRight className="w-3.5 h-3.5" />
             </Link>
 
             <div className="flex items-center gap-1.5">
               <button
                 type="button"
                 onClick={handlePrev}
-                className="w-10 h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-white border border-neutral-300 text-neutral-800 hover:bg-neutral-100 flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Previous Photo"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
               <button
                 type="button"
                 onClick={handleNext}
-                className="w-10 h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-95 transition-transform cursor-pointer"
+                className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-neutral-900 text-white flex items-center justify-center shadow-xs active:scale-90 transition-transform cursor-pointer"
                 aria-label="Next Photo"
               >
-                <ChevronRight className="w-5 h-5" />
+                <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
               </button>
             </div>
           </div>

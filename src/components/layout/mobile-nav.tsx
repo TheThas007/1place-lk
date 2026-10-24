@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, Store, Search, ShoppingCart, User } from "lucide-react";
+import { Home, LayoutGrid, Sparkles, ShoppingBag, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart-context";
 import { useAuth } from "@/lib/auth-context";
@@ -13,90 +13,109 @@ export default function MobileNav() {
   const { itemCount } = useCart();
   const { user, profile, gender } = useAuth();
 
-  // Hide bottom nav only on admin and checkout pages
-  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) {
+  // Hide bottom nav on admin, checkout, and product detail pages
+  if (
+    pathname.startsWith("/admin") ||
+    pathname.startsWith("/checkout") ||
+    (pathname.startsWith("/products/") && pathname !== "/products")
+  ) {
     return null;
   }
 
   const isHome = pathname === "/";
-  const isShop =
-    pathname.startsWith("/products") ||
-    pathname.startsWith("/categories") ||
-    pathname.startsWith("/category") ||
-    pathname.startsWith("/shop-by-brand");
+  const isCategories = pathname.startsWith("/categories") || pathname.startsWith("/category");
+  const isDeals = pathname === "/deals" || pathname.includes("deals");
   const isCart = pathname.startsWith("/cart");
-  const isAccount = pathname.startsWith("/orders") || pathname.startsWith("/login");
+  const isAccount = pathname.startsWith("/account") || pathname.startsWith("/profile") || pathname.startsWith("/login") || pathname.startsWith("/orders");
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-[70] md:hidden bg-[#090909] border-t border-neutral-800 shadow-[0_-4px_25px_rgba(0,0,0,0.5)] safe-bottom select-none font-outfit">
+    <nav
+      data-mobile-bottom-nav
+      aria-label="Mobile Navigation"
+      className="fixed bottom-0 left-0 right-0 z-[70] lg:hidden bg-white border-t border-[#E8E8E8] shadow-[0_-4px_20px_rgba(0,0,0,0.06)] safe-bottom select-none font-sans"
+    >
       <div className="grid grid-cols-5 items-center h-14 px-1 max-w-md mx-auto">
         {/* 1. Home */}
         <Link
           href="/"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isHome ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
+            isHome ? "text-[#64152F] font-bold" : "text-[#666666] hover:text-[#111111] font-medium"
           )}
         >
           <Home
             className={cn(
               "w-5 h-5 transition-transform",
-              isHome ? "text-white fill-white" : "text-neutral-400"
+              isHome ? "text-[#64152F] stroke-[2.2]" : "text-[#666666]"
             )}
           />
           <span>Home</span>
+          {isHome && <span className="w-1 h-1 rounded-full bg-[#64152F] absolute bottom-1" />}
         </Link>
 
-        {/* 2. Shop */}
+        {/* 2. Categories */}
         <Link
-          href="/products"
+          href="/categories"
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isShop ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
+            isCategories ? "text-[#64152F] font-bold" : "text-[#666666] hover:text-[#111111] font-medium"
           )}
         >
-          <Store
+          <LayoutGrid
             className={cn(
               "w-5 h-5 transition-transform",
-              isShop ? "text-white stroke-[2.5]" : "text-neutral-400"
+              isCategories ? "text-[#64152F] stroke-[2.2]" : "text-[#666666]"
             )}
           />
-          <span>Shop</span>
+          <span>Categories</span>
+          {isCategories && <span className="w-1 h-1 rounded-full bg-[#64152F] absolute bottom-1" />}
         </Link>
 
-        {/* 3. Search */}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("open-search-overlay"))}
-          className="flex flex-col items-center justify-center gap-1 text-[10px] font-medium text-neutral-400 hover:text-white transition-all py-1 min-h-[44px] cursor-pointer"
-        >
-          <Search className="w-5 h-5 text-neutral-400" />
-          <span>Search</span>
-        </button>
-
-        {/* 4. Cart */}
-        <button
-          type="button"
-          onClick={() => window.dispatchEvent(new CustomEvent("open-cart-drawer"))}
+        {/* 3. Deals */}
+        <Link
+          href="/#deals"
           className={cn(
-            "flex flex-col items-center justify-center gap-1 text-[10px] transition-all py-1 min-h-[44px] relative cursor-pointer",
-            isCart ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
+            "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
+            isDeals ? "text-[#64152F] font-bold" : "text-[#666666] hover:text-[#111111] font-medium"
           )}
         >
+          <Sparkles
+            className={cn(
+              "w-5 h-5 transition-transform",
+              isDeals ? "text-[#64152F] stroke-[2.2]" : "text-[#666666]"
+            )}
+          />
+          <span>Deals</span>
+          {isDeals && <span className="w-1 h-1 rounded-full bg-[#64152F] absolute bottom-1" />}
+        </Link>
+
+        {/* 4. Cart (with dynamic count badge) */}
+        <button
+          type="button"
+          onClick={() => {
+            window.dispatchEvent(new CustomEvent("open-cart-drawer"));
+          }}
+          className={cn(
+            "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px] cursor-pointer",
+            isCart ? "text-[#64152F] font-bold" : "text-[#666666] hover:text-[#111111] font-medium"
+          )}
+          aria-label="Shopping Cart"
+        >
           <div className="relative">
-            <ShoppingCart
+            <ShoppingBag
               className={cn(
                 "w-5 h-5 transition-transform",
-                isCart ? "text-white stroke-[2.5]" : "text-neutral-400"
+                isCart ? "text-[#64152F] stroke-[2.2]" : "text-[#666666]"
               )}
             />
             {itemCount > 0 && (
-              <span className="absolute -top-1.5 -right-2 bg-white text-black text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-sm border border-black/10">
+              <span className="absolute -top-1 -right-2 bg-[#64152F] text-white text-[9px] font-black px-1.5 py-0.2 rounded-full leading-tight shadow-2xs">
                 {itemCount > 99 ? "99+" : itemCount}
               </span>
             )}
           </div>
           <span>Cart</span>
+          {isCart && <span className="w-1 h-1 rounded-full bg-[#64152F] absolute bottom-1" />}
         </button>
 
         {/* 5. Account */}
@@ -104,7 +123,7 @@ export default function MobileNav() {
           href={user ? "/orders" : "/login"}
           className={cn(
             "flex flex-col items-center justify-center gap-1 text-[10px] transition-all relative py-1 min-h-[44px]",
-            isAccount ? "text-white font-bold" : "text-neutral-400 hover:text-white font-medium"
+            isAccount ? "text-[#64152F] font-bold" : "text-[#666666] hover:text-[#111111] font-medium"
           )}
         >
           {user ? (
@@ -113,17 +132,18 @@ export default function MobileNav() {
               name={user.displayName || "User"}
               photoURL={user.photoURL}
               size="xs"
-              className={isAccount ? "ring-1.5 ring-white" : ""}
+              className={isAccount ? "ring-2 ring-[#64152F]" : ""}
             />
           ) : (
             <User
               className={cn(
                 "w-5 h-5 transition-transform",
-                isAccount ? "text-white stroke-[2.5]" : "text-neutral-400"
+                isAccount ? "text-[#64152F] stroke-[2.2]" : "text-[#666666]"
               )}
             />
           )}
-          <span>{user ? "Account" : "Sign In"}</span>
+          <span>Account</span>
+          {isAccount && <span className="w-1 h-1 rounded-full bg-[#64152F] absolute bottom-1" />}
         </Link>
       </div>
     </nav>

@@ -78,7 +78,7 @@ export default function PreOrderModal({
       // 2. Prepare WhatsApp message
       const variantDetails = [selectedColor, selectedStorage, selectedRam].filter(Boolean).join(" • ");
       const msg = 
-`👋 Hello STREET MOBILE! I would like to PRE-BOOK the following out-of-stock device:
+`👋 Hello 1PLACE.LK! I would like to PRE-BOOK the following out-of-stock device:
 
 📱 *Device:* ${product.name}
 ${variantDetails ? `⚙️ *Variant:* ${variantDetails}` : ""}
@@ -91,7 +91,7 @@ ${variantDetails ? `⚙️ *Variant:* ${variantDetails}` : ""}
 ${notes.trim() ? `📝 *Notes:* ${notes.trim()}\n` : ""}
 Please reserve a unit for me from your next shipment and notify me once it arrives!`;
 
-      const storeWhatsApp = "94777144143"; // Standard Street Mobile WhatsApp contact
+      const storeWhatsApp = "94771234567"; // Standard 1PLACE.LK WhatsApp contact
       const waUrl = `https://wa.me/${storeWhatsApp}?text=${encodeURIComponent(msg)}`;
 
       setIsSuccess(true);

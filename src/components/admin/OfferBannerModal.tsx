@@ -368,7 +368,7 @@ export default function OfferBannerModal({
                       <label className="block text-xs font-medium text-white/70 mb-1">Coupon Code</label>
                       <input
                         type="text"
-                        placeholder="e.g. STREET10"
+                        placeholder="e.g. 1PLACE10"
                         value={formData.couponCode || ""}
                         onChange={(e) => setFormData({ ...formData, couponCode: e.target.value.toUpperCase() })}
                         className="w-full px-3.5 py-2.5 bg-white/5 border border-white/10 rounded-xl text-sm text-white focus:outline-none focus:border-amber-400/50 uppercase font-mono"

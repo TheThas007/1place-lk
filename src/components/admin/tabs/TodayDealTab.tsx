@@ -197,9 +197,9 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
     }
   };
 
-  // Reset to Street Mobile defaults
+  // Reset to 1PLACE.LK defaults
   const handleResetDefaults = () => {
-    if (confirm("Reset Today's Deal section to Street Mobile official defaults? Any unsaved edits will be replaced.")) {
+    if (confirm("Reset Today's Deal section to 1PLACE.LK official defaults? Any unsaved edits will be replaced.")) {
       setSettings(DEFAULT_TODAY_DEAL_SETTINGS);
     }
   };
@@ -548,13 +548,13 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
 
               <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5 pt-1">
                 {[
-                  { id: "default", label: "Default", badge: "Auto Fit", desc: "1920×600 Responsive Standard" },
-                  { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Instagram & Product Focus" },
-                  { id: "860x270", label: "860 × 270", badge: "~3.2:1 Wide", desc: "Compact Deal Strip" },
-                  { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Cinematic Panoramic Frame" },
-                  { id: "1080x1440", label: "1080 × 1440", badge: "3:4 Portrait", desc: "Tall Story / Vertical Poster" },
+                  { id: "1080x1440", label: "1080 × 1440", badge: "⭐ Recommended", desc: "3:4 Portrait Poster • Official Live Store Standard" },
+                  { id: "default", label: "Default", badge: "Auto Fit", desc: "Equal Height 50/50 Split Frame" },
+                  { id: "1080x1080", label: "1080 × 1080", badge: "1:1 Square", desc: "Square Poster & Product Focus" },
+                  { id: "860x270", label: "860 × 270", badge: "~3.2:1 Strip", desc: "Horizontal Banner" },
+                  { id: "1920x850", label: "1920 × 850", badge: "~2.3:1 Wide", desc: "Panoramic Landscape Poster" },
                 ].map((preset) => {
-                  const isSelected = (settings.bannerSizeRatio || "default") === preset.id;
+                  const isSelected = (settings.bannerSizeRatio || "1080x1440") === preset.id;
                   return (
                     <button
                       key={preset.id}
@@ -670,7 +670,7 @@ export default function TodayDealTab({ initialSettings, onRefresh }: TodayDealTa
                         type="text"
                         value={settings.backgroundBannerUrl || ""}
                         onChange={(e) => setSettings({ ...settings, backgroundBannerUrl: e.target.value })}
-                        placeholder="https://images.unsplash.com/... or uploaded URL"
+                        placeholder="/Street Mobile (980 x 360 px) (1240 x 472 px).png or uploaded URL"
                         className="w-full bg-black/40 border border-white/10 px-3.5 py-2.5 rounded-xl text-white outline-none focus:border-indigo-500 font-mono text-[11px]"
                       />
                     </div>

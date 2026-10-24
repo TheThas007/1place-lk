@@ -1,69 +1,83 @@
 /**
- * Centralized Business Information Source of Truth for StreetMobile.lk
- * Authoritative values grounded in Firestore production settings (settings/site and settings/store)
+ * Centralized Business Information Source of Truth for 1place.lk
+ * Authoritative values for Sri Lanka's Premier Online Store
  */
 
 export const BUSINESS_INFO = {
-  name: "Street Mobile",
-  legalName: "STREET MOBILE (Pvt) Ltd",
-  brandName: "STREET MOBILE",
-  tagline: "We are near you!",
+  name: "1place.lk",
+  legalName: "1PLACE (Pvt) Ltd",
+  brandName: "1PLACE",
+  tagline: "Your Premier Online Destination",
   description:
-    "Your Trusted Mobile Store in Vavuniya, Sri Lanka. 100% Genuine Smartphones, Apple, Samsung, Xiaomi & Premium Accessories.",
-  
-  // Authoritative Phone Numbers:
-  // - Primary Landline: 024 222 8118
-  // - Secondary / Mobile / WhatsApp: 077 414 1118 (+94 77 414 1118)
-  // - Customer Hotline / Backup: 075 454 1118 (+94 75 454 1118)
-  phonePrimary: "024 222 8118",
-  phonePrimaryIntl: "+94242228118",
-  phoneMobile: "077 414 1118",
-  phoneMobileIntl: "+94774141118",
-  phoneHotline: "075 454 1118",
-  phoneHotlineIntl: "+94754541118",
-  whatsappNumber: "94774141118",
-  whatsappDisplay: "+94 77 414 1118",
+    "Sri Lanka's Premier Online Store for 100% Genuine Smartphones, Electronics, Premium Audio, Computing & Lifestyle Accessories with Islandwide Express Delivery.",
 
-  // Email
-  email: "streetmobilevavuniya@gmail.com",
+  // Contact Phone Numbers
+  phonePrimary: "011 234 5678",
+  phonePrimaryIntl: "+94112345678",
+  phoneMobile: "077 123 4567",
+  phoneMobileIntl: "+94771234567",
+  phoneHotline: "011 234 5678",
+  phoneHotlineIntl: "+94112345678",
+  whatsappNumber: "94771234567",
+  whatsappDisplay: "+94 77 123 4567",
 
-  // Physical Location
-  address: "163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya Town, Sri Lanka",
-  addressLocality: "Vavuniya Town",
-  addressRegion: "Northern Province",
-  postalCode: "43000",
+  // Email Addresses
+  email: "support@1place.lk",
+  ordersEmail: "orders@1place.lk",
+  contactEmail: "info@1place.lk",
+
+  // Official Domains
+  domain: "1place.lk",
+  websiteUrl: "https://www.1place.lk",
+
+  // Physical Location & Logistics
+  address: "Level 12, West Tower, World Trade Center, Echelon Square, Colombo 00100, Sri Lanka",
+  addressLocality: "Colombo 01",
+  addressRegion: "Western Province",
+  postalCode: "00100",
   addressCountry: "LK",
   geo: {
-    latitude: 8.7514,
-    longitude: 80.4971,
+    latitude: 6.9333,
+    longitude: 79.8433,
   },
 
-  // Authoritative Business Hours (from Firestore settings/site):
-  // Mon - Sat: 9:00 AM - 9:00 PM
-  // Sunday: 10:00 AM - 7:00 PM
+  // Business Hours
   hours: {
-    weekdays: "9:00 AM - 9:00 PM",
-    saturday: "9:00 AM - 9:00 PM",
-    sunday: "10:00 AM - 7:00 PM",
+    weekdays: "9:00 AM - 7:00 PM",
+    saturday: "9:30 AM - 6:00 PM",
+    sunday: "10:00 AM - 4:00 PM",
     opensWeekdays: "09:00",
-    closesWeekdays: "21:00",
+    closesWeekdays: "19:00",
     opensSunday: "10:00",
-    closesSunday: "19:00",
-    displaySummary: "Mon - Sat: 9:00 AM - 9:00 PM | Sun: 10:00 AM - 7:00 PM",
+    closesSunday: "16:00",
+    displaySummary: "Mon - Fri: 9:00 AM - 7:00 PM | Sat: 9:30 AM - 6:00 PM",
   },
 
   // Social Links
   social: {
-    facebook: "https://www.facebook.com/share/1CwkxMjUkr/?mibextid=wwXIfr",
-    instagram: "https://www.instagram.com/streetmobile.lk?utm_source=qr",
-    tiktok: "https://www.tiktok.com/@streetmobile.lk?_r=1&_t=ZS-97ViT22ZBK9",
+    facebook: "https://www.facebook.com/1place.lk",
+    instagram: "https://www.instagram.com/1place.lk",
+    tiktok: "https://www.tiktok.com/@1place.lk",
+    twitter: "https://x.com/1placelk",
   },
 
-  // Google Maps
+  // Google Maps / Store Presence
   maps: {
-    link: "https://www.google.com/maps/place//@8.7505237,80.5028315,17z/data=!3m1!4b1!4m3!3m2!1s0x3afc159b991b1da5:0xa03e8d7360fe634a!12e1?entry=ttu&g_ep=EgoyMDI2MDgxNy4wIKXMDSoASAFQAw%3D%3D",
-    embed: "https://maps.google.com/maps?q=STREET+MoBILE+Vavuniya&t=&z=16&ie=UTF8&iwloc=&output=embed",
+    link: "https://maps.google.com/?q=Colombo+Sri+Lanka",
+    embed: "https://maps.google.com/maps?q=Colombo+Sri+Lanka&t=&z=14&ie=UTF8&iwloc=&output=embed",
   },
+
+  // Aliases for compatibility
+  website: "https://www.1place.lk",
+  whatsapp: {
+    number: "94771234567",
+    display: "+94 77 123 4567",
+    url: "https://wa.me/94771234567",
+  },
+  whatsappUrl: "https://wa.me/94771234567",
+  city: "Colombo",
+  googleMapsUrl: "https://maps.google.com/?q=Colombo+Sri+Lanka",
+  emailPrimary: "support@1place.lk",
 } as const;
 
 export type BusinessInfo = typeof BUSINESS_INFO;

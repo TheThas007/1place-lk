@@ -25,6 +25,7 @@ import {
   Store,
 } from "lucide-react";
 import { formatPrice, isPhoneProduct } from "@/lib/utils";
+import { BUSINESS_INFO } from "@/lib/business-info";
 import ProductGallery from "./product-gallery";
 import CompatibleAccessories from "@/components/products/CompatibleAccessories";
 import SameBrandProducts from "@/components/products/SameBrandProducts";
@@ -753,7 +754,7 @@ export default function ProductDetailClient({
             </Link>
             <ChevronRight className="w-3.5 h-3.5 text-gray-400 shrink-0" />
             <Link
-              href={`/products?category=${product.category_slug || product.categorySlug || product.category_id || "smartphones"}`}
+              href={`/category/${product.category_slug || product.categorySlug || product.category_id || "smartphones"}`}
               className="hover:text-black transition-colors shrink-0"
             >
               {product.category_name || product.categoryName || "Category"}
@@ -806,9 +807,10 @@ export default function ProductDetailClient({
             </div>
           </div>
 
-          <h1 className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mb-2 leading-tight">
+          {/* Mobile Product Title (Styled heading, avoids duplicate H1) */}
+          <p className="text-xl sm:text-2xl font-extrabold text-black tracking-tight mb-2 leading-tight">
             {product.name}
-          </h1>
+          </p>
 
           <div className="flex items-center flex-wrap gap-3 text-xs">
             {product.rating ? (
@@ -978,7 +980,7 @@ export default function ProductDetailClient({
                           <ShieldCheck className="w-4 h-4 sm:w-5 sm:h-5 text-black shrink-0 mt-0.5" />
                           <div className="min-w-0 flex-1 break-words">
                             <span className="block leading-snug">Warranty: <strong className="font-extrabold text-black">{product.warranty}</strong></span>
-                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5 leading-snug">Hardware defect warranty from Street Mobile main store.</span>
+                            <span className="block text-[11px] text-gray-500 font-normal mt-0.5 leading-snug">Hardware defect warranty from 1PLACE.LK flagship store.</span>
                           </div>
                         </div>
                       )}
@@ -1438,7 +1440,7 @@ export default function ProductDetailClient({
                   <Store className="w-5 h-5 text-emerald-600 shrink-0 mt-0.5" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h4 className="font-bold text-black">Free In-Store Pickup (Vavuniya Showroom)</h4>
+                      <h4 className="font-bold text-black">Free In-Store Pickup (Colombo Flagship Showroom)</h4>
                       <span className="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold">
                         Ready Same Day
                       </span>
@@ -1449,11 +1451,11 @@ export default function ProductDetailClient({
                     <div className="grid sm:grid-cols-2 gap-2 text-xs text-neutral-600 bg-white p-3 rounded-xl border border-[#EAEAEA]">
                       <div>
                         <span className="font-bold text-neutral-900 block">Showroom Address:</span>
-                        <span>163, Kandaswamy Kovil Road, Vavuniya</span>
+                        <span>{BUSINESS_INFO.address}</span>
                       </div>
                       <div>
                         <span className="font-bold text-neutral-900 block">Opening Hours:</span>
-                        <span>Mon - Sat: 9:00 AM - 8:00 PM | Sun: 10:00 AM - 6:00 PM</span>
+                        <span>{BUSINESS_INFO.hours.displaySummary}</span>
                       </div>
                     </div>
                   </div>
@@ -1503,23 +1505,23 @@ export default function ProductDetailClient({
                 type="button"
                 disabled={isVariantOutOfStock}
                 onClick={handleAddToCart}
-                className={`min-h-[42px] px-3 sm:px-4 py-2 rounded-full border text-[11px] sm:text-xs font-bold flex items-center gap-1 transition-all active:scale-95 cursor-pointer shrink-0 ${
+                className={`min-h-[44px] px-4 py-2 rounded-full text-xs font-bold flex items-center gap-1.5 transition-all active:scale-95 cursor-pointer shrink-0 ${
                   isVariantOutOfStock
-                    ? "bg-neutral-100 text-neutral-400 border-neutral-200 cursor-not-allowed"
+                    ? "bg-neutral-100 text-neutral-400 border border-neutral-200 cursor-not-allowed"
                     : added
-                    ? "bg-emerald-600 border-emerald-600 text-white"
-                    : "bg-white text-black border-black hover:bg-neutral-50"
+                    ? "bg-emerald-600 text-white"
+                    : "bg-[#64152F] text-white hover:bg-[#350713] shadow-md"
                 }`}
               >
                 {added ? <Check className="w-3.5 h-3.5" /> : <ShoppingBag className="w-3.5 h-3.5" />}
-                <span>{added ? "Added" : "Add to Bag"}</span>
+                <span>{added ? "Added" : "Add to Cart"}</span>
               </button>
 
               <button
                 type="button"
                 disabled={isVariantOutOfStock || buyingNow}
                 onClick={handleBuyNow}
-                className="min-h-[42px] px-3.5 sm:px-5 py-2 rounded-full bg-black text-white font-bold text-[11px] sm:text-xs flex items-center gap-1 shadow-md disabled:opacity-50 active:scale-95 transition-all cursor-pointer hover:bg-neutral-800 shrink-0"
+                className="min-h-[44px] px-4 sm:px-5 py-2 rounded-full bg-[#111111] text-white font-bold text-xs flex items-center gap-1.5 shadow-md disabled:opacity-50 active:scale-95 transition-all cursor-pointer hover:bg-neutral-800 shrink-0"
               >
                 <span>{buyingNow ? "..." : "Buy Now"}</span>
                 <ArrowRight className="w-3.5 h-3.5" />

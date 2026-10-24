@@ -339,10 +339,10 @@ function CreateCampaignFlow({ products, customers, onClose, isLight }: { product
               <div className="w-full max-w-[320px] bg-[#E5DDD5] rounded-3xl overflow-hidden shadow-2xl border-4 border-slate-800 relative h-[500px] flex flex-col">
                 <div className="bg-[#075E54] text-white p-4 flex items-center gap-3">
                   <div className="w-8 h-8 bg-white rounded-full flex items-center justify-center">
-                    <span className="text-[#075E54] font-bold text-xs">SM</span>
+                    <span className="text-[#075E54] font-bold text-xs">1P</span>
                   </div>
                   <div>
-                    <p className="font-bold text-sm">StreetMobile.lk</p>
+                    <p className="font-bold text-sm">1place.lk</p>
                     <p className="text-[10px] opacity-80">Verified Business</p>
                   </div>
                 </div>
@@ -350,10 +350,10 @@ function CreateCampaignFlow({ products, customers, onClose, isLight }: { product
                   <div className="bg-white rounded-xl rounded-tl-none p-3 max-w-[90%] shadow-sm mb-3">
                     <p className="text-sm text-slate-800 whitespace-pre-wrap">
                       {message
-                        .replace("{{customer_name}}", "Thasmilan")
+                        .replace("{{customer_name}}", "Customer")
                         .replace("{{product_name}}", selectedProduct?.name || "[Product]")
                         .replace("{{price}}", selectedProduct ? `Rs. ${selectedProduct.price?.toLocaleString()}` : "[Price]")
-                        .replace("{{store_name}}", "StreetMobile.lk")
+                        .replace("{{store_name}}", "1place.lk")
                       }
                     </p>
                     {selectedProduct && (

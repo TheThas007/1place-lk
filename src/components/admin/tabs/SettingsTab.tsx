@@ -17,7 +17,8 @@ export default function SettingsTab({
   const [localSettings, setLocalSettings] = useState<any>(settings || {});
   const [galleryEnabled, setGalleryEnabled] = useState<boolean>(true);
   const [reviewsEnabled, setReviewsEnabled] = useState<boolean>(true);
-  const [googleAuthEnabled, setGoogleAuthEnabled] = useState<boolean>(false);
+  const [googleAuthEnabled, setGoogleAuthEnabled] = useState<boolean>(true);
+  const [appleAuthEnabled, setAppleAuthEnabled] = useState<boolean>(true);
   const [saving, setSaving] = useState(false);
   const [savedSuccess, setSavedSuccess] = useState(false);
 
@@ -42,7 +43,9 @@ export default function SettingsTab({
           setReviewsEnabled(reviewsDoc.data().enabled !== false);
         }
         if (authDoc.exists()) {
-          setGoogleAuthEnabled(Boolean(authDoc.data()?.googleAuthEnabled));
+          const authData = authDoc.data();
+          setGoogleAuthEnabled(authData?.googleAuthEnabled !== false);
+          setAppleAuthEnabled(authData?.appleAuthEnabled !== false);
         }
       } catch (e) {
         console.warn("Could not load section visibility states in SettingsTab:", e);
@@ -68,9 +71,9 @@ export default function SettingsTab({
       // 3. Save Reviews setting
       await setDoc(doc(db, "settings", "google_reviews"), { enabled: reviewsEnabled }, { merge: true });
 
-      // 4. Save Google Auth toggle setting
-      await setDoc(doc(db, "settings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
-      await setDoc(doc(db, "siteSettings", "auth"), { googleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
+      // 4. Save Google & Apple Auth toggle setting
+      await setDoc(doc(db, "settings", "auth"), { googleAuthEnabled, appleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
+      await setDoc(doc(db, "siteSettings", "auth"), { googleAuthEnabled, appleAuthEnabled, updatedAt: new Date().toISOString() }, { merge: true });
 
       setSavedSuccess(true);
       setTimeout(() => setSavedSuccess(false), 3000);
@@ -144,6 +147,42 @@ export default function SettingsTab({
               />
               <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
                 isLight ? "bg-slate-300 peer-checked:bg-blue-600" : "bg-slate-800 peer-checked:bg-blue-600"
+              } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
+            </label>
+          </div>
+
+          {/* Switch: Apple Authentication */}
+          <div className={`p-5 rounded-2xl border transition-all flex items-center justify-between gap-4 ${
+            appleAuthEnabled
+              ? isLight
+                ? "bg-neutral-100 border-neutral-300"
+                : "bg-neutral-900 border-neutral-700"
+              : isLight
+              ? "bg-[#F8FAFC] border-slate-200 opacity-80"
+              : "bg-white/[0.02] border-white/[0.08] opacity-70"
+          }`}>
+            <div className="space-y-1">
+              <div className="flex items-center gap-2">
+                <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                  <path d="M18.71 19.5c-.83 1.24-1.71 2.45-3.05 2.47-1.34.03-1.77-.79-3.29-.79-1.53 0-2 .77-3.27.82-1.31.05-2.3-1.32-3.14-2.53C4.25 17 2.94 12.45 4.7 9.39c.87-1.52 2.43-2.48 4.12-2.51 1.28-.02 2.5.87 3.29.87.78 0 2.26-1.07 3.81-.91.65.03 2.47.26 3.64 1.98-.09.06-2.17 1.28-2.15 3.81.03 3.02 2.65 4.03 2.68 4.04-.03.07-.42 1.44-1.38 2.83M15.97 6.84c.67-.82 1.13-1.96.99-3.12-1 .04-2.17.67-2.88 1.49-.6.7-1.13 1.83-.99 2.94 1.12.09 2.21-.57 2.88-1.31" />
+                </svg>
+                <span className={`font-semibold text-sm ${isLight ? "text-slate-900" : "text-white"}`}>
+                  Continue with Apple Sign-In
+                </span>
+              </div>
+              <p className={`text-xs ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+                {appleAuthEnabled ? "ENABLED • Apple sign-in button is visible" : "DISABLED (Hidden) • Apple button hidden"}
+              </p>
+            </div>
+            <label className="relative inline-flex items-center cursor-pointer shrink-0">
+              <input
+                type="checkbox"
+                checked={appleAuthEnabled}
+                onChange={(e) => setAppleAuthEnabled(e.target.checked)}
+                className="sr-only peer"
+              />
+              <div className={`w-11 h-6 rounded-full peer peer-focus:outline-none transition-colors after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all ${
+                isLight ? "bg-slate-300 peer-checked:bg-neutral-900" : "bg-slate-800 peer-checked:bg-neutral-200"
               } peer-checked:after:translate-x-full peer-checked:after:border-white shadow-inner`} />
             </label>
           </div>

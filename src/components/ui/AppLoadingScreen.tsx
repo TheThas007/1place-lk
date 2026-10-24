@@ -6,10 +6,10 @@ import { usePathname } from "next/navigation";
 import { Zap, ShieldCheck, Sparkles } from "lucide-react";
 
 const STATUS_MESSAGES = [
-  "Initializing Street Mobile...",
+  "Initializing 1PLACE.LK...",
   "Loading Genuine Devices & Accessories...",
   "Syncing Exclusive Offers...",
-  "Welcome to Street Mobile"
+  "Welcome to 1PLACE.LK"
 ];
 
 export default function AppLoadingScreen() {
@@ -152,11 +152,11 @@ export default function AppLoadingScreen() {
                 initial={{ scale: 0.8, opacity: 0, y: 10 }}
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-10 w-22 h-22 sm:w-26 sm:h-26 rounded-3xl bg-white border border-neutral-200/80 p-2.5 flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden"
+                className="relative z-10 w-22 h-22 sm:w-26 sm:h-26 rounded-3xl bg-white border border-neutral-200/80 p-3.5 flex items-center justify-center shadow-[0_12px_40px_rgba(0,0,0,0.08)] overflow-hidden"
               >
                 <img
-                  src="/loading-logo.png"
-                  alt="Street Mobile"
+                  src="/icon.svg"
+                  alt="1PLACE.LK"
                   className="w-full h-full object-contain"
                   onError={(e) => {
                     (e.target as HTMLImageElement).src = "/logo.png";
@@ -173,12 +173,12 @@ export default function AppLoadingScreen() {
               className="text-center mb-6"
             >
               <h1 className="text-xl sm:text-2xl font-black tracking-[0.2em] text-[#090909] uppercase drop-shadow-xs flex items-center justify-center gap-1.5">
-                <span>STREET MOBILE</span>
+                <span>1PLACE.LK</span>
               </h1>
               <div className="flex items-center justify-center gap-1.5 mt-1.5">
                 <span className="h-px w-3 bg-neutral-300" />
                 <p className="text-[10px] sm:text-[11px] font-bold tracking-[0.25em] text-neutral-500 uppercase">
-                  VAVUNIYA • SRI LANKA
+                  COLOMBO • SRI LANKA
                 </p>
                 <span className="h-px w-3 bg-neutral-300" />
               </div>
@@ -240,7 +240,7 @@ export default function AppLoadingScreen() {
           {/* ── Bottom Secure Watermark ── */}
           <div className="absolute bottom-6 left-0 right-0 text-center pointer-events-none">
             <p className="text-[9px] tracking-[0.3em] text-neutral-400 uppercase font-semibold">
-              STREET MOBILE (PVT) LTD
+              1PLACE.LK (PVT) LTD
             </p>
           </div>
         </motion.div>

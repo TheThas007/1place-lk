@@ -4,9 +4,19 @@
 
 /* ── Responsive Navbar Height Variable (ResizeObserver overrides dynamically) ── */
 :root {
-  --navbar-height: 74px;
+  --navbar-height: 120px;
   --ticker-height: 0px;
   --mobile-nav-height: 60px;
+
+  /* ONEPLACE Official Brand Palette */
+  --primary-burgundy: #64152F;
+  --primary-burgundy-hover: #4e1024;
+  --deep-burgundy: #350713;
+  --brand-black: #111111;
+  --brand-white: #FFFFFF;
+  --brand-bg-light: #F7F7F7;
+  --brand-border: #E8E8E8;
+  --brand-secondary: #666666;
 }
 
 /* ── Smooth Scroll & Lenis Configuration ── */
@@ -104,7 +114,7 @@ nextjs-portal,
   display: none !important;
 }
 
-/* ── StreetMobile Admin Panel Design Tokens & Scoped Theme Variables ── */
+/* ── 1PLACE.LK Control Center Design Tokens & Scoped Theme Variables ── */
 [data-admin-root] {
   font-family: var(--font-inter), "Inter", system-ui, -apple-system, sans-serif !important;
 

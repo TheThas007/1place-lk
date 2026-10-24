@@ -1,33 +1,32 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import {
+  Truck,
+  CreditCard,
+  ChevronRight,
+  ArrowUp,
+} from "lucide-react";
 import { getFooterSettings } from "@/lib/firestore-client";
 import { DEFAULT_FOOTER_SETTINGS } from "@/lib/data";
 import { FooterSettings } from "@/lib/types";
-import ScrollReveal from "@/components/ui/ScrollReveal";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { useSmoothScroll } from "@/components/providers/SmoothScrollProvider";
+import { BUSINESS_INFO } from "@/lib/business-info";
+import BrandLogo from "@/components/ui/BrandLogo";
 
-if (typeof window !== "undefined") {
-  gsap.registerPlugin(ScrollTrigger);
+/* ─── Social Media SVG Icons ─── */
+function FacebookIcon({ className = "w-4 h-4" }: { className?: string }) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  );
 }
 
-/* ─── SVG Platform Icons ─── */
-function InstagramIcon({ className = "w-5 h-5" }: { className?: string }) {
+function InstagramIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.8"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
       <rect width="20" height="20" x="2" y="2" rx="5" ry="5" />
       <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z" />
       <line x1="17.5" x2="17.51" y1="6.5" y2="6.5" />
@@ -35,28 +34,18 @@ function InstagramIcon({ className = "w-5 h-5" }: { className?: string }) {
   );
 }
 
-function TikTokIcon({ className = "w-5 h-5" }: { className?: string }) {
+function TikTokIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
       <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64c.298-.002.595.042.88.13V9.4a6.33 6.33 0 0 0-1-.08A6.34 6.34 0 0 0 3 15.66a6.34 6.34 0 0 0 10.86 4.45 6.27 6.27 0 0 0 1.89-4.49V8.62a8.28 8.28 0 0 0 4.84 1.54V6.71a4.86 4.86 0 0 1-1-.02z" />
     </svg>
   );
 }
 
-function FacebookIcon({ className = "w-5 h-5" }: { className?: string }) {
+function YouTubeIcon({ className = "w-4 h-4" }: { className?: string }) {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className={className}
-      aria-hidden="true"
-    >
-      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden="true">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
     </svg>
   );
 }
@@ -64,8 +53,8 @@ function FacebookIcon({ className = "w-5 h-5" }: { className?: string }) {
 export default function Footer() {
   const pathname = usePathname();
 
-  // Only show footer on the home page (pathname === "/")
-  if (pathname !== "/") {
+  // Exclude footer on admin backoffice and checkout flows
+  if (pathname.startsWith("/admin") || pathname.startsWith("/checkout")) {
     return null;
   }
 
@@ -74,405 +63,244 @@ export default function Footer() {
 
 function HomePageFooter() {
   const [settings, setSettings] = useState<FooterSettings>(DEFAULT_FOOTER_SETTINGS);
-  const desktopFooterRef = useRef<HTMLElement>(null);
-  const mobileFooterRef = useRef<HTMLElement>(null);
-  const { isReducedMotion } = useSmoothScroll();
-
-  // Interactive Cursor Position Tracking for ambient spotlight effect
-  const [cursorPos, setCursorPos] = useState({ x: 0, y: 0, opacity: 0 });
-
-  const handleMouseMove = (e: React.MouseEvent<HTMLElement>) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    setCursorPos({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top,
-      opacity: 1,
-    });
-  };
-
-  const handleMouseLeave = () => {
-    setCursorPos((prev) => ({ ...prev, opacity: 0 }));
-  };
 
   useEffect(() => {
-    getFooterSettings().then((res) => {
-      if (res) setSettings(res);
-    }).catch(() => {
-      setSettings(DEFAULT_FOOTER_SETTINGS);
-    });
+    getFooterSettings()
+      .then((res) => {
+        if (res) setSettings(res);
+      })
+      .catch(() => {
+        setSettings(DEFAULT_FOOTER_SETTINGS);
+      });
   }, []);
 
-  // ── Subtle Footer Scroll Reveal via GSAP ScrollTrigger ──
-  useEffect(() => {
-    if (isReducedMotion) return;
+  const shopCollections = [
+    { label: "Smartphones", href: "/products?category=smartphones" },
+    { label: "Wireless Earbuds", href: "/products?category=earbuds" },
+    { label: "Chargers & Adapters", href: "/products?category=chargers-adapters" },
+    { label: "Power Banks", href: "/products?category=power-banks" },
+    { label: "All Products", href: "/products" },
+  ];
 
-    const ctx = gsap.context(() => {
-      // Desktop Footer Scroll Subtle Reveal
-      if (desktopFooterRef.current) {
-        gsap.fromTo(
-          desktopFooterRef.current,
-          { y: 20, opacity: 0.88 },
-          {
-            y: 0,
-            opacity: 1,
-            ease: "power1.out",
-            scrollTrigger: {
-              trigger: desktopFooterRef.current,
-              start: "top 98%",
-              end: "top 82%",
-              scrub: 0.5,
-            },
-          }
-        );
-      }
+  const customerCareLinks = [
+    { label: "Track Your Order", href: "/orders" },
+    { label: "Warranty & Return Policy", href: "/return-policy" },
+    { label: "Terms & Conditions", href: "/terms-and-conditions" },
+    { label: "Privacy Policy", href: "/privacy-policy" },
+    { label: "Contact Support", href: "/contact" },
+  ];
 
-      // Mobile Footer Scroll Subtle Reveal
-      if (mobileFooterRef.current) {
-        gsap.fromTo(
-          mobileFooterRef.current,
-          { y: 12, opacity: 0.92 },
-          {
-            y: 0,
-            opacity: 1,
-            ease: "power1.out",
-            scrollTrigger: {
-              trigger: mobileFooterRef.current,
-              start: "top 98%",
-              end: "top 85%",
-              scrub: 0.5,
-            },
-          }
-        );
-      }
-    });
-
-    return () => ctx.revert();
-  }, [isReducedMotion]);
-
-  if (settings.enabled === false) {
-    return null;
-  }
-
-  const shopLinks = settings.shop_links && settings.shop_links.length > 0 ? settings.shop_links : DEFAULT_FOOTER_SETTINGS.shop_links;
-  const helpLinks = settings.help_links && settings.help_links.length > 0 ? settings.help_links : DEFAULT_FOOTER_SETTINGS.help_links;
-  const policyLinks = settings.policy_links && settings.policy_links.length > 0 ? settings.policy_links : DEFAULT_FOOTER_SETTINGS.policy_links;
-
-  const desktopLogoWidth =
-    settings.logo_size === "small"
-      ? "150px"
-      : settings.logo_size === "medium"
-      ? "175px"
-      : "200px";
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
-    <div className="w-full relative overflow-hidden bg-transparent">
-      {/* ── Mobile Layout (< 768px): Solid Dark Theme Footer with Scroll Gliding Reveal ── */}
-      <footer
-        ref={mobileFooterRef}
-        className="md:hidden w-full bg-[#090909] text-white px-4 pt-8 pb-24 border-t border-white/10 font-outfit select-none relative overflow-hidden will-change-transform"
-      >
-        {/* Top subtle highlight line */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent pointer-events-none" />
+    <footer className="w-full bg-[#111111] border-t border-neutral-900 text-neutral-400 font-sans select-none relative z-10">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-12 sm:pt-16 pb-24 md:pb-12">
+        {/* ── Main 4-Column Grid ── */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10 xl:gap-12 pb-12 sm:pb-14 border-b border-neutral-800/80">
+          
+          {/* ── COLUMN 1: BRAND ── */}
+          <div className="space-y-4 sm:space-y-5">
+            <BrandLogo variant="footer" href="/" />
 
-        <div className="flex flex-col gap-6 max-w-md mx-auto relative z-10">
-          {/* Logo & Description */}
-          <div>
-            <Link href="/" className="inline-block mb-3.5 group">
-              <img
-                src={settings.logo_url || "/logo.png"}
-                alt="Street Mobile"
-                loading="lazy"
-                className="w-[140px] max-w-[150px] h-auto max-h-[50px] object-contain object-left block opacity-100 group-hover:opacity-90 transition-opacity duration-200"
-                onError={(e) => {
-                  (e.target as HTMLImageElement).src = "/logo.png";
-                }}
-              />
-            </Link>
-            <p className="text-white/65 text-xs leading-relaxed max-w-xs">
-              {settings.description || "Your trusted destination for the latest smartphones and accessories."}
+            <p className="text-xs sm:text-[13px] text-neutral-400 leading-relaxed font-normal max-w-sm">
+              Sri Lanka&apos;s Premier Online Store for 100% Genuine Smartphones, Electronics, Premium Audio, Computing &amp; Lifestyle Accessories with Islandwide Express Delivery.
             </p>
 
             {/* Social Icons */}
-            <div className="flex items-center gap-3 mt-4">
-              {settings.facebook_enabled !== false && settings.facebook_url && (
-                <a
-                  href={settings.facebook_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Facebook"
-                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
-                >
-                  <FacebookIcon className="w-4 h-4" />
-                </a>
-              )}
-              {settings.instagram_enabled !== false && settings.instagram_url && (
-                <a
-                  href={settings.instagram_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="Instagram"
-                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
-                >
-                  <InstagramIcon className="w-4 h-4" />
-                </a>
-              )}
-              {settings.tiktok_enabled !== false && settings.tiktok_url && (
-                <a
-                  href={settings.tiktok_url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  aria-label="TikTok"
-                  className="w-9 h-9 rounded-xl border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:bg-white/10 active:scale-95"
-                >
-                  <TikTokIcon className="w-4 h-4" />
-                </a>
-              )}
-            </div>
-          </div>
-
-          {/* 2-Column Links: Shop & Help */}
-          <div className="grid grid-cols-2 gap-4 text-xs pt-4 border-t border-white/10">
-            {/* Shop Links */}
-            <div>
-              <span className="font-bold uppercase text-[10px] tracking-wider block mb-2.5 text-white">
-                Shop
-              </span>
-              <div className="flex flex-col space-y-2 text-[11px]">
-                {shopLinks.slice(0, 5).map((l) => (
-                  <div key={l.id || l.href}>
-                    <Link href={l.href} className="text-white/65 hover:text-red-500 transition-colors">
-                      {l.label}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Help Links */}
-            <div>
-              <span className="font-bold uppercase text-[10px] tracking-wider block mb-2.5 text-white">
-                Help
-              </span>
-              <div className="flex flex-col space-y-2 text-[11px]">
-                {helpLinks.slice(0, 5).map((l) => (
-                  <div key={l.id || l.href}>
-                    <Link href={l.href} className="text-white/65 hover:text-red-500 transition-colors">
-                      {l.label}
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Copyright & Dev Credit */}
-          <div className="pt-4 border-t border-white/10 flex flex-col gap-1.5 text-[10px] text-white/60">
-            <p>
-              {settings.copyright_text || `© ${new Date().getFullYear()} Street Mobile. All rights reserved.`}
-            </p>
-            <p>
-              Designed &amp; Developed by{" "}
+            <div className="flex items-center gap-2.5 pt-1">
               <a
-                href={
-                  settings.developer_credit_url && settings.developer_credit_url !== "https://aevonix.com"
-                    ? settings.developer_credit_url
-                    : "https://www.thasz.dev/"
-                }
+                href={BUSINESS_INFO.social.facebook}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="font-bold underline text-white"
+                aria-label="1place.lk on Facebook"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-neutral-300 hover:text-white hover:bg-[#64152F] hover:border-[#64152F] flex items-center justify-center transition-all duration-200"
               >
-                {(settings.developer_credit_text || "Designed & Developed by Aevonix").replace(/Designed & Developed by /gi, "") || "Aevonix"}
+                <FacebookIcon className="w-4 h-4" />
               </a>
-            </p>
-          </div>
-        </div>
-      </footer>
-
-      {/* ── Desktop Layout: Premium Solid Jet Black Footer with Smooth Inward Gliding Reveal & Cursor Spotlight ── */}
-      <footer
-        ref={desktopFooterRef}
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-        className="hidden md:block w-full bg-[#090909] text-white border-t border-white/10 rounded-none shadow-none font-outfit select-none relative z-20 pb-16 lg:pb-0 overflow-hidden will-change-transform"
-        role="contentinfo"
-      >
-        {/* Subtle Top Edge Gradient Highlight */}
-        <div className="absolute top-0 inset-x-0 h-px bg-gradient-to-r from-transparent via-white/30 to-transparent pointer-events-none" />
-
-        {/* Interactive Cursor Spotlight Glow */}
-        <div
-          className="pointer-events-none absolute inset-0 transition-opacity duration-300 -z-0"
-          style={{
-            opacity: cursorPos.opacity,
-            background: `radial-gradient(650px circle at ${cursorPos.x}px ${cursorPos.y}px, rgba(255,255,255,0.065), transparent 70%)`,
-          }}
-        />
-
-        {/* Ambient Top Glow */}
-        <div className="pointer-events-none absolute -top-36 left-1/2 -translate-x-1/2 w-[700px] h-[300px] bg-white/[0.018] rounded-full blur-3xl -z-0" />
-
-        {/* ── Main Footer Container (max-w: 1320px, 4-Column Layout with Subtle Stagger) ── */}
-        <ScrollReveal yOffset={14} stagger={0.06} className="max-w-[1320px] mx-auto px-6 pt-16 pb-12 relative z-10">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 lg:gap-14 items-start">
-            
-            {/* ── Column 1: Brand ── */}
-            <div data-reveal-item className="flex flex-col items-start max-w-[380px]">
-              <Link
-                href="/"
-                className="inline-block group focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm select-none"
-                style={{
-                  width: desktopLogoWidth,
-                  height: "auto",
-                  display: "block",
-                }}
+              <a
+                href={BUSINESS_INFO.social.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="1place.lk on Instagram"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-neutral-300 hover:text-white hover:bg-[#64152F] hover:border-[#64152F] flex items-center justify-center transition-all duration-200"
               >
-                <img
-                  src={settings.logo_url || "/logo.png"}
-                  alt="Street Mobile"
-                  loading="lazy"
-                  className="w-full h-auto max-h-[64px] object-contain object-left block opacity-100 group-hover:opacity-90 transition-opacity duration-200"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).src = "/logo.png";
-                  }}
-                />
-              </Link>
-              <p className="mt-6 text-sm leading-[1.65] font-normal text-white/65">
-                {settings.description || "Genuine mobiles, premium accessories and trusted service—all in one place."}
-              </p>
+                <InstagramIcon className="w-4 h-4" />
+              </a>
+              <a
+                href={BUSINESS_INFO.social.tiktok}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="1place.lk on TikTok"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-neutral-300 hover:text-white hover:bg-[#64152F] hover:border-[#64152F] flex items-center justify-center transition-all duration-200"
+              >
+                <TikTokIcon className="w-4 h-4" />
+              </a>
+              <a
+                href="https://www.youtube.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label="1place.lk on YouTube"
+                className="w-9 h-9 rounded-xl border border-white/10 bg-white/5 text-neutral-300 hover:text-white hover:bg-[#64152F] hover:border-[#64152F] flex items-center justify-center transition-all duration-200"
+              >
+                <YouTubeIcon className="w-4 h-4" />
+              </a>
             </div>
-
-            {/* ── Column 2: Shop ── */}
-            <div data-reveal-item className="flex flex-col items-start">
-              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
-                Shop
-              </h4>
-              <nav className="flex flex-col space-y-3" aria-label="Shop Navigation">
-                {shopLinks.map((item) => (
-                  <Link
-                    key={item.id || item.href}
-                    href={item.href}
-                    className="group relative text-sm inline-flex items-center text-white/65 hover:text-red-500 transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
-                  >
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            {/* ── Column 3: Help ── */}
-            <div data-reveal-item className="flex flex-col items-start">
-              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
-                Help
-              </h4>
-              <nav className="flex flex-col space-y-3" aria-label="Help Navigation">
-                {helpLinks.map((item) => (
-                  <Link
-                    key={item.id || item.href}
-                    href={item.href}
-                    className="group relative text-sm inline-flex items-center text-white/65 hover:text-red-500 transition-colors duration-200 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
-                  >
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
-              </nav>
-            </div>
-
-            {/* ── Column 4: Follow Us ── */}
-            <div data-reveal-item className="flex flex-col items-start">
-              <h4 className="text-xs font-bold uppercase tracking-[0.1em] mb-4 text-white">
-                Follow Us
-              </h4>
-              
-              {/* Social Buttons Row */}
-              <div className="flex items-center gap-3">
-                {/* Instagram */}
-                {settings.instagram_enabled !== false && settings.instagram_url && (
-                  <a
-                    href={settings.instagram_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow Street Mobile on Instagram"
-                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#E1306C] hover:text-[#E1306C] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
-                  >
-                    <InstagramIcon className="w-5 h-5" />
-                  </a>
-                )}
-
-                {/* TikTok */}
-                {settings.tiktok_enabled !== false && settings.tiktok_url && (
-                  <a
-                    href={settings.tiktok_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow Street Mobile on TikTok"
-                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#00F2FE] hover:text-[#00F2FE] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
-                  >
-                    <TikTokIcon className="w-5 h-5" />
-                  </a>
-                )}
-
-                {/* Facebook */}
-                {settings.facebook_enabled !== false && settings.facebook_url && (
-                  <a
-                    href={settings.facebook_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    aria-label="Follow Street Mobile on Facebook"
-                    className="w-10 h-10 rounded-[10px] border border-white/15 bg-white/5 text-white flex items-center justify-center transition-all duration-200 hover:border-[#1877F2] hover:text-[#1877F2] hover:scale-105 active:scale-95 focus-visible:ring-1 focus-visible:ring-white outline-none"
-                  >
-                    <FacebookIcon className="w-5 h-5" />
-                  </a>
-                )}
-              </div>
-            </div>
-
           </div>
-        </ScrollReveal>
 
-        {/* ── Bottom Footer Bar with Divider ── */}
-        <div className="w-full border-t border-white/10 relative z-10">
-          <div className="max-w-[1320px] mx-auto px-6 py-7 flex flex-col md:flex-row items-center justify-between gap-4 text-xs font-normal text-white/60">
-            
-            {/* Left: Copyright */}
-            <p className="m-0 text-center md:text-left">
-              {settings.copyright_text || `© ${new Date().getFullYear()} Street Mobile. All rights reserved.`}
-            </p>
-
-            {/* Centre / Right: Policy Links */}
-            <div className="flex items-center flex-wrap justify-center gap-6">
-              {policyLinks.map((item) => (
-                <Link
-                  key={item.id || item.href}
-                  href={item.href}
-                  className="text-white/60 transition-colors duration-200 hover:text-red-500 focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
-                >
-                  {item.label}
-                </Link>
+          {/* ── COLUMN 2: SHOP COLLECTIONS ── */}
+          <div>
+            <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.14em] text-white mb-4 sm:mb-5">
+              SHOP COLLECTIONS
+            </h4>
+            <ul className="space-y-3 text-xs sm:text-[13px]">
+              {shopCollections.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="group flex items-center justify-between text-neutral-400 hover:text-white transition-colors duration-200 py-0.5"
+                  >
+                    <span>{item.label}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-200" />
+                  </Link>
+                </li>
               ))}
+            </ul>
+          </div>
+
+          {/* ── COLUMN 3: CUSTOMER CARE ── */}
+          <div>
+            <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.14em] text-white mb-4 sm:mb-5">
+              CUSTOMER CARE
+            </h4>
+            <ul className="space-y-3 text-xs sm:text-[13px]">
+              {customerCareLinks.map((item) => (
+                <li key={item.href}>
+                  <Link
+                    href={item.href}
+                    className="group flex items-center justify-between text-neutral-400 hover:text-white transition-colors duration-200 py-0.5"
+                  >
+                    <span>{item.label}</span>
+                    <ChevronRight className="w-3.5 h-3.5 text-neutral-600 group-hover:text-white group-hover:translate-x-0.5 transition-all duration-200" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* ── COLUMN 4: SHOPPING ASSURANCE ── */}
+          <div>
+            <h4 className="text-xs sm:text-[13px] font-black uppercase tracking-[0.14em] text-white mb-4 sm:mb-5">
+              SHOPPING ASSURANCE
+            </h4>
+
+            {/* Assurance Cards */}
+            <div className="space-y-3 mb-5">
+              {/* Card 1: Islandwide Delivery */}
+              <div className="p-3.5 rounded-xl border border-white/10 bg-[#18181A] flex items-start gap-3 hover:border-neutral-700 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-[#241A1E] flex items-center justify-center shrink-0 text-[#C93B62]">
+                  <Truck className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h5 className="text-xs font-bold text-white leading-tight">
+                    Islandwide Delivery
+                  </h5>
+                  <p className="text-[11px] text-neutral-400 leading-snug mt-0.5">
+                    Doorstep courier service across all 25 districts in Sri Lanka.
+                  </p>
+                </div>
+              </div>
+
+              {/* Card 2: Verified Payments */}
+              <div className="p-3.5 rounded-xl border border-white/10 bg-[#18181A] flex items-start gap-3 hover:border-neutral-700 transition-colors">
+                <div className="w-9 h-9 rounded-lg bg-[#241A1E] flex items-center justify-center shrink-0 text-[#C93B62]">
+                  <CreditCard className="w-5 h-5 stroke-[1.9]" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h5 className="text-xs font-bold text-white leading-tight">
+                    Verified Payments
+                  </h5>
+                  <p className="text-[11px] text-neutral-400 leading-snug mt-0.5">
+                    Cash on Delivery or secure online payments with trusted partners.
+                  </p>
+                </div>
+              </div>
             </div>
 
-            {/* Right: Developer Credit */}
-            <p className="m-0 text-center md:text-right">
-              Designed &amp; Developed by{" "}
-              <a
-                href={
-                  settings.developer_credit_url && settings.developer_credit_url !== "https://aevonix.com"
-                    ? settings.developer_credit_url
-                    : "https://www.thasz.dev/"
-                }
-                target="_blank"
-                rel="noopener noreferrer"
-                className="font-medium underline underline-offset-2 text-white/80 hover:text-white transition-all focus-visible:ring-1 focus-visible:ring-white outline-none rounded-sm"
-              >
-                {(settings.developer_credit_text || "Designed & Developed by Aevonix").replace(/Designed & Developed by /gi, "") || "Aevonix"}
-              </a>
-            </p>
+            {/* Payment Method Badges Matching Reference Screenshot */}
+            <div className="flex items-center gap-2 pt-1 flex-wrap">
+              {/* VISA Badge */}
+              <div className="h-7 px-3 bg-[#1A1F36] rounded-md border border-neutral-700 flex items-center justify-center shadow-2xs">
+                <span className="text-[12px] font-black tracking-wider text-white italic">
+                  VISA
+                </span>
+              </div>
 
+              {/* MasterCard Badge */}
+              <div className="h-7 px-2.5 bg-[#1F1F1F] rounded-md border border-neutral-700 flex items-center justify-center gap-0.5 shadow-2xs">
+                <div className="w-3.5 h-3.5 rounded-full bg-[#EB001B] opacity-95 -mr-1.5" />
+                <div className="w-3.5 h-3.5 rounded-full bg-[#F79E1B] opacity-90" />
+              </div>
+
+              {/* AMEX Badge */}
+              <div className="h-7 px-2.5 bg-[#006FCF] rounded-md border border-blue-400/40 flex items-center justify-center shadow-2xs">
+                <span className="text-[10px] font-black tracking-wider text-white">
+                  AMEX
+                </span>
+              </div>
+
+              {/* COD Badge */}
+              <div className="h-7 px-2.5 bg-white rounded-md border border-white flex items-center justify-center shadow-2xs">
+                <span className="text-[11px] font-black tracking-wider text-black">
+                  COD
+                </span>
+              </div>
+            </div>
           </div>
         </div>
-      </footer>
-    </div>
+
+        {/* ── Footer Bottom Bar ── */}
+        <div className="pt-6 sm:pt-8 flex flex-col md:flex-row items-center justify-between gap-4 text-xs text-neutral-400">
+          {/* Copyright Text */}
+          <div className="order-2 md:order-1 text-center md:text-left">
+            <p className="m-0 text-neutral-400">
+              © {new Date().getFullYear()} 1place.lk. All rights reserved.
+            </p>
+          </div>
+
+          {/* Legal / Policy Links */}
+          <div className="order-1 md:order-2 flex items-center gap-4 sm:gap-6 flex-wrap justify-center text-xs">
+            <Link href="/privacy-policy" className="hover:text-white transition-colors">
+              Privacy Policy
+            </Link>
+            <span className="text-neutral-700 select-none">|</span>
+            <Link href="/terms-and-conditions" className="hover:text-white transition-colors">
+              Terms &amp; Conditions
+            </Link>
+            <span className="text-neutral-700 select-none">|</span>
+            <Link href="/return-policy" className="hover:text-white transition-colors">
+              Warranty
+            </Link>
+            <span className="text-neutral-700 select-none">|</span>
+            <Link href="/orders" className="hover:text-white transition-colors">
+              Track Order
+            </Link>
+          </div>
+
+          {/* Scroll to Top Burgundy Circle Button */}
+          <div className="order-3 flex items-center justify-end">
+            <button
+              onClick={scrollToTop}
+              type="button"
+              aria-label="Scroll back to top"
+              className="w-9 h-9 rounded-full bg-[#64152F] hover:bg-[#851C3E] text-white flex items-center justify-center transition-all duration-200 hover:scale-110 active:scale-95 shadow-md cursor-pointer"
+            >
+              <ArrowUp className="w-4 h-4 stroke-[2.2]" />
+            </button>
+          </div>
+        </div>
+      </div>
+    </footer>
   );
 }
-

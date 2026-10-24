@@ -108,9 +108,6 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
     { id: "nav-overview", title: "Overview Dashboard", category: "Navigation", icon: LayoutDashboard, href: "/admin/dashboard?tab=overview" },
     { id: "nav-products", title: "Product Catalog", category: "Navigation", icon: Package, href: "/admin/dashboard?tab=products" },
     { id: "nav-orders", title: "Orders Management", category: "Navigation", icon: ShoppingBag, href: "/admin/dashboard?tab=orders" },
-    { id: "nav-categories", title: "Shop Categories", category: "Navigation", icon: FolderOpen, href: "/admin/dashboard?tab=categories" },
-    { id: "nav-mega-menu", title: "Category Mega Menu", category: "Navigation", icon: FolderTree, href: "/admin/dashboard?tab=mega-menu" },
-    { id: "nav-brands", title: "Shop by Brand", category: "Navigation", icon: Tag, href: "/admin/dashboard?tab=brands" },
     { id: "nav-collections", title: "Featured Collections", category: "Navigation", icon: LayoutGrid, href: "/admin/dashboard?tab=collections" },
     { id: "nav-showcase", title: "Visual Showcase", category: "Navigation", icon: Sparkles, href: "/admin/dashboard?tab=showcase" },
     { id: "nav-today-deal", title: "Today's Deal Flash Sale", category: "Navigation", icon: Flame, href: "/admin/dashboard?tab=today-deal" },
@@ -120,17 +117,10 @@ export default function CommandPalette({ isOpen, onClose, onOpenAddProduct }: Co
     { id: "nav-inventory", title: "Warehouse Inventory Levels", category: "Navigation", icon: HardDrive, href: "/admin/dashboard?tab=inventory" },
     { id: "nav-repairs", title: "Mobile Device Repairs", category: "Navigation", icon: Wrench, href: "/admin/dashboard?tab=repairs" },
     { id: "nav-cashflow", title: "Cash Flow & Daily Accounts", category: "Navigation", icon: DollarSign, href: "/admin/dashboard?tab=cashflow" },
-    { id: "nav-warranties", title: "Warranty Claims & Serials", category: "Navigation", icon: ShieldCheck, href: "/admin/dashboard?tab=warranties" },
     { id: "nav-users", title: "Customers Directory", category: "Navigation", icon: Users, href: "/admin/dashboard?tab=users" },
     { id: "nav-gallery", title: "Store Gallery Wall", category: "Navigation", icon: Images, href: "/admin/dashboard?tab=gallery" },
     { id: "nav-hero", title: "Homepage Hero Slider", category: "Navigation", icon: Sparkles, href: "/admin/dashboard?tab=hero" },
-    { id: "nav-banners", title: "Offers & Promotional Banners", category: "Navigation", icon: ImageIcon, href: "/admin/dashboard?tab=banners" },
-    { id: "nav-reviews", title: "Google Customer Reviews", category: "Navigation", icon: Star, href: "/admin/dashboard?tab=reviews" },
-    { id: "nav-footer", title: "Footer & Legal Configuration", category: "Navigation", icon: Globe, href: "/admin/dashboard?tab=footer" },
-    { id: "nav-assistant", title: "Streetla AI Assistant", category: "Navigation", icon: Bot, href: "/admin/dashboard?tab=assistant" },
     { id: "nav-mobile", title: "Mobile Experience Settings", category: "Navigation", icon: Smartphone, href: "/admin/dashboard?tab=mobile" },
-    { id: "nav-settings", title: "Store & Auth Credentials", category: "Navigation", icon: Settings, href: "/admin/dashboard?tab=settings" },
-    { id: "nav-contact", title: "Contact Details & Store Hours", category: "Navigation", icon: Clock, href: "/admin/dashboard?tab=contact-settings" },
   ], [onClose, onOpenAddProduct]);
 
   const filteredCommands = useMemo(() => {

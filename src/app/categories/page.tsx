@@ -6,19 +6,19 @@ import { ChevronRight, Grid } from "lucide-react";
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "All Categories | Mobile Phones & Tech Accessories | Street Mobile Sri Lanka",
+  title: "All Categories | Electronics, Mobile Phones & Tech Accessories | 1PLACE.LK",
   description:
-    "Explore all product categories at Street Mobile Sri Lanka. Genuine Apple, Samsung, Xiaomi smartphones, chargers, earbuds, smartwatches & accessories with warranty.",
+    "Explore all product categories at 1PLACE.LK Sri Lanka. Genuine Apple, Samsung, Xiaomi smartphones, chargers, earbuds, smartwatches & lifestyle electronics with warranty.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/categories",
+    canonical: "https://www.1place.lk/categories",
   },
   openGraph: {
-    title: "All Categories | Mobile Phones & Tech Accessories | Street Mobile Sri Lanka",
+    title: "All Categories | Electronics, Mobile Phones & Tech Accessories | 1PLACE.LK",
     description:
-      "Explore all product categories at Street Mobile Sri Lanka. Genuine Apple, Samsung, Xiaomi smartphones, chargers, earbuds, smartwatches & accessories.",
-    url: "https://www.streetmobile.lk/categories",
+      "Explore all product categories at 1PLACE.LK Sri Lanka. Genuine Apple, Samsung, Xiaomi smartphones, chargers, earbuds, smartwatches & accessories.",
+    url: "https://www.1place.lk/categories",
     type: "website",
-    siteName: "Street Mobile",
+    siteName: "1PLACE.LK",
     locale: "en_LK",
   },
 };
@@ -46,13 +46,13 @@ export default async function CategoriesPage() {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk",
+        "item": "https://www.1place.lk",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Categories",
-        "item": "https://www.streetmobile.lk/categories",
+        "item": "https://www.1place.lk/categories",
       },
     ],
   };
@@ -60,16 +60,16 @@ export default async function CategoriesPage() {
   const collectionJsonLd = {
     "@context": "https://schema.org",
     "@type": "CollectionPage",
-    "@id": "https://www.streetmobile.lk/categories#collection",
-    "name": "All Product Categories - Street Mobile",
-    "description": "Directory of mobile phone and tech accessory categories at Street Mobile Sri Lanka.",
-    "url": "https://www.streetmobile.lk/categories",
+    "@id": "https://www.1place.lk/categories#collection",
+    "name": "All Product Categories - 1PLACE.LK",
+    "description": "Directory of mobile phone and tech accessory categories at 1PLACE.LK Sri Lanka.",
+    "url": "https://www.1place.lk/categories",
     "mainEntity": {
       "@type": "ItemList",
       "itemListElement": categories.map((cat, idx) => ({
         "@type": "ListItem",
         "position": idx + 1,
-        "url": `https://www.streetmobile.lk/category/${cat.slug || cat.id}`,
+        "url": `https://www.1place.lk/category/${cat.slug || cat.id}`,
         "name": cat.name,
       })),
     },

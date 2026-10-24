@@ -65,12 +65,12 @@ export function formatPrice(price: unknown, fallback?: string): string {
 }
 
 /**
- * Generate a WhatsApp chat URL using international format without spaces (+94774141118)
+ * Generate a WhatsApp chat URL using international format without spaces (+94771234567)
  */
 export function generateWhatsAppUrl(message?: string, phoneOverride?: string): string {
-  const phone = phoneOverride || "94774141118";
+  const phone = phoneOverride || "94771234567";
   const cleanPhone = phone.replace(/[^0-9]/g, "");
-  const text = message || "Hi! I'm interested in your products at STREET MOBILE.";
+  const text = message || "Hi! I'm interested in your products at 1PLACE.LK.";
   return `https://wa.me/${cleanPhone}?text=${encodeURIComponent(text)}`;
 }
 
@@ -270,6 +270,21 @@ export function uniqueById<T extends { id?: string | number }>(items: T[]): T[] 
     }
   }
   return Array.from(map.values());
+}
+
+/**
+ * Normalizes a category slug or string for consistent routing and matching.
+ */
+export function normalizeCategorySlug(text: string | undefined | null): string {
+  if (!text) return "";
+  return text
+    .toString()
+    .toLowerCase()
+    .trim()
+    .replace(/&+/g, "and")
+    .replace(/[^\w\s-]/g, "")
+    .replace(/[\s_-]+/g, "-")
+    .replace(/^-+|-+$/g, "");
 }
 
 

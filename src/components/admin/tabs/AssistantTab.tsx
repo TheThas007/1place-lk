@@ -249,15 +249,15 @@ export default function AssistantTab() {
         <div className="flex items-center gap-3.5">
           <div className="w-12 h-12 rounded-2xl overflow-hidden bg-black border border-white/20 shadow-md shrink-0">
             <img
-              src="/streetla.png"
-              alt="Streetla"
-              className="w-full h-full object-cover object-center"
+              src="/icon.svg"
+              alt="1Place AI"
+              className="w-full h-full object-cover object-center p-2"
             />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className={`text-xl sm:text-2xl font-bold tracking-tight ${isLight ? "text-slate-900" : "text-white"}`}>
-                Streetla Assistant AI
+                1Place AI Assistant
               </h2>
               <span className={`px-2.5 py-0.5 rounded-full text-xs font-bold ${
                 settings.enabled
@@ -377,7 +377,7 @@ export default function AssistantTab() {
               </div>
               <div className={`p-4 rounded-xl border ${isLight ? "bg-slate-50 border-slate-200" : "bg-white/5 border-white/10"}`}>
                 <span className={`font-bold block text-sm ${isLight ? "text-slate-900" : "text-white"}`}>🔧 Repairs &amp; Warranty</span>
-                <p className={`mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Explains Vavuniya lab screen/battery replacement and warranty details.</p>
+                <p className={`mt-1 ${isLight ? "text-slate-500" : "text-slate-400"}`}>Explains Colombo service center screen/battery replacement and warranty details.</p>
               </div>
             </div>
           </div>
@@ -923,7 +923,7 @@ export default function AssistantTab() {
               </label>
               <input
                 type="text"
-                value={settings.assistant_subtitle || "Your StreetMobile Shopping Assistant"}
+                value={settings.assistant_subtitle || "Your 1place.lk Shopping Assistant"}
                 onChange={(e) => setSettings({ ...settings, assistant_subtitle: e.target.value })}
                 className="w-full px-3.5 py-2.5 rounded-xl border border-neutral-200 outline-none focus:border-black"
               />

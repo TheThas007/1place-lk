@@ -23,6 +23,7 @@ import { collection, query, where, getDocs, doc, getDoc } from "firebase/firesto
 import { db } from "@/lib/firebase";
 import { formatPrice } from "@/lib/utils";
 import UserAvatar from "@/components/ui/UserAvatar";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 interface OrderItem {
   productId: string;
@@ -147,7 +148,8 @@ export default function OrderHistoryPage() {
 
       // 2. Fetch orders from localStorage (recent orders placed in this browser)
       try {
-        const storedIds: string[] = JSON.parse(localStorage.getItem("sm_recent_orders") || "[]");
+        const storedRaw = localStorage.getItem("oneplace_recent_orders") || localStorage.getItem("sm_recent_orders") || "[]";
+        const storedIds: string[] = JSON.parse(storedRaw);
         if (Array.isArray(storedIds) && storedIds.length > 0) {
           const promises = storedIds.slice(0, 15).map((id) => getDoc(doc(db, "orders", id)).catch(() => null));
           const docSnaps = await Promise.all(promises);
@@ -274,7 +276,7 @@ export default function OrderHistoryPage() {
 
           {/* Quick WhatsApp Support */}
           <a
-            href="https://wa.me/94774141118?text=Hello%20STREET%20MOBILE,%20I%20have%20a%20question%20about%20my%20order."
+            href={`https://wa.me/${BUSINESS_INFO.whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hello " + BUSINESS_INFO.brandName + ", I have an inquiry about my order.")}`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#25D366] text-white text-xs font-bold hover:bg-[#20bd5a] transition-all shadow-md shrink-0"
@@ -334,7 +336,7 @@ export default function OrderHistoryPage() {
               <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
               <input
                 type="text"
-                placeholder="Enter Phone Number (e.g. 0774141118) or Order ID"
+                placeholder="Enter Phone (e.g. 077 123 4567) or Order ID (e.g. 1P-XXXXXX)"
                 value={phoneSearch}
                 onChange={(e) => setPhoneSearch(e.target.value)}
                 className="w-full pl-10 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl text-sm outline-none focus:border-black transition-all"
@@ -459,13 +461,13 @@ export default function OrderHistoryPage() {
                           ✓
                         </div>
                         <div>
-                          <p className="font-black text-sm text-white">Thank you for your order on StreetMobile.lk!</p>
+                          <p className="font-black text-sm text-white">Thank you for your order on 1place.lk!</p>
                           <p className="text-xs text-gray-300 mt-0.5 font-medium">Your package has been successfully packed, shipped & delivered.</p>
                         </div>
                       </div>
 
                       <a
-                        href="https://wa.me/94774141118?text=Hi!%20I'd%20like%20to%20join%20the%20Street%20Mobile%20VIP%20WhatsApp%20Channel!"
+                        href={`https://wa.me/${BUSINESS_INFO.whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hi! I would like to join the 1place.lk VIP updates channel.")}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="px-4 py-2.5 bg-[#25D366] hover:bg-[#20bd5a] text-white font-extrabold text-xs rounded-xl transition-all shadow-md flex items-center gap-2 shrink-0 active:scale-95"

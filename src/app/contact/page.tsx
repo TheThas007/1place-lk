@@ -7,26 +7,26 @@ import ContactClient from "@/components/contact/ContactClient";
 export const revalidate = 60;
 
 export const metadata: Metadata = {
-  title: "Contact Us & Store Location in Vavuniya | Street Mobile Sri Lanka",
+  title: "Contact Us & Flagship Showroom in Colombo | 1place.lk Sri Lanka",
   description:
-    "Visit Street Mobile flagship store at 163, Kandaswamy Kovil Road, Rambaikulam, Vavuniya. Call 024 222 8118 or WhatsApp +94 77 414 1118 for genuine smartphone prices, orders, and warranty repairs in Sri Lanka.",
+    "Contact 1place.lk customer hotline, WhatsApp support, and flagship showroom in Colombo, Sri Lanka for authentic gadgets, warranty inquiries, and nationwide delivery.",
   alternates: {
-    canonical: "https://www.streetmobile.lk/contact",
+    canonical: "https://www.1place.lk/contact",
   },
   openGraph: {
-    title: "Contact Us & Store Location | Street Mobile Vavuniya",
+    title: "Contact Us & Flagship Showroom | 1place.lk Colombo",
     description:
-      "Visit Street Mobile in Vavuniya or contact our customer support team for phone inquiries, orders, and warranty repairs.",
-    url: "https://www.streetmobile.lk/contact",
+      "Visit 1place.lk in Colombo or contact our customer support team for gadget inquiries, orders, and verified warranty repairs.",
+    url: "https://www.1place.lk/contact",
     type: "website",
-    siteName: "Street Mobile",
+    siteName: "1place.lk",
     locale: "en_LK",
-    images: [{ url: "https://www.streetmobile.lk/logo.png", alt: "Street Mobile Sri Lanka Store Contact" }],
+    images: [{ url: "https://www.1place.lk/logo.svg", alt: "1place.lk Sri Lanka Store Contact" }],
   },
   twitter: {
     card: "summary_large_image",
-    title: "Contact Street Mobile Store Vavuniya",
-    description: "Official store location, customer hotline, WhatsApp contact, and opening hours for Street Mobile Sri Lanka.",
+    title: "Contact 1place.lk Colombo Flagship",
+    description: "Official store location, customer hotline, WhatsApp contact, and opening hours for 1place.lk Sri Lanka.",
   },
 };
 
@@ -35,11 +35,11 @@ export default async function ContactPage() {
 
   const localBusinessJsonLd = {
     "@context": "https://schema.org",
-    "@type": "MobilePhoneStore",
-    "@id": "https://www.streetmobile.lk/#localbusiness",
+    "@type": "ElectronicsStore",
+    "@id": "https://www.1place.lk/#localbusiness",
     "name": settings.store_name || BUSINESS_INFO.brandName,
-    "image": "https://www.streetmobile.lk/logo.png",
-    "url": "https://www.streetmobile.lk/contact",
+    "image": "https://www.1place.lk/logo.svg",
+    "url": "https://www.1place.lk/contact",
     "telephone": settings.phone || BUSINESS_INFO.phonePrimaryIntl,
     "email": settings.email || BUSINESS_INFO.email,
     "priceRange": "LKR",
@@ -81,13 +81,13 @@ export default async function ContactPage() {
         "@type": "ListItem",
         "position": 1,
         "name": "Home",
-        "item": "https://www.streetmobile.lk",
+        "item": "https://www.1place.lk",
       },
       {
         "@type": "ListItem",
         "position": 2,
         "name": "Contact Us",
-        "item": "https://www.streetmobile.lk/contact",
+        "item": "https://www.1place.lk/contact",
       },
     ],
   };

@@ -137,7 +137,7 @@ function PaymentSuccessContent() {
                   <span>Try Payment Again</span>
                 </Link>
                 <a
-                  href="https://wa.me/94754541118?text=Hello%20Street%20Mobile,%20I%20need%20help%20with%20my%20payment"
+                  href={`https://wa.me/${BUSINESS_INFO.whatsappNumber.replace(/[^0-9]/g, "")}?text=${encodeURIComponent("Hello " + BUSINESS_INFO.brandName + ", I need assistance with my online payment.")}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex-1 min-h-[48px] px-6 rounded-full font-bold text-xs sm:text-sm bg-emerald-600 text-white hover:bg-emerald-700 transition-all flex items-center justify-center gap-2"

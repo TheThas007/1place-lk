@@ -4,7 +4,7 @@ import { businessPolicyConfig } from "@/config/business-policy";
 import { generateWhatsAppUrl } from "@/lib/utils";
 
 export default function PolicyContactCard() {
-  const whatsappUrl = generateWhatsAppUrl("Hi Street Mobile, I have a inquiry regarding your store policies.");
+  const whatsappUrl = generateWhatsAppUrl("Hi 1PLACE.LK, I have an inquiry regarding your store policies.");
 
   return (
     <div className="bg-[#FAFAFA] border border-[#EAEAEA] rounded-3xl p-6 sm:p-8 space-y-6 my-10">

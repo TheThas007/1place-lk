@@ -1258,7 +1258,7 @@ export default function OrdersTab({
                     : "01:03 PM";
 
                   const cleanPhone = (ord.primaryPhone || "").replace(/[^0-9]/g, "");
-                  const whatsappMsg = `Hello ${ord.customerName}, regarding your STREET MOBILE order #${ord.id.slice(-8)}...`;
+                  const whatsappMsg = `Hello ${ord.customerName}, regarding your 1PLACE.LK order #${ord.id.slice(-8)}...`;
                   const whatsappUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(whatsappMsg)}`;
 
                   return (
@@ -1782,7 +1782,7 @@ export default function OrdersTab({
                       <div className="grid grid-cols-3 gap-2 pt-2 border-t border-white/[0.06]">
                         <a
                           href={`https://wa.me/${(selectedOrder.primaryPhone || "").replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                            `Hello ${selectedOrder.customerName}, regarding your STREET MOBILE order #${selectedOrder.id.slice(-8)}...`
+                            `Hello ${selectedOrder.customerName}, regarding your 1PLACE.LK order #${selectedOrder.id.slice(-8)}...`
                           )}`}
                           target="_blank"
                           rel="noopener noreferrer"
@@ -2005,6 +2005,12 @@ export default function OrdersTab({
                           <div className="flex items-center justify-between text-slate-400">
                             <span>COD Handling</span>
                             <span className={`font-mono font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>{formatLKR(selectedOrder.codFee)}</span>
+                          </div>
+                        )}
+                        {(selectedOrder.cardFee ?? 0) > 0 && (
+                          <div className="flex items-center justify-between text-slate-400">
+                            <span>PayHere Fee (2%)</span>
+                            <span className={`font-mono font-semibold ${isLight ? "text-slate-900" : "text-white"}`}>{formatLKR(selectedOrder.cardFee!)}</span>
                           </div>
                         )}
                         {selectedOrder.discountTotal > 0 && (

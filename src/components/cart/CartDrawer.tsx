@@ -14,6 +14,7 @@ import { siteSettings } from "@/lib/data";
 import { db } from "@/lib/firebase";
 import { addDoc, collection, doc, updateDoc } from "firebase/firestore";
 import { launchPayHerePayment } from "@/lib/payhere";
+import { BUSINESS_INFO } from "@/lib/business-info";
 
 interface CartDrawerProps {
   isOpen: boolean;
@@ -25,16 +26,27 @@ function formatPrice(price: number) {
 }
 
 const DISTRICTS = [
-  "Vavuniya", "Jaffna", "Kilinochchi", "Mullaitivu", "Mannar", 
-  "Trincomalee", "Batticaloa", "Ampara", "Anuradhapura", "Polonnaruwa", 
-  "Kurunegala", "Puttalam", "Gampaha", "Colombo", "Kalutara", 
-  "Kandy", "Matale", "Nuwara Eliya", "Kegalle", "Ratnapura", 
-  "Galle", "Matara", "Hambantota", "Badulla", "Monaragala"
+  "Colombo", "Gampaha", "Kalutara", "Kandy", "Matale", "Nuwara Eliya",
+  "Galle", "Matara", "Hambantota", "Jaffna", "Kilinochchi", "Mannar",
+  "Vavuniya", "Mullaitivu", "Batticaloa", "Ampara", "Trincomalee",
+  "Kurunegala", "Puttalam", "Anuradhapura", "Polonnaruwa", "Badulla",
+  "Monaragala", "Ratnapura", "Kegalle"
 ];
 
 export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   const router = useRouter();
-  const { cart, removeFromCart, updateQuantity, total, itemCount, clearCart } = useCart();
+  const {
+    cart,
+    removeFromCart,
+    updateQuantity,
+    total,
+    itemCount,
+    clearCart,
+    hasFreeGift,
+    hasQualifyingPaidItems,
+    canCheckout,
+    shippingReward,
+  } = useCart();
   const { user } = useAuth();
   
   const [step, setStep] = useState<"cart" | "checkout-options" | "cod-form" | "card-form" | "success">("cart");
@@ -44,7 +56,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
   // COD Form State
   const [codName, setCodName] = useState(user?.displayName || "");
   const [codAddress, setCodAddress] = useState("");
-  const [codDistrict, setCodDistrict] = useState("Vavuniya");
+  const [codDistrict, setCodDistrict] = useState("Colombo");
   const [codPhone1, setCodPhone1] = useState(user?.phoneNumber || "");
   const [codPhone2, setCodPhone2] = useState("");
   const [codPostal, setCodPostal] = useState("");
@@ -62,7 +74,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         `• ${i.name}${i.storage ? ` (${i.storage})` : ""}${i.color ? ` - ${i.color}` : ""} × ${i.quantity} = ${formatPrice(i.price * i.quantity)}`
     );
     const msg = [
-      "🛍️ *New Order from Street Mobile Website*",
+      "🛍️ *New Order from 1place.lk Store*",
       "",
       ...lines,
       "",
@@ -100,7 +112,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         userId: user?.uid || "guest",
         customerName: codName || user?.displayName || "COD Customer",
         address: codAddress || "",
-        district: codDistrict || "Vavuniya",
+        district: codDistrict || "Colombo",
         primaryPhone: codPhone1 || "",
         secondaryPhone: codPhone2 || "",
         postalCode: codPostal || "",
@@ -181,11 +193,18 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       const finalOrderId = `SM-${Math.floor(100000 + Math.random() * 900000)}`;
       setOrderId(finalOrderId);
 
+      const cardFee = Math.round(total * 0.02);
+      const payTotal = total + cardFee;
+
       const orderData = {
         userId: user?.uid || "guest_authenticated",
         customerName: cardName || codName || user?.displayName || "Customer",
         items: sanitizedItems,
-        totalPrice: total,
+        totalPrice: payTotal,
+        subtotal: total,
+        cardFee,
+        payhereFee: cardFee,
+        finalTotal: payTotal,
         paymentMethod: "Card (PayHere)",
         status: "pending",
         paymentStatus: "Pending",
@@ -193,9 +212,9 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
         payhereVerified: false,
         payhereStatusCode: "0",
         createdAt: new Date().toISOString(),
-        district: codDistrict || "Vavuniya",
+        district: codDistrict || "Colombo",
         address: codAddress || "PayHere Payment Gateway",
-        primaryPhone: codPhone1 || "0774141118"
+        primaryPhone: codPhone1 || BUSINESS_INFO.phonePrimary
       };
 
       // 1. Pre-create order as Pending in Database
@@ -223,11 +242,11 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
       // 2. Launch PayHere
       await launchPayHerePayment({
         orderId: finalOrderId,
-        amount: total,
+        amount: payTotal,
         currency: "LKR",
         customerFirstName: orderData.customerName,
         customerLastName: "",
-        email: user?.email || "customer@streetmobile.lk",
+        email: user?.email || "checkout@1place.lk",
         phone: orderData.primaryPhone,
         address: orderData.address,
         city: orderData.district,
@@ -385,27 +404,55 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                       </Link>
                     </div>
                   ) : (
-                    <div className="space-y-4 flex-1">
+                    <>
+                      {hasFreeGift && !hasQualifyingPaidItems && (
+                        <div className="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 to-red-500/15 border border-amber-500/30 text-amber-200 text-xs flex items-start gap-3 shadow-lg mb-2">
+                          <div className="w-7 h-7 rounded-lg bg-amber-500/20 flex items-center justify-center shrink-0 text-amber-400 text-sm">
+                            🎁
+                          </div>
+                          <div className="flex-1">
+                            <p className="font-bold text-amber-300 text-xs">Add an item to claim your free gift!</p>
+                            <p className="text-white/70 text-[11px] mt-0.5 leading-relaxed">
+                              Free gifts cannot be ordered alone. Add any regular item to your bag to complete checkout.
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
                       {cart.map((item) => (
                         <motion.div
-                          key={`${item.productId}-${item.color}-${item.storage}`}
+                          key={`${item.productId}-${item.color}-${item.storage}-${item.isFreeGift ? "gift" : "regular"}`}
                           layout
                           initial={{ opacity: 0, y: 16 }}
                           animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, x: 60 }}
-                          className="flex gap-4 p-4 bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/[0.1] hover:border-white/20 rounded-2xl transition-all shadow-lg"
+                          className={`flex gap-4 p-4 rounded-2xl transition-all shadow-lg ${
+                            item.isFreeGift
+                              ? "bg-gradient-to-b from-[#64152F]/30 to-[#111111]/80 border border-[#64152F]/60"
+                              : "bg-gradient-to-b from-white/[0.05] to-white/[0.02] border border-white/[0.1] hover:border-white/20"
+                          }`}
                         >
                           {/* Image */}
-                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/5 border border-white/10">
+                          <div className="w-16 h-16 rounded-xl overflow-hidden shrink-0 bg-white/5 border border-white/10 relative">
                             <img
                               src={item.image}
                               alt={item.name}
                               className="w-full h-full object-cover"
                             />
+                            {item.isFreeGift && (
+                              <div className="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow">
+                                FREE
+                              </div>
+                            )}
                           </div>
 
                           {/* Details */}
                           <div className="flex-1 min-w-0">
+                            {item.isFreeGift && (
+                              <span className="inline-block px-2 py-0.5 rounded bg-rose-600/30 border border-rose-500/40 text-rose-300 text-[10px] font-extrabold uppercase tracking-wider mb-1">
+                                🎁 Spin & Win Free Gift
+                              </span>
+                            )}
                             <p className="text-white text-sm font-semibold leading-tight line-clamp-2 mb-1">
                               {item.name}
                             </p>
@@ -414,41 +461,58 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                                 {[item.storage, item.color].filter(Boolean).join(" · ")}
                               </p>
                             )}
-                            <p className="text-white font-bold text-sm">
-                              {formatPrice(item.price * item.quantity)}
-                            </p>
+                            {item.isFreeGift ? (
+                              <div className="flex items-center gap-2">
+                                <span className="text-emerald-400 font-extrabold text-sm">FREE (LKR 0)</span>
+                                {item.originalPrice ? (
+                                  <span className="line-through text-white/30 text-xs">
+                                    {formatPrice(item.originalPrice)}
+                                  </span>
+                                ) : null}
+                              </div>
+                            ) : (
+                              <p className="text-white font-bold text-sm">
+                                {formatPrice(item.price * item.quantity)}
+                              </p>
+                            )}
                           </div>
 
                           {/* Controls & Remove option */}
                           <div className="flex flex-col items-end justify-between shrink-0">
                             <button
-                              onClick={() => removeFromCart(item.productId, item.variantId, item.color, item.storage)}
+                              onClick={() => removeFromCart(item.productId, item.variantId, item.color, item.storage, item.isFreeGift)}
                               className="p-1.5 rounded-lg text-red-400/70 hover:text-red-400 bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 transition-all flex items-center gap-1 text-[11px] font-semibold cursor-pointer"
                               title="Remove Product"
                             >
                               <Trash2 className="w-3.5 h-3.5" />
                               <span>Remove</span>
                             </button>
-                            <div className="flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-1 py-1 mt-2">
-                              <button
-                                onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId, item.color, item.storage)}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all cursor-pointer"
-                              >
-                                <Minus className="w-3 h-3" />
-                              </button>
-                              <span className="text-white text-sm font-bold w-5 text-center">
-                                {item.quantity}
-                              </span>
-                              <button
-                                onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId, item.color, item.storage)}
-                                disabled={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock}
-                                title={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock ? `Maximum available stock is ${item.maxStock}` : "Increase quantity"}
-                                className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
-                              >
-                                <Plus className="w-3 h-3" />
-                              </button>
-                            </div>
-                            {typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock && (
+                            {item.isFreeGift ? (
+                              <div className="px-2 py-1 bg-white/5 border border-white/10 rounded-xl text-white/50 text-[11px] font-bold mt-2">
+                                Qty: 1
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 bg-white/[0.06] border border-white/10 rounded-xl px-1 py-1 mt-2">
+                                <button
+                                  onClick={() => updateQuantity(item.productId, item.quantity - 1, item.variantId, item.color, item.storage, item.isFreeGift)}
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all cursor-pointer"
+                                >
+                                  <Minus className="w-3 h-3" />
+                                </button>
+                                <span className="text-white text-sm font-bold w-5 text-center">
+                                  {item.quantity}
+                                </span>
+                                <button
+                                  onClick={() => updateQuantity(item.productId, item.quantity + 1, item.variantId, item.color, item.storage, item.isFreeGift)}
+                                  disabled={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock}
+                                  title={typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock ? `Maximum available stock is ${item.maxStock}` : "Increase quantity"}
+                                  className="w-6 h-6 flex items-center justify-center rounded-lg hover:bg-white/10 text-white/60 hover:text-white transition-all disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer"
+                                >
+                                  <Plus className="w-3 h-3" />
+                                </button>
+                              </div>
+                            )}
+                            {!item.isFreeGift && typeof item.maxStock === "number" && item.maxStock > 0 && item.quantity >= item.maxStock && (
                               <span className="text-[10px] text-amber-400 font-semibold mt-1">
                                 Max stock ({item.maxStock})
                               </span>
@@ -456,7 +520,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                           </div>
                         </motion.div>
                       ))}
-                    </div>
+                    </>
                   )}
                 </div>
               )}
@@ -685,7 +749,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   {/* Sleek Luxury Pure Dark Credit Card Preview */}
                   <div className="w-full aspect-[1.78/1] rounded-2xl bg-gradient-to-br from-neutral-900 via-black to-neutral-950 border border-white/20 p-6 flex flex-col justify-between shadow-2xl relative overflow-hidden backdrop-blur-md">
                     <div className="flex justify-between items-start">
-                      <span className="text-white font-bold tracking-widest text-sm uppercase">Street Pay</span>
+                      <span className="text-white font-bold tracking-widest text-sm uppercase">1Place Pay</span>
                       <CreditCard className="w-8 h-8 text-white/90" />
                     </div>
                     <div className="space-y-4">
@@ -798,7 +862,7 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                   </motion.div>
                   <h3 className="text-white font-extrabold text-2xl mb-2">Order Confirmed!</h3>
                   <p className="text-white/60 text-sm max-w-[280px] mb-4">
-                    Your order has been placed successfully. Thank you for buying from Street Mobile.
+                    Your order has been placed successfully. Thank you for buying from 1place.lk.
                   </p>
                   {orderId && (
                     <div className="p-3 bg-white/5 border border-white/10 rounded-xl text-xs text-white/50 font-mono mb-8 select-all">
@@ -828,6 +892,12 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                 </p>
                 <button
                   onClick={() => {
+                    if (hasFreeGift && !hasQualifyingPaidItems) {
+                      alert("A free gift cannot be ordered alone. Please add at least one eligible regular product to your shopping bag to claim your gift!");
+                      handleClose();
+                      router.push("/products");
+                      return;
+                    }
                     if (!user) {
                       handleClose();
                       router.push("/login?redirect=/checkout");
@@ -835,9 +905,18 @@ export default function CartDrawer({ isOpen, onClose }: CartDrawerProps) {
                     }
                     setStep("checkout-options");
                   }}
-                  className="w-full flex items-center justify-center gap-3 py-4 rounded-2xl bg-white text-black font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer"
+                  disabled={hasFreeGift && !hasQualifyingPaidItems}
+                  className={`w-full flex items-center justify-center gap-3 py-4 rounded-2xl font-bold text-sm transition-all active:scale-[0.98] relative overflow-hidden cursor-pointer ${
+                    hasFreeGift && !hasQualifyingPaidItems
+                      ? "bg-amber-500/20 text-amber-200 border border-amber-500/40 cursor-not-allowed opacity-80"
+                      : "bg-white text-black hover:bg-neutral-200"
+                  }`}
                 >
-                  Proceed to Checkout
+                  {hasFreeGift && !hasQualifyingPaidItems ? (
+                    <span>Add Regular Item to Claim Gift</span>
+                  ) : (
+                    <span>Proceed to Checkout</span>
+                  )}
                   <motion.span
                     className="absolute inset-0 bg-gradient-to-r from-transparent via-black/10 to-transparent skew-x-[-20deg] pointer-events-none"
                     animate={{ x: ["-200%", "200%"] }}

@@ -112,6 +112,33 @@ export async function getProductBanners(): Promise<ProductBanner[]> {
   }, CACHE_TTL.BANNERS);
 }
 
+export function deduplicateProductsBySlug(products: Product[]): Product[] {
+  const byId = uniqueById(products);
+  const bySlug = new Map<string, Product>();
+
+  for (const prod of byId) {
+    const slug = (prod.slug || "").trim().toLowerCase();
+    if (!slug) {
+      bySlug.set(prod.id, prod);
+      continue;
+    }
+
+    const existing = bySlug.get(slug);
+    if (!existing) {
+      bySlug.set(slug, prod);
+    } else {
+      // Prioritize active products over draft/inactive
+      const isExistingActive = (existing as any).status !== "draft" && (existing as any).status !== "inactive";
+      const isCurrentActive = (prod as any).status !== "draft" && (prod as any).status !== "inactive";
+      if (!isExistingActive && isCurrentActive) {
+        bySlug.set(slug, prod);
+      }
+    }
+  }
+
+  return Array.from(bySlug.values());
+}
+
 // ── 2. Products Catalog ──
 export async function getProducts(): Promise<Product[]> {
   return cachedFetch("products:all", async () => {
@@ -119,12 +146,12 @@ export async function getProducts(): Promise<Product[]> {
       const q = query(collection(db, "products"));
       const snapshot = await getDocs(q);
       const docs = snapshot.docs.map((d) => normalizeProduct({ ...d.data(), id: d.id } as Product));
-      const uniqueDocs = uniqueById(docs);
+      const uniqueDocs = deduplicateProductsBySlug(docs);
       if (uniqueDocs.length > 0) return uniqueDocs;
     } catch (e) {
       console.warn("Offline/Error fetching products:", e);
     }
-    return uniqueById(fallbackProducts.map(normalizeProduct));
+    return deduplicateProductsBySlug(fallbackProducts.map(normalizeProduct));
   }, CACHE_TTL.PRODUCTS);
 }
 
@@ -554,7 +581,7 @@ const DEFAULT_TICKER: TickerSettings = {
     { id: "t1", text: "Genuine Products with Warranty", icon: "ShieldCheck", active: true, sort_order: 0 },
     { id: "t2", text: "Islandwide Delivery Available", icon: "Truck", active: true, sort_order: 1 },
     { id: "t3", text: "Secure Online Payments", icon: "Lock", active: true, sort_order: 2 },
-    { id: "t4", text: "Visit Street Mobile — Vavuniya", icon: "MapPin", active: true, sort_order: 3 },
+    { id: "t4", text: "Visit 1place.lk Flagship — Colombo", icon: "MapPin", active: true, sort_order: 3 },
     { id: "t5", text: "Latest Smartphones & Accessories", icon: "Smartphone", active: true, sort_order: 4 },
   ],
   text_color: "#FFFFFF",
@@ -788,9 +815,10 @@ export async function getMotionSettings(): Promise<MotionSettings> {
   }, CACHE_TTL.SETTINGS);
 }
 
-// ── 24. Auth Settings (Google Sign-in Enabled etc.) ──
+// ── 24. Auth Settings (Google Sign-in, Apple Sign-in Enabled etc.) ──
 export interface AuthSettings {
   googleAuthEnabled: boolean;
+  appleAuthEnabled: boolean;
 }
 
 export async function getAuthSettings(): Promise<AuthSettings> {
@@ -798,12 +826,16 @@ export async function getAuthSettings(): Promise<AuthSettings> {
     try {
       const snap = await getDoc(doc(db, "settings", "auth"));
       if (snap.exists()) {
-        return { googleAuthEnabled: Boolean(snap.data()?.googleAuthEnabled) };
+        const data = snap.data();
+        return {
+          googleAuthEnabled: data?.googleAuthEnabled !== false,
+          appleAuthEnabled: data?.appleAuthEnabled !== false,
+        };
       }
     } catch {
       // Fallback
     }
-    return { googleAuthEnabled: false };
+    return { googleAuthEnabled: true, appleAuthEnabled: true };
   }, CACHE_TTL.SETTINGS);
 }
 

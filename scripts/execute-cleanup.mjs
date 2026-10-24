@@ -101,7 +101,7 @@ const DUPLICATE_MAPPING = {
 
 async function execute() {
   console.log(`\n===============================================================`);
-  console.log(`  StreetMobile.lk Firestore Category Precision Migration`);
+  console.log(`  1PLACE.LK Firestore Category Precision Migration`);
   console.log(`  Mode: ${isExecute ? ">>> LIVE EXECUTION <<<" : "[DRY RUN] (Simulation only)"}`);
   console.log(`===============================================================\n`);
 

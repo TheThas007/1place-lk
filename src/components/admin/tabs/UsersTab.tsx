@@ -49,7 +49,7 @@ export default function UsersTab({ users }: { users: any[] }) {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(15, 23, 42); // slate-900
-    doc.text("STREET MOBILE", 14, 22);
+    doc.text("1PLACE.LK", 14, 22);
 
     doc.setFontSize(10);
     doc.setFont("helvetica", "normal");

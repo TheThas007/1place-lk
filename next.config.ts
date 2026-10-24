@@ -5,11 +5,21 @@ const nextConfig: NextConfig = {
   images: {
     localPatterns: [
       {
+        pathname: '/**',
+      },
+      {
         pathname: '/api/image-proxy',
-        search: '',
       },
     ],
     remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "**",
+      },
+      {
+        protocol: "http",
+        hostname: "**",
+      },
       {
         protocol: "https",
         hostname: "images.unsplash.com",
@@ -55,6 +65,20 @@ const nextConfig: NextConfig = {
         hostname: "cdn.simpleicons.org",
       }
     ],
+  },
+  async redirects() {
+    return [
+      {
+        source: "/product/:slug*",
+        destination: "/products/:slug*",
+        permanent: true,
+      },
+      {
+        source: "/categories/:slug",
+        destination: "/category/:slug",
+        permanent: true,
+      },
+    ];
   },
 };
 

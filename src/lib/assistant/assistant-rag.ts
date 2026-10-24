@@ -453,7 +453,7 @@ Neenga camera & video-ku mukkiyam tharingala, illa gaming & battery-ka? Sollunga
 
 ---
 
-🎯 **Streetla-வின் பரிந்துரை:**
+🎯 **1Place AI-ன் பரிந்துரை:**
 
 • **${p1.name}**: சிறந்த Video தரம், மென்மையான இயங்குதளம் மற்றும் நீண்ட கால மறுவிற்பனை மதிப்புக்கு (Resale Value) சிறந்தது.
 • **${p2.name}**: சிறந்த Zoom Camera, பல்துறை Display மற்றும் வேகமான Charging-க்கு உகந்தது.

@@ -1,14 +1,10 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { ShieldCheck, Truck, Lock, MapPin, Smartphone, Star, Zap, Gift, Heart, Award } from "lucide-react";
-import { getTickerSettings } from "@/lib/firestore-client";
-import { TickerSettings, TickerMessage } from "@/lib/types";
-
-const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+import {
   ShieldCheck,
   Truck,
-  Lock,
+  CreditCard,
   MapPin,
   Smartphone,
   Star,
@@ -16,118 +12,168 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   Gift,
   Heart,
   Award,
+  Lock,
+} from "lucide-react";
+import { getTickerSettings } from "@/lib/firestore-client";
+import { TickerSettings, TickerMessage } from "@/lib/types";
+
+const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
+  Smartphone,
+  ShieldCheck,
+  Truck,
+  CreditCard,
+  Lock,
+  MapPin,
+  Star,
+  Zap,
+  Gift,
+  Heart,
+  Award,
 };
 
-const SPEED_DURATION: Record<string, number> = {
-  slow: 45,
-  normal: 30,
-  fast: 18,
-};
+const DEFAULT_MESSAGES: TickerMessage[] = [
+  {
+    id: "def-1",
+    text: "Latest Smartphones & Accessories",
+    icon: "Smartphone",
+    active: true,
+    sort_order: 1,
+  },
+  {
+    id: "def-2",
+    text: "Genuine Products with Warranty",
+    icon: "ShieldCheck",
+    active: true,
+    sort_order: 2,
+  },
+  {
+    id: "def-3",
+    text: "Islandwide Delivery Available",
+    icon: "Truck",
+    active: true,
+    sort_order: 3,
+  },
+  {
+    id: "def-4",
+    text: "Secure Online Payments",
+    icon: "CreditCard",
+    active: true,
+    sort_order: 4,
+  },
+  {
+    id: "def-5",
+    text: "Visit 1place.lk Flagship Store — Colombo",
+    icon: "MapPin",
+    active: true,
+    sort_order: 5,
+  },
+];
 
 export default function AnnouncementTicker() {
   const [settings, setSettings] = useState<TickerSettings | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const tickerRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useRef(false);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
 
   useEffect(() => {
-    prefersReducedMotion.current = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (typeof window !== "undefined") {
+      setPrefersReducedMotion(window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+    }
+
     async function load() {
       try {
         const data = await getTickerSettings();
-        setSettings(data);
+        if (data && data.enabled !== false && data.messages && data.messages.length > 0) {
+          setSettings(data);
+        } else {
+          setSettings({
+            enabled: true,
+            bg_color: "#111111",
+            text_color: "#FFFFFF",
+            speed: "normal",
+            direction: "rtl",
+            pause_on_hover: true,
+            messages: DEFAULT_MESSAGES,
+          });
+        }
       } catch {
-        // Silent fallback — ticker won't show
+        setSettings({
+          enabled: true,
+          bg_color: "#111111",
+          text_color: "#FFFFFF",
+          speed: "normal",
+          direction: "rtl",
+          pause_on_hover: true,
+          messages: DEFAULT_MESSAGES,
+        });
       }
     }
     load();
   }, []);
 
-  // ResizeObserver: dynamically update --ticker-height
-  useEffect(() => {
-    const el = tickerRef.current;
-    if (!el) return;
-    const observer = new ResizeObserver(([entry]) => {
-      const h = entry.contentRect.height;
-      document.documentElement.style.setProperty("--ticker-height", `${h}px`);
-    });
-    observer.observe(el);
-    const initialH = el.getBoundingClientRect().height;
-    if (initialH > 0) {
-      document.documentElement.style.setProperty("--ticker-height", `${initialH}px`);
-    }
-    return () => observer.disconnect();
-  }, [settings]);
-
-  // Set ticker height to 0 when not rendering
-  useEffect(() => {
-    if (!settings || !settings.enabled) {
-      document.documentElement.style.setProperty("--ticker-height", "0px");
-    }
-  }, [settings]);
-
-  if (!settings || !settings.enabled) return null;
-
-  const activeMessages = settings.messages
-    .filter((m) => m.active)
+  // Determine active messages
+  const activeMessages = (settings?.messages || DEFAULT_MESSAGES)
+    .filter((m) => m.active !== false)
     .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
-  if (activeMessages.length === 0) return null;
+  const messagesToDisplay = activeMessages.length > 0 ? activeMessages : DEFAULT_MESSAGES;
 
-  const duration = SPEED_DURATION[settings.speed] || 30;
-  const isRtl = settings.direction !== "ltr";
+  const speedDuration =
+    settings?.speed === "fast" ? 22 : settings?.speed === "slow" ? 45 : 32;
 
-  // Build the message items JSX
-  const renderMessages = (msgs: TickerMessage[]) =>
-    msgs.map((msg, i) => {
-      const IconComp = msg.icon ? ICON_MAP[msg.icon] : null;
-      return (
-        <span key={`${msg.id}-${i}`} className="inline-flex items-center gap-2 shrink-0 whitespace-nowrap">
-          {IconComp && <IconComp className="w-3.5 h-3.5 opacity-70 shrink-0" />}
-          <span>{msg.text}</span>
-          <span className="text-white/30 mx-3 text-[10px] select-none" aria-hidden="true">•</span>
-        </span>
-      );
-    });
+  const renderMessageGroup = (keyPrefix: string) => (
+    <div key={keyPrefix} className="flex items-center shrink-0">
+      {messagesToDisplay.map((msg, i) => {
+        const IconComp = msg.icon ? ICON_MAP[msg.icon] || Smartphone : Smartphone;
+        return (
+          <span
+            key={`${keyPrefix}-${msg.id || i}`}
+            className="inline-flex items-center gap-2.5 shrink-0 whitespace-nowrap"
+          >
+            <IconComp className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#8C2042] shrink-0" />
+            <span className="text-[12px] sm:text-[13px] font-semibold tracking-wide text-neutral-200 hover:text-white transition-colors">
+              {msg.text}
+            </span>
+            <span
+              className="text-neutral-700 mx-5 sm:mx-8 font-light select-none text-xs"
+              aria-hidden="true"
+            >
+              |
+            </span>
+          </span>
+        );
+      })}
+    </div>
+  );
 
   return (
     <div
       ref={tickerRef}
       data-announcement-ticker
-      className="w-full overflow-hidden border-none m-0 p-0 select-none"
-      style={{
-        backgroundColor: settings.bg_color || "#000000",
-        color: settings.text_color || "#FFFFFF",
-        fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-      }}
-      onMouseEnter={() => settings.pause_on_hover && setIsPaused(true)}
-      onMouseLeave={() => settings.pause_on_hover && setIsPaused(false)}
-      onTouchStart={() => settings.pause_on_hover && setIsPaused(true)}
-      onTouchEnd={() => settings.pause_on_hover && setIsPaused(false)}
+      aria-label="Store Announcements"
+      className="w-full overflow-hidden border-y border-neutral-900 select-none bg-[#111111] text-white py-3"
+      onMouseEnter={() => setIsPaused(true)}
+      onMouseLeave={() => setIsPaused(false)}
+      onTouchStart={() => setIsPaused(true)}
+      onTouchEnd={() => setIsPaused(false)}
     >
-      <div className="h-[36px] sm:h-[40px] md:h-[44px] flex items-center overflow-hidden">
-        {prefersReducedMotion.current ? (
-          /* Static horizontally scrollable row for reduced-motion users */
-          <div className="flex items-center gap-0 overflow-x-auto text-[11px] sm:text-[13px] font-semibold px-3 sm:px-4 w-full scrollbar-none">
-            {renderMessages(activeMessages)}
+      <div className="h-[28px] sm:h-[32px] flex items-center overflow-hidden">
+        {prefersReducedMotion ? (
+          /* Accessible static scrollable fallback */
+          <div className="flex items-center overflow-x-auto text-xs font-semibold px-4 w-full scrollbar-none">
+            {renderMessageGroup("static")}
           </div>
         ) : (
-          /* Seamless infinite marquee */
+          /* Seamless 0-jump infinite marquee */
           <div
-            className="flex items-center gap-0 text-[11px] sm:text-[13px] md:text-[14px] font-semibold ticker-marquee"
+            className="flex items-center shrink-0 ticker-marquee"
             style={{
-              animationDuration: `${duration}s`,
-              animationDirection: isRtl ? "normal" : "reverse",
+              animationDuration: `${speedDuration}s`,
               animationPlayState: isPaused ? "paused" : "running",
             }}
           >
-            {/* Duplicate message group for seamless loop */}
-            <div className="flex items-center gap-0 shrink-0">
-              {renderMessages(activeMessages)}
-            </div>
-            <div className="flex items-center gap-0 shrink-0" aria-hidden="true">
-              {renderMessages(activeMessages)}
-            </div>
+            {renderMessageGroup("set1")}
+            {renderMessageGroup("set2")}
           </div>
         )}
       </div>

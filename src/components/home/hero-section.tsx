@@ -6,7 +6,9 @@ import Link from "next/link";
 import Image from "next/image";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { ArrowRight, MessageCircle, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
+import { ArrowRight, ChevronLeft, ChevronRight, ShieldCheck, Truck, Lock } from "lucide-react";
+import { collection, onSnapshot, query } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import { getHeroSlides } from "@/lib/firestore-client";
 import { DEFAULT_HERO_SLIDES } from "@/lib/data";
 import { HeroSlide } from "@/lib/types";
@@ -17,7 +19,7 @@ if (typeof window !== "undefined") {
   gsap.registerPlugin(ScrollTrigger);
 }
 
-const AUTOPLAY_DURATION = 5500; // 5.5s per slide for a relaxed, luxury Apple-style feel
+const AUTOPLAY_DURATION = 5500; // 5.5s per slide default
 
 export default function HeroSection() {
   const [slides, setSlides] = useState<HeroSlide[]>(DEFAULT_HERO_SLIDES);
@@ -44,17 +46,15 @@ export default function HeroSection() {
     if (touchStartX.current === null || touchEndX.current === null) return;
     const diff = touchStartX.current - touchEndX.current;
     if (diff > 45) {
-      // Swiped Left -> Next
       handleNext();
     } else if (diff < -45) {
-      // Swiped Right -> Prev
       handlePrev();
     }
     touchStartX.current = null;
     touchEndX.current = null;
   };
 
-  // Subtle Apple-inspired scroll-linked hero parallax and scale
+  // Apple-inspired scroll-linked hero parallax and scale
   useEffect(() => {
     if (isReducedMotion || motionSettings.enableHeroParallax === false) return;
     const heroEl = heroRef.current;
@@ -101,28 +101,86 @@ export default function HeroSection() {
     return () => ctx.revert();
   }, [isReducedMotion, motionSettings.enableHeroParallax]);
 
-  // Load cached hero slides
+  // Load hero slides with real-time onSnapshot listener for instant updates
   useEffect(() => {
+    let isMounted = true;
+
+    // 1. Initial cached/server fetch for instant hydration
     getHeroSlides()
       .then((res) => {
-        if (res && res.length > 0) setSlides(res);
+        if (isMounted && res && res.length > 0) {
+          setSlides(res);
+        }
       })
       .catch(() => {
-        setSlides(DEFAULT_HERO_SLIDES);
+        // Fallback already in place
       });
+
+    // 2. Real-time Firestore subscription: updates automatically when administrator changes image URL or settings
+    try {
+      const q = query(collection(db, "hero_slides"));
+      const unsubscribe = onSnapshot(
+        q,
+        (snapshot) => {
+          if (!isMounted) return;
+          if (!snapshot.empty) {
+            const rawDocs = snapshot.docs.map((d) => {
+              const data = d.data() as HeroSlide;
+              return {
+                ...data,
+                id: d.id,
+                image_url: normalizeImageUrl(data.image_url),
+                desktop_image_url: normalizeImageUrl(data.desktop_image_url),
+                mobile_image_url: normalizeImageUrl(data.mobile_image_url),
+              };
+            });
+
+            const activeSlides = rawDocs
+              .filter((s) => s.active !== false)
+              .sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
+
+            if (activeSlides.length > 0) {
+              setSlides(activeSlides);
+            }
+          }
+        },
+        (err) => {
+          console.warn("Real-time hero_slides listener warning:", err);
+        }
+      );
+
+      return () => {
+        isMounted = false;
+        unsubscribe();
+      };
+    } catch (e) {
+      console.warn("Real-time hero listener setup error:", e);
+      return () => {
+        isMounted = false;
+      };
+    }
   }, []);
 
-  // Continuous auto-swipe rotation: changes automatically even when mouse cursor is hovering!
+  const currentSlide = slides[currentIndex] || slides[0];
+
+  // Dynamic Autoplay Duration per slide
+  const slideDuration = currentSlide?.autoplay_duration
+    ? (currentSlide.autoplay_duration < 100
+        ? currentSlide.autoplay_duration * 1000
+        : currentSlide.autoplay_duration)
+    : AUTOPLAY_DURATION;
+
+  // Continuous auto-swipe rotation
   useEffect(() => {
     if (slides.length <= 1 || isReducedMotion) return;
     const timer = setInterval(() => {
       setDirection(1);
       setCurrentIndex((prev) => (prev + 1) % slides.length);
-    }, AUTOPLAY_DURATION);
+    }, slideDuration);
     return () => clearInterval(timer);
-  }, [slides.length, currentIndex, isReducedMotion]);
+  }, [slides.length, currentIndex, isReducedMotion, slideDuration]);
 
-  if (slides.length === 0) {
+  if (!currentSlide) {
     return null;
   }
 
@@ -136,58 +194,48 @@ export default function HeroSection() {
     setCurrentIndex((prev) => (prev + 1) % slides.length);
   };
 
-  const currentSlide = slides[currentIndex] || slides[0];
-
   const desktopBg = normalizeImageUrl(currentSlide.desktop_image_url || currentSlide.image_url);
   const mobileBg  = normalizeImageUrl(currentSlide.mobile_image_url || currentSlide.image_url || currentSlide.desktop_image_url);
 
-  // Horizontal alignment helper
-  const horizAlignClass =
-    currentSlide.content_horizontal_position === "center"
-      ? "justify-center"
-      : currentSlide.content_horizontal_position === "right"
-      ? "justify-end"
-      : "justify-start";
+  // Background styling helper
+  const getBannerBackground = () => {
+    if (currentSlide.banner_bg_color && currentSlide.banner_bg_color.trim()) {
+      return currentSlide.banner_bg_color.trim();
+    }
+    if (currentSlide.bg_color && currentSlide.bg_color.trim()) {
+      return currentSlide.bg_color.trim();
+    }
+    return "linear-gradient(135deg, #4A0E22 0%, #64152F 50%, #2B0612 100%)";
+  };
 
-  // Vertical alignment helper (default vertically centered ~49%)
-  const vertAlignClass =
-    currentSlide.content_vertical_position === "top"
-      ? "items-start pt-16"
-      : currentSlide.content_vertical_position === "bottom"
-      ? "items-end pb-16"
-      : "items-center";
+  const bannerBg = getBannerBackground();
 
-  // Text alignment helper
-  const textAlignClass =
-    currentSlide.text_align === "center"
-      ? "text-center items-center"
-      : currentSlide.text_align === "right"
-      ? "text-right items-end"
-      : "text-left items-start";
+  // Desktop and Mobile Heights
+  const desktopBannerHeight = currentSlide.desktop_banner_height && currentSlide.desktop_banner_height !== "auto"
+    ? currentSlide.desktop_banner_height
+    : "620px";
 
-  // Container Max Width (720px desktop width default)
-  const maxWClass =
-    currentSlide.content_max_width === "500px"
-      ? "max-w-[500px]"
-      : currentSlide.content_max_width === "520px"
-      ? "max-w-[520px]"
-      : currentSlide.content_max_width === "570px"
-      ? "max-w-[570px]"
-      : currentSlide.content_max_width === "620px"
-      ? "max-w-[620px]"
-      : currentSlide.content_max_width === "680px"
-      ? "max-w-[680px]"
-      : currentSlide.content_max_width === "700px"
-      ? "max-w-[700px]"
-      : currentSlide.content_max_width === "760px"
-      ? "max-w-[760px]"
-      : currentSlide.content_max_width === "820px"
-      ? "max-w-[820px]"
-      : currentSlide.content_max_width === "full"
-      ? "max-w-full"
-      : "max-w-[720px]";
+  const mobileBannerHeight = currentSlide.mobile_banner_height && currentSlide.mobile_banner_height !== "auto"
+    ? currentSlide.mobile_banner_height
+    : "480px";
 
-  // Heading Line 1 & Line 2 Extraction - EXACT ONCE RENDERING (No duplicated fallback)
+  // Image Fit Mode: User explicitly requested full hero section cover:
+  // "hero imagela naan upload pannirukka image hero section fulla cover pannanum text ellam antha baerkku meala overly aaki irukanum"
+  // Default to 'cover' so uploaded artwork covers the entire hero section edge-to-edge!
+  const imageFitMode = currentSlide.image_fit_mode === "contain" ? "contain" : "cover";
+
+  // Content alignment and positioning
+  const horizontalPosition = currentSlide.content_horizontal_position || "left";
+  const verticalPosition = currentSlide.content_vertical_position || "center";
+  const contentMaxWidth = currentSlide.content_max_width && currentSlide.content_max_width !== "full"
+    ? currentSlide.content_max_width
+    : "720px";
+
+  const overlayOpacity = typeof currentSlide.overlay_opacity === "number"
+    ? Math.min(currentSlide.overlay_opacity / 100, 0.6)
+    : 0.35;
+
+  // Heading Line 1 & Line 2 Extraction
   const rawLine1 = currentSlide.heading_line_1 !== undefined && currentSlide.heading_line_1 !== ""
     ? currentSlide.heading_line_1
     : (currentSlide.heading && !currentSlide.heading_line_2
@@ -200,14 +248,14 @@ export default function HeroSection() {
         ? currentSlide.heading.split(". ").slice(1).join(". ")
         : "Ultimate Performance.");
 
-  // Text Case formatting helper (Default "as_typed" preserves exact admin casing)
+  // Text Case formatting helper
   const formatCasing = (text: string, casing?: "as_typed" | "uppercase" | "title_case") => {
     if (!text) return "";
     if (casing === "uppercase") return text.toUpperCase();
     if (casing === "title_case") {
       return text.replace(/\w\S*/g, (w) => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase());
     }
-    return text; // "as_typed" - exact admin capitalization
+    return text;
   };
 
   const line1Text = formatCasing(rawLine1, currentSlide.heading_line_1_casing);
@@ -219,153 +267,179 @@ export default function HeroSection() {
   const line1Color = currentSlide.heading_line_1_color || currentSlide.headingLine1Color || currentSlide.heading_color || "#FFFFFF";
   const line2Color = currentSlide.heading_line_2_color || currentSlide.headingLine2Color || currentSlide.heading_color || "#FFFFFF";
 
-  const isWhatsAppAction = (url?: string) => {
-    if (!url) return false;
-    const lower = url.toLowerCase();
-    return lower.includes("whatsapp") || lower.includes("wa.me") || lower.includes("api.whatsapp");
-  };
-
   const hideAllMobile = currentSlide.hide_content_on_mobile === true;
   const hideTextMobile = hideAllMobile || currentSlide.hide_text_on_mobile === true;
   const hideButtonsMobile = hideAllMobile || currentSlide.hide_buttons_on_mobile === true;
 
+  const getDescriptionStyle = () => {
+    const customSize = currentSlide.description_size;
+    if (customSize && (customSize.includes("px") || customSize.includes("rem") || customSize.includes("em"))) {
+      return { fontSize: customSize };
+    }
+    return {};
+  };
+
   return (
     <>
-      {/* ── Mobile Hero Banner (Fixed 16:9 Aspect Ratio, Full-Width Edge-to-Edge with Text/Clean Overlay) ── */}
+      {/* ── Mobile Hero Banner (Full-Bleed Cover Image with Text Overlay) ── */}
       <section
-        className="md:hidden w-full max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none bg-black"
+        className="md:hidden w-full max-w-full overflow-hidden select-none border-0 m-0 p-0 rounded-none shadow-none text-white relative flex flex-col justify-between"
         aria-label="Mobile Featured Hero Showcase"
+        style={{
+          background: bannerBg,
+          minHeight: mobileBannerHeight,
+          fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
+        }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-        <div
-          style={{
-            aspectRatio:
-              (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
-                ? "1 / 1"
-                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
-                ? "860 / 270"
-                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
-                ? "1920 / 850"
-                : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
-                ? "1080 / 1440"
-                : "16 / 9",
-          }}
-          className={`relative w-full overflow-hidden border-0 rounded-none shadow-none flex flex-col justify-between p-4 sm:p-5 text-white ${
-            (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
-              ? "aspect-square"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
-              ? "aspect-[860/270]"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
-              ? "aspect-[1920/850]"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
-              ? "aspect-[1080/1440]"
-              : "aspect-[16/9]"
-          }`}
-        >
-          {/* Full-Frame Edge-to-Edge Background Image */}
-          <div className="absolute inset-0 z-0 overflow-hidden">
-            <AnimatePresence initial={false}>
-              <motion.div
-                key={currentSlide.id || currentIndex}
-                initial={isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 1.05 }}
-                animate={{ opacity: 1, scale: 1.0 }}
-                exit={isReducedMotion ? { opacity: 0 } : { opacity: 0, scale: 0.98 }}
-                transition={{ duration: 0.95, ease: [0.16, 1, 0.3, 1] }}
-                className="absolute inset-0 w-full h-full will-change-transform"
-              >
-                <Image
-                  src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
-                  alt={currentSlide.alt || line1Text || "Latest Smartphones"}
-                  fill
-                  priority
-                  className="object-cover"
-                  style={{
-                    objectPosition: currentSlide.mobile_image_position || currentSlide.desktop_image_position || "center",
-                  }}
-                />
-              </motion.div>
-            </AnimatePresence>
-
-            {/* Subtle transparent dark gradient on left only if text is visible */}
-            {!hideAllMobile && !hideTextMobile && (
-              <>
-                <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/45 via-60% to-transparent z-10 pointer-events-none" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent z-10 pointer-events-none" />
-              </>
-            )}
-
-            {/* Clickable Full Banner overlay link when all text is hidden */}
-            {hideAllMobile && currentSlide.primary_button_url && (
-              <Link
-                href={currentSlide.primary_button_url}
-                className="absolute inset-0 z-10 block cursor-pointer"
-                aria-label={currentSlide.alt || "Hero Banner"}
+        {/* Full-Cover Background Image Layer */}
+        <div className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={`mobile-bg-${currentSlide.id || currentIndex}`}
+              initial={{ opacity: 0, scale: 1.05 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.45 }}
+              className="absolute inset-0 w-full h-full"
+            >
+              <Image
+                src={mobileBg || desktopBg || "https://images.unsplash.com/photo-1606318801954-d4684609a6be?q=80&w=800"}
+                alt={currentSlide.alt || line1Text || "Featured Hero"}
+                fill
+                priority
+                sizes="100vw"
+                className="select-none"
+                style={{
+                  objectFit: imageFitMode,
+                  objectPosition: currentSlide.mobile_image_position || "center",
+                }}
               />
-            )}
-          </div>
+            </motion.div>
+          </AnimatePresence>
 
-          {/* Left Text & CTA Content Overlay (Only if not hidden on mobile) */}
-          {!hideAllMobile && (
+          {/* Elegant Dark Gradient Scrim for crisp text contrast */}
+          <div className="absolute inset-0 z-10 bg-gradient-to-t from-black/95 via-black/60 to-black/30 pointer-events-none" />
+
+          {/* Admin Custom Ambient Overlay */}
+          {currentSlide.overlay_color && (
+            <div
+              className="absolute inset-0 z-10 transition-all duration-500 pointer-events-none"
+              style={{
+                backgroundColor: currentSlide.overlay_color,
+                opacity: overlayOpacity,
+              }}
+            />
+          )}
+        </div>
+
+        {/* Overlaid Content Layer */}
+        <div className="relative z-20 w-full px-5 pt-8 pb-20 flex flex-col justify-end min-h-[440px] h-full">
+          {hideAllMobile || (hideTextMobile && hideButtonsMobile) ? (
+            /* Clean Full-Image Banner on Mobile (Clickable) */
+            <Link
+              href={currentSlide.primary_button_url || "/products"}
+              className="relative w-full flex-1 block"
+              aria-label="View Product"
+            />
+          ) : (
+            /* Full-Cover Mobile Text Overlay */
             <AnimatePresence mode="wait">
               <motion.div
-                key={currentIndex}
-                initial={{ opacity: 0, y: 6 }}
+                key={`mobile-content-${currentSlide.id || currentIndex}`}
+                initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -4 }}
+                exit={{ opacity: 0, y: -6 }}
                 transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
-                className="relative z-20 max-w-[66%] sm:max-w-[60%] flex flex-col justify-center my-auto pb-4"
+                className="w-full flex flex-col"
               >
                 {!hideTextMobile && (
-                  <>
-                    {currentSlide.show_badge !== false && (
+                  <div className="w-full flex flex-col items-start mb-2">
+                    {/* Eyebrow Label */}
+                    {currentSlide.show_badge !== false && currentSlide.campaign_label && (
                       <span
-                        className="inline-block self-start px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-bold uppercase tracking-wider mb-1.5 shadow-xs shrink-0 bg-white/20 text-white border border-white/20 backdrop-blur-xs"
+                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider mb-2 shadow-xs shrink-0 backdrop-blur-md"
+                        style={{
+                          backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.2)",
+                          color: currentSlide.badge_text_color || "#FFFFFF",
+                        }}
                       >
-                        {currentSlide.campaign_label || "NEW ARRIVAL"}
+                        <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span>{currentSlide.campaign_label}</span>
                       </span>
                     )}
 
-                    {/* Responsive Clamp Heading: Max 3 lines */}
+                    {/* Heading */}
                     <h1
-                      className="text-[clamp(17px,4.6vw,22px)] sm:text-[23px] font-black leading-[1.14] tracking-tight mb-1 drop-shadow-md line-clamp-3"
-                      style={{ color: line1Color }}
+                      className="font-black leading-[1.12] tracking-tight mb-1 drop-shadow-lg"
+                      style={{
+                        fontSize: currentSlide.mobile_heading_size || "clamp(22px, 6vw, 30px)",
+                      }}
                     >
-                      {line1Text || "Latest Smartphones."}
-                      {line2Text ? <br /> : " "}
-                      {line2Text || "Ultimate Performance."}
+                      {showLine1 && <span style={{ color: line1Color }}>{line1Text}</span>}
+                      {showLine1 && showLine2 && <br />}
+                      {showLine2 && <span style={{ color: line2Color }}>{line2Text}</span>}
                     </h1>
 
-                    {/* Full Subtitle in max 2 lines */}
+                    {/* Starting Price / Promo */}
+                    {currentSlide.promo_text && (
+                      <div className="flex items-baseline gap-1.5 my-1">
+                        <span className="text-white/80 text-xs font-medium">Starting at</span>
+                        <span className="text-yellow-400 font-black text-lg tracking-tight drop-shadow-md">
+                          {currentSlide.promo_text.replace(/^Starting\s+at\s+/i, "")}
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Description */}
                     {currentSlide.show_description !== false && currentSlide.description && (
                       <p
-                        className="text-neutral-200 text-[11px] sm:text-xs leading-[1.3] line-clamp-2 mb-2 drop-shadow-xs font-medium max-w-full"
-                        style={{ color: currentSlide.description_color || "rgba(255, 255, 255, 0.85)" }}
+                        className="text-neutral-200 text-xs leading-relaxed line-clamp-2 max-w-[95%] font-medium mt-0.5 drop-shadow-md"
+                        style={{
+                          color: currentSlide.description_color || "rgba(255, 255, 255, 0.9)",
+                          ...getDescriptionStyle(),
+                        }}
                       >
                         {currentSlide.description}
                       </p>
                     )}
-                  </>
+                  </div>
                 )}
 
-                {/* Compact 44–48px CTA Button */}
+                {/* Bottom Action Row: Accessible CTA Buttons */}
                 {!hideButtonsMobile && currentSlide.show_primary_button !== false && (
-                  <Link
-                    href={currentSlide.primary_button_url || "/products"}
-                    className="inline-flex items-center justify-center gap-1.5 px-4 sm:px-5 py-2 min-h-[44px] max-h-[48px] bg-white text-black font-bold text-xs rounded-full shadow-md hover:bg-neutral-100 active:scale-95 transition-transform cursor-pointer self-start shrink-0"
-                  >
-                    <span>{currentSlide.primary_button_text || "Shop Now"}</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
+                  <div className="flex items-center gap-2 mt-2">
+                    <Link
+                      href={currentSlide.primary_button_url || "/products"}
+                      className="inline-flex items-center justify-center gap-1.5 px-6 py-2.5 min-h-[44px] font-bold text-xs rounded-full shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                      style={{
+                        backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
+                        color: currentSlide.button_text_color || "#111111",
+                      }}
+                    >
+                      <span>{currentSlide.primary_button_text || "Shop Now"}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+
+                    {currentSlide.show_secondary_button && currentSlide.secondary_button_url && (
+                      <Link
+                        href={currentSlide.secondary_button_url}
+                        className="inline-flex items-center justify-center px-4 py-2.5 min-h-[44px] font-bold text-xs rounded-full border border-white/30 text-white bg-black/30 backdrop-blur-md hover:bg-black/50 transition-all cursor-pointer"
+                      >
+                        <span>{currentSlide.secondary_button_text || "View"}</span>
+                      </Link>
+                    )}
+                  </div>
                 )}
               </motion.div>
             </AnimatePresence>
           )}
 
-          {/* Fixed Bottom-Left Slider Indicator Progress Pills */}
+          {/* Slide Indicator Progress Dots (Mobile) */}
           {slides.length > 1 && (
-            <div className="absolute bottom-2.5 left-4 sm:left-5 z-20 flex items-center gap-1.5 pointer-events-auto px-2 py-1 rounded-full bg-black/40 backdrop-blur-xs border border-white/10">
+            <div className="flex items-center justify-center gap-2 mt-4">
               {slides.map((_, idx) => {
                 const isActive = idx === currentIndex;
                 return (
@@ -377,21 +451,13 @@ export default function HeroSection() {
                       setCurrentIndex(idx);
                     }}
                     aria-label={`Slide ${idx + 1}`}
-                    className="relative h-[3px] rounded-full overflow-hidden cursor-pointer transition-all duration-300"
-                    style={{
-                      width: isActive ? "22px" : "7px",
-                      backgroundColor: isActive ? "rgba(255, 255, 255, 0.25)" : "rgba(255, 255, 255, 0.35)",
-                    }}
+                    className="cursor-pointer transition-all duration-300"
                   >
-                    {isActive && (
-                      <div
-                        key={`mob-progress-${currentIndex}`}
-                        className="h-full bg-white rounded-full shadow-xs"
-                        style={{
-                          animation: `heroProgress ${AUTOPLAY_DURATION}ms linear forwards`,
-                        }}
-                      />
-                    )}
+                    <div
+                      className={`h-2 rounded-full transition-all duration-300 ${
+                        isActive ? "w-6 bg-white shadow-xs" : "w-2 bg-white/40"
+                      }`}
+                    />
                   </button>
                 );
               })}
@@ -400,321 +466,309 @@ export default function HeroSection() {
         </div>
       </section>
 
-      {/* ── Desktop Hero Section (Full-Width Cinematic Slider) ── */}
+      {/* ── Desktop Hero Section (Full-Bleed Cover Image with Text Overlay) ── */}
       <section
         ref={heroRef}
-        className={`hidden md:flex group relative w-full max-w-full bg-black overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 ${
-          (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
-            ? "aspect-square md:h-auto md:min-h-[540px]"
-            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
-            ? "aspect-[860/270] md:h-auto md:min-h-[320px]"
-            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
-            ? "aspect-[1920/850] md:h-auto md:min-h-[480px]"
-            : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
-            ? "aspect-[1080/1440] md:h-auto md:min-h-[640px]"
-            : "md:h-[calc(100svh-var(--navbar-height)-var(--ticker-height))] md:min-h-[calc(100svh-var(--navbar-height)-var(--ticker-height))]"
-        } md:max-h-none select-none`}
+        className="hidden md:flex group relative w-full max-w-full overflow-hidden items-center justify-center text-white rounded-none border-none p-0 m-0 select-none"
         style={{
+          background: bannerBg,
+          minHeight: desktopBannerHeight,
           fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-          aspectRatio:
-            (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1080"
-              ? "1 / 1"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "860x270"
-              ? "860 / 270"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1920x850"
-              ? "1920 / 850"
-              : (currentSlide.banner_size_ratio || currentSlide.bannerSizeRatio) === "1080x1440"
-              ? "1080 / 1440"
-              : undefined,
         }}
         onTouchStart={handleTouchStart}
         onTouchMove={handleTouchMove}
         onTouchEnd={handleTouchEnd}
       >
-      {/* ── Background Carousel Layer (100vw Edge-to-Edge with scroll-linked scale) ── */}
-      <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden origin-center">
-        <AnimatePresence initial={false}>
-          <motion.div
-            key={currentSlide.id || currentIndex}
-            initial={{ opacity: 0, scale: 1.05 }}
-            animate={{ opacity: 1, scale: 1.0 }}
-            exit={{ opacity: 0, scale: 0.98 }}
-            transition={{ duration: 1.15, ease: [0.16, 1, 0.3, 1] }}
-            className="absolute inset-0 w-full h-full will-change-transform"
-          >
-            {/* Desktop Background Image with subtle cinematic scale */}
-            <Image
-              key={`img-desktop-${currentIndex}`}
-              src={desktopBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
-              alt={currentSlide.alt || line1Text || "Hero Banner"}
-              fill
-              priority
-              className="hidden lg:block object-cover"
-              style={{
-                objectPosition: currentSlide.desktop_image_position || "center",
-              }}
-            />
-            {/* Mobile Background Image */}
-            <Image
-              key={`img-mobile-${currentIndex}`}
-              src={mobileBg || "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?q=80&w=800"}
-              alt={currentSlide.alt || line1Text || "Hero Banner"}
-              fill
-              priority
-              className="lg:hidden object-cover"
-              style={{
-                objectPosition: currentSlide.mobile_image_position || "center",
-              }}
-            />
-
-            {/* Dynamic Admin Custom Overlay Color & Opacity */}
-            <div
-              className="absolute inset-0 z-10 transition-all duration-500"
-              style={{
-                backgroundColor: currentSlide.overlay_color || "#000000",
-                opacity: (currentSlide.overlay_opacity ?? 35) / 100,
-              }}
-            />
-
-            {/* Controlled Cinematic Left-to-Right Gradient (0%: 0.88 -> 42%: 0.55 -> 65%: 0.08 -> 100%: 0) */}
-            <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(5,5,5,0.88)_0%,rgba(5,5,5,0.55)_42%,rgba(5,5,5,0.08)_65%,transparent_100%)] z-10 pointer-events-none" />
-          </motion.div>
-        </AnimatePresence>
-      </div>
-
-      {/* ── Aligned Content Container (Matches max 1400px Navbar Logo Line with subtle scroll translation) ── */}
-      <div ref={heroContentRef} className={`relative z-20 max-w-[1400px] mx-auto px-6 sm:px-10 lg:px-16 w-full h-full flex ${vertAlignClass} ${horizAlignClass}`}>
-        <div className={`${maxWClass} flex flex-col ${textAlignClass} w-full`} style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}>
-
+        {/* Full-Cover Background Image Layer with Parallax */}
+        <div ref={heroBgRef} className="absolute inset-0 z-0 w-full h-full overflow-hidden pointer-events-none">
           <AnimatePresence mode="wait">
             <motion.div
-              key={currentIndex}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
-              className={`flex flex-col ${textAlignClass} w-full`}
-              style={{ fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif" }}
+              key={`desktop-bg-${currentSlide.id || currentIndex}`}
+              initial={{ opacity: 0, scale: 1.04 }}
+              animate={{ opacity: 1, scale: 1.0 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.5 }}
+              className="absolute inset-0 w-full h-full"
             >
-              {/* 1. Compact Premium Eyebrow Badge (11px / 700 / 0.12em tracking / 20px bottom margin) */}
-              {currentSlide.show_badge !== false && currentSlide.campaign_label && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.45, delay: 0.0 }}
-                  className="inline-flex items-center gap-2 px-[13px] py-[7px] rounded-full text-[11px] font-bold tracking-[0.12em] shadow-md backdrop-blur-md mb-[20px] shrink-0"
-                  style={{
-                    color: currentSlide.badge_text_color || "#FFFFFF",
-                    backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.12)",
-                    fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                  }}
-                >
-                  <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  <span>{currentSlide.campaign_label}</span>
-                </motion.div>
-              )}
-
-              {/* 2. Main Dual-Line Heading (Manrope 750/800, 56px / clamp, gap 4px, 24px bottom margin) */}
-              <div className="hero-heading flex flex-col gap-[2px] sm:gap-[4px] mb-[14px] sm:mb-[24px] w-full max-w-[720px]">
-                {showLine1 && (
-                  <motion.span
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.08 }}
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[28px] sm:text-[38px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
-                    style={{
-                      color: line1Color,
-                      fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                    }}
-                  >
-                    {line1Text}
-                  </motion.span>
-                )}
-                {showLine2 && (
-                  <motion.span
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 0.16 }}
-                    className="block leading-[1.04] tracking-[-0.045em] drop-shadow-xl break-normal whitespace-normal xl:whitespace-nowrap hyphens-none font-bold sm:font-extrabold text-[28px] sm:text-[38px] md:text-[48px] lg:text-[56px] xl:text-[clamp(50px,3.4vw,62px)]"
-                    style={{
-                      color: line2Color,
-                      fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                    }}
-                  >
-                    {line2Text}
-                  </motion.span>
-                )}
-              </div>
-
-              {/* 3. Description (Manrope 500, 17px, line-height 1.6, max width 520px, 30px bottom margin) */}
-              {currentSlide.show_description !== false && currentSlide.description && (
-                <motion.p
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.24 }}
-                  className="text-[13px] sm:text-[15px] md:text-[17px] leading-[1.5] font-medium max-w-[520px] line-clamp-2 md:line-clamp-none drop-shadow-md break-normal whitespace-normal hyphens-none mb-[18px] sm:mb-[30px]"
-                  style={{
-                    color: currentSlide.description_color || "#D1D5DB",
-                    fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                  }}
-                >
-                  {currentSlide.description}
-                </motion.p>
-              )}
-
-              {/* 4. Compact Premium CTA Buttons (Height 48px on mobile, 52px on desktop) */}
-              <motion.div
-                initial={{ opacity: 0, y: 12 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.32 }}
-                className={`flex flex-row items-center gap-[10px] sm:gap-[12px] w-full sm:w-auto ${
-                  currentSlide.text_align === "center" ? "justify-center" : currentSlide.text_align === "right" ? "justify-end" : "justify-start"
-                }`}
-              >
-                {/* Primary Solid Button */}
-                {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
-                  <Link
-                    href={currentSlide.primary_button_url || "/products"}
-                    className="group/btn flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] shadow-xl transition-all duration-300 flex items-center justify-center gap-2 sm:gap-3 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0"
-                    style={{
-                      color: currentSlide.button_text_color || "#000000",
-                      backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
-                      fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                    }}
-                  >
-                    <span>{currentSlide.primary_button_text}</span>
-                    <span className="w-5 h-5 sm:w-6 sm:h-6 rounded-full bg-black/10 flex items-center justify-center transition-transform duration-300 group-hover/btn:translate-x-1">
-                      <ArrowRight className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                    </span>
-                  </Link>
-                )}
-
-                {/* Secondary Dark-Glass Bordered Button – only renders when a valid URL is provided */}
-                {currentSlide.show_secondary_button === true &&
-                  currentSlide.secondary_button_text &&
-                  currentSlide.secondary_button_url &&
-                  currentSlide.secondary_button_url.trim() !== "" &&
-                  currentSlide.secondary_button_url.trim() !== "#" && (
-                  (() => {
-                    const secUrl = currentSlide.secondary_button_url!.trim();
-                    const isExternal = secUrl.startsWith("http://") || secUrl.startsWith("https://");
-                    const isWA = isWhatsAppAction(secUrl);
-                    const btnContent = (
-                      <>
-                        {isWA ? (
-                          <MessageCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-emerald-400 transition-transform duration-300 group-hover/sec:scale-110" />
-                        ) : (
-                          <ArrowRight className="w-3.5 h-3.5 sm:w-4 sm:h-4 opacity-70 transition-transform duration-300 group-hover/sec:translate-x-1" />
-                        )}
-                        <span>{currentSlide.secondary_button_text}</span>
-                      </>
-                    );
-                    const btnClass = "group/sec flex-1 sm:flex-initial h-[46px] sm:h-[52px] px-[20px] sm:px-[28px] rounded-[12px] font-bold text-[13px] sm:text-[14px] border border-white/25 transition-all duration-300 flex items-center justify-center gap-2 sm:gap-2.5 cursor-pointer hover:-translate-y-[2px] active:scale-95 shrink-0 backdrop-blur-md";
-                    const btnStyle = {
-                      color: currentSlide.secondary_button_text_color || "#FFFFFF",
-                      backgroundColor: currentSlide.secondary_button_bg_color || "rgba(255, 255, 255, 0.1)",
-                      borderColor: currentSlide.secondary_button_border_color || "rgba(255, 255, 255, 0.25)",
-                      fontFamily: "var(--font-manrope), Manrope, Inter, Arial, sans-serif",
-                    };
-                    return isExternal ? (
-                      <a href={secUrl} target="_blank" rel="noopener noreferrer" className={btnClass} style={btnStyle}>
-                        {btnContent}
-                      </a>
-                    ) : (
-                      <Link href={secUrl} className={btnClass} style={btnStyle}>
-                        {btnContent}
-                      </Link>
-                    );
-                  })()
-                )}
-              </motion.div>
-
-              {/* 5. Minimal Trust Strip */}
-              {currentSlide.show_trust_strip !== false && (
-                <motion.div
-                  initial={{ opacity: 0, y: 12 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: 0.40 }}
-                  className="mt-[16px] sm:mt-[34px] flex items-center gap-2.5 sm:gap-4 overflow-x-auto scrollbar-none text-[11px] sm:text-[12px] font-medium text-white/70 tracking-wide pb-1"
-                >
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>{currentSlide.trust_item_1 || "Genuine Products"}</span>
-                  </div>
-                  <span className="text-white/30 text-[10px] shrink-0">•</span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Truck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>{currentSlide.trust_item_2 || "Islandwide Delivery"}</span>
-                  </div>
-                  <span className="text-white/30 text-[10px] shrink-0">•</span>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <Lock className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                    <span>{currentSlide.trust_item_3 || "Secure Payments"}</span>
-                  </div>
-                </motion.div>
-              )}
+              <Image
+                src={desktopBg || "https://images.unsplash.com/photo-1606318801954-d4684609a6be?q=80&w=1920"}
+                alt={currentSlide.alt || line1Text || "Featured Hero"}
+                fill
+                priority
+                sizes="100vw"
+                className="select-none"
+                style={{
+                  objectFit: imageFitMode,
+                  objectPosition: currentSlide.desktop_image_position || "center",
+                }}
+              />
             </motion.div>
           </AnimatePresence>
 
+          {/* Directional scrim gradient ensuring text readability over any background image */}
+          <div
+            className={`absolute inset-0 z-10 pointer-events-none transition-all duration-500 ${
+              horizontalPosition === "center"
+                ? "bg-gradient-to-t from-black/85 via-black/40 to-black/20"
+                : horizontalPosition === "right"
+                ? "bg-gradient-to-l from-black/85 via-black/45 to-transparent"
+                : "bg-gradient-to-r from-black/85 via-black/45 to-transparent"
+            }`}
+          />
+
+          {/* Admin Custom Ambient Color Tint (if specified and not pure black) */}
+          {currentSlide.overlay_color && currentSlide.overlay_color !== "#000000" && (
+            <div
+              className="absolute inset-0 z-10 transition-all duration-500 pointer-events-none"
+              style={{
+                backgroundColor: currentSlide.overlay_color,
+                opacity: overlayOpacity,
+              }}
+            />
+          )}
         </div>
-      </div>
 
-      {/* ── Glass Navigation Control Arrows (42px circle, hover reveal) ── */}
-      {slides.length > 1 && (
-        <>
-          <button
-            type="button"
-            onClick={handlePrev}
-            aria-label="Previous Slide"
-            className="absolute left-4 sm:left-6 top-1/2 -translate-y-1/2 z-30 w-[42px] h-[42px] rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-xl cursor-pointer"
+        {/* ── Overlaid Hero Content (Layered Directly on Top of the Background Image) ── */}
+        <div
+          ref={heroContentRef}
+          className={`relative z-20 max-w-[1440px] mx-auto px-8 lg:px-16 w-full pt-14 lg:pt-20 pb-28 lg:pb-36 flex flex-col ${
+            verticalPosition === "top"
+              ? "justify-start"
+              : verticalPosition === "bottom"
+              ? "justify-end"
+              : "justify-center"
+          } ${
+            horizontalPosition === "center"
+              ? "items-center"
+              : horizontalPosition === "right"
+              ? "items-end"
+              : "items-start"
+          }`}
+          style={{ minHeight: desktopBannerHeight }}
+        >
+          <div
+            className={`w-full flex flex-col ${
+              horizontalPosition === "center"
+                ? "items-center text-center"
+                : horizontalPosition === "right"
+                ? "items-end text-right"
+                : "items-start text-left"
+            }`}
+            style={{ maxWidth: contentMaxWidth }}
           >
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button
-            type="button"
-            onClick={handleNext}
-            aria-label="Next Slide"
-            className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 z-30 w-[42px] h-[42px] rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white flex items-center justify-center hover:bg-white hover:text-black hover:scale-105 transition-all duration-300 opacity-0 group-hover:opacity-100 shadow-xl cursor-pointer"
-          >
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </>
-      )}
-
-      {/* ── Apple-Style Animated Progress Indicators ── */}
-      {slides.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/40 backdrop-blur-md border border-white/15 shadow-xl">
-          {slides.map((_, idx) => {
-            const isActive = idx === currentIndex;
-            return (
-              <button
-                key={idx}
-                type="button"
-                onClick={() => {
-                  setDirection(idx > currentIndex ? 1 : -1);
-                  setCurrentIndex(idx);
-                }}
-                aria-label={`Go to slide ${idx + 1}`}
-                className="relative h-[4px] rounded-full overflow-hidden cursor-pointer transition-all duration-300"
-                style={{
-                  width: isActive ? "38px" : "10px",
-                  backgroundColor: isActive ? "rgba(255, 255, 255, 0.2)" : "rgba(255, 255, 255, 0.35)",
-                }}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={`desktop-content-${currentSlide.id || currentIndex}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
+                className={`flex flex-col w-full ${
+                  horizontalPosition === "center"
+                    ? "items-center text-center"
+                    : horizontalPosition === "right"
+                    ? "items-end text-right"
+                    : "items-start text-left"
+                }`}
               >
-                {isActive && (
-                  <div
-                    key={`progress-${currentIndex}`}
-                    className="h-full bg-white rounded-full shadow-[0_0_8px_rgba(255,255,255,0.9)]"
+                {/* 1. Campaign Eyebrow Label */}
+                {currentSlide.show_badge !== false && currentSlide.campaign_label && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full text-xs font-bold uppercase tracking-[0.14em] shadow-xs mb-4 backdrop-blur-md"
                     style={{
-                      animation: `heroProgress ${AUTOPLAY_DURATION}ms linear forwards`,
+                      color: currentSlide.badge_text_color || "#FFFFFF",
+                      backgroundColor: currentSlide.badge_bg_color || "rgba(255, 255, 255, 0.2)",
                     }}
-                  />
+                  >
+                    <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>{currentSlide.campaign_label}</span>
+                  </motion.div>
                 )}
-              </button>
-            );
-          })}
+
+                {/* 2. Main Dual-Line Heading */}
+                <h1 className="hero-heading flex flex-col gap-1 mb-3 w-full">
+                  {showLine1 && (
+                    <motion.span
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.48, delay: 0.06 }}
+                      className="block leading-[1.06] tracking-[-0.035em] drop-shadow-xl font-extrabold"
+                      style={{
+                        color: line1Color,
+                        fontSize: currentSlide.desktop_heading_size || currentSlide.heading_line_1_size || "clamp(36px, 3.8vw, 56px)",
+                      }}
+                    >
+                      {line1Text}
+                    </motion.span>
+                  )}
+                  {showLine2 && (
+                    <motion.span
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.48, delay: 0.12 }}
+                      className="block leading-[1.06] tracking-[-0.035em] drop-shadow-xl font-extrabold"
+                      style={{
+                        color: line2Color,
+                        fontSize: currentSlide.desktop_heading_size || currentSlide.heading_line_2_size || "clamp(36px, 3.8vw, 56px)",
+                      }}
+                    >
+                      {line2Text}
+                    </motion.span>
+                  )}
+                </h1>
+
+                {/* 3. Promo Starting Price */}
+                {currentSlide.promo_text && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.48, delay: 0.18 }}
+                    className={`flex items-baseline gap-2.5 my-2 ${
+                      horizontalPosition === "center" ? "justify-center" : horizontalPosition === "right" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <span className="text-white/80 text-sm lg:text-base font-medium tracking-wide">
+                      Starting at
+                    </span>
+                    <span className="text-amber-300 sm:text-yellow-400 font-black text-2xl lg:text-3xl xl:text-4xl tracking-tight drop-shadow-md">
+                      {currentSlide.promo_text.replace(/^Starting\s+at\s+/i, "")}
+                    </span>
+                  </motion.div>
+                )}
+
+                {/* 4. Description */}
+                {currentSlide.show_description !== false && currentSlide.description && (
+                  <motion.p
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.48, delay: 0.22 }}
+                    className="text-neutral-200 text-sm sm:text-base lg:text-lg leading-relaxed max-w-[580px] drop-shadow-md font-medium my-3"
+                    style={{
+                      color: currentSlide.description_color || "rgba(255, 255, 255, 0.88)",
+                      ...getDescriptionStyle(),
+                    }}
+                  >
+                    {currentSlide.description}
+                  </motion.p>
+                )}
+
+                {/* 5. Clear Burgundy / White Shop Now CTA Button */}
+                <motion.div
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.48, delay: 0.28 }}
+                  className={`flex items-center gap-3 mt-4 ${
+                    horizontalPosition === "center" ? "justify-center" : horizontalPosition === "right" ? "justify-end" : "justify-start"
+                  }`}
+                >
+                  {currentSlide.show_primary_button !== false && currentSlide.primary_button_text && (
+                    <Link
+                      href={currentSlide.primary_button_url || "/products"}
+                      className="group/btn h-[52px] px-8 rounded-full font-bold text-sm shadow-xl transition-all duration-300 flex items-center justify-center gap-2.5 cursor-pointer hover:scale-105 active:scale-95 shrink-0"
+                      style={{
+                        backgroundColor: currentSlide.button_bg_color || "#FFFFFF",
+                        color: currentSlide.button_text_color || "#111111",
+                      }}
+                    >
+                      <span>{currentSlide.primary_button_text}</span>
+                      <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover/btn:translate-x-1" />
+                    </Link>
+                  )}
+
+                  {currentSlide.show_secondary_button === true &&
+                    currentSlide.secondary_button_text &&
+                    currentSlide.secondary_button_url && (
+                      <Link
+                        href={currentSlide.secondary_button_url}
+                        className="h-[52px] px-7 rounded-full font-bold text-sm border border-white/30 text-white bg-black/30 hover:bg-black/50 backdrop-blur-md transition-all flex items-center justify-center gap-2 cursor-pointer"
+                      >
+                        <span>{currentSlide.secondary_button_text}</span>
+                      </Link>
+                    )}
+                </motion.div>
+
+                {/* 6. Minimal Trust Strip */}
+                {currentSlide.show_trust_strip !== false && (
+                  <motion.div
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.48, delay: 0.34 }}
+                    className={`mt-6 flex items-center gap-4 text-xs font-medium text-white/80 ${
+                      horizontalPosition === "center" ? "justify-center" : horizontalPosition === "right" ? "justify-end" : "justify-start"
+                    }`}
+                  >
+                    <div className="flex items-center gap-1.5">
+                      <ShieldCheck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{currentSlide.trust_item_1 || "Genuine Products"}</span>
+                    </div>
+                    <span className="text-white/30">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <Truck className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{currentSlide.trust_item_2 || "Islandwide Delivery"}</span>
+                    </div>
+                    <span className="text-white/30">•</span>
+                    <div className="flex items-center gap-1.5">
+                      <Lock className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>{currentSlide.trust_item_3 || "Secure Payments"}</span>
+                    </div>
+                  </motion.div>
+                )}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
-      )}
+
+        {/* ── White Circular Navigation Arrows (< and >) ── */}
+        {slides.length > 1 && (
+          <>
+            <button
+              type="button"
+              onClick={handlePrev}
+              aria-label="Previous Slide"
+              className="absolute left-4 lg:left-8 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white text-neutral-900 shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronLeft className="w-5 h-5 stroke-[2.2]" />
+            </button>
+            <button
+              type="button"
+              onClick={handleNext}
+              aria-label="Next Slide"
+              className="absolute right-4 lg:right-8 top-1/2 -translate-y-1/2 z-30 w-11 h-11 rounded-full bg-white text-neutral-900 shadow-xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all cursor-pointer"
+            >
+              <ChevronRight className="w-5 h-5 stroke-[2.2]" />
+            </button>
+          </>
+        )}
+
+        {/* ── Slide Indicator Dots (Positioned with safe clearance above circular categories) ── */}
+        {slides.length > 1 && (
+          <div className="absolute bottom-16 lg:bottom-22 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2">
+            {slides.map((_, idx) => {
+              const isActive = idx === currentIndex;
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setDirection(idx > currentIndex ? 1 : -1);
+                    setCurrentIndex(idx);
+                  }}
+                  aria-label={`Go to slide ${idx + 1}`}
+                  className="cursor-pointer transition-all duration-300"
+                >
+                  <div
+                    className={`h-2.5 rounded-full transition-all duration-300 ${
+                      isActive ? "w-7 bg-white shadow-md" : "w-2.5 bg-white/40 hover:bg-white/70"
+                    }`}
+                  />
+                </button>
+              );
+            })}
+          </div>
+        )}
       </section>
     </>
   );
